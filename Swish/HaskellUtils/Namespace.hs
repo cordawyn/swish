@@ -1,5 +1,4 @@
-{-# OPTIONS -XTypeSynonymInstances #-}
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
 --  $Id: Namespace.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
 --
@@ -73,13 +72,13 @@ instance Show Namespace where
 
 instance LookupEntryClass Namespace String String where
     keyVal   (Namespace pre uri) = (pre,uri)
-    newEntry (pre,uri)           = (Namespace pre uri)
+    newEntry (pre,uri)           = Namespace pre uri
 
 nsEq :: Namespace -> Namespace -> Bool
 nsEq (Namespace _ u1) (Namespace _ u2) = u1 == u2
 
 makeNamespaceQName :: Namespace -> String -> QName
-makeNamespaceQName ns loc = QName (nsURI ns) loc
+makeNamespaceQName ns = QName (nsURI ns)
 
 nullNamespace :: Namespace
 nullNamespace = Namespace "?" ""
@@ -118,11 +117,11 @@ instance Show ScopedName where
 
 --  Scoped names are equal of ther corresponding QNames are equal
 snEq :: ScopedName -> ScopedName -> Bool
-snEq s1 s2 = (getQName s1) == (getQName s2)
+snEq s1 s2 = getQName s1 == getQName s2
 
 --  Scoped names are ordered by their QNames
 snLe :: ScopedName -> ScopedName -> Bool
-snLe s1 s2 = (getQName s1) <= (getQName s2)
+snLe s1 s2 = getQName s1 <= getQName s2
 
 -- |Get QName corresponding to a scoped name
 getQName :: ScopedName -> QName
@@ -139,8 +138,8 @@ matchName str nam = str == show nam
 
 -- |Construct a ScopedName from prefix, URI and local name
 makeScopedName :: String -> String -> String -> ScopedName
-makeScopedName pre nsuri loc =
-    ScopedName (Namespace pre nsuri) loc
+makeScopedName pre nsuri =
+    ScopedName (Namespace pre nsuri)
 
 -- |Construct a ScopedName from a QName
 makeQNameScopedName :: QName -> ScopedName
