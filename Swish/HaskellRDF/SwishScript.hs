@@ -918,7 +918,7 @@ ssBwdChain sn rn cgf an prefs =
             ; modify fcr
             }
 
---  Temporary implementation:  just read local file WNH     
+--  Temporary implementation:  just read local file WNH     
 --  (Add logic to separate filenames from URIs, and
 --  attempt HTTP GET, or similar.)
 getResourceData :: Maybe String -> SwishStateIO (Either String String)
