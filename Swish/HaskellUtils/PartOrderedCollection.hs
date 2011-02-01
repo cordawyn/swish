@@ -61,7 +61,7 @@ maxima cmp as = foldl add [] as
     where
         add []     e = [e]
         add ms@(m:mr) e = case cmp m e of
-            Nothing -> m:(add mr e)
+            Nothing -> m : add mr e
             Just GT -> ms
             Just EQ -> ms
             Just LT -> add mr e
@@ -110,7 +110,7 @@ partComparePair cmpa cmpb (a1,b1) (a2,b2) = case (cmpa a1 a2,cmpb b1 b2) of
 --  otherwise as and bs are unrelated
 --
 partCompareListPartOrd :: PartCompare a -> [a] -> [a] -> Maybe Ordering
-partCompareListPartOrd cmp as bs = pcomp as bs EQ
+partCompareListPartOrd cmp a1s b1s = pcomp a1s b1s EQ
     where
         pcomp []     []     ordp = Just ordp
         pcomp (a:as) (b:bs) ordp = case cmp a b of
@@ -120,6 +120,10 @@ partCompareListPartOrd cmp as bs = pcomp as bs EQ
         pcomp1 as bs EQ   ordp = pcomp as bs ordp
         pcomp1 as bs ordn ordp =
             if ordn == ordp then pcomp as bs ordp else Nothing
+                                                       
+        -- missing patterns from ghc
+        --    [] (_ : _) _
+        --    (_ : _) [] _
 
 -- |Part-ordering comparison on lists of Ord values, where:
 --
@@ -156,7 +160,7 @@ partCompareListSubset a b
         asubb = a `subset` b
         bsuba = b `subset` a
         aeqvb = asubb && bsuba
-        a `subset` b = and [ ma `elem` b | ma <- a ]
+        x `subset` y = and [ ma `elem` y | ma <- x ]
 
 ------------------------------------------------------------
 --  Test cases
