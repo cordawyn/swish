@@ -78,7 +78,7 @@ infixr 5 >*>
 -- Apply function to raw result of parse to get required value
 -- The supplied function must take account of all the possible parse values
 parseApply :: Parser a b -> ( b -> c ) -> Parser a c
-parseApply p f input = [ (f val,rem) | (val,rem) <- p input ]
+parseApply p f input = [ (f val,remval) | (val,remval) <- p input ]
 
 -- Function used with parseApply to flatten the pairs returned by
 -- >*> into a list
@@ -107,7 +107,7 @@ parseReturn value input = [(value,input)]
 -- type Parser a b = [a] -> [(b,[a])] -- e.g. [Char] -> [(Result,[Char])]
 parseMany   :: Parser a b -> Parser a [b]
 parseMany p =
-    parseOne ( ( p >*> (parseMany p) ) `parseApply` toList )
+    parseOne ( ( p >*> parseMany p ) `parseApply` toList )
              ( parseReturn [] )
 
 -- Parse a sequence of a token matching t1 followed by
@@ -123,7 +123,7 @@ parseItem   :: ( a -> Bool ) -> Parser a a
 parseItem t (next:more)
     | t next    = [(next,more)]
     | otherwise = []
-parseItem t []  = []
+parseItem _ []  = []
 
 parseWS :: Parser Char String
 parseWS = parseMany (parseItem isSpace)
@@ -159,7 +159,7 @@ skipToken p1 p2 input =
 
 -- Fail if end of input not here, otherwise return supplied value
 parseEnd :: b -> Parser a b
-parseEnd v [] = ( parseReturn v ) []
+parseEnd v [] = parseReturn v []
 parseEnd _ _  = []
 
 -- Match null input (returning value ())
