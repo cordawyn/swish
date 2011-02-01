@@ -48,7 +48,7 @@ class (Show sh) => ShowM sh where
     --      formatted text, and may include any desired indentation, and
     --  (3) no newline is output following the final line of text.
     showms :: String -> sh -> ShowS
-    showms linebreak val = shows val
+    showms _ = shows
 
 -- |showm
 --  Return a string representation of a ShowM value.
