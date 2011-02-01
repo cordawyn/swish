@@ -1,4 +1,4 @@
-{-# OPTIONS -XFlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 --------------------------------------------------------------------------------
 --  $Id: ErrorM.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
 --
@@ -42,7 +42,7 @@ instance Monad ErrorM where
     (Result a) >>= f = f a
     (Error e)  >>= _ = Error e
     return     = Result
-    fail e     = Error e
+    fail       = Error
 
 -- |MonadPlus instance for Error
 instance MonadPlus ErrorM where
@@ -59,7 +59,7 @@ instance Monad (Either String) where
     (Left a)  >>= _ = Left a
     (Right b) >>= f = f b
     return          = Right
-    fail a          = Left a
+    fail            = Left
 
 -- |MonadPlus instance for (Either String b)
 instance MonadPlus (Either String) where
