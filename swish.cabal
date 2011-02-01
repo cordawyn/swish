@@ -14,25 +14,33 @@ Description:        Swish is a framework, written in the purely functional
                     implementing stand-alone RDF file processors (usable in 
                     similar style to CWM, but with a view to being extensible 
                     in declarative style through added Haskell function and data
-                    value declarations). It explores Haskell as "a scripting 
-                    language for the Semantic Web".
-
+                    value declarations). It explores Haskell as \"a scripting 
+                    language for the Semantic Web\".
+                    .
                     Swish is a work-in-progress, and currently incorporates:
-
+                    .
                     * Notation3 input and output.
+                    .
                     * RDF graph isomorphism testing and merging.
+                    .
                     * Display of differences between RDF graphs.
+                    .
                     * Inference operations in forward chaining, backward chaining and proof-checking modes.
+                    .
                     * Simple Horn-style rule implementations, extendable through variable binding modifiers and filters.
+                    .
                     * Class restriction rule implementation, primarily for datatype inferences.
+                    .
                     * RDF formal semantics entailment rule implementation.
+                    .
                     * Complete, ready-to-run, command-line and script-driven programs.
-
+                    .
                     References
-
+                    .
                     1) http://www.ninebynine.org/RDFNotes/Swish/Intro.html
-
+                    .
                     2) http://www.ninebynine.org/Software/swish-0.2.1.html
+                    .
 
 Tested-With:         GHC>=6.8.2
 Build-Type:          Simple
