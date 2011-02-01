@@ -80,8 +80,8 @@ getURIRef :: String -> URI
 getURIRef s = extractURIRef (uriReference s)
     where
     extractURIRef [(u,"")] = u
-    extractURIRef [(_,_)]  = ( URI "" "" ["<invalid URI>"] "" "" )
-    extractURIRef _        = ( URI "" "" ["<ambiguous URI>"] "" "" )
+    extractURIRef [(_,_)]  = URI "" "" ["<invalid URI>"] "" ""
+    extractURIRef _        = URI "" "" ["<ambiguous URI>"] "" ""
 
 -- Normalize URI string
 normalizeURI :: String -> String
@@ -93,7 +93,7 @@ normalizeURI str = uriToString (URI sc au (normSeg se) qu fr)
 -- Takes account of normalizations that can be applied to all URIs
 -- (2003-02-20, currently subject to W3C TAG debate)
 compareURI :: String -> String -> Bool
-compareURI u1 u2 = ( u1 == u2 )
+compareURI = (==)
 
 -- Separate URI-with-fragment into URI and fragment ID
 splitURIFragment :: String -> ( String, Maybe String )
@@ -102,7 +102,7 @@ splitURIFragment :: String -> ( String, Maybe String )
     -- splitURIFragment "http://example.org/aaa" =
     --     ("http://example.org/aaa",Nothing)
 splitURIFragment inp =
-    case (uriReference inp) of
+    case uriReference inp of
         [(URI s a p q f,"")] -> (uriToString (URI s a p q ""),pickFrag f)
         _ -> error ("splitURIFragment, Invalid URI: "++inp)
     where
@@ -126,6 +126,7 @@ makeURIWithFragment base frag =
         where
             (b,_) = splitURIFragment base
 
+{-
 -- Separate URI into QName URI and local name
 splitQName :: String -> ( String, String )
     -- splitQname "http://example.org/aaa#bbb" = ("http://example.org/aaa#","bbb")
@@ -153,8 +154,10 @@ scanQName "" ns   _  = ns
 -- Definitions here per XML namespaces, NCName production,
 -- restricted to characters used in URIs.
 -- cf. http://www.w3.org/TR/REC-xml-names/
-isNameStartChar c = ( isAlpha c ) || ( c == '_' )
-isNameChar      c = ( isAlpha c ) || ( isDigit c ) || ( any (==c) ".-_" )
+isNameStartChar c = isAlpha c || c == '_'
+isNameChar      c = isAlpha c || isDigit c || c `elem` ".-_"
+
+-}
 
 -- Get reference relative to given base
 relativeRefPart :: String -> String -> String
@@ -163,14 +166,14 @@ relativeRefPart :: String -> String -> String
 relativeRefPart base full =
     uriToString ( relPartRef ( getURIRef base ) ( getURIRef full ) )
     where
-    relPartRef u1@(URI sc1 au1 se1 _ _) u2@( URI sc2 au2 se2 qu2 fr2 )
+    relPartRef (URI sc1 au1 se1 _ _) ( URI sc2 au2 se2 qu2 fr2 )
         | sc1 /= sc2 = URI sc2 au2 (normSeg se2) qu2 fr2    -- different schemes
         | opaque au1 = URI "" au2 (normSeg se2) qu2 fr2     -- same scheme, base is opaque
         | au1 /= au2 = URI "" au2 (normSeg se2) qu2 fr2     -- same scheme, different authority
         | otherwise  = URI "" "" (relPath (normSeg se1) (normSeg se2) ) qu2 fr2
     -- If paths share a leading segment (other than "/") then compute a path relative
     -- to the base URI, otherwise return a root-relative path
-    relPath s1 []    = ["/"]
+    relPath _  []    = ["/"]
     relPath [] s2    = s2
     relPath ("/":s1h:s1t) s2@("/":s2h:s2t)
         | s1h == s2h = relPartSeg s1t s2t
@@ -204,8 +207,20 @@ relativeRefPart base full =
     relPartSeg s1@(s1h:s1t) s2@(s2h:s2t)
         | s1h == s2h = relPartSeg s1t s2t               -- Case 1
         | otherwise  = difPartSeg s1 s2                 -- Case 2 or 3 ...
+                       
+    -- missing patterns for relPartSeg according to ghc:
+    --  Patterns not matched:
+    --     [] []
+    --     [] (_ : (_ : _))
+    --     (_ : (_ : _)) []
+    --
+                       
     difPartSeg [_]     s2  = s2                         -- Case 2  (final base segment is ignored)
-    difPartSeg (_:s1t) s2  = "../":(difPartSeg s1t s2)  -- Case 3
+    difPartSeg (_:s1t) s2  = "../" : difPartSeg s1t s2  -- Case 3
+
+    -- missing patterns for difPartSeg according to ghc:
+    --  Patterns not matched:
+    --     [] _
 
 -- Get absolute URI given base and relative reference
 -- NOTE:  absoluteURI base (relativeRef base u) is always equivalent to u.
@@ -216,7 +231,7 @@ absoluteUriPart :: String -> String -> String
 absoluteUriPart base rel =
     uriToString ( joinRef ( getURIRef base ) ( getURIRef rel ) )
     where
-    joinRef u1@(URI sc1 au1 se1 _ _) u2@( URI sc2 au2 se2 qu2 fr2 )
+    joinRef (URI sc1 au1 se1 _ _) u2@( URI sc2 au2 se2 qu2 fr2 )
         -- non-validating case here?  (See RFC2396bis section 5.2)
         | sc2 /= ""     = u2
         | opaque au1    = URI sc1 au2 se2 qu2 fr2                       -- Base not relative
@@ -233,9 +248,9 @@ opaque _       = True
 
 -- Merge segment se2 with base segment se1
 mergeSeg :: [String] -> [String] -> [String]
-mergeSeg _ s2@("/":se2) = normSeg s2
-mergeSeg [] se2         = normSeg ("/":se2)
-mergeSeg se1 se2        = normSeg ( (init se1) ++ se2 )
+mergeSeg _ s2@("/":_) = normSeg s2
+mergeSeg [] se2       = normSeg ("/":se2)
+mergeSeg se1 se2      = normSeg ( init se1 ++ se2 )
 
 -- Normalize ./ and ../ in segment list:
 -- Don't touch leading "/"
@@ -243,9 +258,10 @@ mergeSeg se1 se2        = normSeg ( (init se1) ++ se2 )
 -- Leave bare "./"
 -- Remove any trailing "./"
 normSeg :: [String] -> [String]
-normSeg ("/":st)      = "/":(normSeg1 st)
+normSeg ("/":st)      = "/" : normSeg1 st
 normSeg st            = normSeg1 st
 
+normSeg1 :: [String] -> [String]
 normSeg1 []           = []
 normSeg1 ["./"]       = ["./"]
 normSeg1 ["."]        = ["./",""]                      -- trailing '.' is treated as './'
@@ -254,10 +270,10 @@ normSeg1 p@["./",st]
     | looksLikeURI st = p
     | otherwise       = [st]
 normSeg1 ("./":st)    = normSeg1 st
-normSeg1 (s1:st)      = normSeg2 (s1:(normSeg1 st))    -- TEST CASE:  a/b/../../c
+normSeg1 (s1:st)      = normSeg2 (s1: normSeg1 st)    -- TEST CASE:  a/b/../../c
 
 normSeg2 :: [String] -> [String]
-normSeg2 s@("../":"../":st) = s
+normSeg2 s@("../":"../":_) = s
 normSeg2 ["./","../"] = ["./"]
 normSeg2 (_:"../":st) = st
 normSeg2 [sh,"./"]    = [sh]
