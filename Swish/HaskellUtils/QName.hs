@@ -37,7 +37,7 @@ import Data.Char
 data QName = QName { qnNsuri, qnLocal :: String }
 
 newQName :: String -> String -> QName
-newQName ns ln = QName ns ln
+newQName = QName
 
 qnameFromPair :: (String,String) -> QName
 qnameFromPair (ns,ln) = QName ns ln
@@ -46,10 +46,10 @@ qnameFromURI :: String -> QName
 qnameFromURI = qnameFromPair . splitURI
 
 getNamespace :: QName -> String
-getNamespace qn = qnNsuri qn
+getNamespace = qnNsuri
 
 getLocalName :: QName -> String
-getLocalName qn = qnLocal qn
+getLocalName = qnLocal
 
 getQNameURI :: QName -> String
 getQNameURI (QName ns ln) = ns++ln
@@ -59,7 +59,7 @@ instance Eq QName where
 
 instance Ord QName where
     (QName u1 l1) <= (QName u2 l2) =
-        if ( up1 /= up2) then (up1 <= up2) else ((ur1++l1) <= (ur2++l2))
+        if up1 /= up2 then up1 <= up2 else (ur1++l1) <= (ur2++l2)
         where
             n   = min (length u1) (length u2)
             (up1,ur1) = splitAt n u1
@@ -72,13 +72,13 @@ instance Show QName where
 --  but that was very inefficient.  This version does the
 --  comparison without constructing new values
 qnEq :: QName -> QName -> Bool
-qnEq (QName ns1 ln1) (QName ns2 ln2) = qnEq1 ns1 ns2 ln1 ln2
-
-qnEq1 (c1:ns1) (c2:ns2)  ln1 ln2   = (c1==c2) && (qnEq1 ns1 ns2 ln1 ln2)
-qnEq1 []  ns2  ln1@(_:_) ln2       = qnEq1 ln1 ns2 []  ln2
-qnEq1 ns1 []   ln1       ln2@(_:_) = qnEq1 ns1 ln2 ln1 []
-qnEq1 []  []   []        []        = True
-qnEq1 _   _    _         _         = False
+qnEq (QName n1 l1) (QName n2 l2) = qnEq1 n1 n2 l1 l2
+  where
+    qnEq1 (c1:ns1) (c2:ns2)  ln1 ln2   = c1==c2 && qnEq1 ns1 ns2 ln1 ln2
+    qnEq1 []  ns2  ln1@(_:_) ln2       = qnEq1 ln1 ns2 []  ln2
+    qnEq1 ns1 []   ln1       ln2@(_:_) = qnEq1 ns1 ln2 ln1 []
+    qnEq1 []  []   []        []        = True
+    qnEq1 _   _    _         _         = False
 
 {-
 --  Define equality of (Maybe QName)
@@ -119,10 +119,10 @@ scanURI "" ns   _  = ns
 -- cf. http://www.w3.org/TR/REC-xml-names/
 
 isNameStartChar :: Char -> Bool
-isNameStartChar c = ( isAlpha c )    || ( c == '_' )
+isNameStartChar c = isAlpha c || c == '_'
 
 isNameChar :: Char -> Bool
-isNameChar      c = ( isAlphaNum c ) || ( any (==c) ".-_" )
+isNameChar      c = isAlphaNum c || c `elem` ".-_"
 
 
 --------------------------------------------------------------------------------
