@@ -36,8 +36,8 @@ assert cond msg expr = if not cond then error msg else expr
 --  Generate lowercase form of supplied string
 ------------------------------------------------------------
 
-lower (c:st)   = (toLower c):(lower st)
-lower []       = ""
+lower :: String -> String
+lower = foldr ((:) . toLower) "" 
 
 ------------------------------------------------------------
 --  Case insensitive compare.
@@ -48,7 +48,7 @@ lower []       = ""
 --  surprising results.
 
 stricmp :: String -> String -> Bool
-stricmp (c1:s1) (c2:s2) = (toLower c1) == (toLower c2) && (stricmp s1 s2)
+stricmp (c1:s1) (c2:s2) = toLower c1 == toLower c2 && stricmp s1 s2
 stricmp []      []      = True
 stricmp _       _       = False
 
@@ -58,12 +58,15 @@ stricmp _       _       = False
 --
 --  [[[TODO: The list of quoting options here is incomplete]]]
 
-quote  st = ['"'] ++ (quote1 st) ++ ['"']
-quote1 ('"': st)    = '\\':'"' :(quote1 st)
-quote1 ('\\':st)    = '\\':'\\':(quote1 st)
-quote1 ('\n':st)    = '\\':'n':(quote1 st)
-quote1 ('\r':st)    = '\\':'r':(quote1 st)
-quote1 (c:st)       = c:(quote1 st)
+quote :: String -> String
+quote  st = ['"'] ++ quote1 st ++ ['"']
+
+quote1 :: String -> String
+quote1 ('"': st)    = '\\':'"' : quote1 st
+quote1 ('\\':st)    = '\\':'\\': quote1 st
+quote1 ('\n':st)    = '\\':'n': quote1 st
+quote1 ('\r':st)    = '\\':'r': quote1 st
+quote1 (c:st)       = c: quote1 st
 quote1 []           = ""
 
 ------------------------------------------------------------
@@ -75,13 +78,14 @@ quote1 []           = ""
 --  'seed' is an additional parameter that allows the function
 --  to be varied for re-hashing.
 
-hashModulus = 16000001::Int
+hashModulus :: Int
+hashModulus = 16000001
 
 hash :: Int -> String -> Int
-hash seed str = hash1 seed (64+seed) hashModulus str
+hash seed = hash1 seed (64+seed) hashModulus 
 
 hash1 :: Int -> Int -> Int -> String -> Int
-hash1 sofar cm mx (c:str) = hash1 (( (sofar*cm) + (fromEnum c) ) `rem` mx) cm mx str
+hash1 sofar cm mx (c:str) = hash1 (( sofar*cm + fromEnum c ) `rem` mx) cm mx str
 hash1 sofar _ _ []        = sofar
 
 
