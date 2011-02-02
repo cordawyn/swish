@@ -1,5 +1,4 @@
-{-# OPTIONS -XExistentialQuantification #-}
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  $Id: Datatype.hs,v 1.21 2003/12/18 18:27:46 graham Exp $
@@ -137,7 +136,7 @@ getTypeRule  nam dt = getRulesetRule  nam (typeRules dt)
 
 -- |Get cacnonical form of datatype value
 typeMkCanonicalForm :: Datatype ex lb vn -> String -> Maybe String
-typeMkCanonicalForm (Datatype dtv) valstr = tvalMkCanonicalForm dtv valstr
+typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 
 ------------------------------------------------------------
 --  DatatypeVal
@@ -416,9 +415,9 @@ makeVmod_1_1_inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
     }
     where
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
-        app2 [(Just v1),(Just v2)] vbind = selv     (f0 [v1,v2]) vbind
-        app2 [(Nothing),(Just v2)] vbind = addv lb1 (f1 [v2])    vbind
-        app2 [(Just v1),(Nothing)] vbind = addv lb2 (f2 [v1])    vbind
+        app2 [Just v1,Just v2] vbind = selv     (f0 [v1,v2]) vbind
+        app2 [Nothing,Just v2] vbind = addv lb1 (f1 [v2])    vbind
+        app2 [Just v1,Nothing] vbind = addv lb2 (f2 [v1])    vbind
         app2 _                     _     = []
 makeVmod_1_1_inv _ _ _ =
     error "makeVmod_1_1_inv: requires 3 functions and 2 labels"
@@ -451,8 +450,8 @@ makeVmod_1_1 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
     }
     where
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
-        app2 [(Just v1),(Just v2)] vbind = selv (f0 [v1,v2])  vbind
-        app2 [(Nothing),(Just v2)] vbind = addv lb1 (f1 [v2]) vbind
+        app2 [Just v1,Just v2] vbind = selv (f0 [v1,v2])  vbind
+        app2 [Nothing,Just v2] vbind = addv lb1 (f1 [v2]) vbind
         app2 _                     _     = []
 makeVmod_1_1 _ _ _ =
     error "makeVmod_1_1: requires 2 functions and 2 labels"
@@ -490,10 +489,10 @@ makeVmod_2_1_inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
     }
     where
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
-        app2 [(Just v1),(Just v2),(Just v3)] vbind = selv (f0 [v1,v2,v3]) vbind
-        app2 [(Nothing),(Just v2),(Just v3)] vbind = addv lb1 (f1 [v2,v3]) vbind
-        app2 [(Just v1),(Nothing),(Just v3)] vbind = addv lb2 (f2 [v1,v3]) vbind
-        app2 [(Just v1),(Just v2),(Nothing)] vbind = addv lb3 (f3 [v1,v2]) vbind
+        app2 [Just v1,Just v2,Just v3] vbind = selv (f0 [v1,v2,v3]) vbind
+        app2 [Nothing,Just v2,Just v3] vbind = addv lb1 (f1 [v2,v3]) vbind
+        app2 [Just v1,Nothing,Just v3] vbind = addv lb2 (f2 [v1,v3]) vbind
+        app2 [Just v1,Just v2,Nothing] vbind = addv lb3 (f3 [v1,v2]) vbind
         app2 _                               _     = []
 makeVmod_2_1_inv _ _ _ =
     error "makeVmod_2_1_inv: requires 4 functions and 3 labels"
@@ -527,8 +526,8 @@ makeVmod_2_1 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
     }
     where
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
-        app2 [(Just v1),(Just v2),(Just v3)] vbind = selv (f0 [v1,v2,v3]) vbind
-        app2 [(Nothing),(Just v2),(Just v3)] vbind = addv lb1 (f1 [v2,v3]) vbind
+        app2 [Just v1,Just v2,Just v3] vbind = selv (f0 [v1,v2,v3]) vbind
+        app2 [Nothing,Just v2,Just v3] vbind = addv lb1 (f1 [v2,v3]) vbind
         app2 _                               _     = []
 makeVmod_2_1 _ _ _ =
     error "makeVmod_2_1: requires 2 functions and 3 labels"
@@ -559,7 +558,7 @@ makeVmod_2_0 nam [f0] lbs@(~[_,_]) = VarBindingModify
     }
     where
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
-        app2 [(Just v1),(Just v2)] vbind = selv (f0 [v1,v2]) vbind
+        app2 [Just v1,Just v2] vbind = selv (f0 [v1,v2]) vbind
         app2 _                     _     = []
 makeVmod_2_0 _ _ _ =
     error "makeVmod_2_0: requires 1 function and 2 labels"
@@ -596,9 +595,9 @@ makeVmod_2_2 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
     }
     where
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
-        app2 [(Just v1),(Just v2),(Just v3),(Just v4)] vbind =
+        app2 [Just v1,Just v2,Just v3,Just v4] vbind =
             selv (f0 [v1,v2,v3,v4]) vbind
-        app2 [(Nothing),(Nothing),(Just v3),(Just v4)] vbind =
+        app2 [Nothing,Nothing,Just v3,Just v4] vbind =
             addv2 lb1 lb2 (f1 [v3,v4]) vbind
         app2 _                               _     = []
 makeVmod_2_2 _ _ _ =
@@ -840,10 +839,10 @@ type UnaryFnApply a = (a->Bool) -> UnaryFnDescr a -> [Maybe a] -> Maybe [a]
 
 -- |altArgs support for unary functions: function applicator
 unaryFnApp :: UnaryFnApply a
-unaryFnApp p (f1,n) args = apf p f1 (args!!n)
+unaryFnApp p (f1,n) args = apf (args!!n)
     where
-        apf p f1 (Just a) = if p r then Just [r] else Nothing where r = f1 a
-        apf _ _ Nothing   = Just []
+        apf (Just a) = if p r then Just [r] else Nothing where r = f1 a
+        apf Nothing  = Just []
 
 -- |altArgs support for binary functions: function descriptor type
 type BinaryFnDescr a = (a->a->a,Int,Int)
@@ -857,11 +856,11 @@ type BinaryFnApply a =
 
 -- |altArgs support for binary functions: function applicator
 binaryFnApp :: BinaryFnApply a
-binaryFnApp p (f,n1,n2) args = apf p f (args!!n1) (args!!n2)
+binaryFnApp p (f,n1,n2) args = apf (args!!n1) (args!!n2)
     where
-        apf p f (Just a1) (Just a2) = if p r then Just [r] else Nothing
+        apf (Just a1) (Just a2) = if p r then Just [r] else Nothing
             where r = f a1 a2
-        apf _ _ _ _  = Just []
+        apf _ _  = Just []
 
 -- |altArgs support for binary function with provision for indicating
 --  inconsistent supplied values:  function descriptor type
@@ -879,14 +878,14 @@ type BinMaybeFnApply a =
 -- |altArgs support for binary function with provision for indicating
 --  inconsistent supplied values:  function applicator
 binMaybeFnApp :: BinMaybeFnApply a
-binMaybeFnApp p (f,n1,n2) args = apf p f (args!!n1) (args!!n2)
+binMaybeFnApp p (f,n1,n2) args = apf (args!!n1) (args!!n2)
     where
-        apf p f (Just a1) (Just a2) = if pm r then r else Nothing
+        apf (Just a1) (Just a2) = if pm r then r else Nothing
             where
                 r = f a1 a2
                 pm Nothing  = False
-                pm (Just r) = all p r
-        apf _ _ _ _  = Just []
+                pm (Just x) = all p x
+        apf _ _  = Just []
 
 -- |altArgs support for list functions (e.g. sum over list of args),
 --  where first element of list is a fold over the rest of the list,
@@ -924,17 +923,18 @@ type ListFnApply a = (a->Bool) -> ListFnDescr a -> [Maybe a] -> Maybe [a]
 listFnApp :: ListFnApply a
 listFnApp p (f,z,g,n) (a0:args)
     | n == 0    =
-        app p $ foldr (apf f) (Just [z]) args
+        app $ foldr (apf f) (Just [z]) args
     | otherwise =
-        app p $ apf g a0 (foldr (apf f) (Just [z]) (args `deleteIndex` (n-1)))
+        app $ apf g a0 (foldr (apf f) (Just [z]) (args `deleteIndex` (n-1)))
     where
         apf :: (a->a->a) -> Maybe a -> Maybe [a] -> Maybe [a]
-        apf f (Just a1) (Just [a2]) = Just [f a1 a2]
-        apf _ _         _           = Just []
-        app :: (a->Bool) -> Maybe [a] -> Maybe [a]
-        app p Nothing      = Nothing
-        app p r@(Just [a]) = if p a then r else Nothing
-        app _ _            = Just []
+        apf fn (Just a1) (Just [a2]) = Just [fn a1 a2]
+        apf _  _         _           = Just []
+        
+        -- app :: Maybe [a] -> Maybe [a]
+        app Nothing      = Nothing
+        app r@(Just [a]) = if p a then r else Nothing
+        app _            = Just []
 
 --------------------------------------------------------
 --  Datatype sub/supertype description
