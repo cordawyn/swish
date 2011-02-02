@@ -1,5 +1,4 @@
-> {-# OPTIONS -fglasgow-exts #-}
-> {-# LANGUAGE UndecidableInstances #-}
+> {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
 
 > module Swish.HaskellRDF.Dfa.Dfa (
 >     Re(..),
@@ -13,7 +12,6 @@
 > import qualified Data.List as L
 > import qualified Data.Map as M
 > import qualified Data.Array as A
-> import Data.Maybe
 
 import IOExts
 
@@ -244,11 +242,11 @@ Regular expression builder.
 >            ei2 <- remLookupFwd e2
 >            remBuildOr e1 e2 (reiSRE ei1) (reiSRE ei2)
 >       where
->           remBuildOr _  e3 (SReOr e1 e2) _
->             = remBuildOne (SReOr e2 e3) >>= \ e2' ->
->               remBuildOne (SReOr e1 e2')
->           remBuildOr _  e2 SReNullSet _ = return e2
->           remBuildOr e1 _  _ SReNullSet = return e1
+>           remBuildOr _  x3 (SReOr x1 x2) _
+>             = remBuildOne (SReOr x2 x3) >>= \ x2' ->
+>               remBuildOne (SReOr x1 x2')
+>           remBuildOr _  x2 SReNullSet _ = return x2
+>           remBuildOr x1 _  _ SReNullSet = return x1
 >           remBuildOr _  _  _ _ = remAdd re
 
 > remBuildOne re@(SReCat e1 e2)
@@ -256,29 +254,29 @@ Regular expression builder.
 >        ei2 <- remLookupFwd e2
 >        remBuildCat e1 e2 (reiSRE ei1) (reiSRE ei2)
 >   where
->       remBuildCat _  e3 (SReCat e1 e2) _
->         = remBuildOne (SReCat e2 e3) >>= \ e2' ->
->           remBuildOne (SReCat e1 e2')
->       remBuildCat e1 _  SReNullSet _ = return e1
->       remBuildCat _  e2 SReLambda  _ = return e2
->       remBuildCat _  e2 _ SReNullSet = return e2
->       remBuildCat e1 _  _ SReLambda  = return e1
+>       remBuildCat _  x3 (SReCat x1 x2) _
+>         = remBuildOne (SReCat x2 x3) >>= \ x2' ->
+>           remBuildOne (SReCat x1 x2')
+>       remBuildCat x1 _  SReNullSet _ = return x1
+>       remBuildCat _  x2 SReLambda  _ = return x2
+>       remBuildCat _  x2 _ SReNullSet = return x2
+>       remBuildCat x1 _  _ SReLambda  = return x1
 >       remBuildCat _  _  _ _ = remAdd re
 
 > remBuildOne re@(SReStar e)
 >   = do ei <- remLookupFwd e
 >        remBuildStar e (reiSRE ei)
 >   where
->       remBuildStar e (SReStar _) = return e
->       remBuildStar e SReLambda   = return e
->       remBuildStar e SReNullSet  = remLambda
+>       remBuildStar x (SReStar _) = return x
+>       remBuildStar x SReLambda   = return x
+>       remBuildStar _ SReNullSet  = remLambda
 >       remBuildStar _ _           = remAdd re
 
-> remBuildOne re@SReLambda = remLambda
+> remBuildOne SReLambda = remLambda
 
-> remBuildOne re@SReNullSet = remNullSet
+> remBuildOne SReNullSet = remNullSet
 
-> remBuildOne re@(SReTerm t) = remAdd re
+> remBuildOne re@(SReTerm _) = remAdd re
 
 
 
@@ -357,42 +355,42 @@ Dfa construction
 >                        else return trans1
 >               remPush (map snd trans)
 >               remSetDfaState re
->                       (ReDfaState {
+>                       ReDfaState {
 >                               dfaFinal = reiNullable info,
 >                               dfaTrans = trans
->                       })
+>                       }
 >     expandState re info (SReOr e1 e2)
 >       = do    dfa1 <- processState e1
 >               dfa2 <- processState e2
 >               trans <- makeOrTrans (dfaTrans dfa1) (dfaTrans dfa2)
 >               remPush (map snd trans)
 >               remSetDfaState re
->                       (ReDfaState {
+>                       ReDfaState {
 >                               dfaFinal = reiNullable info,
 >                               dfaTrans = trans
->                       })
->     expandState re info (SReStar e)
+>                       }
+>     expandState re _ (SReStar e)
 >       = do    dfa <- processState e
 >               let trans' = dfaTrans dfa
 >               trans <- makeCatTrans trans' re
 >               remPush (map snd trans)
 >               remSetDfaState re
->                       (ReDfaState {
+>                       ReDfaState {
 >                               dfaFinal = True,
 >                               dfaTrans = trans
->                       })
->     expandState re info (SReTerm t)
+>                       }
+>     expandState re _ (SReTerm t)
 >       = do    e2' <- remLambda
 >               remPush [e2']
 >               remSetDfaState re
->                       (ReDfaState {
+>                       ReDfaState {
 >                               dfaFinal = False,
 >                               dfaTrans = [(t,e2')]
->                       })
->     expandState re info SReLambda
->       = remSetDfaState re (ReDfaState { dfaFinal = True, dfaTrans = [] })
->     expandState re info SReNullSet
->       = remSetDfaState re (ReDfaState { dfaFinal = False, dfaTrans = [] })
+>                       }
+>     expandState re _ SReLambda
+>       = remSetDfaState re ReDfaState { dfaFinal = True, dfaTrans = [] }
+>     expandState re _ SReNullSet
+>       = remSetDfaState re ReDfaState { dfaFinal = False, dfaTrans = [] }
 
 > makeOrTrans :: (ReVars m t) => [(t, SimplRe t)]
 >                       -> [(t, SimplRe t)] -> ReM m t [(t, SimplRe t)]
@@ -424,9 +422,9 @@ Recursive Dfa
 >   = RDfa Bool [(t, RDfa t)]
 
 > matchRecursiveDfa :: (Ord t) => RDfa t -> [t] -> Bool
-> matchRecursiveDfa (RDfa final trans) []
+> matchRecursiveDfa (RDfa final _) []
 >   = final
-> matchRecursiveDfa (RDfa final trans) (x:xs)
+> matchRecursiveDfa (RDfa _ trans) (x:xs)
 >   = case [ s | (t, s) <- trans, t == x ] of
 >       []    -> False
 >       (s:_) -> matchRecursiveDfa s xs
@@ -435,9 +433,9 @@ Recursive Dfa
 > remMakeRecursiveDfa start
 >   = do max1 <- gets resNext
 >        fwd <- gets resFwdMap
->        let max = max1 - 1
->            stateArray = A.array (0,max)
->               [ (i, makeState stateArray fwd i) | i <- [0..max] ]
+>        let mx = max1 - 1
+>            stateArray = A.array (0,mx)
+>               [ (i, makeState stateArray fwd i) | i <- [0..mx] ]
 >        return (stateArray A.! start)                              -- PROBLEM
 >   where
 >       makeState :: (Ord t) => A.Array (SimplRe t) (RDfa t) ->
@@ -470,10 +468,10 @@ Code generation.  This is very, very ugly.
 > remCodeGen start
 >  = do max1 <- gets resNext
 >       fwd <- gets resFwdMap
->       let max = max1 - 1
->           stateArray = A.array (0,max)
->               [ (i, makeState stateArray fwd i) | i <- [0..max] ]
->       return $ (stateArray A.! start)                              -- PROBLEM
+>       let mx = max1 - 1
+>           stateArray = A.array (0,mx)
+>               [ (i, makeState stateArray fwd i) | i <- [0..mx] ]
+>       return (stateArray A.! start)                              -- PROBLEM
 >  where
 >       globalFail = False
 >       globalSucc = True
@@ -486,12 +484,12 @@ Code generation.  This is very, very ugly.
 >               = \ts -> -- trace ("In state " ++ show s) $
 >                       case ts of
 >                           []     -> globalSucc
->                           (t:ts) -> transition t ts
+>                           (x:xs) -> transition x xs
 >         | otherwise
 >               = \ts -> -- trace ("In state " ++ show s) $
 >                       case ts of
 >                           []     -> globalFail
->                           (t:ts) -> transition t ts
+>                           (x:xs) -> transition x xs
 >         where
 >               Just reinfo = M.lookup s fwd                         -- PROBLEM
 >               Just dfastate = reiDfa reinfo
@@ -499,16 +497,16 @@ Code generation.  This is very, very ugly.
 >               transition t ts
 >                 = transition' (listToBinTree (dfaTrans dfastate)) t ts
 >                 where
->                       transition' BTZ = \t ts -> globalFail
+>                       transition' BTZ = \_ _ -> globalFail
 >                       transition' (BTB BTZ (x,st) BTZ)
->                         = \t ts ->
->                               if x == t then (stateArray A.! st) ts  -- PROBLEM
+>                         = \t1 t1s ->
+>                               if x == t1 then (stateArray A.! st) t1s  -- PROBLEM
 >                               else globalFail
 >                       transition' (BTB l (x,st) r)
->                         = \t ts ->
->                               if t < x then transition' l t ts
->                               else if t > x then transition' r t ts
->                               else (stateArray A.! st) ts
+>                         = \t1 t1s ->
+>                               if t1 < x then transition' l t1 t1s
+>                               else if t1 > x then transition' r t1 t1s
+>                               else (stateArray A.! st) t1s
 
 Debug code.  Note that we need some extra constraints so we can
 actually show regular expression states.
@@ -582,21 +580,18 @@ Wrapper
 >               remCodeGen s
 
 > matchRe :: (Ord t) => Re t -> [t] -> Bool
-> matchRe re
->   = makeCode re
+> matchRe = makeCode
 
 > matchRe2 :: (Ord t) => Re t -> [t] -> Bool
-> matchRe2 re
->   = matchRecursiveDfa (makeDfa re)
+> matchRe2 = matchRecursiveDfa . makeDfa
 
 Test cases
 
 > re1 :: Re Char
 > re1 = ReOr [ReStar (ReCat [re0, re01]), ReStar (ReCat [re01, re0])]
 >     where
->       re01 = ReOr [re0, re1]
+>       re01 = ReOr [re0, ReTerm "1"]
 >       re0 = ReTerm "0"
->       re1 = ReTerm "1"
 
 [+\-]?{digit}*(\.{digit}+)?([eE][+\-]?{digit}+)?
 
