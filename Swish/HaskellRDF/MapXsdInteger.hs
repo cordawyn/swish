@@ -58,12 +58,11 @@ skipPlus :: String -> String
 skipPlus ('+':s) = s
 skipPlus s       = s
 
-reInteger = ReCat [ReOpt (alt "+-"), digits1]
+reInteger :: Re Char
+reInteger = ReCat [ReOpt (alt "+-"), digits]
     where
-        digits0 = ReStar digit
-        digits1 = RePlus digit
-        digit   = alt "0123456789"
-        alt cs  = ReOr $ map (\c -> ReTerm [c]) cs
+        digits = RePlus $ alt "0123456789"
+        alt cs = ReOr $ map (\c -> ReTerm [c]) cs
 
 --------------------------------------------------------------------------------
 --
