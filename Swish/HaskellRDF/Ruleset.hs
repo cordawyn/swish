@@ -1,4 +1,4 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  $Id: Ruleset.hs,v 1.9 2004/01/07 19:49:13 graham Exp $
@@ -36,15 +36,10 @@ where
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
     , ScopedName(..)
-    , getScopePrefix, getScopeURI
-    , getQName, getScopedNameURI
-    , matchName )
+    )
 
 import Swish.HaskellRDF.Rule
-    ( Expression(..), Formula(..), Rule(..)
-    , fwdCheckInference
-    , showsFormula, showsFormulae, showsWidth
-    )
+    ( Formula(..), Rule(..) )
 
 import Swish.HaskellUtils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
@@ -52,7 +47,7 @@ import Swish.HaskellUtils.LookupMap
     )
 
 import Data.Maybe
-    ( Maybe(..), isJust, fromJust, fromMaybe, listToMaybe, mapMaybe )
+    ( fromMaybe, listToMaybe, mapMaybe )
 
 ------------------------------------------------------------
 --  Ruleset, having namespace, axioms and rules
