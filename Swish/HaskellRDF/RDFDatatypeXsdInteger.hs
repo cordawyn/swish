@@ -77,12 +77,11 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceRDFS
     , namespaceRDFD
     , namespaceXSD
-    , namespaceMATH
     , namespaceXsdType
     )
 
 import Data.Maybe
-    ( Maybe (..), maybeToList )
+    ( maybeToList )
 
 import Control.Monad
     ( liftM )
@@ -92,12 +91,15 @@ import Control.Monad
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
+nameXsdInteger :: String
 nameXsdInteger      = "integer"
 
 -- |Type name for xsd:integer datatype
+typeNameXsdInteger :: ScopedName
 typeNameXsdInteger  = ScopedName namespaceXSD nameXsdInteger
 
 -- |Namespace for xsd:integer datatype functions
+namespaceXsdInteger :: Namespace
 namespaceXsdInteger = namespaceXsdType nameXsdInteger
 
 --  Helper to catenate strings with newline separator,
@@ -109,6 +111,7 @@ infixr 5 +++
 (+++) str = ((str++"\n")++)
 
 --  Compose with function of two arguments
+c2 :: (b -> c) -> (a -> d -> b) -> a -> d -> c
 c2 = (.) . (.)
 
 --  Integer power (exponentiation) function
@@ -117,13 +120,13 @@ c2 = (.) . (.)
 intPower :: Integer -> Integer -> Maybe Integer
 intPower a b = if b < 0 then Nothing else Just (intPower1 a b)
     where
-        intPower1 a b
-            | q == 1           = atopsq*a
+        intPower1 x y
+            | q == 1           = atopsq*x
             | p == 0           = 1
             | otherwise        = atopsq
             where
-                (p,q)  = b `divMod` 2
-                atop   = intPower1 a p
+                (p,q)  = y `divMod` 2
+                atop   = intPower1 x p
                 atopsq = atop*atop
 
 ------------------------------------------------------------
@@ -319,7 +322,7 @@ modXsdInteger =
 
 modXsdIntegerAbs :: RDFDatatypeMod Integer
 modXsdIntegerAbs = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "abs")
+    { dmName = ScopedName namespaceXsdInteger "abs"
     , dmModf = [ f0, f1 ]
     , dmAppf = makeVmod_1_1
     }
@@ -331,7 +334,7 @@ modXsdIntegerAbs = DatatypeMod
 
 modXsdIntegerNeg :: RDFDatatypeMod Integer
 modXsdIntegerNeg = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "neg")
+    { dmName = ScopedName namespaceXsdInteger "neg"
     , dmModf = [ f0, f1, f1 ]
     , dmAppf = makeVmod_1_1_inv
     }
@@ -343,7 +346,7 @@ modXsdIntegerNeg = DatatypeMod
 
 modXsdIntegerSum :: RDFDatatypeMod Integer
 modXsdIntegerSum = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "sum")
+    { dmName = ScopedName namespaceXsdInteger "sum"
     , dmModf = [ f0, f1, f2, f2 ]
     , dmAppf = makeVmod_2_1_inv
     }
@@ -357,7 +360,7 @@ modXsdIntegerSum = DatatypeMod
 
 modXsdIntegerDiff :: RDFDatatypeMod Integer
 modXsdIntegerDiff = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "diff")
+    { dmName = ScopedName namespaceXsdInteger "diff"
     , dmModf = [ f0, f1, f2, f3 ]
     , dmAppf = makeVmod_2_1_inv
     }
@@ -373,7 +376,7 @@ modXsdIntegerDiff = DatatypeMod
 
 modXsdIntegerProd :: RDFDatatypeMod Integer
 modXsdIntegerProd = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "prod")
+    { dmName = ScopedName namespaceXsdInteger "prod"
     , dmModf = [ f0, f1, f2, f2 ]
     , dmAppf = makeVmod_2_1_inv
     }
@@ -388,7 +391,7 @@ modXsdIntegerProd = DatatypeMod
 
 modXsdIntegerDivMod :: RDFDatatypeMod Integer
 modXsdIntegerDivMod = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "divmod")
+    { dmName = ScopedName namespaceXsdInteger "divmod"
     , dmModf = [ f0, f1 ]
     , dmAppf = makeVmod_2_2
     }
@@ -400,7 +403,7 @@ modXsdIntegerDivMod = DatatypeMod
 
 modXsdIntegerPower :: RDFDatatypeMod Integer
 modXsdIntegerPower = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger "power")
+    { dmName = ScopedName namespaceXsdInteger "power"
     , dmModf = [ f0, f1 ]
     , dmAppf = makeVmod_2_1
     }
@@ -410,6 +413,7 @@ modXsdIntegerPower = DatatypeMod
         f1 [v2,v3]       = maybeToList (intPower v2 v3)
         f1 _             = []
 
+modXsdIntegerEq, modXsdIntegerNe, modXsdIntegerLt, modXsdIntegerLe, modXsdIntegerGt, modXsdIntegerGe :: RDFDatatypeMod Integer 
 modXsdIntegerEq = modXsdIntegerCompare "eq" (==)
 modXsdIntegerNe = modXsdIntegerCompare "ne" (/=)
 modXsdIntegerLt = modXsdIntegerCompare "lt" (<)
@@ -420,7 +424,7 @@ modXsdIntegerGe = modXsdIntegerCompare "ge" (>=)
 modXsdIntegerCompare ::
     String -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
 modXsdIntegerCompare nam rel = DatatypeMod
-    { dmName = (ScopedName namespaceXsdInteger nam)
+    { dmName = ScopedName namespaceXsdInteger nam
     , dmModf = [ f0 ]
     , dmAppf = makeVmod_2_0
     }
@@ -436,12 +440,15 @@ modXsdIntegerCompare nam rel = DatatypeMod
 --
 --  makeRuleset :: Namespace -> [Formula ex] -> [Rule ex] -> Ruleset ex
 --
+-- rdfRulesetXsdInteger :: RuleSet RDFGraph
 rdfRulesetXsdInteger =
     makeRuleset namespaceXsdInteger axiomsXsdInteger rulesXsdInteger
 
+mkPrefix :: Namespace -> String
 mkPrefix ns =
     "@prefix " ++ nsPrefix ns ++ ": <" ++ nsURI ns ++ "> . \n"
 
+prefixXsdInteger :: String
 prefixXsdInteger =
     mkPrefix namespaceRDF  ++
     mkPrefix namespaceRDFS ++
@@ -454,14 +461,17 @@ mkAxiom :: String -> String -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdInteger local (prefixXsdInteger++gr)
 
+axiomsXsdInteger :: [RDFFormula]
 axiomsXsdInteger =
     [ mkAxiom "dt"      "xsd:integer rdf:type rdfs:Datatype ."
     ]
 
+-- rulesXsdInteger :: [Rule RDFGraph]
 rulesXsdInteger = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdInteger gr
     where
         gr = makeRDFGraphFromN3String rulesXsdIntegerStr
 
+rulesXsdIntegerStr :: String
 rulesXsdIntegerStr = prefixXsdInteger
     +++ "xsd_integer:Abs a rdfd:GeneralRestriction ; "
     +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
