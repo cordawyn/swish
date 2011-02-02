@@ -1,5 +1,5 @@
-{-# OPTIONS -XFlexibleInstances #-}
-{-# OPTIONS -XUndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
+
 --------------------------------------------------------------------------------
 --  $Id: RDFProof.hs,v 1.22 2004/01/07 19:49:13 graham Exp $
 --
@@ -86,6 +86,8 @@ import Swish.HaskellUtils.ListHelpers
 ------------------------------------------------------------
 --  Proof datatypes for graph values
 ------------------------------------------------------------
+
+-- The following is an orphan instance
 
 -- |Instances of LDGraph are also instance of the
 --  Expression class, for which proofs can be constructed.
@@ -191,15 +193,15 @@ rdfInstanceEntailFwdApply vocab ante =
         --  Merge antecedents to single graph, renaming bnodes if needed.
         --  (Null test and using 'foldl1' to avoid merging if possible.)
         mergeGraph  = if null ante then emptyRDFGraph
-                        else (foldl1 merge ante)
+                        else foldl1 merge ante
         --  Obtain lists of variable and non-variable nodes
         --  (was: nonvarNodes = allLabels (not . labelIsVar) mergeGraph)
         nonvarNodes = vocab
-        varNodes    = allLabels (labelIsVar) mergeGraph
+        varNodes    = allLabels labelIsVar mergeGraph
         --  Obtain list of possible remappings for non-variable nodes
         mapList     = remapLabelList nonvarNodes varNodes
         mapSubLists = powerSet mapList
-        mapGr ls gr = fmap (\l -> mapFind l l (makeLookupMap ls)) gr
+        mapGr ls = fmap (\l -> mapFind l l (makeLookupMap ls))
     in
         --  Return all remappings of the original merged graph
         flist (map mapGr mapSubLists) mergeGraph
@@ -218,7 +220,7 @@ rdfInstanceEntailBwdApply :: [RDFLabel] -> RDFGraph -> [[RDFGraph]]
 rdfInstanceEntailBwdApply vocab cons =
     let
         --  Obtain list of variable nodes
-        varNodes     = allLabels (labelIsVar) cons
+        varNodes     = allLabels labelIsVar cons
         --  Generate a substitution for each combination of variable
         --  and vocabulary node.
         varBindings  = map (makeVarBinding . zip varNodes) vocSequences
@@ -233,13 +235,13 @@ rdfInstanceEntailCheckInference :: [RDFGraph] -> RDFGraph -> Bool
 rdfInstanceEntailCheckInference ante cons =
     let
         mante = if null ante then emptyRDFGraph -- merged antecedents
-                    else (foldl1 merge ante)
+                    else foldl1 merge ante
         qvars = rdfQueryInstance cons mante     -- all query matches
         bsubs = rdfQuerySubs qvars cons         -- all back substitutions
     in
         --  Return True if any back-substitution matches the original
         --  merged antecendent graph.
-        or (map (mante ==) bsubs)
+        any (mante ==) bsubs
 
 --  Instance entailment notes.
 --
@@ -308,7 +310,7 @@ rdfSubgraphEntailFwdApply ante =
         --  Merge antecedents to single graph, renaming bnodes if needed.
         --  (Null test and using 'foldl1' to avoid merging if possible.)
         mergeGraph  = if null ante then emptyRDFGraph
-                        else (foldl1 merge ante)
+                        else foldl1 merge ante
     in
         --  Return all subgraphs of the full graph constructed above
         map (replaceArcs mergeGraph) (init $ powerSet $ getArcs mergeGraph)
@@ -323,7 +325,7 @@ rdfSubgraphEntailCheckInference ante cons =
         --  Combine antecedents to single graph, renaming bnodes if needed.
         --  (Null test and using 'foldl1' to avoid merging if possible.)
         fullGraph  = if null ante then emptyRDFGraph
-                        else (foldl1 add ante)
+                        else foldl1 add ante
     in
         --  Check each consequent graph arc is in the antecedent graph
         getArcs cons `subset` getArcs fullGraph
