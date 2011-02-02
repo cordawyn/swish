@@ -84,7 +84,7 @@ import Control.Monad.State
     ( State, runState, modify )
 
 import Data.Maybe
-    ( catMaybes, isJust, fromJust )
+    ( mapMaybe, isJust, fromJust )
 
 ------------------------------------------------------------
 --  Primitive RDF graph queries
@@ -104,8 +104,8 @@ import Data.Maybe
 --  query variables are matched against the graph.
 --
 rdfQueryFind :: RDFGraph -> RDFGraph -> [RDFVarBinding]
-rdfQueryFind qg =
-    rdfQueryPrim1 matchQueryVariable nullRDFVarBinding (getArcs qg)
+rdfQueryFind =
+    rdfQueryPrim1 matchQueryVariable nullRDFVarBinding . getArcs
 
 --  Helper function to match query against a graph.
 --  A node-query function is supplied to determine how query nodes
@@ -138,7 +138,7 @@ rdfQueryPrim2 ::
     -> RDFGraph
     -> [RDFVarBinding]
 rdfQueryPrim2 nodeq qa tg =
-        catMaybes $ map (getBinding nodeq qa) $ getArcs tg
+        mapMaybe (getBinding nodeq qa) (getArcs tg)
 
 -- |RDF query filter.  This function applies a supplied query binding
 --  filter to the result from a call of 'rdfQueryFind'.
@@ -155,7 +155,7 @@ rdfQueryPrim2 nodeq qa tg =
 --
 rdfQueryFilter ::
     RDFVarBindingFilter -> [RDFVarBinding] -> [RDFVarBinding]
-rdfQueryFilter qbf qbs = filter (vbfTest qbf) qbs
+rdfQueryFilter qbf = filter (vbfTest qbf)
 
 ------------------------------------------------------------
 --  Backward-chaining RDF graph queries
@@ -222,7 +222,7 @@ rdfQueryBack2 nodeq qas ta =
 --  filter, the entire corresponding row is removed
 rdfQueryBackFilter ::
     RDFVarBindingFilter -> [[RDFVarBinding]] -> [[RDFVarBinding]]
-rdfQueryBackFilter qbf qbss = filter (and . map (vbfTest qbf)) qbss
+rdfQueryBackFilter qbf = filter (all (vbfTest qbf))
 
 -- |RDF back-chaining query modifier.  This function applies a supplied
 --  query binding modifier to the result from a call of 'rdfQueryBack'.
@@ -233,7 +233,7 @@ rdfQueryBackFilter qbf qbss = filter (and . map (vbfTest qbf)) qbss
 --
 rdfQueryBackModify ::
     VarBindingModify a b -> [[VarBinding a b]] -> [[VarBinding a b]]
-rdfQueryBackModify qbm qbss = concatMap (rdfQueryBackModify1 qbm) qbss
+rdfQueryBackModify qbm = concatMap (rdfQueryBackModify1 qbm)
 
 --  Auxiliary back-chaining query variable binding modifier function:
 --  for a supplied list of variable bindings, all of which must be used
@@ -247,7 +247,7 @@ rdfQueryBackModify qbm qbss = concatMap (rdfQueryBackModify1 qbm) qbss
 --
 rdfQueryBackModify1 ::
     VarBindingModify a b -> [VarBinding a b] -> [[VarBinding a b]]
-rdfQueryBackModify1 qbm qbs = listProduct $ map ((vbmApply qbm) . (:[])) qbs
+rdfQueryBackModify1 qbm qbs = listProduct $ map (vbmApply qbm . (:[])) qbs
 
 ------------------------------------------------------------
 --  Simple entailment graph query
@@ -275,8 +275,8 @@ rdfQueryBackModify1 qbm qbs = listProduct $ map ((vbmApply qbm) . (:[])) qbs
 --  search for sufficient antecendents to determine some goal
 --  has been concluded.
 rdfQueryInstance :: RDFGraph -> RDFGraph -> [RDFVarBinding]
-rdfQueryInstance qg =
-    rdfQueryPrim1 matchQueryBnode nullRDFVarBinding (getArcs qg)
+rdfQueryInstance =
+    rdfQueryPrim1 matchQueryBnode nullRDFVarBinding . getArcs
 
 ------------------------------------------------------------
 --  Primitive RDF graph query support functions
@@ -473,7 +473,7 @@ rdfFindPredVal s p = map arcObj . rdfFindArcs (allp [rdfSubjEq s,rdfPredEq p])
 
 -- |Find integer values of a given predicate for a given subject
 rdfFindPredInt :: RDFLabel -> RDFLabel -> RDFGraph -> [Integer]
-rdfFindPredInt s p = catMaybes . map getint . filter isint . pvs
+rdfFindPredInt s p = mapMaybe getint . filter isint . pvs
     where
         pvs = rdfFindPredVal s p
         isint  = anyp
