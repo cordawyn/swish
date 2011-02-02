@@ -73,7 +73,7 @@ where
 
 import Numeric( showIntAtBase )
 
-import Data.Char( ord, chr, isHexDigit, isSpace )
+import Data.Char( ord, chr, isHexDigit )
 
 {- in Prelude???
 import Text.Parsec
@@ -107,7 +107,7 @@ data URI = URI
     }
 
 instance Show URI where
-    showsPrec _ uri = uriToString uri
+    showsPrec _ = uriToString
 
 ------------------------------------------------------------
 --  Parse a URI
@@ -143,10 +143,10 @@ isValidParse :: UriParser a -> String -> Bool
 isValidParse parser uristr = case parseAll parser "" uristr of
         -- Left  e -> error (show e)
         Left  _ -> False
-        Right u -> True
+        Right _ -> True
 
 testURIReference :: String -> String
-testURIReference uristr = show (parseAll uriReference "" uristr)
+testURIReference = show . parseAll uriReference ""
 
 parseAll :: UriParser a -> String -> String -> Either ParseError a
 parseAll parser filename uristr = parse newparser filename uristr
@@ -179,9 +179,9 @@ uriReference = uri <|> relativeUri
 relativeUri :: UriParser URI
 relativeUri =
     do  { (ua,up) <- hierPart
-        ; uq <- option "" ( do { string "?" ; uquery    } )
-        ; uf <- option "" ( do { string "#" ; ufragment } )
-        ; return $ URI
+        ; uq <- option "" ( do { _ <- string "?" ; uquery    } )
+        ; uf <- option "" ( do { _ <- string "#" ; ufragment } )
+        ; return URI
             { scheme    = ""
             , authority = ua
             , path      = up
@@ -196,8 +196,8 @@ absoluteUri :: UriParser URI
 absoluteUri =
     do  { us <- uscheme
         ; (ua,up) <- hierPart
-        ; uq <- option "" ( do { string "?" ; uquery    } )
-        ; return $ URI
+        ; uq <- option "" ( do { _ <- string "?" ; uquery    } )
+        ; return URI
             { scheme    = us
             , authority = ua
             , path      = up
@@ -212,9 +212,9 @@ uri :: UriParser URI
 uri =
     do  { us <- try uscheme
         ; (ua,up) <- hierPart
-        ; uq <- option "" ( do { string "?" ; uquery    } )
-        ; uf <- option "" ( do { string "#" ; ufragment } )
-        ; return $ URI
+        ; uq <- option "" ( do { _ <- string "?" ; uquery    } )
+        ; uf <- option "" ( do { _ <- string "#" ; ufragment } )
+        ; return URI
             { scheme    = us
             , authority = ua
             , path      = up
@@ -228,7 +228,7 @@ hierPart = netPath <|> absPath <|> relPath
 
 netPath :: UriParser (String,String)
 netPath =
-    do  { try (string "//")
+    do  { _ <- try (string "//")
         ; ua <- uauthority
         ; (_,up) <- option ("","") absPath
         ; return (ua,up)
@@ -236,14 +236,14 @@ netPath =
 
 absPath :: UriParser (String,String)
 absPath =
-    do  { char '/'
+    do  { _ <- char '/'
         ; up <- pathSegments
         ; return ("",'/':up)
         }
 
 relPath :: UriParser (String,String)
 relPath =
-        do  { try uscheme               -- RFC2356bis, section 4.1
+        do  { _ <- try uscheme               -- RFC2356bis, section 4.1
             ; fail "Scheme name in relative path"
             }
     <|>
@@ -256,7 +256,7 @@ relPath =
 uscheme :: UriParser String
 uscheme =
     do  { s <- oneThenMany uriAlphaChar (alphanum <|> oneOf "+-.")
-        ; char ':'
+        ; _ <- char ':'
         ; return s
         }
 
@@ -273,7 +273,7 @@ uauthority =
 userinfo :: UriParser String
 userinfo =
     do  { uu <- many (uchar ";:&=+$,")
-        ; char '@'
+        ; _ <- char '@'
         ; return (concat uu ++"@")
         }
 
@@ -282,9 +282,9 @@ host = ipv6reference <|> try ipv4address <|> hostname
 
 ipv6reference :: UriParser String
 ipv6reference =
-    do  { char '['
+    do  { _ <- char '['
         ; ua <- ipv6address
-        ; char ']'
+        ; _ <- char ']'
         ; return $ "[" ++ ua ++ "]"
         }
 
@@ -297,7 +297,7 @@ ipv6address =
                 ; return $ concat a2 ++ a3
                 } )
     <|> try ( do
-                { string "::"
+                { _ <- string "::"
                 ; a2 <- count 5 h4c
                 ; a3 <- ls32
                 -- ; lookAhead $ char ']'
@@ -305,7 +305,7 @@ ipv6address =
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 0
-                ; string "::"
+                ; _ <- string "::"
                 ; a2 <- count 4 h4c
                 ; a3 <- ls32
                 -- ; lookAhead $ char ']'
@@ -313,7 +313,7 @@ ipv6address =
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 1
-                ; string "::"
+                ; _ <- string "::"
                 ; a2 <- count 3 h4c
                 ; a3 <- ls32
                 -- ; lookAhead $ char ']'
@@ -321,7 +321,7 @@ ipv6address =
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 2
-                ; string "::"
+                ; _ <- string "::"
                 ; a2 <- count 2 h4c
                 ; a3 <- ls32
                 -- ; lookAhead $ char ']'
@@ -329,7 +329,7 @@ ipv6address =
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 3
-                ; string "::"
+                ; _ <- string "::"
                 ; a2 <- h4c
                 ; a3 <- ls32
                 -- ; lookAhead $ char ']'
@@ -337,21 +337,21 @@ ipv6address =
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 4
-                ; string "::"
+                ; _ <- string "::"
                 ; a3 <- ls32
                 -- ; lookAhead $ char ']'
                 ; return $ a1 ++ "::" ++ a3
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 5
-                ; string "::"
+                ; _ <- string "::"
                 ; a3 <- h4
                 -- ; lookAhead $ char ']'
                 ; return $ a1 ++ "::" ++ a3
                 } )
     <|> try ( do
                 { a1 <- opt_n_h4c_h4 6
-                ; string "::"
+                ; _ <- string "::"
                 -- ; lookAhead $ char ']'
                 ; return $ a1 ++ "::"
                 } )
@@ -375,7 +375,7 @@ ls32 =  try ( do
 h4c :: UriParser String
 h4c = try $
     do  { a1 <- h4
-        ; char ':'
+        ; _ <- char ':'
         ; notFollowedBy (char ':')
         ; return $ a1 ++ ":"
         }
@@ -385,9 +385,9 @@ h4 = countMinMax 1 4 uriHexDigitChar
 
 ipv4address :: UriParser String
 ipv4address =
-    do  { a1 <- decOctet ; char '.'
-        ; a2 <- decOctet ; char '.'
-        ; a3 <- decOctet ; char '.'
+    do  { a1 <- decOctet ; _ <- char '.'
+        ; a2 <- decOctet ; _ <- char '.'
+        ; a3 <- decOctet ; _ <- char '.'
         ; a4 <- decOctet
         ; return $ a1++"."++a2++"."++a3++"."++a4
         }
@@ -395,7 +395,7 @@ ipv4address =
 decOctet :: UriParser String
 decOctet =
     do  { a1 <- countMinMax 1 3 uriDigitChar
-        ; if read a1 > 255 then
+        ; if (read a1 :: Int) > 255 then
             fail "Decimal octet value too large"
           else
             return a1
@@ -411,7 +411,7 @@ hostname =
 dqualified :: UriParser String
 dqualified =
     do  { a1 <- many $ try (
-            do  { char '.'
+            do  { _ <- char '.'
                 ; a2 <- domainlabel
                 ; return ('.':a2)
                 } )
@@ -423,7 +423,7 @@ domainlabel :: UriParser String
 domainlabel =
     do  { a1 <- alphanum
         ; a2 <- countMinMax 0 62 (alphanum <|> char '-')
-        ; if (not $ null a2) && (last a2 == '-') then
+        ; if not (null a2) && (last a2 == '-') then
             fail "Domain label ends with '-'"
           else
             return $ a1:a2
@@ -435,9 +435,9 @@ alphanum = uriAlphaChar <|> uriDigitChar
 
 port :: UriParser String
 port =
-    do  { char ':'
+    do  { _ <- char ':'
         ; p <- many uriDigitChar
-        ; return (':':p)
+        ; return $ ':':p
         }
 
 --  RFC2396bis, section 3.3
@@ -446,7 +446,7 @@ pathSegments :: UriParser String
 pathSegments =
     do  { s1 <- segment
         ; s2 <- many $
-            do  { char '/'
+            do  { _ <- char '/'
                 ; s3 <- segment
                 ; return ('/':s3)
                 }
@@ -490,10 +490,10 @@ ufragment =
 
 escaped :: UriParser String
 escaped =
-    do  { char '%'
+    do  { _ <- char '%'
         ; h1 <- uriHexDigitChar
         ; h2 <- uriHexDigitChar
-        ; return $ ['%',h1,h2]
+        ; return ['%',h1,h2]
         }
 
 --  Imports from RFC 2234
@@ -550,9 +550,9 @@ uriToString URI { scheme=scheme
     prepend "?"  query     .
     prepend "#"  fragment
     where
-        prepend pre  "" rest = rest
+        prepend _    "" rest = rest
         prepend pre  s  rest = pre ++ s ++ rest
-        append  post "" rest = rest
+        append  _    "" rest = rest
         append  post s  rest = s ++ post ++ rest
 
 ------------------------------------------------------------
@@ -618,9 +618,9 @@ escapeChar p c
     | otherwise = '%' : myShowHex (ord c) ""
     where
         myShowHex :: Int -> ShowS
-        myShowHex n r =  case showIntAtBase 16 (toChrHex) n r of
+        myShowHex n r =  case showIntAtBase 16 toChrHex n r of
             []  -> "00"
-            [c] -> ['0',c]
+            [cc] -> ['0',cc]
             cs  -> cs
         toChrHex d
             | d < 10    = chr (ord '0' + fromIntegral d)
@@ -640,12 +640,13 @@ escapeString s p = concatMap (escapeChar p) s
 unEscapeString :: String -> String
 unEscapeString [] = ""
 unEscapeString ('%':x1:x2:s) | isHexDigit x1 && isHexDigit x2 =
-    chr (hexDigit x1 * 16 + hexDigit x2) : unEscapeString s
+    chr (hDigit x1 * 16 + hDigit x2) : unEscapeString s
     where
-        hexDigit c
-            | c >= 'A' && c <= 'F' = ord c - ord 'A' + 10
-            | c >= 'a' && c <= 'f' = ord c - ord 'a' + 10
-            | otherwise            = ord c - ord '0'
+      -- TODO: Parsec has a hexDigit; does it do the same thing? 
+      hDigit c
+        | c >= 'A' && c <= 'F' = ord c - ord 'A' + 10
+        | c >= 'a' && c <= 'f' = ord c - ord 'a' + 10
+        | otherwise            = ord c - ord '0'
 unEscapeString (c:s) = c : unEscapeString s
 
 ------------------------------------------------------------
@@ -703,7 +704,7 @@ ref `relativeTo` base =
         munge ('.':'/':s)     ps     = munge s ps
         munge ['.']           ps     = munge [] ps
         munge ('.':'.':'/':s) (p:ps) | p /= "/" = munge s ps
-        munge ['.','.']       (p:ps) = munge [] ps
+        munge ['.','.']       (_:ps) = munge [] ps
         munge s               ps     = munge rest' (p':ps)
                 where (p,rest) = break (=='/') s
                       (p',rest') = case rest of
@@ -715,10 +716,16 @@ ref `relativeTo` base =
         isErrorPath ('/':'.':'.':'/':_) = True
         isErrorPath _ = False
 
-stripLeadingWS, stripTrailingWS, stripWS :: String -> String
+{-
+stripLeadingWS :: String -> String
 stripLeadingWS  = dropWhile isSpace
+
+stripTrailingWS :: String -> String
 stripTrailingWS = reverse . stripLeadingWS . reverse
-stripWS         = stripLeadingWS . stripTrailingWS
+
+stripWS :: String -> String
+stripWS = stripLeadingWS . stripTrailingWS
+-}
 
 --------------------------------------------------------------------------------
 --
