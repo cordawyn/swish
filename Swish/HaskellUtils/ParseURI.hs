@@ -39,400 +39,472 @@ module Swish.HaskellUtils.ParseURI
     hostname, ipv4address, ipv6address, relSegmentWithColon
     ) where
 
-    -- absoluteUri :: Parser Char URI           -- no fragment
-    -- relativeUri :: Parser Char URI           -- no fragment
-    -- uriReference :: Parser Char URI          -- optional fragment
-    -- absoluteUriReference :: Parser Char URI  -- absolute with opt frag
-    -- uriToString :: URI -> String
-    -- hostname :: Parser Char String
-    -- ipv4address :: Parser Char String
-    -- ipv6address :: Parser Char String
+-- absoluteUri :: Parser Char URI           -- no fragment
+-- relativeUri :: Parser Char URI           -- no fragment
+-- uriReference :: Parser Char URI          -- optional fragment
+-- absoluteUriReference :: Parser Char URI  -- absolute with opt frag
+-- uriToString :: URI -> String
+-- hostname :: Parser Char String
+-- ipv4address :: Parser Char String
+-- ipv6address :: Parser Char String
 
-    -- Declare imports used from Parser module
-    import qualified Swish.HaskellUtils.Parse as Parse
+-- Declare imports used from Parser module
+import qualified Swish.HaskellUtils.Parse as Parse
 
-    type Parser a b = Parse.Parser a b
+-- Originally this was generic in the parsing element,
+-- but have now restricted to Char
+type CParser b = Parse.Parser Char b
 
-    isOneOf :: Eq a => [a] -> a -> Bool
-    isOneOf       = Parse.isOneOf
+isOneOf :: String -> Char -> Bool
+isOneOf       = Parse.isOneOf
 
-    isAlpha       :: Char -> Bool
-    isAlpha       = Parse.isAlpha
+isAlpha       :: Char -> Bool
+isAlpha       = Parse.isAlpha
 
-    isDigit       :: Char -> Bool
-    isDigit       = Parse.isDigit
+isDigit       :: Char -> Bool
+isDigit       = Parse.isDigit
 
-    isAlphaNum    :: Char -> Bool
-    isAlphaNum    = Parse.isAlphaNum
+isAlphaNum    :: Char -> Bool
+isAlphaNum    = Parse.isAlphaNum
 
-    isHexDigit    :: Char -> Bool
-    isHexDigit    = Parse.isHexDigit
+isHexDigit    :: Char -> Bool
+isHexDigit    = Parse.isHexDigit
 
-    parseApply    = Parse.parseApply
-    parseReturn   = Parse.parseReturn
-    parseOne      = Parse.parseOne
-    parseAlt      = Parse.parseAlt
-    parseOptional = Parse.parseOptional
-    parseSequence = Parse.parseSequence
-    parseMany     = Parse.parseMany
-    parseItem     = Parse.parseItem
-    catList       = Parse.catList
-    makeList      = Parse.makeList
-    (>++>)        = (Parse.>++>)
-    (>:>)         = (Parse.>:>)
-    (>*>)         = (Parse.>*>)
+parseApply :: CParser b -> (b -> c) -> String -> [(c, String)]
+parseApply    = Parse.parseApply
 
-    alphanumCh    :: String
-    alphanumCh    = Parse.alphanum
+parseReturn :: a -> CParser a
+parseReturn   = Parse.parseReturn
 
-    -- Generic URI parser
-    -- Each parser rule is a local function definition,
-    -- mostly based on the function type:  Parser Char String
-    -- e.g. parseURI :: Parser Char URI
+parseOne :: CParser b -> CParser b -> String -> [(b, String)]
+parseOne      = Parse.parseOne
 
-    -- Internal data type for URI
-    -- Components are:
-    --   scheme authority [segments] query fragment
-    --   e.g.
-    --     "http:" "//example.org" ["/","dir/","file"] "?q" "#f"
-    --     "mailto:" "" ["local@domain"] "" "#f"
-    --
-    -- Note: opaque paths are presented as an authority string with
-    --       empty list of segments and query values.  I think (?) this
-    --       yields the correct behaviour when working with relative URIs
-    -- Note: if the final path segment ends with a "/", an empty segment
-    --       is appended to the segment list.  Thus, the final element
-    --       of the list corresponds (roughly) to a filename rather than
-    --       a directory name.
-    --
-    data URI = URI String String [String] String String
-        deriving ( Eq, Show )
-    type URIPath = (String,[String],String)
+parseAlt :: CParser b -> CParser b -> String -> [(b, String)]
+parseAlt      = Parse.parseAlt
 
-    makeAbsUri   (s,(a,p,q))         = URI s a p q ""
-    makeRelUri   (a,p,q)             = URI "" a p q ""
-    setFragment  (URI s a p q _, f1) = URI s a p q f1
-    makeHierPath ((a,p),q)           = (a,p,q)
-    makeOpaqPath s                   = (s,[],"")
+parseSequence :: (Char -> Bool, Char -> Bool) -> String -> [(String, String)]
+parseSequence = Parse.parseSequence
 
-    nullURI                          :: URI
-    nullURI                          = URI "" "" [] "" ""
+-- parseOptional = Parse.parseOptional
+-- parseMany     = Parse.parseMany
 
-    uriToString :: URI -> String
-    uriToString (URI sch aut seg qry frag) =
-        sch++aut++(foldl (++) [] seg)++qry++frag
+parseItem :: (Char -> Bool) -> String -> [(Char, String)]
+parseItem     = Parse.parseItem
 
-    -- Local helper functions
-    nullStr  = parseReturn []
-    alt      = parseAlt
-    one      = parseOne
-    oneOf    = foldr1 one
-    anyOf    = foldr1 alt
-    opt p    = alt p nullStr
-    rep p    = alt ( p >++> (rep p) ) ( parseReturn [] )
-    no p inp = if null (p inp) then [([],inp)] else []
-    -- optG and repG are "greedy" versions of opt and rep
-    optG p   = one p nullStr
-    repG p   = one ( p >++> (repG p) ) ( parseReturn [] )
+-- catList       = Parse.catList
 
-    char c   = cclass (==c)
-    cclass t = (parseItem t ) `parseApply` makeList
+makeList :: a -> [a]
+makeList      = Parse.makeList
 
-    count (mn,mx) p = ( ( countEq mn p ) >++> ( countMax (mx-mn) p ) )
-    countEq n p
-        | n > 0     = ( p >++> ( countEq (n-1) p ) )
-        | otherwise = parseReturn []
-    countMax n p
-        | n > 0     = opt ( p >++> ( countMax (n-1) p ) )
-        | otherwise = parseReturn []
+(>++>) :: CParser [b] -> CParser [b] -> String -> [([b], String)]
+(>++>)        = (Parse.>++>)
 
-    -- Syntax copied almost verbatim from RFC2396bis:
-    -- http://www.apache.org/~fielding/uri/rev-2002/rfc2396bis.html
+(>:>) :: CParser b -> CParser [b] -> String -> [([b], String)]
+(>:>)         = (Parse.>:>)
 
-    -- Character parsers
+(>*>) :: CParser b -> CParser c -> String -> [((b, c), String)]
+(>*>)         = (Parse.>*>)
 
-    -- misc
-    alpha    :: String -> [(String, String)]
-    alpha    = (cclass isAlpha)
+alphanumCh    :: String
+alphanumCh    = Parse.alphanum
 
-    alphanum :: String -> [(String, String)]
-    alphanum = (cclass isAlphaNum)
+-- Generic URI parser
+-- Each parser rule is a local function definition,
+-- mostly based on the function type:  CParser String
+-- e.g. parseURI :: CParser URI
 
-    alnumhyp :: String -> [(String, String)]
-    alnumhyp = alt (cclass isAlphaNum) (char '-')
+-- Internal data type for URI
+-- Components are:
+--   scheme authority [segments] query fragment
+--   e.g.
+--     "http:" "//example.org" ["/","dir/","file"] "?q" "#f"
+--     "mailto:" "" ["local@domain"] "" "#f"
+--
+-- Note: opaque paths are presented as an authority string with
+--       empty list of segments and query values.  I think (?) this
+--       yields the correct behaviour when working with relative URIs
+-- Note: if the final path segment ends with a "/", an empty segment
+--       is appended to the segment list.  Thus, the final element
+--       of the list corresponds (roughly) to a filename rather than
+--       a directory name.
+--
+data URI = URI String String [String] String String
+    deriving ( Eq, Show )
+type URIPath = (String,[String],String)
 
-    digit    :: String -> [(String, String)]
-    digit    = (cclass isDigit)
+makeAbsUri :: (String, URIPath) -> URI
+makeAbsUri   (s,(a,p,q))         = URI s a p q ""
 
-    hexdigit :: String -> [(String, String)]
-    hexdigit = (cclass isHexDigit)
+makeRelUri :: URIPath -> URI
+makeRelUri   (a,p,q)             = URI "" a p q ""
 
-    dot      :: String -> [(String, String)]
-    dot      = (char '.')
+setFragment :: (URI, String) -> URI
+setFragment  (URI s a p q _, f1) = URI s a p q f1
 
-    slash    :: String -> [(String, String)]
-    slash    = (char '/')
+makeHierPath :: ((String, [String]), String) -> URIPath
+makeHierPath ((a,p),q)           = (a,p,q)
 
-    colon    :: String -> [(String, String)]
-    colon    = (char ':')
+makeOpaqPath :: String -> URIPath
+makeOpaqPath s                   = (s,[],"")
+
+nullURI                          :: URI
+nullURI                          = URI "" "" [] "" ""
+
+uriToString :: URI -> String
+uriToString (URI sch aut seg qry frag) =
+    sch++aut++(foldl (++) [] seg)++qry++frag
+
+-- Local helper functions
+nullStr :: String -> [([a], String)]
+nullStr  = parseReturn []
+
+alt :: CParser b -> CParser b -> String -> [(b, String)]
+alt      = parseAlt
+
+one :: CParser b -> CParser b -> String -> [(b, String)]
+one      = parseOne
+
+oneOf :: [CParser b] -> String -> [(b, String)]
+oneOf    = foldr1 one
+
+anyOf :: [CParser b] -> String -> [(b, String)]
+anyOf    = foldr1 alt
+
+opt :: CParser [a] -> String -> [([a], String)]
+opt p    = alt p nullStr
+
+rep :: CParser [b] -> CParser [b]
+rep p    = alt ( p >++> rep p ) ( parseReturn [] )
+
+no :: (String -> [a]) -> String -> [([b], String)]
+no p inp = if null (p inp) then [([],inp)] else []
+
+-- optG and repG are "greedy" versions of opt and rep
+optG :: CParser [a] -> String -> [([a], String)]
+optG p   = one p nullStr
+
+repG :: CParser [b] -> CParser [b]
+repG p   = one ( p >++> repG p ) ( parseReturn [] )
+
+char :: Char -> String -> [(String, String)]
+char c   = cclass (==c)
+
+cclass :: (Char -> Bool) -> String -> [(String, String)]
+cclass t = parseItem t `parseApply` makeList
+
+-- Assume that Int is sufficient here
+count :: (Int, Int) -> CParser [b] -> String -> [([b], String)]
+count (mn,mx) p = countEq mn p >++> countMax (mx-mn) p
+
+countEq :: Int -> CParser [b] -> CParser [b]
+countEq n p
+    | n > 0     = p >++> countEq (n-1) p
+    | otherwise = parseReturn []
+                  
+countMax :: Int -> CParser [b] -> CParser [b]
+countMax n p
+    | n > 0     = opt ( p >++> countMax (n-1) p )
+    | otherwise = parseReturn []
+
+-- Syntax copied almost verbatim from RFC2396bis:
+-- http://www.apache.org/~fielding/uri/rev-2002/rfc2396bis.html
+
+-- Character parsers
+
+-- misc
+alpha    :: String -> [(String, String)]
+alpha    = cclass isAlpha
+
+alphanum :: String -> [(String, String)]
+alphanum = cclass isAlphaNum
+
+alnumhyp :: String -> [(String, String)]
+alnumhyp = alt (cclass isAlphaNum) (char '-')
+
+digit    :: String -> [(String, String)]
+digit    = cclass isDigit
+
+hexdigit :: String -> [(String, String)]
+hexdigit = cclass isHexDigit
+
+dot      :: String -> [(String, String)]
+dot      = char '.'
+
+slash    :: String -> [(String, String)]
+slash    = char '/'
+
+colon    :: String -> [(String, String)]
+colon    = char ':'
 
 
-    -- sect 2
-    uric :: String -> [(String, String)]
-    uric = oneOf [ reserved, unreserved, escaped ]
+-- sect 2
+uric :: String -> [(String, String)]
+uric = oneOf [ reserved, unreserved, escaped ]
 
-    -- sect 3
-    uricNoSlash :: String -> [(String, String)]
-    uricNoSlash = oneOf
-          [ unreserved,
-            (char '['),
-            (char ']'),
-            (char ';'),
-            (char '?'),
-            (char ':'),
-            (char '@'),
-            (char '&'),
-            (char '='),
-            (char '+'),
-            (char '$'),
-            (char ','),
-            escaped  ]
-    -- sect 2.2
-    reserved :: String -> [(String, String)]
-    reserved = oneOf
-          [ (char '['),
-            (char ']'),
-            (char ';'),
-            (char '/'),
-            (char '?'),
-            (char ':'),
-            (char '@'),
-            (char '&'),
-            (char '='),
-            (char '+'),
-            (char '$'),
-            (char ',') ]
-    -- sect 2.3
-    unreserved :: String -> [(String, String)]
-    unreserved = oneOf
-          [ (cclass isAlpha),
-            (cclass isDigit),
-            mark ]
-    mark :: String -> [(String, String)]
-    mark = oneOf
-          [ (char '-'),
-            (char '_'),
-            (char '.'),
-            (char '!'),
-            (char '~'),
-            (char '*'),
-            (char '\''),
-            (char '('),
-            (char ')') ]
-    -- sect 2.4.1
-    escaped :: String -> [(String, String)]
-    escaped = (char '%') >++> hexdigit >++> hexdigit
-    -- sect 3.3
-    pchar :: String -> [(String, String)]
-    pchar = oneOf
-          [ unreserved,
-            (char ';'),
-            (char ':'),
-            (char '@'),
-            (char '&'),
-            (char '='),
-            (char '+'),
-            (char '$'),
-            (char ','),
-            escaped  ]
+-- sect 3
+uricNoSlash :: String -> [(String, String)]
+uricNoSlash = oneOf
+      [ unreserved,
+        char '[',
+        char ']',
+        char ';',
+        char '?',
+        char ':',
+        char '@',
+        char '&',
+        char '=',
+        char '+',
+        char '$',
+        char ',',
+        escaped  ]
+-- sect 2.2
+reserved :: String -> [(String, String)]
+reserved = oneOf
+      [ char '[',
+        char ']',
+        char ';',
+        char '/',
+        char '?',
+        char ':',
+        char '@',
+        char '&',
+        char '=',
+        char '+',
+        char '$',
+        char ',' ]
+-- sect 2.3
+unreserved :: String -> [(String, String)]
+unreserved = oneOf
+      [ cclass isAlpha,
+        cclass isDigit,
+        mark ]
+mark :: String -> [(String, String)]
+mark = oneOf
+      [ char '-',
+        char '_',
+        char '.',
+        char '!',
+        char '~',
+        char '*',
+        char '\'',
+        char '(',
+        char ')' ]
+-- sect 2.4.1
+escaped :: String -> [(String, String)]
+escaped = char '%' >++> hexdigit >++> hexdigit
+-- sect 3.3
+pchar :: String -> [(String, String)]
+pchar = oneOf
+      [ unreserved,
+        char ';',
+        char ':',
+        char '@',
+        char '&',
+        char '=',
+        char '+',
+        char '$',
+        char ',',
+        escaped  ]
 
-    -- URI parser
+-- URI parser
 
-    -- sect 3  (see also section 4.3)
-    -- absoluteUri -> URI scheme: Path ""
-    absoluteUri :: Parser Char URI
-    absoluteUri = (scheme >++> colon) >*> (alt hierPart opaquePart)
-                  `parseApply` makeAbsUri
+-- sect 3  (see also section 4.3)
+-- absoluteUri -> URI scheme: Path ""
+absoluteUri :: CParser URI
+absoluteUri = (scheme >++> colon) >*> alt hierPart opaquePart
+              `parseApply` makeAbsUri
 
-    hierPart :: Parser Char URIPath
-    hierPart    = (one netPath absPath) >*> optG ((char '?') >++> query)
-                  `parseApply` makeHierPath
-    netPath :: Parser Char (String,[String])
-    netPath     = (slash >++> slash >++> authority) >*> (optG absPath1)
-    absPath :: Parser Char (String,[String])
-    absPath     = nullStr >*> absPath1
-    absPath1 :: Parser Char [String]
-    absPath1    = slash >:> pathSegments
+hierPart :: CParser URIPath
+hierPart    = one netPath absPath >*> optG (char '?' >++> query)
+              `parseApply` makeHierPath
+netPath :: CParser (String,[String])
+netPath     = (slash >++> slash >++> authority) >*> optG absPath1
+absPath :: CParser (String,[String])
+absPath     = nullStr >*> absPath1
+absPath1 :: CParser [String]
+absPath1    = slash >:> pathSegments
 
-    opaquePart :: Parser Char URIPath
-    opaquePart  = uricNoSlash >++> ( repG uric )
-                  `parseApply` makeOpaqPath
+opaquePart :: CParser URIPath
+opaquePart  = uricNoSlash >++> repG uric
+              `parseApply` makeOpaqPath
 
-    -- sect 3.1
-    scheme :: Parser Char String
-    scheme = parseSequence ( isAlpha, (isOneOf (alphanumCh++"+-.")) )
+-- sect 3.1
+scheme :: CParser String
+scheme = parseSequence ( isAlpha, isOneOf (alphanumCh++"+-.") )
 
-    -- sect 3.2
-    authority :: Parser Char String
-    authority = oneOf [ server, regName, nullStr ]
+-- sect 3.2
+authority :: CParser String
+authority = oneOf [ server, regName, nullStr ]
 
-    -- sect 3.2.1
-    regName :: Parser Char String
-    regName = regChar >++> ( repG regChar )
-    regChar :: String -> [(String, String)]
-    regChar = oneOf
-          [ unreserved,
-            (char ';'),
-            (char ':'),
-            (char '@'),
-            (char '&'),
-            (char '='),
-            (char '+'),
-            (char '$'),
-            (char ','),
-            escaped ]
+-- sect 3.2.1
+regName :: CParser String
+regName = regChar >++> repG regChar
 
-    -- sect 3.2.2
-    -- NOTE: blank server option is handled by 'authority' production
-    server :: Parser Char String
-    server      = opt ( userinfo >++> (char '@') ) >++> hostport
-    userinfo    :: String -> [(String, String)]
-    userinfo    = uinfoCh >++> ( repG uinfoCh )
-    uinfoCh     :: String -> [(String, String)]
-    uinfoCh     = oneOf
-          [ unreserved,     -- regChar without '@'
-            (char ';'),
-            (char ':'),
-            (char '&'),
-            (char '='),
-            (char '+'),
-            (char '$'),
-            (char ','),
-            escaped ]
-    hostport    :: String -> [(String, String)]
-    hostport    = host >++> ( optG ( colon >++> port ) )
-    host        :: String -> [(String, String)]
-    host        = oneOf [ ipv6reference, ipv4address, hostname ]
-    port        :: String -> [(String, String)]
-    port        = repG digit
+regChar :: String -> [(String, String)]
+regChar = oneOf
+      [ unreserved,
+        char ';',
+        char ':',
+        char '@',
+        char '&',
+        char '=',
+        char '+',
+        char '$',
+        char ',',
+        escaped ]
 
-    hostname :: Parser Char String
-    hostname    = domainlabel >++> ( optG qualified )
-    qualified   :: String -> [(String, String)]
-    qualified   = ( rep ( dot >++> domainlabel ) ) >++>
-                  ( opt ( dot >++> toplabel >++> dot >++> (no alphanum) ) ) >++>
-                  ( no dot )   -- force all available domain labels to be taken
-    domainlabel :: String -> [(String, String)]
-    domainlabel = alphanum >++> morelabel
-    toplabel    :: String -> [(String, String)]
-    toplabel    = alpha    >++> morelabel
-    morelabel   :: String -> [(String, String)]
-    morelabel   = optG ( ( countMax 61 alnumhyp ) >++> alphanum
-                         >++> (no alnumhyp) )
+-- sect 3.2.2
+-- NOTE: blank server option is handled by 'authority' production
+server :: CParser String
+server      = opt ( userinfo >++> char '@' ) >++> hostport
+userinfo    :: String -> [(String, String)]
+userinfo    = uinfoCh >++> repG uinfoCh
+uinfoCh     :: String -> [(String, String)]
+uinfoCh     = oneOf
+      [ unreserved,     -- regChar without '@'
+        char ';',
+        char ':',
+        char '&',
+        char '=',
+        char '+',
+        char '$',
+        char ',',
+        escaped ]
+hostport    :: String -> [(String, String)]
+hostport    = host >++> optG ( colon >++> port )
+host        :: String -> [(String, String)]
+host        = oneOf [ ipv6reference, ipv4address, hostname ]
+port        :: String -> [(String, String)]
+port        = repG digit
 
-    ipv4address :: String -> [(String, String)]
-    ipv4address = decoctet >++> dot >++> decoctet
-                           >++> dot >++> decoctet
-                           >++> dot >++> decoctet
-    decoctet    :: String -> [(String, String)]
-    decoctet    = anyOf
-          [ digit,
-            digit19 >++> digit,
-            (char '1') >++> digit >++> digit,
-            (char '2') >++> digit04 >++> digit,
-            (char '2') >++> (char '5') >++> digit05 ]
-    digit19     :: String -> [(String, String)]
-    digit19     = (cclass (isOneOf "123456789") )
-    digit12     :: String -> [(String, String)]
-    digit12     = (cclass (isOneOf "12") )
-    digit04     :: String -> [(String, String)]
-    digit04     = (cclass (isOneOf "01234") )
-    digit05     :: String -> [(String, String)]
-    digit05     = (cclass (isOneOf "012345") )
+hostname :: CParser String
+hostname    = domainlabel >++> optG qualified
+qualified   :: String -> [(String, String)]
+qualified   = rep ( dot >++> domainlabel ) >++>
+              opt ( dot >++> toplabel >++> dot >++> no alphanum ) >++>
+              no dot   -- force all available domain labels to be taken
+domainlabel :: String -> [(String, String)]
+domainlabel = alphanum >++> morelabel
+toplabel    :: String -> [(String, String)]
+toplabel    = alpha    >++> morelabel
+morelabel   :: String -> [(String, String)]
+morelabel   = optG ( countMax 61 alnumhyp >++> alphanum
+                     >++> no alnumhyp )
 
-    ipv6reference :: String -> [(String, String)]
-    ipv6reference = (char '[') >++> ipv6address >++> (char ']')
-    ipv6address :: String -> [(String, String)]
-    ipv6address = anyOf
-          [                           (countEq 6 h4c) >++> ls32,
-                              cc >++> (countEq 5 h4c) >++> ls32,
-            opt h4       >++> cc >++> (countEq 4 h4c) >++> ls32,
-            (n_h4c_h4 1) >++> cc >++> (countEq 3 h4c) >++> ls32,
-            (n_h4c_h4 2) >++> cc >++> (countEq 2 h4c) >++> ls32,
-            (n_h4c_h4 3) >++> cc >++>            h4c  >++> ls32,
-            (n_h4c_h4 4) >++> cc >++>                      ls32,
-            (n_h4c_h4 5) >++> cc >++>                      h4,
-            (n_h4c_h4 5) >++> cc ]
-    h4c         = h4 >++> colon
-    n_h4c_h4 n  = opt ( (countMax n h4c) >++> h4 )
-    cc          :: String -> [(String, String)]
-    cc          = colon >++> colon
-    h4          :: String -> [(String, String)]
-    h4          = count (1,4) hexdigit
-    ls32          :: String -> [(String, String)]
-    ls32        = alt (h4c >++> h4) ipv4address
+ipv4address :: String -> [(String, String)]
+ipv4address = decoctet >++> dot >++> decoctet
+                       >++> dot >++> decoctet
+                       >++> dot >++> decoctet
+decoctet    :: String -> [(String, String)]
+decoctet    = anyOf
+      [ digit,
+        digit19  >++> digit,
+        char '1' >++> digit >++> digit,
+        char '2' >++> digit04 >++> digit,
+        char '2' >++> char '5' >++> digit05 ]
+digit19     :: String -> [(String, String)]
+digit19     = cclass (isOneOf "123456789")
 
-    -- sect 3.3
-    pathSegments :: Parser Char [String]
-    pathSegments = one ( (segment >++> slash) >:> pathSegments )
-                       ( segment `parseApply` makeList )
-    segment      :: String -> [(String, String)]
-    segment      = repG pchar
+-- digit12     :: String -> [(String, String)]
+-- digit12     = cclass (isOneOf "12")
 
-    -- sect 3.4
-    query :: Parser Char String
-    query        = repG ( oneOf [ pchar, slash, (char '?') ] )
+digit04     :: String -> [(String, String)]
+digit04     = cclass (isOneOf "01234")
 
-    -- sect 4
-    uriReference :: Parser Char URI
-    uriReference = ( ( oneOf [ absoluteUri, relativeUri, emptyURI ] )
-                     >*> optfrag )
-                   `parseApply` setFragment
-    emptyURI     = parseReturn nullURI
-    optfrag      :: String -> [(String, String)]
-    optfrag      = optG ( (char '#') >++> fragment )
+digit05     :: String -> [(String, String)]
+digit05     = cclass (isOneOf "012345")
 
-    absoluteUriReference :: Parser Char URI
-    absoluteUriReference = ( absoluteUri >*> optfrag )
-                           `parseApply` setFragment
+ipv6reference :: String -> [(String, String)]
+ipv6reference = char '[' >++> ipv6address >++> char ']'
+ipv6address :: String -> [(String, String)]
+ipv6address = anyOf
+      [                         countEq 6 h4c >++> ls32,
+                        cc >++> countEq 5 h4c >++> ls32,
+        opt h4     >++> cc >++> countEq 4 h4c >++> ls32,
+        n_h4c_h4 1 >++> cc >++> countEq 3 h4c >++> ls32,
+        n_h4c_h4 2 >++> cc >++> countEq 2 h4c >++> ls32,
+        n_h4c_h4 3 >++> cc >++>          h4c  >++> ls32,
+        n_h4c_h4 4 >++> cc >++>                    ls32,
+        n_h4c_h4 5 >++> cc >++>                    h4,
+        n_h4c_h4 5 >++> cc ]
+      
+h4c :: String -> [(String, String)]
+h4c         = h4 >++> colon
 
-    -- sect 4.1
-    fragment :: Parser Char String
-    fragment     = repG ( oneOf [ pchar, slash, (char '?') ] )
+n_h4c_h4 :: Int -> String -> [(String, String)]
+n_h4c_h4 n  = opt ( countMax n h4c >++> h4 )
 
-    -- sect 5
-    relativeUri :: Parser Char URI
-    relativeUri  = ( oneOf [ netPath, absPath, relPath, nulPath ] >*>
-                     optG ((char '?') >++> query)
-                    `parseApply` makeHierPath )
-                  `parseApply` makeRelUri
+cc          :: String -> [(String, String)]
+cc          = colon >++> colon
+h4          :: String -> [(String, String)]
+h4          = count (1,4) hexdigit
+ls32          :: String -> [(String, String)]
+ls32        = alt (h4c >++> h4) ipv4address
 
-    nulPath :: Parser Char (String,[String])
-    nulPath     = parseReturn ("",[])
+-- sect 3.3
+pathSegments :: CParser [String]
+pathSegments = one ( (segment >++> slash) >:> pathSegments )
+                   ( segment `parseApply` makeList )
+segment      :: String -> [(String, String)]
+segment      = repG pchar
 
-    relPath :: Parser Char (String,[String])
---    relPath      = nullStr >*> (relSegment >:> optG absPath1)
-    relPath      = nullStr >*> one ( relSegment >++> slash >:> pathSegments )
-                                   ( relSegment `parseApply` makeList )
-                                   -- [[[TODO: factor higher order function
-                                   -- for relPath and pathSegments]]]
+-- sect 3.4
+query :: CParser String
+query        = repG ( oneOf [ pchar, slash, char '?' ] )
 
-    relSegment   :: Parser Char String
-    relSegment   = relSegCh >++> (repG relSegCh)
-    relSegCh     :: String -> [(String, String)]
-    relSegCh     = oneOf
-          [ unreserved,     -- pchar without ':'
-            (char ';'),
-            (char '@'),
-            (char '&'),
-            (char '='),
-            (char '+'),
-            (char '$'),
-            (char ','),
-            escaped  ]
+-- sect 4
+uriReference :: CParser URI
+uriReference = ( oneOf [ absoluteUri, relativeUri, emptyURI ]
+                 >*> optfrag )
+               `parseApply` setFragment
+               
+emptyURI :: CParser URI
+emptyURI     = parseReturn nullURI
 
-    relSegmentWithColon :: Parser Char String
-    relSegmentWithColon = relSegment >++> colon >++> segment
+optfrag      :: String -> [(String, String)]
+optfrag      = optG ( char '#' >++> fragment )
+
+absoluteUriReference :: CParser URI
+absoluteUriReference = ( absoluteUri >*> optfrag )
+                       `parseApply` setFragment
+
+-- sect 4.1
+fragment :: CParser String
+fragment     = repG ( oneOf [ pchar, slash, char '?' ] )
+
+-- sect 5
+relativeUri :: CParser URI
+relativeUri  = ( oneOf [ netPath, absPath, relPath, nulPath ] >*>
+                 optG (char '?' >++> query)
+                `parseApply` makeHierPath )
+              `parseApply` makeRelUri
+
+nulPath :: CParser (String,[String])
+nulPath     = parseReturn ("",[])
+
+relPath :: CParser (String,[String])
+-- relPath      = nullStr >*> (relSegment >:> optG absPath1)
+relPath      = nullStr >*> one ( relSegment >++> slash >:> pathSegments )
+                               ( relSegment `parseApply` makeList )
+                               -- [[[TODO: factor higher order function
+                               -- for relPath and pathSegments]]]
+
+relSegment   :: CParser String
+relSegment   = relSegCh >++> repG relSegCh
+relSegCh     :: String -> [(String, String)]
+relSegCh     = oneOf
+      [ unreserved,     -- pchar without ':'
+        char ';',
+        char '@',
+        char '&',
+        char '=',
+        char '+',
+        char '$',
+        char ',',
+        escaped  ]
+
+relSegmentWithColon :: CParser String
+relSegmentWithColon = relSegment >++> colon >++> segment
 
 --------------------------------------------------------------------------------
 --
