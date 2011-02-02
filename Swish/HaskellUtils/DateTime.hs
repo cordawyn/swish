@@ -59,7 +59,7 @@ instance Eq DateTime where
   d1 == d2 = simpleEq ( normTZ d1 ) ( normTZ d2 )
 
 instance Show DateTime where
-  show dt = dtShow dt
+  show = dtShow
 
 instance Ord DateTime where
   dt1 <  dt2  = simpleLT ( normTZ dt1 ) ( normTZ dt2 )
@@ -71,8 +71,8 @@ leapYear :: Int -> Bool
 leapYear year
   | ( year `mod` 4 == 0 ) &&
     not ( ( year `mod` 100 == 0 ) &&
-          not ( year `mod` 400 == 0 ) ) = True
-  | otherwise                           = False
+          ( (year `mod` 400) /= 0 ) ) = True
+  | otherwise                         = False
 
 daysInMonth :: Int -> Int -> Int
 daysInMonth month year
@@ -92,10 +92,10 @@ daysInMonth month year
 
 validJulianDate :: Int -> Int -> Int -> Bool
 validJulianDate yr mo da
-  | yr < 1900                = False
-  | mo > 12                  = False
-  | da > (daysInMonth mo yr) = False
-  | otherwise                = True
+  | yr < 1900              = False
+  | mo > 12                = False
+  | da > daysInMonth mo yr = False
+  | otherwise              = True
 
 toJulianDate1 :: DateTime -> Int
 toJulianDate1 (DateTime y m d _ _ _ _ _) = toJulianDate y m d
@@ -104,16 +104,16 @@ toJulianDate :: Int -> Int -> Int -> Int
 toJulianDate year month day
 --  | not (validJulianDate year month day) = -1
   | year==1900 && month<=2               = if month==2 then day + 30 else day - 1
-  | month>=3                             = toJD1 (year-1900) (month-3) (day)
-  | otherwise                            = toJD1 (year-1901) (month+9) (day)
+  | month>=3                             = toJD1 (year-1900) (month-3) day
+  | otherwise                            = toJD1 (year-1901) (month+9) day
   where
     toJD1 :: Int -> Int -> Int -> Int
-    toJD1 year month day
-      = ( (1461*year) `div` 4 ) -
-        (year `div` 100) +
-        ((year+300) `div` 400) +
-        ( ( (153*month) + 2 ) `div` 5 ) +
-        day + 58
+    toJD1 y m d
+      = ( (1461*y) `div` 4 ) -
+        (y `div` 100) +
+        ((y+300) `div` 400) +
+        ( ( (153*m) + 2 ) `div` 5 ) +
+        d + 58
 
 fromJulianDate:: Int -> DateTime
 fromJulianDate jdate
@@ -121,9 +121,9 @@ fromJulianDate jdate
   | otherwise   = fromJD2 jdate
   where
     fromJD1 :: Int -> DateTime
-    fromJD1 jdate
-      | jdate<=30 = (DateTime 1900 1 (jdate+1 ) 0 0 0 0 0)
-      | otherwise = (DateTime 1900 2 (jdate-30) 0 0 0 0 0)
+    fromJD1 j
+      | j<=30     = DateTime 1900 1 (j+1 ) 0 0 0 0 0
+      | otherwise = DateTime 1900 2 (j-30) 0 0 0 0 0
 
     fromJD2 :: Int -> DateTime
     fromJD2 j
@@ -160,7 +160,7 @@ date :: Int -> Int -> Int -> DateTime
 date y m d = DateTime y m d 0 0 0 0 0
 
 time :: Int -> Int -> Int -> Int -> Int -> DateTime
-time h m s ms z = DateTime 0 0 0 h m s ms z
+time = DateTime 0 0 0
 
 dtYear       :: DateTime -> Int
 dtMonth      :: DateTime -> Int
@@ -186,9 +186,9 @@ lenFix inStr newLen
 
 showTZ     :: Int -> String
 showTZ tz
-  | tz<0         = "-" ++ showTZabs ( -tz )
-  | tz==0        = showTZabs ( tz )
-  | otherwise    = "+" ++ showTZabs ( tz )
+  | tz<0         = '-' : showTZabs (-tz)
+  | tz==0        = showTZabs tz
+  | otherwise    = '+' : showTZabs tz
 
 showTZabs  :: Int -> String
 showTZabs tz
@@ -197,7 +197,7 @@ showTZabs tz
                    lenFix ( show ( tz `mod` 60 ) ) 2
 
 showTime :: DateTime -> String
-showTime ( DateTime yr mo da hr mi se ms tz )
+showTime ( DateTime _ _ _ hr mi se ms _ )
   | ms==0     = lenFix ( show hr ) 2 ++  ":" ++
                 lenFix ( show mi ) 2 ++  ":" ++
                 lenFix ( show se ) 2
@@ -207,7 +207,7 @@ showTime ( DateTime yr mo da hr mi se ms tz )
                 lenFix ( show ms ) 3
 
 showDate :: DateTime -> String
-showDate ( DateTime yr mo da hr mi se ms tz )
+showDate ( DateTime yr mo da _ _ _ _ _ )
   = lenFix ( show yr ) 4 ++ "-" ++
     lenFix ( show mo ) 2 ++ "-" ++
     lenFix ( show da ) 2
@@ -220,15 +220,15 @@ dtShow ( DateTime yr mo da hr mi se ms tz )
 carryMins :: DateTime -> DateTime
 carryMins ( DateTime yr mo da hr mi se ms tz )
   | newhrs >= 24 = carryHours ( DateTime yr mo da newhrs (mi`mod`60) se ms tz )
-  | otherwise    = ( DateTime yr mo da newhrs (mi`mod`60) se ms tz )
+  | otherwise    = DateTime yr mo da newhrs (mi`mod`60) se ms tz
   where
-    newhrs = (hr+(mi`div`60))
+    newhrs = hr + (mi`div`60)
 
 carryHours :: DateTime -> DateTime
 carryHours ( DateTime yr mo da hr mi se ms tz )
-  = ( DateTime y m d (hr`mod`24) mi se ms tz )
+  = DateTime y m d (hr`mod`24) mi se ms tz
   where
-    (DateTime y m d _ _ _ _ _) = fromJulianDate ((toJulianDate yr mo da)+ (hr`div`24))
+    (DateTime y m d _ _ _ _ _) = fromJulianDate (toJulianDate yr mo da + (hr`div`24))
 
 normTZ :: DateTime -> DateTime
 normTZ ( DateTime yr mo da hr mi se ms tz )
@@ -237,38 +237,43 @@ normTZ ( DateTime yr mo da hr mi se ms tz )
 
 {- another way -}
 
+addMilliSecs :: Int -> DateTime -> DateTime
 addMilliSecs addms ( DateTime yr mo da hr mi se ms tz )
     | totms < 1000 = DateTime yr mo da hr mi se totms tz
     | otherwise    = addSeconds addse ( DateTime yr mo da hr mi se newms tz )
     where
-        totms = (ms+addms)
+        totms = ms + addms
         newms = totms `mod` 1000
         addse = totms `div` 1000
 
+addSeconds :: Int -> DateTime -> DateTime
 addSeconds addse ( DateTime yr mo da hr mi se ms tz )
     | totse < 60 = DateTime yr mo da hr mi totse ms tz
     | otherwise  = addMinutes addmi ( DateTime yr mo da hr mi newse ms tz )
     where
-        totse = (se+addse)
+        totse = se + addse
         newse = totse `mod` 60
         addmi = totse `div` 60
 
+addMinutes :: Int -> DateTime -> DateTime
 addMinutes addmi ( DateTime yr mo da hr mi se ms tz )
     | totmi < 60 = DateTime yr mo da hr totmi se ms tz
     | otherwise  = addHours addhr ( DateTime yr mo da hr newmi se ms tz )
     where
-        totmi = (mi+addmi)
+        totmi = mi + addmi
         newmi = totmi `mod` 60
         addhr = totmi `div` 60
 
+addHours :: Int -> DateTime -> DateTime
 addHours addhr ( DateTime yr mo da hr mi se ms tz )
     | tothr < 24 = DateTime yr mo da tothr mi se ms tz
     | otherwise  = addDays addda ( DateTime yr mo da newhr mi se ms tz )
     where
-        tothr = (hr+addhr)
+        tothr = hr + addhr
         newhr = tothr `mod` 24
         addda = tothr `div` 24
 
+addDays :: Int -> DateTime -> DateTime
 addDays addda ( DateTime yr mo da hr mi se ms tz )
     = DateTime newyr newmo newda hr mi se ms tz
     where
@@ -276,17 +281,18 @@ addDays addda ( DateTime yr mo da hr mi se ms tz )
         -- newyr   = dtYear newdate
         -- newmo   = dtMonth newdate
         -- newda   = dtDay newdate
-        DateTime newyr newmo newda _ _ _ _ _ = fromJulianDate ( (toJulianDate yr mo da)+addda )
+        DateTime newyr newmo newda _ _ _ _ _ = fromJulianDate ( toJulianDate yr mo da + addda )
 
 {- another way -}
 
 simpleEq :: DateTime -> DateTime -> Bool
 --simpleEq ( DateTime yr1 mo1 da1 hr1 mi1 se1 ms1 tz1 ) ( DateTime yr2 mo2 da2 hr2 mi2 se2 ms2 tz2 ) = ( ( yr1 mo1 da1 hr1 mi1 se1 ms1 tz1 ) == ( yr2 mo2 da2 hr2 mi2 se2 ms2 tz2 ) )
-simpleEq ( DateTime yr1 mo1 da1 hr1 mi1 se1 ms1 tz1 ) ( DateTime yr2 mo2 da2 hr2 mi2 se2 ms2 tz2 ) = ( ( yr1 == yr2 ) && ( mo1 == mo2 ) && ( da1 == da2 ) && ( hr1 == hr2 ) && ( mi1 == mi2 ) && ( se1 == se2 ) && ( ms1 == ms2 ) && ( tz1 == tz2 ) )
+simpleEq ( DateTime yr1 mo1 da1 hr1 mi1 se1 ms1 tz1 ) ( DateTime yr2 mo2 da2 hr2 mi2 se2 ms2 tz2 ) =
+  ( yr1 == yr2 ) && ( mo1 == mo2 ) && ( da1 == da2 ) && ( hr1 == hr2 ) && ( mi1 == mi2 ) && ( se1 == se2 ) && ( ms1 == ms2 ) && ( tz1 == tz2 )
 
 simpleLT :: DateTime -> DateTime -> Bool
-simpleLT ( DateTime yr1 mo1 da1 hr1 mi1 se1 ms1 tz1 ) ( DateTime yr2 mo2 da2 hr2 mi2 se2 ms2 tz2 )
-  | (yr1<yr2) = True
+simpleLT ( DateTime yr1 mo1 da1 hr1 mi1 se1 ms1 _ ) ( DateTime yr2 mo2 da2 hr2 mi2 se2 ms2 _ )
+  | yr1 < yr2  = True
   | (yr1==yr2)&&(mo1<mo2) = True
   | (yr1==yr2)&&(mo1==mo2)&&(da1<da2) = True
   | (yr1==yr2)&&(mo1==mo2)&&(da1==da2)&&(hr1<hr2) = True
