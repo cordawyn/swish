@@ -26,6 +26,7 @@ import Text.ParserCombinators.Parsec.Token
 -- Styles: haskellStyle, javaStyle
 -----------------------------------------------------------               
 
+haskellStyle :: LanguageDef st
 haskellStyle= emptyDef                      
                 { commentStart   = "{-"
                 , commentEnd     = "-}"
@@ -40,6 +41,7 @@ haskellStyle= emptyDef
                 , caseSensitive  = True                                   
                 }         
                            
+javaStyle :: LanguageDef st
 javaStyle   = emptyDef
 		{ commentStart	 = "/*"
 		, commentEnd	 = "*/"
@@ -55,6 +57,7 @@ javaStyle   = emptyDef
 -----------------------------------------------------------
 -- minimal language definition
 -----------------------------------------------------------                
+emptyDef :: LanguageDef st
 emptyDef    = LanguageDef 
                { commentStart   = ""
                , commentEnd     = ""
@@ -77,6 +80,7 @@ emptyDef    = LanguageDef
 haskell :: TokenParser st
 haskell      = makeTokenParser haskellDef
 
+haskellDef :: LanguageDef st
 haskellDef   = haskell98Def
 	        { identLetter	 = identLetter haskell98Def <|> char '#'
 	        , reservedNames	 = reservedNames haskell98Def ++ 
@@ -86,6 +90,7 @@ haskellDef   = haskell98Def
     				   ]
                 }
 			    
+haskell98Def :: LanguageDef st
 haskell98Def = haskellStyle
                 { reservedOpNames= ["::","..","=","\\","|","<-","->","@","~","=>"]
                 , reservedNames  = ["let","in","case","of","if","then","else",
@@ -105,6 +110,7 @@ haskell98Def = haskellStyle
 mondrian :: TokenParser st
 mondrian    = makeTokenParser mondrianDef
 
+mondrianDef :: LanguageDef st
 mondrianDef = javaStyle
 		{ reservedNames = [ "case", "class", "default", "extends"
 				  , "import", "in", "let", "new", "of", "package"
