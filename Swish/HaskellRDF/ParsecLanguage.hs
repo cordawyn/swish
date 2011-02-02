@@ -1,4 +1,6 @@
 
+{- TODO: this module can probably be removed -}
+
 ----------------------------------------------------------------
 -- Daan Leijen (c) 1999-2001, daan@cs.uu.nl
 -- 
