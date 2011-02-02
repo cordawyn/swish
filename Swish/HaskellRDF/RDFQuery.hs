@@ -81,7 +81,7 @@ import Swish.HaskellUtils.ListHelpers
     ( listProduct, allp, anyp )
 
 import Control.Monad.State
-    ( State(..), modify )
+    ( State, runState, modify )
 
 import Data.Maybe
     ( catMaybes, isJust, fromJust )
