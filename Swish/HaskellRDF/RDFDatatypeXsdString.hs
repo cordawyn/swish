@@ -59,8 +59,6 @@ import Swish.HaskellRDF.Datatype
     , DatatypeRel(..), DatatypeRelPr
     , altArgs
     , UnaryFnTable,  unaryFnApp
-    , BinaryFnTable, binaryFnApp 
-    , BinMaybeFnTable, binMaybeFnApp 
     , DatatypeMod(..) 
     , makeVmod_2_0
     )
@@ -101,12 +99,15 @@ import Monad
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
+nameXsdString :: String
 nameXsdString      = "string"
 
 -- |Type name for xsd:integer datatype
+typeNameXsdString :: ScopedName
 typeNameXsdString  = ScopedName namespaceXSD nameXsdString
 
 -- |Namespace for xsd:integer datatype functions
+namespaceXsdString :: Namespace
 namespaceXsdString = namespaceXsdType nameXsdString
 
 --  Helper to catenate strings with newline separator,
@@ -116,9 +117,6 @@ namespaceXsdString = namespaceXsdType nameXsdString
 infixr 5 +++
 (+++) :: String -> ShowS
 (+++) str = ((str++"\n")++)
-
---  Compose with function of two arguments
-c2 = (.) . (.)
 
 ------------------------------------------------------------
 --  Declare exported RDFDatatype value for xsd:integer
@@ -174,6 +172,7 @@ mkStrRel2 nam pr fns = DatatypeRel
     , dtRelFunc = altArgs pr fns unaryFnApp
     }
 
+{-
 mkStrRel3 ::
     String -> DatatypeRelPr String -> BinaryFnTable String
     -> DatatypeRel String
@@ -189,6 +188,7 @@ mkStrRel3maybe nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdString nam
     , dtRelFunc = altArgs pr fns binMaybeFnApp
     }
+-}
 
 liftL2 :: (a->a->Bool) -> ([a]->a) -> ([a]->a) -> [a] -> Bool
 liftL2 p i1 i2 as = p (i1 as) (i2 as)
@@ -216,13 +216,14 @@ modXsdString =
     , modXsdStringNe
     ]
 
+modXsdStringEq, modXsdStringNe :: RDFDatatypeMod String
 modXsdStringEq = modXsdStringCompare "eq" (==)
 modXsdStringNe = modXsdStringCompare "ne" (/=)
 
 modXsdStringCompare ::
     String -> (String->String->Bool) -> RDFDatatypeMod String
 modXsdStringCompare nam rel = DatatypeMod
-    { dmName = (ScopedName namespaceXsdString nam)
+    { dmName = ScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
     , dmAppf = makeVmod_2_0
     }
@@ -238,9 +239,11 @@ modXsdStringCompare nam rel = DatatypeMod
 rdfRulesetXsdString =
     makeRuleset namespaceXsdString axiomsXsdString rulesXsdString
 
+mkPrefix :: Namespace -> String
 mkPrefix ns =
     "@prefix " ++ nsPrefix ns ++ ": <" ++ nsURI ns ++ "> . \n"
 
+prefixXsdString :: String
 prefixXsdString =
     mkPrefix namespaceRDF  ++
     mkPrefix namespaceRDFS ++
@@ -253,6 +256,7 @@ mkAxiom :: String -> String -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdString local (prefixXsdString++gr)
 
+axiomsXsdString :: [RDFFormula]
 axiomsXsdString =
     [ mkAxiom "dt"      "xsd:string rdf:type rdfs:Datatype ."
     ]
@@ -264,6 +268,7 @@ rulesXsdStringRestriction =
     where
         gr = makeRDFGraphFromN3String rulesXsdStringStr
 
+rulesXsdStringStr :: String
 rulesXsdStringStr = prefixXsdString
     +++ "xsd_string:Eq a rdfd:GeneralRestriction ; "
     +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
@@ -310,17 +315,17 @@ stringPlainValue svar lvar = VarBindingModify
         }
     where
         app1 vbind = app2 (vbMap vbind svar) (vbMap vbind lvar) vbind
-        app2 (Just (Lit s (Just typeNameXsdString)))
-             (Just (Lit l (Nothing)))
+        app2 (Just (Lit s (Just _)))
+             (Just (Lit l Nothing))
              vbind
              | s == l
              = [vbind]
-        app2 (Just (Lit s (Just typeNameXsdString)))
-             (Nothing)
+        app2 (Just (Lit s (Just _)))
+             Nothing
              vbind
-             = [addVarBinding lvar (Lit s (Nothing)) vbind]
-        app2 (Nothing)
-             (Just (Lit l (Nothing)))
+             = [addVarBinding lvar (Lit s Nothing) vbind]
+        app2 Nothing
+             (Just (Lit l Nothing))
              vbind
              = [addVarBinding svar (Lit l (Just typeNameXsdString)) vbind]
         app2 _ _ _ = []
