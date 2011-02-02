@@ -40,14 +40,14 @@ import Data.List( union, intersect, sortBy, groupBy )
 select :: ( a -> Bool ) -> [a] -> [b] -> [b]
 select _ [] []           = []
 select f (e1:l1) (e2:l2)
-    | f e1      = e2:(select f l1 l2)
-    | otherwise = (select f l1 l2)
+    | f e1      = e2 : select f l1 l2
+    | otherwise = select f l1 l2
 select _ _ _    = error "select supplied with different length lists"
 
 -- |Collect set of values from list under supplied mapping function
 mapset :: Eq b => ( a -> b ) -> [a] -> [b]
 mapset _ []    = []
-mapset f (e:l) = [f e] `union` (mapset f l)
+mapset f (e:l) = [f e] `union` mapset f l
 
 -- |Delete the n'th element of a list, returning the result
 --
@@ -83,7 +83,7 @@ a `subset` b    = and [ ma `elem` b | ma <- a ]
 -- |Set equivalence test
 
 equiv           :: (Eq a) => [a] -> [a] -> Bool
-a `equiv` b     = (a `subset` b) && (b `subset` a)
+a `equiv` b     = a `subset` b && b `subset` a
 
 -- |Set partition test
 --
@@ -91,7 +91,7 @@ a `equiv` b     = (a `subset` b) && (b `subset` a)
 --  Maybe something like sort/merge/compare?
 hasPartitions   :: (Eq a) => [a] -> ([a],[a]) -> Bool
 a `hasPartitions` (b1,b2) =
-    (null (b1 `intersect` b2)) && (a `equiv` (b1 `union` b2))
+    null (b1 `intersect` b2) && (a `equiv` (b1 `union` b2))
 
 -- |Add element to set
 
@@ -115,8 +115,10 @@ headOrNothing (a:_) = a
 --  Filter, ungroup, sort and group pairs by first member
 ------------------------------------------------------------
 
+{-
 pairSelect :: ((a,b) -> Bool) -> ((a,b) -> c) -> [(a,b)] -> [c]
 pairSelect p f as = map f (filter p as)
+-}
 
 pairUngroup :: (a,[b]) -> [(a,b)]
 pairUngroup (a,bs) = [ (a,b) | b <- bs ]
@@ -132,8 +134,8 @@ pairSort ps = sortBy compareFirst ps
 pairGroup :: (Ord a) => [(a,b)] -> [(a,[b])]
 pairGroup ps = map (factor . unzip) $ groupBy eqFirst $ pairSort ps
     where
-        factor ((a:_),bs)     = (a,bs)
-        eqFirst (a1,_) (a2,_) = a1 == a2
+      factor (a:_, bs)      = (a,bs)
+      eqFirst (a1,_) (a2,_) = a1 == a2
 
 ------------------------------------------------------------
 --  Separate list into sublists
@@ -168,7 +170,7 @@ repeat [])
 --  Assumes the supplied list has no duplicate elements.
 powerSet :: [a] -> [[a]]
 powerSet as =
-    concatMap (flip combinations as) [1..length as]
+    concatMap (`combinations` as) [1..length as]
 
 -- |Combinations of n elements from a list, each being returned in the
 --  order that they appear in the list.
@@ -178,8 +180,8 @@ combinations n as@(ah:at)
     | n <= 0            = [[]]
     | n >  length as    = []
     | n == length as    = [as]
-    | otherwise         = (map (ah:) $ combinations (n-1) at) ++
-                          (combinations n at)
+    | otherwise         = map (ah:) (combinations (n-1) at) ++
+                          combinations n at
 
 {-
 -- |Return list of integers from lo to hi.
@@ -208,10 +210,10 @@ permutations :: [a] -> [[a]]
 permutations    []     = [[]]
 permutations    (j:js) = addOne $ permutations js
     where
-        addOne []       = []
-        addOne (ks:pms) = (ao ks)++(addOne pms)
+        addOne = foldr ((++) . ao) []
+
         ao []           = [[j]]
-        ao (k:ks)       = (j:k:ks):(map (k:) $ ao ks)
+        ao (k:ks)       = (j:k:ks) : map (k:) (ao ks)
 
 {-
 testperm = permutations [1,2,3] ==
@@ -264,7 +266,7 @@ powerSequences rs = concat $ powerSeq_bylen rs [[]]
 
 -- |Construct list of lists of sequences of increasing length
 powerSeq_bylen :: [a] -> [[a]] -> [[[a]]]
-powerSeq_bylen rs ps = (ps:powerSeq_bylen rs ns) where ns = powerSeq_next rs ps
+powerSeq_bylen rs ps = ps : powerSeq_bylen rs (powerSeq_next rs ps)
 
 -- |Return sequences of length n+1 given original sequence
 --  and list of all sequences of length n
@@ -273,7 +275,7 @@ powerSeq_next rs rss = [ h:t | t <- rss, h <- rs ]
 
 -- |Return all powersequences of a given length
 powerSequences_len :: Int -> [a] -> [[a]]
-powerSequences_len len rs = head $ drop len $ powerSeq_bylen rs [[]]
+powerSequences_len len rs = powerSeq_bylen rs [[]] !! len
 
 -- |Return all powersequences of indefinite length
 --  Observe that any such powersequence will consist of a sequence
@@ -283,7 +285,7 @@ powerSequences_len len rs = head $ drop len $ powerSeq_bylen rs [[]]
 --  member of the base set.
 powerSequences_inf :: [a] -> [[a]]
 powerSequences_inf rs =
-    map (++pst) $ []:(concat $ powerSeq_bylen rs psh)
+    map (++pst) $ [] : concat (powerSeq_bylen rs psh)
     where
         psh = map (:[]) (tail rs)
         pst = repeat $ head rs
@@ -317,6 +319,8 @@ flist fs a = map ($ a) fs
 flisttest = flist [(1*),(2*),(3*)] 5 -- [5,10,15]
 -}
 
+{-
+
 -- |A more generalized form of flist that works with arbitrary Monads.
 --  (Suggested by Derek Elkin.)
 
@@ -325,6 +329,8 @@ fmonad fm a =
     do  { f <- fm
         ; return $ f a
         }
+
+-}
 
 {-
 fmonadtest = fmonad [(1*),(2*),(3*)] 3 -- [3,6,9]
