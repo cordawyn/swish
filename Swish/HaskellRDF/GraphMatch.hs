@@ -1,6 +1,4 @@
-{-# OPTIONS -XFlexibleInstances #-}
-{-# OPTIONS -XTypeSynonymInstances #-}
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  $Id: GraphMatch.hs,v 1.19 2004/02/09 22:22:44 graham Exp $
@@ -41,9 +39,9 @@ module Swish.HaskellRDF.GraphMatch
 import Swish.HaskellUtils.LookupMap
 import Swish.HaskellUtils.ListHelpers
 import Swish.HaskellUtils.MiscHelpers
-import Swish.HaskellUtils.TraceHelpers( trace, traceShow )
+-- import Swish.HaskellUtils.TraceHelpers( trace, traceShow )
 import Swish.HaskellRDF.GraphClass
-import Data.Maybe( isJust )
+import Data.Ord (comparing)
 import Data.List( nub, sortBy, partition )
 import qualified Data.List
 
@@ -94,7 +92,7 @@ instance (Label lb) => Show (LabelMap lb) where
 
 instance (Label lb) => Eq (LabelMap lb) where
     LabelMap gen1 lmap1 == LabelMap gen2 lmap2 =
-        (gen1 == gen2) && (es1 `equiv` es2)
+        gen1 == gen2 && es1 `equiv` es2
         where
             es1 = listLookupMap lmap1
             es2 = listLookupMap lmap2
@@ -112,14 +110,18 @@ emptyMap = LabelMap 1 $ makeLookupMap []
 
 type EquivalenceClass lb = (LabelIndex,[lb])
 
+{-
 ecIndex :: EquivalenceClass lb -> LabelIndex
 ecIndex = fst
+-}
 
 ecLabels :: EquivalenceClass lb -> [lb]
 ecLabels = snd
 
+{-
 ecSize :: EquivalenceClass lb -> Int
-ecSize (_,ls) = length ls
+ecSize = length . ecLabels
+-}
 
 ecRemoveLabel :: (Label lb) => EquivalenceClass lb -> lb -> EquivalenceClass lb
 ecRemoveLabel (lv,ls) l = (lv,Data.List.delete l ls)
@@ -142,31 +144,31 @@ ecRemoveLabel (lv,ls) l = (lv,Data.List.delete l ls)
 data (Label lb) => ScopedLabel lb = ScopedLabel Int lb
 
 makeScopedLabel :: (Label lb) => Int -> lb -> ScopedLabel lb
-makeScopedLabel scope lab = ScopedLabel scope lab
+makeScopedLabel = ScopedLabel 
 
 makeScopedArc :: (Label lb) => Int -> Arc lb -> Arc (ScopedLabel lb)
 makeScopedArc scope a1 = arc (s arcSubj a1) (s arcPred a1) (s arcObj a1)
     where
-        s f a = (ScopedLabel scope (f a))
+        s f a = ScopedLabel scope (f a)
 
 instance (Label lb) => Label (ScopedLabel lb) where
     getLocal  lab    = error $ "getLocal for ScopedLabel: "++show lab
     makeLabel locnam = error $ "makeLabel for ScopedLabel: "++locnam
     labelIsVar (ScopedLabel _ lab)   = labelIsVar lab
     labelHash seed (ScopedLabel scope lab)
-        | labelIsVar lab    = hash seed $ (show scope)++"???"
+        | labelIsVar lab    = hash seed $ show scope ++ "???"
         | otherwise         = labelHash seed lab
 
 instance (Label lb) => Eq (ScopedLabel lb) where
     (ScopedLabel s1 l1) == (ScopedLabel s2 l2)
-        = ( l1 == l2 ) && (s1 == s2)
+        = l1 == l2 && s1 == s2
 
 instance (Label lb) => Show (ScopedLabel lb) where
-    show (ScopedLabel s1 l1) = (show s1) ++ ":" ++ (show l1)
+    show (ScopedLabel s1 l1) = show s1 ++ ":" ++ show l1
 
 instance (Label lb) => Ord (ScopedLabel lb) where
     compare (ScopedLabel s1 l1) (ScopedLabel s2 l2) =
-        case (compare s1 s2) of
+        case compare s1 s2 of
             LT -> LT
             EQ -> compare l1 l2
             GT -> GT
@@ -212,7 +214,7 @@ graphMatch matchable gs1 gs2 =
         matchableScoped (ScopedLabel _ l1) (ScopedLabel _ l2) = matchable l1 l2
         match   = graphMatch1 False matchableScoped sgs1 sgs2 lmap ecpairs
     in
-        if (length ec1) /= (length ec2) then (False,emptyMap) else match
+        if length ec1 /= length ec2 then (False,emptyMap) else match
 
 --  Recursive graph matching function
 --  This function assumes that no variable label appears in both graphs.
@@ -254,16 +256,16 @@ graphMatch matchable gs1 gs2 =
 graphMatch1 :: (Label lb) =>  Bool -> (lb -> lb -> Bool)
     -> [Arc lb] -> [Arc lb]
     -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
-    -> (Bool,(LabelMap lb))
+    -> (Bool,LabelMap lb)
 graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
     let
         (secs,mecs) = partition uniqueEc ecpairs
         uniqueEc ( (_,[_])  , (_,[_])  ) = True
         uniqueEc (  _       ,  _       ) = False
         doMatch  ( (_,[l1]) , (_,[l2]) ) = labelMatch matchable lmap l1 l2
-        ecEqSize ( (_,ls1)  , (_,ls2)  ) = (length ls1) == (length ls2)
-        ecSize   ( (_,ls1)  , _        ) = length ls1
-        ecCompareSize ec1 ec2 = compare (ecSize ec1) (ecSize ec2)
+        ecEqSize ( (_,ls1)  , (_,ls2)  ) = length ls1 == length ls2
+        eSize    ( (_,ls1)  , _        ) = length ls1
+        ecCompareSize = comparing eSize
         (lmap',mecs',newEc,matchEc) = reclassify gs1 gs2 lmap mecs
         match2 = graphMatch2 matchable gs1 gs2 lmap $ sortBy ecCompareSize mecs
     in
@@ -309,28 +311,27 @@ graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
 graphMatch2 :: (Label lb) => (lb -> lb -> Bool)
     -> [Arc lb] -> [Arc lb]
     -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
-    -> (Bool,(LabelMap lb))
+    -> (Bool,LabelMap lb)
 graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
     let
-        (_,v1) = ev1
-        (_,v2) = ev2
+        v1 = snd ev1
         --  Return any equivalence-mapping obtained by matching a pair
         --  of labels in the supplied list, or Nothing.
         try []            = (False,lmap)
-        try ((l1,l2):lps) = if equiv try1 l1 l2 then try1 else try lps
+        try ((l1,l2):lps) = if isEquiv try1 l1 l2 then try1 else try lps
             where
                 try1     = graphMatch1 True matchable gs1 gs2 lmap' ecpairs'
                 lmap'    = newLabelMap lmap [(l1,v1),(l2,v1)]
                 ecpairs' = ((ev',[l1]),(ev',[l2])):ec':ecpairs
                 ev'      = mapLabelIndex lmap' l1
-                ec'      = (ecRemoveLabel ec1 l1,ecRemoveLabel ec2 l2)
+                ec'      = (ecRemoveLabel ec1 l1, ecRemoveLabel ec2 l2)
                 -- [[[TODO: replace this: if isJust try ?]]]
-                equiv (False,_)   _  _  = False
-                equiv (True,lmap) l1 l2 =
-                    (mapLabelIndex m1 l1) == (mapLabelIndex m2 l2)
+                isEquiv (False,_)   _  _  = False
+                isEquiv (True,lm) x1 x2 =
+                    mapLabelIndex m1 x1 == mapLabelIndex m2 x2
                     where
-                        m1 = remapLabels gs1 lmap [l1]
-                        m2 = remapLabels gs2 lmap [l2]
+                        m1 = remapLabels gs1 lm [x1]
+                        m2 = remapLabels gs2 lm [x2]
         --  glp is a list of label-pair candidates for matching,
         --  selected from the first label-equivalence class.
         --  NOTE:  final test is call of external matchable function
@@ -351,8 +352,8 @@ graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
 
 showLabelMap :: (Label lb) => LabelMap lb -> String
 showLabelMap (LabelMap gn lmap) =
-    "LabelMap gen="++(Prelude.show gn)++", map="++
-    foldl (++) "" ((map ("\n    "++)) (map Prelude.show es ))
+    "LabelMap gen="++ Prelude.show gn ++", map="++
+    foldl (++) "" (map (("\n    "++) . Prelude.show) es)
     where
         es = listLookupMap lmap
 
@@ -375,7 +376,7 @@ mapLabelIndex (LabelMap _ lxms) lb = mapFind nullLabelVal lb lxms
 labelMatch :: (Label lb)
     =>  (lb -> lb -> Bool) -> LabelMap lb -> lb -> lb -> Bool
 labelMatch matchable lmap l1 l2 =
-    (matchable l1 l2) && ((mapLabelIndex lmap l1) == (mapLabelIndex lmap l1))
+    matchable l1 l2 && (mapLabelIndex lmap l1 == mapLabelIndex lmap l1)
 
 ---------------
 --  newLabelMap
@@ -387,7 +388,7 @@ labelMatch matchable lmap l1 l2 =
 --  resulting label map is incremented.
 
 newLabelMap :: (Label lb) => LabelMap lb -> [(lb,Int)] -> LabelMap lb
-newLabelMap (LabelMap g f) [] = (LabelMap (g+1) f) -- new generation
+newLabelMap (LabelMap g f) [] = LabelMap (g+1) f -- new generation
 newLabelMap lmap (lv:lvs)     = setLabelHash (newLabelMap lmap lvs) lv
 
 ----------------
@@ -413,7 +414,7 @@ setLabelHash  (LabelMap g lmap) (lb,lh) =
 --  but with an incremented generation number.
 
 newGenerationMap :: (Label lb) => LabelMap lb -> LabelMap lb
-newGenerationMap (LabelMap g lvs) = (LabelMap (g+1) lvs)
+newGenerationMap (LabelMap g lvs) = LabelMap (g+1) lvs
 
 ------------------
 --  assignLabelMap
@@ -430,22 +431,21 @@ newGenerationMap (LabelMap g lvs) = (LabelMap (g+1) lvs)
 --  value, as they may be matched with each other.
 
 assignLabelMap :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
-assignLabelMap [] lmap      = lmap
-assignLabelMap (n:ns) lmap  = assignLabelMap ns (assignLabelMap1 n lmap)
+assignLabelMap ns lmap = foldl (flip assignLabelMap1) lmap ns
 
 assignLabelMap1 :: (Label lb) => lb -> LabelMap lb -> LabelMap lb
 assignLabelMap1 lab (LabelMap g lvs) = LabelMap g lvs'
     where
-        lvs' = (mapAddIfNew lvs $ newEntry (lab,(g,initVal lab)))
+        lvs' = mapAddIfNew lvs $ newEntry (lab,(g,initVal lab))
 
 --  Calculate initial value for a node
 
 initVal :: (Label lb) => lb -> Int
-initVal n = hashVal 0 n
+initVal = hashVal 0
 
 hashVal :: (Label lb) => Int -> lb -> Int
 hashVal seed lab =
-    if (labelIsVar lab) then (hash seed "???") else (labelHash seed lab)
+    if labelIsVar lab then hash seed "???" else labelHash seed lab
 
 ----------------------
 --  equivalenceClasses
@@ -505,8 +505,8 @@ reclassify :: (Label lb) =>
     -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
     -> (LabelMap lb,[(EquivalenceClass lb,EquivalenceClass lb)],Bool,Bool)
 reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
-    assert (gen1==gen2) "Label map generation mismatch" $
-    (LabelMap gen1 lm',ecpairs',newPart,matchPart)
+    assert (gen1==gen2) "Label map generation mismatch"
+      (LabelMap gen1 lm',ecpairs',newPart,matchPart)
     where
         LabelMap gen1 lm1 =
             remapLabels gs1 lmap $ foldl1 (++) $ map (ecLabels . fst) ecpairs
@@ -515,15 +515,15 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         lm' = mapReplaceMap lm $ mapMerge lm1 lm2
         -- ecGroups :: [([EquivalenceClass lb],[EquivalenceClass lb])]
         ecGroups  = [ (remapEc ec1,remapEc ec2) | (ec1,ec2) <- ecpairs ]
-        ecpairs'  = concat $ map (uncurry zip) ecGroups
-        newPart   = or  $ map pairG1 lenGroups
-        matchPart = and $ map pairEq lenGroups
+        ecpairs'  = concatMap (uncurry zip) ecGroups
+        newPart   = any pairG1 lenGroups
+        matchPart = all pairEq lenGroups
         lenGroups = map subLength ecGroups
         pairEq (p1,p2) = p1 == p2
-        pairG1 (p1,p2) = (p1 > 1) || (p2 > 1)
+        pairG1 (p1,p2) = p1 > 1 || p2 > 1
         subLength (ls1,ls2) = (length ls1,length ls2)
         remapEc ec = pairGroup $ map (newIndex lm') $ pairUngroup ec
-        newIndex lm (_,lab) = (mapFind nullLabelVal lab lm,lab)
+        newIndex x (_,lab) = (mapFind nullLabelVal lab x,lab)
 
 ---------------
 --  remapLabels
@@ -550,7 +550,7 @@ remapLabels gs lmap@(LabelMap gen _) ls =
         newIndex l
             | labelIsVar l  = mapAdjacent l     -- adjacency classifies variable labels
             | otherwise     = hashVal gen l     -- otherwise rehash (to disentangle collisions)
-        mapAdjacent l       = ( sum (sigsOver l) ) `rem` hashModulus
+        mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
         sigsOver l          = select (hasLabel l) gs (arcSignatures lmap gs)
 
 -----------------------------
@@ -564,7 +564,7 @@ remapLabels gs lmap@(LabelMap gen _) ls =
 --  Return list of distinct labels used in a graph
 
 graphLabels :: (Label lb) => [Arc lb] -> [lb]
-graphLabels gs = nub $ concat $ map arcLabels gs
+graphLabels gs = nub $ concatMap arcLabels gs
 
 {-  OLD CODE:
 graphLabels gs = graphLabels1 gs []
@@ -592,12 +592,12 @@ arcSignatures :: (Label lb) => LabelMap lb -> [Arc lb] -> [Int]
 arcSignatures lmap gs =
     map (sigCalc . arcToTriple) gs
     where
-        sigCalc (s,p,o)     =
-            ( (labelVal2 s) +
-              (labelVal2 p)*3 +
-              (labelVal2 o)*5 ) `rem` hashModulus
-        labelVal l          = mapLabelIndex lmap l
-        labelVal2           = (\v -> (fst v) * (snd v) ) . labelVal
+        sigCalc (s,p,o)  =
+            ( labelVal2 s +
+              labelVal2 p * 3 +
+              labelVal2 o * 5 ) `rem` hashModulus
+        labelVal         = mapLabelIndex lmap
+        labelVal2        = uncurry (*) . labelVal
 
 ------------
 --  graphMap
@@ -628,7 +628,7 @@ graphMap lmap = map $ fmap (mapLabelIndex lmap) -- graphMapStmt
 --  reflect the topology of the graphs.
 
 graphMapEq :: (Label lb) => LabelMap lb -> [Arc lb] -> [Arc lb] -> Bool
-graphMapEq lmap gs1 gs2 = (graphMap lmap gs1) `equiv` (graphMap lmap gs2)
+graphMapEq lmap gs1 gs2 = graphMap lmap gs1 `equiv` graphMap lmap gs2
 
 --------------------------------------------------------------------------------
 --
