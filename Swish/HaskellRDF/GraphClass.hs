@@ -1,4 +1,4 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 
 --------------------------------------------------------------------------------
@@ -34,14 +34,11 @@ module Swish.HaskellRDF.GraphClass
     )
 where
 
-import Swish.HaskellUtils.ListHelpers
-    ( subset )
-
 import Swish.HaskellUtils.FunctorM
     ( FunctorM(..) )
 
 import Data.List
-    ( nub, union, (\\) )
+    ( union, (\\) )
 
 --------------------------------
 --  Labelled Directed Graph class
@@ -66,7 +63,7 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     add         :: lg lb -> lg lb -> lg lb          -- g1 + g2 -> g3
     add    addg = update (union (getArcs addg))
     delete      :: lg lb -> lg lb -> lg lb          -- g2 - g1 -> g3
-    delete delg = update (flip (\\) (getArcs delg))
+    delete delg = update (\\ getArcs delg)
     --  enumerate distinct labels contained in a graph
     labels      :: lg lb -> [lb]      -- g1 -> [labels]
     labels g    = foldl union [] (map arcLabels (getArcs g))
@@ -124,7 +121,7 @@ arcObj :: Arc lb -> lb
 arcObj = aobj
 
 arc :: lb -> lb -> lb -> Arc lb
-arc s p o = Arc s p o
+arc = Arc
 
 arcToTriple :: Arc lb -> (lb,lb,lb)
 arcToTriple a = (asubj a,apred a,aobj a)
@@ -133,16 +130,19 @@ arcFromTriple :: (lb,lb,lb) -> Arc lb
 arcFromTriple (s,p,o) = Arc s p o
 
 instance Ord lb => Ord (Arc lb) where
-    compare (Arc s1 p1 o1) (Arc s2 p2 o2) =
-        if cs /= EQ then cs else
-        if cp /= EQ then cp else co
-        where
-            cs = compare s1 s2
-            cp = compare p1 p2
-            co = compare o1 o2
-    (Arc s1 p1 o1) <= (Arc s2 p2 o2) =
-        if (s1 /= s2) then (s1 <= s2) else
-        if (p1 /= p2) then (p1 <= p2) else (o1 <= o2)
+  compare (Arc s1 p1 o1) (Arc s2 p2 o2)
+    | cs /= EQ = cs
+    | cp /= EQ = cp
+    | otherwise = co
+    where
+      cs = compare s1 s2
+      cp = compare p1 p2
+      co = compare o1 o2
+
+  (Arc s1 p1 o1) <= (Arc s2 p2 o2)
+    | s1 /= s2 = s1 <= s2
+    | p1 /= p2 = p1 <= p2
+    | otherwise = o1 <= o2
 
 instance Functor Arc where
     -- fmap :: (lb -> l2) -> Arc lb -> Arc l2
@@ -159,12 +159,12 @@ instance FunctorM Arc where
 
 instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =
-        "("++(show lb1)++","++(show lb2)++","++(show lb3)++")"
+        "("++ show lb1 ++","++ show lb2 ++","++ show lb3 ++")"
 
 type Selector lb = Arc lb -> Bool
 
 hasLabel :: (Eq lb) => lb -> Arc lb -> Bool
-hasLabel lbv (Arc lb1 lb2 lb3) = (lbv==lb1) || (lbv==lb2) || (lbv==lb3)
+hasLabel lbv (Arc lb1 lb2 lb3) = lbv `elem` [lb1, lb2, lb3]
 
 arcLabels :: Arc lb -> [lb]
 arcLabels (Arc lb1 lb2 lb3) = [lb1,lb2,lb3]
