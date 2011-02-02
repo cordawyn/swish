@@ -1,8 +1,5 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
-{-# OPTIONS  -XFunctionalDependencies #-}
-{-# OPTIONS  -XFlexibleContexts #-}
-{-# OPTIONS  -XFlexibleInstances #-}
-{-# OPTIONS  -XTypeSynonymInstances  #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
 --------------------------------------------------------------------------------
 --  $Id: LookupMap.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
 --
@@ -46,6 +43,7 @@ module Swish.HaskellUtils.LookupMap
 where
 
 import Data.List( nub, sortBy )
+import Data.Ord (comparing)
 
 import Swish.HaskellUtils.ListHelpers ( equiv )
 
@@ -67,9 +65,9 @@ class (Eq k, Show k) => LookupEntryClass a k v | a -> k, a -> v
         entryVal    :: a -> v
         entryVal e = v where (_,v) = keyVal e
         entryEq     :: (Eq v) => a -> a -> Bool
-        entryEq e1 e2 = (keyVal e1) == (keyVal e2)
+        entryEq e1 e2 = keyVal e1 == keyVal e2
         entryShow   :: (Show v) => a -> String
-        entryShow e = (show k)++":"++(show v) where (k,v) = keyVal e
+        entryShow e = show k ++ ":" ++ show v where (k,v) = keyVal e
         kmap :: (LookupEntryClass a2 k2 v) => (k -> k2) -> a -> a2
         kmap f e    = newEntry (f $ entryKey e,entryVal e)
         vmap :: (LookupEntryClass a2 k v2) => (v -> v2) -> a -> a2
@@ -91,7 +89,7 @@ instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
 --
 data LookupMap a = LookupMap [a]
 
--- |Define eqiality of LookupMap values based on equality of entries.
+-- |Define equality of LookupMap values based on equality of entries.
 --
 --  (This is possibly a poor definition, as it is dependent on ordering
 --  of list members.  But it passes all current test cases, and is used
@@ -120,7 +118,7 @@ emptyLookupMap = LookupMap []
 --  more substantial.
 --
 makeLookupMap :: (LookupEntryClass a k v) => [a] -> LookupMap a
-makeLookupMap es = LookupMap es
+makeLookupMap = LookupMap
 
 -- |Return list of lookup map entries.
 --
@@ -168,7 +166,7 @@ mapCons e (LookupMap es) = LookupMap (e:es)
 mapFind :: (LookupEntryClass a k v) => v -> k -> LookupMap a -> v
 mapFind def key (LookupMap es) = foldr match def es where
     match ent alt
-        | key == (entryKey ent) = entryVal ent
+        | key == entryKey ent   = entryVal ent
         | otherwise             = alt
 
 -- |Find key in lookup map and return Just the corresponding value,
@@ -177,15 +175,15 @@ mapFind def key (LookupMap es) = foldr match def es where
 mapFindMaybe :: (LookupEntryClass a k v) => k -> LookupMap a -> Maybe v
 mapFindMaybe key (LookupMap es) = foldr match Nothing es where
     match ent alt
-        | key == (entryKey ent) = Just (entryVal ent)
+        | key ==  entryKey ent  = Just (entryVal ent)
         | otherwise             = alt
 
 -- |Test to see if key is present in the supplied map
 --
 mapContains :: (LookupEntryClass a k v) =>
     LookupMap a -> k -> Bool
-mapContains (LookupMap es) key  = or (map match es) where
-    match ent = key == (entryKey ent)
+mapContains (LookupMap es) key  = any match es where
+    match ent = key == entryKey ent
 
 -- |Replace an existing occurrence of a key a with a new key-value pair
 --  The resulting lookup map has the same form as the original in all
@@ -194,12 +192,12 @@ mapContains (LookupMap es) key  = or (map match es) where
 mapReplace :: (LookupEntryClass a k v) =>
     LookupMap a -> a -> LookupMap a
 mapReplace (LookupMap (e:es)) newe
-    | (entryKey e) == (entryKey newe)   = LookupMap (newe:es)
+    | entryKey e == entryKey newe       = LookupMap (newe:es)
     | otherwise                         = mapAdd more e where
         more = mapReplace (LookupMap es) newe
 mapReplace _ newe =
     error ("mapReplace: Key value not found in lookup table: "++
-           (Prelude.show (entryKey newe)))
+           Prelude.show (entryKey newe))
 
 -- |Replace an existing occurrence of a key a with a new key-value pair,
 --  or add a new key-value pair if the supplied key is not already present.
@@ -207,7 +205,7 @@ mapReplace _ newe =
 mapReplaceOrAdd :: (LookupEntryClass a k v) =>
     a -> LookupMap a -> LookupMap a
 mapReplaceOrAdd newe (LookupMap (e:es))
-    | (entryKey e) == (entryKey newe)   = LookupMap (newe:es)
+    | entryKey e == entryKey newe       = LookupMap (newe:es)
     | otherwise                         = mapCons e more where
         more = mapReplaceOrAdd newe (LookupMap es)
 mapReplaceOrAdd newe (LookupMap [])     = LookupMap [newe]
@@ -220,8 +218,8 @@ mapReplaceAll :: (LookupEntryClass a k v) =>
     LookupMap a -> a -> LookupMap a
 mapReplaceAll (LookupMap (e:es)) newe   = mapCons e' more where
     more = mapReplaceAll (LookupMap es) newe
-    e'   = if (entryKey e) == (entryKey newe) then newe else e
-mapReplaceAll (LookupMap []) _          = (LookupMap [])
+    e'   = if entryKey e == entryKey newe then newe else e
+mapReplaceAll (LookupMap []) _          = LookupMap []
 
 -- |Replace any occurrence of a key in the first argument with a
 --  corresponding key-value pair from the second argument, if present.
@@ -239,7 +237,7 @@ mapReplaceMap (LookupMap (e:es)) newmap = mapCons e' more where
     more  = mapReplaceMap (LookupMap es) newmap
     e'    = newEntry (k,mapFind v k newmap)
     (k,v) = keyVal e
-mapReplaceMap (LookupMap []) _ = (LookupMap [])
+mapReplaceMap (LookupMap []) _ = LookupMap []
 
 -- |Add supplied key-value pair to the lookup map.
 --
@@ -265,20 +263,20 @@ mapAddIfNew emap e = if mapContains emap (entryKey e)
 mapDelete :: (LookupEntryClass a k v) =>
     LookupMap a -> k -> LookupMap a
 mapDelete (LookupMap (e:es)) k
-    | k == (entryKey e) = LookupMap es
+    | k == entryKey e   = LookupMap es
     | otherwise         = mapCons e more where
         more = mapDelete (LookupMap es) k
 mapDelete _ k =
-    error ("mapDelete: Key value not found in lookup table: "++(Prelude.show k))
+    error ("mapDelete: Key value not found in lookup table: " ++ Prelude.show k)
 
 -- |Delete any occurrence of a supplied key value from the lookup map.
 --
 mapDeleteAll :: (LookupEntryClass a k v) =>
     LookupMap a -> k -> LookupMap a
 mapDeleteAll (LookupMap (e:es)) k =
-    if (entryKey e) == k then more else mapCons e more where
+    if entryKey e == k then more else mapCons e more where
         more = mapDeleteAll (LookupMap es) k
-mapDeleteAll (LookupMap []) _ = (LookupMap [])
+mapDeleteAll (LookupMap []) _ = LookupMap []
 
 -- |Return a list of values obtained by applying a function to each key
 --  in the map.  Creates an alternative set of values that can be
@@ -296,7 +294,7 @@ mapApplyToAll (LookupMap es) f = [ f (entryKey e) | e <- es ]
 mapTranslate :: (LookupEntryClass a k v) =>
     LookupMap a -> [w] -> k -> w -> w
 mapTranslate (LookupMap (e:es)) (w:ws) k def
-    | k == (entryKey e) = w
+    | k == entryKey e   = w
     | otherwise         = mapTranslate (LookupMap es) ws k def
 mapTranslate _ _ _ def = def
 
@@ -308,8 +306,8 @@ mapTranslate _ _ _ def = def
 mapEq :: (LookupEntryClass a k v, Eq v) =>
     LookupMap a -> LookupMap a -> Bool
 mapEq es1 es2 =
-    ( ks1 `equiv` ks2 ) &&
-    and [ (mapFindMaybe k es1) == (mapFindMaybe k es2) | k <- ks1 ]
+    ks1 `equiv` ks2 &&
+    and [ mapFindMaybe k es1 == mapFindMaybe k es2 | k <- ks1 ]
     where
         ks1 = mapKeys es1
         ks2 = mapKeys es2
@@ -334,26 +332,26 @@ mapSelect :: (LookupEntryClass a k v) =>
 mapSelect (LookupMap es) ks =
     LookupMap $ filter (keyIn ks) es
     where
-        keyIn ks e = k `elem` ks where (k,_) = keyVal e
+        keyIn iks e = fst (keyVal e) `elem` iks
 
 -- |Merge two lookup maps, ensuring that if the same key appears
 --  in both maps it is associated with the same value.
 --
 mapMerge :: (LookupEntryClass a k v, Eq a, Show a, Ord k) =>
     LookupMap a -> LookupMap a -> LookupMap a
-mapMerge (LookupMap es1) (LookupMap es2) =
-    LookupMap $ merge (sortBy keyOrder es1) (sortBy keyOrder es2)
+mapMerge (LookupMap s1) (LookupMap s2) =
+    LookupMap $ merge (sortBy keyOrder s1) (sortBy keyOrder s2)
     where
         merge es1 [] = es1
         merge [] es2 = es2
         merge es1@(e1:et1) es2@(e2:et2) =
             case keyOrder e1 e2 of
-                LT -> e1:(merge et1 es2)
-                GT -> e2:(merge es1 et2)
+                LT -> e1 : merge et1 es2
+                GT -> e2 : merge es1 et2
                 EQ -> if e1 /= e2
-                        then error ("mapMerge key conflict: " ++ (show e1)
-                                    ++ " with " ++ (show e2))
-                        else e1:(merge et1 et2)
+                        then error ("mapMerge key conflict: " ++ show e1
+                                    ++ " with " ++ show e2)
+                        else e1 : merge et1 et2
 
 -- |Creates a new map that is the same as the supplied map, except
 --  that its entries are sorted by key value.
@@ -363,9 +361,7 @@ mapMerge (LookupMap es1) (LookupMap es2) =
 mapSortByKey :: (LookupEntryClass a k v, Ord k) =>
     LookupMap a -> LookupMap a
 mapSortByKey (LookupMap es) =
-    LookupMap $ sortBy keyCompare es
-    where
-        keyCompare e1 e2 = compare (entryKey e1) (entryKey e2)
+    LookupMap $ sortBy (comparing entryKey) es
 
 -- |Creates a new map that is the same as the supplied map, except
 --  that its entries are sorted by key value.
@@ -375,9 +371,7 @@ mapSortByKey (LookupMap es) =
 mapSortByVal :: (LookupEntryClass a k v, Ord v) =>
     LookupMap a -> LookupMap a
 mapSortByVal (LookupMap es) =
-    LookupMap $ sortBy valCompare es
-    where
-        valCompare e1 e2 = compare (entryVal e1) (entryVal e2)
+    LookupMap $ sortBy (comparing entryVal) es
 
 -- |An fmap-like function that returns a new lookup map that is a
 --  copy of the supplied map with entry keys replaced according to
@@ -408,7 +402,7 @@ mapTranslateEntries f (LookupMap es) =
 -- |A monadic form of mapTranslateEntries
 --
 mapTranslateEntriesM :: (Monad m)
-    => (a1 -> m (a2)) -> LookupMap a1 -> m (LookupMap a2)
+    => (a1 -> m a2) -> LookupMap a1 -> m (LookupMap a2)
 mapTranslateEntriesM f (LookupMap es) =
     do  { m2 <- mapM f es
         ; return $ LookupMap m2
