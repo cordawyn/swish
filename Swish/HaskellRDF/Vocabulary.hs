@@ -121,7 +121,7 @@ namespaceSwish
     = Namespace "swish" "http://id.ninebynine.org/2003/Swish/"
 
 swishName :: String -> ScopedName
-swishName local = ScopedName namespaceSwish local
+swishName = ScopedName namespaceSwish
 
 -----------------------------------------------------------
 --  Language tags
@@ -142,7 +142,7 @@ langName :: String -> ScopedName
 langName tag = ScopedName namespaceLang (lower tag)
 
 langTag :: ScopedName -> String
-langTag sname = snLocal sname
+langTag = snLocal
 
 isLang :: ScopedName -> Bool
 isLang sname = snScope sname == namespaceLang
@@ -210,7 +210,7 @@ rdfd_maxCardinality     :: ScopedName
 rdfd_maxCardinality     = ScopedName namespaceRDFD "maxCardinality"
 
 xsd_type                :: String -> ScopedName
-xsd_type typnam         = ScopedName namespaceXSD  typnam
+xsd_type                = ScopedName namespaceXSD
 
 xsd_string              :: ScopedName
 xsd_string              = xsd_type "string"
