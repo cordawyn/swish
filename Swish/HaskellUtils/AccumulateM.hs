@@ -1,6 +1,4 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
-{-# OPTIONS -XFunctionalDependencies #-}
-{-# OPTIONS -XFlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 --------------------------------------------------------------------------------
 --  $Id: AccumulateM.hs,v 1.3 2004/01/22 19:53:46 graham Exp $
@@ -53,7 +51,7 @@ data Accumulator c = Accumulator c deriving (Eq, Show)
 
 instance Monad Accumulator where
     (Accumulator v) >>= k  = k v
-    return v               = Accumulator v
+    return                 = Accumulator 
 
 instance MonadAccum Accumulator Int Int where
     growVal n m             = Accumulator (n+m)
@@ -69,23 +67,46 @@ instance MonadAccum Accumulator [v] v where
 
 
 --  Tests
-addVal :: Int -> Int -> (Accumulator Int)
+addVal :: Int -> Int -> Accumulator Int
 addVal m n = Accumulator (n+m)
 
-testList  = [1,2,3,4,5,6] :: [Int]
-testList1 = [1,2,3,4,5,6] :: [Integer]
+testList :: [Int]
+testList  = [1,2,3,4,5,6]
+
+testList1 :: [Integer]
+testList1 = [1,2,3,4,5,6]
+
+testList2 :: String
 testList2 = "plugh"
 
+test1 :: Accumulator Int
 test1 = foldM addVal 0 testList
-test2 = Accumulator 0
-test3 = (Accumulator 0) >>= addVal 1
-test4 = (Accumulator 5) >>= addVal 5
-test5 = (growVal 3 :: Int -> Accumulator Int) 20
-test6 = foldM growVal 0 testList  :: Accumulator Int
-test7 = foldM growVal 0 testList1 :: Accumulator Integer
-test8 = reapVal (foldM growVal 0  testList  :: Accumulator Int)
-test9 = reapVal (foldM growVal [] testList2 :: Accumulator [Char])
 
+test2 :: Accumulator Integer
+test2 = Accumulator 0
+
+test3 :: Accumulator Int
+test3 = Accumulator 0 >>= addVal 1
+
+test4 :: Accumulator Int
+test4 = Accumulator 5 >>= addVal 5
+
+test5 :: Accumulator Int
+test5 = (growVal 3 :: Int -> Accumulator Int) 20
+
+test6 :: Accumulator Int
+test6 = foldM growVal 0 testList  :: Accumulator Int
+
+test7 :: Accumulator Integer
+test7 = foldM growVal 0 testList1 :: Accumulator Integer
+
+test8 :: Int
+test8 = reapVal (foldM growVal 0  testList  :: Accumulator Int)
+
+test9 :: String
+test9 = reapVal (foldM growVal [] testList2 :: Accumulator String)
+
+test :: Bool
 test = and
     [ test1 == Accumulator 21
     , test2 == Accumulator 0
