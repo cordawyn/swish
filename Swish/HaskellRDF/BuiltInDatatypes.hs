@@ -56,9 +56,11 @@ findRDFDatatype nam = mapFindMaybe nam (LookupMap allDatatypes)
 --  Declare datatype subtypes map
 ------------------------------------------------------------
 
+{-
 allDatatypeSubtypes :: [xxx]
 allDatatypeSubtypes = []
 --  [[[details TBD]]]
+-}
 
 --------------------------------------------------------------------------------
 --
