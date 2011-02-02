@@ -49,7 +49,10 @@ Data-Files:          README
 Cabal-Version:       >= 1.2
 
 Library
-   Build-Depends:       base>3 && <4, binary, bytestring, containers, array, parallel, parsec, random, old-time, mtl, HUnit
+   Build-Depends:
+      base>3 && <4, binary, bytestring, containers, array, parallel, parsec, random, old-time,
+      mtl > 1 && < 2,
+      HUnit
    Exposed-modules:     Swish.HaskellRDF.BuiltInDatatypes,
                         Swish.HaskellRDF.BuiltInMap,
                         Swish.HaskellRDF.BuiltInRules,
