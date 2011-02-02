@@ -1,5 +1,4 @@
-{-# OPTIONS -XFlexibleInstances #-}
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
 --  $Id: SwishMonad.hs,v 1.12 2004/01/07 19:49:13 graham Exp $
 --
@@ -72,6 +71,9 @@ import Swish.HaskellUtils.LookupMap
     , mapFindMaybe
     , mapVals
     )
+
+import Control.Monad
+    ( when )
 
 import Control.Monad.Trans
     ( MonadTrans(..) )
@@ -198,7 +200,7 @@ data NamedGraph = NamedGraph
 instance LookupEntryClass NamedGraph ScopedName [RDFGraph]
     where
         keyVal   (NamedGraph k v) = (k,v)
-        newEntry (k,v)            = (NamedGraph k v)
+        newEntry (k,v)            = NamedGraph k v
 
 type NamedGraphMap = LookupMap NamedGraph
 
@@ -208,11 +210,8 @@ type NamedGraphMap = LookupMap NamedGraph
 
 swishError :: String -> Int -> SwishStateIO ()
 swishError msg sts =
-    do  { reportLine $ msg
-        ; if sts == 4 then
-            reportLine $ "Use 'Swish -?' for help"
-          else
-            return ()
+    do  { reportLine msg
+        ; when (sts == 4) $ reportLine "Use 'Swish -?' for help"
         ; modify $ setExitcode (ExitFailure sts)
         }
 
@@ -224,8 +223,7 @@ swishError msg sts =
 --  be displayed.
 
 reportLines  :: [String] -> SwishStateIO ()
-reportLines text =
-    sequence_ (map reportLine text)
+reportLines = mapM_ reportLine 
 
 reportLine  :: String -> SwishStateIO ()
 reportLine line =
