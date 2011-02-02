@@ -1,4 +1,4 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --
@@ -34,8 +34,6 @@ where
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
     , ScopedName(..)
-    , getScopePrefix, getScopeURI
-    , getQName, getScopedNameURI
     )
 
 import Swish.HaskellUtils.LookupMap
@@ -43,10 +41,7 @@ import Swish.HaskellUtils.LookupMap
     )
 
 import Swish.HaskellUtils.ShowM
-    ( ShowM(..), showm )
-
-import Swish.HaskellUtils.ListHelpers
-    ( subset )
+    ( ShowM(..) )
 
 {- in Prelude????
 import List
@@ -117,7 +112,7 @@ showsFormulae newline (f:fs) after = showsFormula  newline f .
 showsFormula :: (ShowM ex) => String -> Formula ex -> ShowS
 showsFormula newline f =
     showsWidth 16 ("["++show (formName f)++"] ") .
-    showms (newline++(replicate 16 ' ')) (formExpr f)
+    showms (newline ++ replicate 16 ' ') (formExpr f)
 
 ------------------------------------------------------------
 --  Rule
@@ -177,7 +172,7 @@ type RuleMap ex = LookupMap (Rule ex)
 
 fwdCheckInference :: (Eq ex) => Rule ex -> [ex] -> ex -> Bool
 fwdCheckInference rule ante cons =
-    (cons `elem` fwdApply rule ante)
+    cons `elem` fwdApply rule ante
 
 bwdCheckInference :: (Eq ex) => Rule ex -> [ex] -> ex -> Bool
 bwdCheckInference rule ante cons = any checkAnts (bwdApply rule cons)
