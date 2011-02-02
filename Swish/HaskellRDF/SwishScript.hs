@@ -117,7 +117,7 @@ import Control.Monad.State
     )
 
 import Control.Monad
-    ( when, liftM )
+    ( unless, when, liftM )
 
 {- WNH
 import System.IO
@@ -386,7 +386,7 @@ nameList =
 nameOrList :: N3Parser [ScopedName]
 nameOrList =
         do  { n <- uriRef2
-            ; return $ [n]
+            ; return [n]
             }
     <|>
         nameList
@@ -422,7 +422,7 @@ graphList = between (symbol "(") (symbol ")") (many graphExpr)
 graphOrList :: N3Parser [SwishStateIO (Either String RDFGraph)]
 graphOrList =
         do  { g <- graphExpr
-            ; return $ [g]
+            ; return [g]
             }
     <|>
         graphList
@@ -516,14 +516,14 @@ ssGetFormula nam = gets find
     where
         find st = case findFormula nam st of
             Nothing -> Left ("Formula not present: "++show nam)
-            Just gr -> Right $ gr
+            Just gr -> Right gr
 
 ssGetList :: ScopedName -> SwishStateIO (Either String [RDFGraph])
 ssGetList nam = gets find
     where
         find st = case findGraph nam st of
             Nothing  -> Left ("Graph or list not present: "++show nam)
-            Just grs -> Right $ grs
+            Just grs -> Right grs
 
 ssRead :: ScopedName -> Maybe String -> SwishStateIO ()
 ssRead nam muri = ssAddGraph nam [ssReadGraph muri]
@@ -588,7 +588,7 @@ ssWrite muri gf comment =
 
 ssWriteGraph :: Maybe String -> RDFGraph -> String -> SwishStateIO ()
 ssWriteGraph muri gr comment =
-    putResourceData muri ((c++) . (formatGraphAsShowS gr))
+    putResourceData muri ((c++) . formatGraphAsShowS gr)
     where
         c = "# "++comment++"\n"
 
@@ -625,7 +625,7 @@ ssAssertEq n1 n2 comment =
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
                 (_,Left er) -> modify $ setError (comment++er1++"\n  "++er)
                 (Right gr1,Right gr2) ->
-                    when (not $ equiv gr1 gr2) $ modify $
+                    unless (equiv gr1 gr2) $ modify $
                       setError (comment++":\n  Graph "++show n1
                                 ++" differs from "++show n2++".")
             }
@@ -641,7 +641,7 @@ ssAssertIn n1 n2 comment =
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
                 (_,Left er) -> modify $ setError (comment++er2++"\n  "++er)
                 (Right gr,Right gs) ->
-                    when (not $ elem gr gs) $ modify $
+                    unless (gr `elem` gs) $ modify $
                     setError (comment++":\n  Graph "++show n1
                               ++" not a member of "++show n2)
             }
@@ -658,7 +658,7 @@ ssAssertIn n1 n2 comment =
 ssDefineRule ::
     ScopedName
     -> [SwishStateIO (Either String RDFGraph)]
-    -> (SwishStateIO (Either String RDFGraph))
+    -> SwishStateIO (Either String RDFGraph)
     -> [(ScopedName,[RDFLabel])]
     -> SwishStateIO ()
 ssDefineRule rn agfs cgf vmds =
@@ -679,7 +679,7 @@ ssDefineRule rn agfs cgf vmds =
                     (_,_,Left er) -> setError (errmsg3++er)
                     (Right agrs,Right cgr,Right vbms) ->
                         let
-                            newRule vm = makeRDFClosureRule rn agrs cgr vm
+                            newRule = makeRDFClosureRule rn agrs cgr
                         in
                         case composeSequence vbms of
                             Just vm -> modRules (mapReplaceOrAdd (newRule vm))
@@ -704,14 +704,14 @@ ssDefineRuleset sn ans rns =
     let errmsg1 = "Error in ruleset axiom(s): "
         errmsg2 = "Error in ruleset rule(s): "
     in
-        do  { let agfs = sequence $ map ssGetFormula ans
-                                        :: SwishStateIO [(Either String RDFFormula)]
+        do  { let agfs = mapM ssGetFormula ans
+                                        :: SwishStateIO [Either String RDFFormula]
             ; aesg <- agfs              -- [Either String RDFFormula]
             ; let eags = sequence aesg  :: Either String [RDFFormula]
-            ; let erlf = sequence $ map ssFindRule rns
-                                        :: SwishStateIO [(Either String RDFRule)]
+            ; let erlf = mapM ssFindRule rns
+                                        :: SwishStateIO [Either String RDFRule]
             ; rles <- erlf              -- [Either String RDFRule]
-            ; let erls = sequence rles  :: (Either String [RDFRule])
+            ; let erls = sequence rles  :: Either String [RDFRule]
             ; let frs = case (eags,erls) of
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
@@ -723,7 +723,7 @@ ssDefineRuleset sn ans rns =
             }
 
 ssFindRule :: ScopedName -> SwishStateIO (Either String RDFRule)
-ssFindRule nam = gets $ find
+ssFindRule nam = gets find
     where
         find st = case findRule nam st of
             Nothing -> Left ("Rule not found: "++show nam)
@@ -742,9 +742,9 @@ ssDefineConstraints  sn cgfs dtns =
             ; let ecgs = sequence cges  :: Either String [RDFGraph]
             ; let ecgr = case ecgs of
                     Left er   -> Left er
-                    Right []  -> Right $ emptyRDFGraph
+                    Right []  -> Right emptyRDFGraph
                     Right grs -> Right $ foldl1 merge grs
-            ; edtf <- sequence $ map ssFindDatatype dtns
+            ; edtf <- mapM ssFindDatatype dtns
                                         -- [Either String RDFDatatype]
             ; let edts = sequence edtf   :: Either String [RDFDatatype]
             ; let frs = case (ecgr,edts) of
@@ -754,12 +754,12 @@ ssDefineConstraints  sn cgfs dtns =
                         modRulesets (mapReplaceOrAdd rs)
                         where
                             rs  = makeRuleset (snScope sn) [] rls
-                            rls = concatMap (flip typeMkRules cgr) dts
+                            rls = concatMap (`typeMkRules` cgr) dts
             ; modify frs
             }
 
 ssFindDatatype :: ScopedName -> SwishStateIO (Either String RDFDatatype)
-ssFindDatatype nam = gets $ find
+ssFindDatatype nam = gets find
     where
         find st = case findDatatype nam st of
             Nothing -> Left ("Datatype not found: "++show nam)
@@ -785,7 +785,7 @@ ssCheckProof pn sns igf stfs rgf =
         proofname = " (Proof "++show pn++")"
     in
         do  { let rs1 = map ssFindRuleset sns       :: [SwishStateIO (Either String RDFRuleset)]
-            ; rs2 <- sequence $ rs1                 -- [Either String RDFRuleset]
+            ; rs2 <- sequence rs1                   -- [Either String RDFRuleset]
             ; let erss = sequence rs2               :: Either String [RDFRuleset]
             ; eig <- igf                            -- Either String RDFFormula
             ; let st1  = sequence $ flist stfs erss :: SwishStateIO [Either String RDFProofStep]
@@ -816,7 +816,7 @@ ssCheckProof pn sns igf stfs rgf =
                         else
                             setInfo (infmsg1++show pn)
                         -}
-            ; modify $ checkproof
+            ; modify checkproof
             }
 
 ssCheckStep ::
@@ -833,8 +833,8 @@ ssCheckStep rn eagf ecgf (Right rss) =
         errmsg3 = "Error in proof step consequent graph: "
     in
         do  { let mrul = getMaybeContextRule rn rss :: Maybe RDFRule
-            ; esag <- sequence $ eagf               -- [Either String RDFFormula]]
-            ; let eags = sequence $ esag            :: Either String [RDFFormula]
+            ; esag <- sequence eagf                 -- [Either String RDFFormula]]
+            ; let eags = sequence esag              :: Either String [RDFFormula]
             ; ecg  <- ecgf                          -- Either String RDFFormula
             ; let est = case (mrul,eags,ecg) of
                     (Nothing,_,_) -> Left (errmsg1++show rn)
@@ -874,7 +874,7 @@ ssFwdChain sn rn agfs cn prefs =
 
 ssFindRulesetRule ::
     ScopedName -> ScopedName -> SwishStateIO (Either String RDFRule)
-ssFindRulesetRule sn rn = gets $ find
+ssFindRulesetRule sn rn = gets find
     where
         find st = case findRuleset sn st of
             Nothing -> Left ("Ruleset not found: "++show sn)
@@ -885,7 +885,7 @@ ssFindRulesetRule sn rn = gets $ find
 
 ssFindRuleset ::
     ScopedName -> SwishStateIO (Either String RDFRuleset)
-ssFindRuleset sn = gets $ find
+ssFindRuleset sn = gets find
     where
         find st = case findRuleset sn st of
             Nothing -> Left ("Ruleset not found: "++show sn)
@@ -931,13 +931,7 @@ getResourceData muri =
         do  { dat <- lift getContents
             ; return $ Right dat
             }
-    fromUri uri =
-        do  { -- WNH  b <- lift $ doesFileExist uri
-              -- WNH; if not b then
-                -- WNH  return $ Left ("File not found: "++uri)
-                -- WNHelse
-                fromFile uri
-            }
+    fromUri = fromFile
     fromFile uri =
         do  { dat <- lift $ readFile uri
             ; return $ Right dat
