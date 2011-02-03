@@ -166,9 +166,12 @@ script =
             ; return scs
             }
 
+isymbol :: String -> N3Parser ()
+isymbol s = symbol s >> return ()
+
 command :: N3Parser (SwishStateIO ())
 command =
-        do  { try $ symbol "@prefix"
+        do  { try $ isymbol "@prefix"
             ; ( defaultPrefix <|> namedPrefix )
             ; return $ return ()
             }
@@ -193,7 +196,7 @@ nameItem =
         --  name :- graph
         --  name :- ( graph* )
         do  { u <- uriRef2
-            ; symbol ":-"
+            ; isymbol ":-"
             ; g <- graphOrList
             ; return $ ssAddGraph u g
             }
@@ -214,7 +217,7 @@ writeGraph =
             ; n <- uriRef2
             ; let gs = ssGetList n :: SwishStateIO (Either String [RDFGraph])
             ; u <- option "" lexUriRef
-            ; symbol ";"
+            ; isymbol ";"
             ; c <- restOfLine
             ; let muri = if null u then Nothing else Just u
             ; return $ ssWriteList muri gs c
@@ -225,7 +228,7 @@ mergeGraphs =
         --  @merge ( name* ) => name
         do  { commandName "@merge"
             ; gs <- graphList
-            ; symbol "=>"
+            ; isymbol "=>"
             ; n <- uriRef2
             ; return $ ssMerge n gs
             }
@@ -245,7 +248,7 @@ assertEquiv =
         do  { commandName "@asserteq"
             ; n1 <- uriRef2
             ; n2 <- uriRef2
-            ; symbol ";"
+            ; isymbol ";"
             ; c <- restOfLine
             ; return $ ssAssertEq n1 n2 c
             }
@@ -256,7 +259,7 @@ assertMember =
         do  { commandName "@assertin"
             ; n1 <- uriRef2
             ; n2 <- uriRef2
-            ; symbol ";"
+            ; isymbol ";"
             ; c <- restOfLine
             ; return $ ssAssertIn n1 n2 c
             }
@@ -266,9 +269,9 @@ defineRule =
         --  @rule name :- ( name* ) => name [ | ( (name var*)* ) ]
         do  { commandName "@rule"
             ; rn <- uriRef2
-            ; symbol ":-"
+            ; isymbol ":-"
             ; ags <- graphOrList
-            ; symbol "=>"
+            ; isymbol "=>"
             ; cg  <- graphExpr
             ; vms <- option [] varModifiers
             ; return $ ssDefineRule rn ags cg vms
@@ -279,9 +282,9 @@ defineRuleset =
         --  @ruleset name :- ( name* ) ; ( name* )
         do  { commandName "@ruleset"
             ; sn <- uriRef2
-            ; symbol ":-"
+            ; isymbol ":-"
             ; ags <- nameList
-            ; symbol ";"
+            ; isymbol ";"
             ; rns <- nameList
             ; return $ ssDefineRuleset sn ags rns
             }
@@ -291,9 +294,9 @@ defineConstraints =
         --  @constraints pref :- ( name* ) | ( name* )
         do  { commandName "@constraints"
             ; sn <- uriRef2
-            ; symbol ":-"
+            ; isymbol ":-"
             ; cgs <- graphOrList
-            ; symbol "|"
+            ; isymbol "|"
             ; cns <- nameOrList
             ; return $ ssDefineConstraints sn cgs cns
             }
@@ -322,7 +325,7 @@ checkStep =
         do  { commandName "@step"
             ; rn   <- uriRef2
             ; agfs <- formulaList
-            ; symbol "=>"
+            ; isymbol "=>"
             ; cgf  <- formulaExpr
             ; return $ ssCheckStep rn agfs cgf
             }
@@ -335,7 +338,7 @@ fwdChain =
             ; sn  <- uriRef2
             ; rn  <- uriRef2
             ; ags <- graphOrList
-            ; symbol "=>"
+            ; isymbol "=>"
             ; cn  <- uriRef2
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
@@ -350,7 +353,7 @@ bwdChain =
             ; sn  <- uriRef2
             ; rn  <- uriRef2
             ; cg  <- graphExpr
-            ; symbol "<="
+            ; isymbol "<="
             ; an  <- uriRef2
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
@@ -363,7 +366,7 @@ bwdChain =
 
 commandName :: String -> N3Parser ()
 commandName cmd = try $
-        do  { string cmd
+        do  { _ <- string cmd
             ; notFollowedBy identLetter
             ; whiteSpace
             }
@@ -377,9 +380,9 @@ restOfLine =
 
 nameList :: N3Parser [ScopedName]
 nameList =
-        do  { symbol "("
+        do  { isymbol "("
             ; ns <- many uriRef2
-            ; symbol ")"
+            ; isymbol ")"
             ; return ns
             }
 
@@ -405,10 +408,10 @@ graphExpr =
 
 graphOnly :: N3Parser (SwishStateIO (Either String RDFGraph))
 graphOnly =
-        do  { symbol "{"
+        do  { isymbol "{"
             ; b <- newBlankNode
             ; g <- subgraph b       :: N3Parser RDFGraph
-            ; symbol "}"
+            ; isymbol "}"
             ; s <- getState
             ; let gp = setNamespaces (prefixUris s) g
             ; return $ return (Right gp)
@@ -438,7 +441,7 @@ formulaExpr =
 
 namedGraph :: ScopedName -> N3Parser (SwishStateIO (Either String RDFFormula))
 namedGraph n =
-        do  { symbol ":-"
+        do  { isymbol ":-"
             ; g <- graphOnly
             ; return $ ssAddReturnFormula n g
             }
@@ -452,15 +455,15 @@ formulaList = between (symbol "(") (symbol ")") (many formulaExpr)
 
 varModifiers :: N3Parser [(ScopedName,[RDFLabel])]
 varModifiers =
-        do  { symbol "|"
+        do  { isymbol "|"
             ; varModList
             }
 
 varModList :: N3Parser [(ScopedName,[RDFLabel])]
 varModList =
-        do  { symbol "("
+        do  { isymbol "("
             ; vms <- sepBy varMod (symbol ",")
-            ; symbol ")"
+            ; isymbol ")"
             ; return vms
             }
     <|>
@@ -549,7 +552,7 @@ ssWriteList muri gf comment =
                 Right grs  -> sequence_ writegrs where
                     writegrs = if null grs
                         then [putResourceData Nothing ("+ Swish: Writing empty list"++)]
-                        else map writegr (zip [0..] grs)
+                        else map writegr (zip [(0::Int)..] grs)
                     writegr (n,gr) = ssWriteGraph (murin muri n) gr
                         ("["++show n++"] "++comment)
                     murin Nothing    _ = Nothing
@@ -568,7 +571,7 @@ splitBy p (s0:str) = let (s1,sr) = break p str in
 
 lastseg :: [[a]] -> [a]
 lastseg []   = []
-lastseg [as] = []
+lastseg [_]  = []
 lastseg ass  = last ass
 
 initseg :: [[a]] -> [[a]]
@@ -576,6 +579,7 @@ initseg []   = []
 initseg [as] = [as]
 initseg ass  = init ass
 
+{-
 ssWrite ::
     Maybe String -> SwishStateIO (Either String RDFGraph) -> String
     -> SwishStateIO ()
@@ -585,6 +589,7 @@ ssWrite muri gf comment =
                 Left  er -> modify $ setError ("Cannot write graph: "++er)
                 Right gr -> ssWriteGraph muri gr comment
             }
+-}
 
 ssWriteGraph :: Maybe String -> RDFGraph -> String -> SwishStateIO ()
 ssWriteGraph muri gr comment =
@@ -689,11 +694,10 @@ ssDefineRule rn agfs cgf vmds =
 
 ssFindVarModify ::
     (ScopedName,[RDFLabel]) -> SwishStateIO (Either String RDFVarBindingModify)
-ssFindVarModify (nam,lbs) = gets $ findVarMod nam lbs
-    where
-        findVarMod nam lbs st = case findOpenVarModify nam st of
-            Just ovbm -> Right (ovbm lbs)
-            Nothing   -> Left  ("Undefined modifier: "++show nam)
+ssFindVarModify (nam,lbs) = gets $ \st ->
+  case findOpenVarModify nam st of
+    Just ovbm -> Right (ovbm lbs)
+    Nothing   -> Left  ("Undefined modifier: "++show nam)
 
 ssDefineRuleset ::
     ScopedName
@@ -800,7 +804,7 @@ ssCheckProof pn sns igf stfs rgf =
                     (Right rss, Right ig, Right sts, Right rg) ->
                         Right (makeRDFProof rss ig rg sts)
             ; when False $ case proof of
-                    (Left  er) -> return ()
+                    (Left  _)  -> return ()
                     (Right pr) -> putResourceData Nothing $
                                     (("Proof "++show pn++"\n")++)
                                     . showsProof "\n" pr
