@@ -35,21 +35,15 @@ where
 import Swish.HaskellRDF.RDFGraph
     ( RDFLabel(..)
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
-    , isDatatyped, isMemberProp, isUri, isBlank, isQueryVar
+    , isDatatyped, isMemberProp, isUri, isBlank
     )
 
 import Swish.HaskellRDF.VarBinding
     ( VarBinding(..), nullVarBinding
-    , boundVars, subBinding, makeVarBinding
-    , applyVarBinding, joinVarBindings
+    , applyVarBinding 
     , VarBindingModify(..), OpenVarBindingModify
-    , vbmCompatibility, vbmCompose
-    , findCompositions, findComposition
     , VarBindingFilter(..)
-    , makeVarFilterModify
-    , makeVarTestFilter, makeVarCompareFilter
-    , varBindingId, varFilterDisjunction, varFilterConjunction
-    , varFilterEQ, varFilterNE
+    , makeVarTestFilter
     )
 
 import Swish.HaskellRDF.Vocabulary
@@ -159,14 +153,14 @@ rdfVarBindingDatatyped dvar lvar = VarBindingFilter
     }
 
 testDatatyped :: RDFVarBinding -> RDFLabel -> RDFLabel -> Bool
-testDatatyped vb dvar lvar = and $
+testDatatyped vb dvar lvar = and
         [ isUri dtype
         , isDatatyped dqnam $ applyVarBinding vb lvar
         ]
         where
             dtype = applyVarBinding vb dvar
             -- NOTE: dqnam is not evaluated unless (isUri dtype)
-            dqnam = case dtype of { (Res dqnam) -> dqnam }
+            dqnam = case dtype of { (Res x) -> x }
 
 --------------------------------------------------------------------------------
 --
