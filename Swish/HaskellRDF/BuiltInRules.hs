@@ -86,8 +86,8 @@ rdfVarBindingFilters =
     , filter2 varFilterNE
     ]
     where
-        filter1 f lbs = makeVarFilterModify $ f (lbs!!0)
-        filter2 f lbs = makeVarFilterModify $ f (lbs!!0) (lbs!!1)
+        filter1 f lbs = makeVarFilterModify $ f (head lbs)
+        filter2 f lbs = makeVarFilterModify $ f (head lbs) (lbs!!1)
         -- filterN f lbs = makeVarFilterModify $ f ...
 
 ------------------------------------------------------------
@@ -109,6 +109,7 @@ allOpenVarBindingModify =
     rdfVarBindingModifiers  ++
     dtsVarBindingModifiers
 
+dtsVarBindingModifiers :: [RDFOpenVarBindingModify]
 -- dtsVarBindingModifiers = concatMap dtVarBindingModifiers allDatatypes
 dtsVarBindingModifiers = concatMap typeMkModifiers allDatatypes
 
