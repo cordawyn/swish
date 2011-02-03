@@ -44,7 +44,7 @@ import Swish.HaskellRDF.RDFQuery
     )
 
 import Swish.HaskellRDF.RDFGraph
-    ( Label (..), RDFLabel(..), RDFGraph
+    ( RDFLabel(..), RDFGraph
     , makeBlank, newNodes
     , merge, allLabels
     , toRDFGraph, emptyRDFGraph )
@@ -97,6 +97,7 @@ import Swish.HaskellUtils.ErrorM
 import Data.List
     ( nub )
 
+import Data.Maybe (fromMaybe)
 
 ------------------------------------------------------------
 --  Datatypes for RDF ruleset
@@ -147,12 +148,12 @@ data GraphClosure lb = GraphClosure
     }
 
 instance (Label lb) => Eq (GraphClosure lb) where
-    c1 == c2 = (nameGraphRule c1 == nameGraphRule c2) &&
-               (ruleAnt c1) `equiv` (ruleAnt c2) &&
-               (ruleCon c1) `equiv` (ruleCon c2)
+    c1 == c2 = nameGraphRule c1 == nameGraphRule c2 &&
+               ruleAnt c1 `equiv` ruleAnt c2 &&
+               ruleCon c1 `equiv` ruleCon c2
 
 instance (Label lb) => Show (GraphClosure lb) where
-    show c = "GraphClosure "++show (nameGraphRule c)
+    show c = "GraphClosure " ++ show (nameGraphRule c)
 
 ------------------------------------------------------------
 --  Define inference rule based on RDF graph closure rule
@@ -224,23 +225,16 @@ graphClosureBwdApply grc gr =
 ------------------------------------------------------------
 
 queryFind :: [Arc RDFLabel] -> RDFGraph -> [RDFVarBinding]
-queryFind qas tg = rdfQueryFind (toRDFGraph qas) tg
+queryFind qas = rdfQueryFind (toRDFGraph qas)
 
 queryBack :: [Arc RDFLabel] -> RDFGraph -> [[RDFVarBinding]]
-queryBack qas tg = rdfQueryBack (toRDFGraph qas) tg
+queryBack qas = rdfQueryBack (toRDFGraph qas)
 
 querySubs :: [RDFVarBinding] -> [Arc RDFLabel] -> [RDFGraph]
-querySubs vars qas =
-    {-
-    seq (trace "\nquerySubs") $
-    seq (traceShow "\nvars: " vars)
-    seq (traceShow "\narcs: "  qas)
-    seq (trace "\n") $
-    -}
-    rdfQuerySubs vars (toRDFGraph qas)
+querySubs vars = rdfQuerySubs vars . toRDFGraph
 
 querySubsBlank :: [RDFVarBinding] -> [Arc RDFLabel] -> [RDFGraph]
-querySubsBlank vars qas = rdfQuerySubsBlank vars (toRDFGraph qas)
+querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 
 ------------------------------------------------------------
 --  Method for creating an RDF formula value from N3 text
@@ -335,8 +329,8 @@ makeN3ClosureRule ::
     Namespace -> String
     -> String -> String -> RDFVarBindingModify
     -> RDFRule
-makeN3ClosureRule scope local ant con vmod =
-    makeRDFClosureRule (ScopedName scope local) [antgr] congr vmod
+makeN3ClosureRule scope local ant con =
+    makeRDFClosureRule (ScopedName scope local) [antgr] congr
     where
         antgr = makeRDFGraphFromN3String ant
         congr = makeRDFGraphFromN3String con
@@ -378,9 +372,8 @@ makeN3ClosureModifyRule ::
 makeN3ClosureModifyRule scope local ant con vflt vmod =
     makeN3ClosureRule scope local ant con modc
     where
-        modc  = case vbmCompose vmod vflt of
-            Just x  -> x
-            Nothing -> varBindingId
+        modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
+
 {-
     makeRDFClosureRule (ScopedName scope local) [antgr] congr modc
     where
@@ -428,9 +421,7 @@ makeN3ClosureAllocatorRule scope local ant con vflt aloc =
         antgr = makeRDFGraphFromN3String ant
         congr = makeRDFGraphFromN3String con
         vmod  = aloc (allLabels labelIsVar antgr)
-        modc  = case vbmCompose vmod vflt of
-            Just x  -> x
-            Nothing -> varBindingId
+        modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
 
 
 ------------------------------------------------------------
@@ -498,7 +489,7 @@ applyNodeAllocTo ::
     RDFLabel -> RDFLabel -> [RDFLabel] -> [RDFVarBinding] -> [RDFVarBinding]
 applyNodeAllocTo bindvar alocvar exbnode vars =
     let
-        app vbind = applyVarBinding vbind
+        app       = applyVarBinding
         alocnodes = zip (nub $ flist (map app vars) alocvar)
                         (newNodes (makeBlank bindvar) exbnode)
         newvb var = joinVarBindings
