@@ -12,7 +12,6 @@
 
 > module Swish.HaskellRDF.Sort.AdaptiveHeapSort
 > where
-> import Swish.HaskellRDF.Sort.LibBase
 > import Swish.HaskellRDF.Sort.CartesianTree (BinTree(..), cartesianTree)
 > import Swish.HaskellRDF.Sort.HeapSort (Heap(..), leaf, insertBy)
 > import Swish.HaskellRDF.Sort.BraunHeap (siftBy, joinBy)
@@ -22,6 +21,7 @@
 > adaptiveHeapSort		:: (Ord a) => [a] -> [a]
 > adaptiveHeapSort		=  adaptiveHeapSortBy (<=)
 
+> adaptiveHeapSortBy		:: (Ord a) => (a -> a -> Bool) -> [a] -> [a]
 > adaptiveHeapSortBy (<=) as	=  unheap (leaf (cartesianTree as))
 >   where
 >
