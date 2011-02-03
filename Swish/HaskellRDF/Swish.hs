@@ -41,22 +41,16 @@ import System.Exit
 --  then separates the resulting state from the IO monad.
 
 main :: IO ()
-main =
-    do  { 
-          putStrLn ("Swish-0.2.1 CLI\n\n")
-        ;
-          args <- getArgs
-        ; code <- runSwishArgs args
-        ; if code == ExitSuccess then
-            return ()
-          else
-          if code == (ExitFailure 1) then
-            putStrLn $ "Swish: graphs compare different"
-          else
-            putStrLn $ "Swish: "++show code
-        ; exitWith code
-        }
-
+main = do
+  putStrLn "Swish-0.2.1 CLI\n\n"
+  args <- getArgs
+  code <- runSwishArgs args
+  unless (code == ExitSuccess) $ 
+    if code == ExitFailure 1
+      then putStrLn "Swish: graphs compare different"
+      else putStrLn $ "Swish: "++show code
+  exitWith code
+  
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, G. KLYNE.  All rights reserved.
