@@ -29,6 +29,7 @@ import System.Environment
 import System.Exit
     ( ExitCode(ExitSuccess,ExitFailure), exitWith )
 
+import Control.Monad (unless)
 
 ------------------------------------------------------------
 --  Swish main program
