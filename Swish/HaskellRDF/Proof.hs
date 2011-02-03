@@ -28,31 +28,23 @@ module Swish.HaskellRDF.Proof
 where
 
 import Swish.HaskellRDF.Ruleset
-    ( Ruleset(..)
-    , makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules )
+    ( Ruleset(..) )
 
 import Swish.HaskellRDF.Rule
     ( Expression(..), Formula(..), Rule(..)
-    , fwdCheckInference
-    , showsFormula, showsFormulae, showsWidth )
-
-import Swish.HaskellUtils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , getScopePrefix, getScopeURI
-    , getQName, getScopedNameURI )
+    , showsFormula, showsFormulae )
 
 import Swish.HaskellUtils.ShowM
-    ( ShowM(..), showm )
+    ( ShowM(..) )
 
 import Swish.HaskellUtils.ListHelpers
     ( subset )
 
 import Data.List
-    ( union, intersect, intersperse )
+    ( union, intersect, intercalate )
 
 import Data.Maybe
-    ( isJust, fromJust, catMaybes )
+    ( catMaybes )
 
 
 ------------------------------------------------------------
@@ -82,10 +74,12 @@ data Proof ex = Proof
     }
 
 -- |Return a list of axioms from all the rulesets in a proof
-proofAxioms = concat . map rsAxioms . proofContext
+proofAxioms :: Proof a -> [Formula a]
+proofAxioms = concatMap rsAxioms . proofContext
 
 -- |Return a list of rules from all the rulesets in a proof
-proofRules = concat . map rsRules . proofContext
+proofRules :: Proof a -> [Rule a]
+proofRules = concatMap rsRules . proofContext
 
 -- |Return list of axioms actually referenced by a proof
 proofAxiomsUsed :: Proof ex -> [Formula ex]
@@ -99,14 +93,14 @@ checkProof :: (Expression ex) => Proof ex -> Bool
 checkProof pr =
     checkProof1 (proofRules pr) initExpr (proofChain pr) goalExpr
     where
-        initExpr = (formExpr $ proofInput pr):(map formExpr $ proofAxioms pr)
-        goalExpr = (formExpr $ proofResult pr)
+        initExpr = formExpr (proofInput pr) : map formExpr (proofAxioms pr)
+        goalExpr = formExpr $ proofResult pr
 
 checkProof1 :: (Expression ex) => [Rule ex] -> [ex] -> [Step ex] -> ex -> Bool
 checkProof1 _     prev []       res = res `elem` prev
 checkProof1 rules prev (st:steps) res =
     checkStep rules prev st &&
-    checkProof1 rules ((formExpr $ stepCon st):prev) steps res
+    checkProof1 rules (formExpr (stepCon st):prev) steps res
 
 --  A proof step is valid if rule is in list of rules
 --  and the antecedents are sufficient to obtain the conclusion
@@ -157,8 +151,8 @@ explainProof ::
 explainProof pr =
     explainProof1 (proofRules pr) initExpr (proofChain pr) goalExpr
     where
-        initExpr = (formExpr $ proofInput pr):(map formExpr $ proofAxioms pr)
-        goalExpr = (formExpr $ proofResult pr)
+        initExpr = formExpr (proofInput pr) : map formExpr (proofAxioms pr)
+        goalExpr = formExpr $ proofResult pr
 
 explainProof1 ::
     (Expression ex) => [Rule ex] -> [ex] -> [Step ex] -> ex -> Maybe String
@@ -166,7 +160,7 @@ explainProof1 _     prev []       res   =
     if res `elem` prev then Nothing else Just "Result not demonstrated"
 explainProof1 rules prev (st:steps) res =
     case explainStep rules prev st  of
-        Nothing -> explainProof1 rules ((formExpr $ stepCon st):prev) steps res
+        Nothing -> explainProof1 rules (formExpr (stepCon st):prev) steps res
         Just ex -> Just ("Invalid step: "++show (formName $ stepCon st)++": "++ex)
 
 --  A proof step is valid if rule is in list of rules
@@ -182,7 +176,7 @@ explainProof1 rules prev (st:steps) res =
 --
 explainStep :: (Expression ex) => [Rule ex] -> [ex] -> Step ex -> Maybe String
 explainStep rules prev step =
-        if null errors then Nothing else Just $ concat (intersperse ", " errors)
+        if null errors then Nothing else Just $ intercalate ", " errors
     where
         --  Rule from proof step:
         srul = stepRule step
@@ -197,10 +191,10 @@ explainStep rules prev step =
                       ("rule "++show (ruleName srul)++" not present")
             -- Antecedent expressions are all previously accepted expressions
             , require (sant `subset` prev)
-                      ("antecedent not axiom or previous result")
+                      "antecedent not axiom or previous result"
             -- Inference rule yields consequence from antecedents
             , require (checkInference srul sant scon)
-                      ("rule does not deduce consequence from antecedents")
+                      "rule does not deduce consequence from antecedents"
             ]
         require b s = if b then Nothing else Just s
 
@@ -262,6 +256,7 @@ showNames (n1:ns) = showName n1 ++ ", " ++ showNames ns
 
 -- |showNames
 --  Return a string representing a single name.
+showName :: String -> String
 showName n = "["++n++"]"
 
 
