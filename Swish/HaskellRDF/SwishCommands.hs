@@ -164,7 +164,7 @@ diffGraph gr =
         ; case maybehandleclose of
             Just (h,c) ->
                 do  { swishOutputDiffs "" h diffs
-                    ; if c then lift $ hClose h else return ()
+                    ; when c (lift $ hClose h)
                     }
             _          -> return ()
         }
@@ -175,7 +175,7 @@ swishOutputDiffs :: (Label lb) =>
     -> SwishStateIO ()
 swishOutputDiffs fnam hnd diffs =
     do  { lift $ hPutStrLn hnd ("Graph differences: "++show (length diffs))
-        ; sequence_ $ map (swishOutputDiff fnam hnd) (zip [1..] diffs)
+        ; mapM_ (swishOutputDiff fnam hnd) (zip [1..] diffs)
         }
 
 swishOutputDiff :: (Label lb) =>
@@ -204,10 +204,7 @@ swishOutputPart fnam hnd part =
 ------------------------------------------------------------
 
 swishScript :: String -> SwishStateIO ()
-swishScript fnam =
-    do  { scs <- swishReadScript fnam
-        ; sequence_ (map swishCheckResult scs)
-        }
+swishScript fnam = swishReadScript fnam >>= mapM_ swishCheckResult
 
 swishReadScript :: String -> SwishStateIO [SwishStateIO ()]
 swishReadScript fnam =
@@ -240,12 +237,12 @@ swishCheckResult swishcommand =
         ; er <- gets errormsg
         ; when (isJust er) $
             do  { swishError (fromJust er) 5
-                ; modify $ resetError
+                ; modify resetError
                 }
         ; ms <- gets infomsg
         ; when (isJust ms) $
             do  { reportLine (fromJust ms)
-                ; modify $ resetInfo
+                ; modify resetInfo
                 }
         }
 
@@ -259,18 +256,18 @@ swishOutput fnam =
         ; case maybehandleclose of
             Just (h,c) ->
                 do  { swishOutputGraph fnam h
-                    ; if c then lift $ hClose h else return ()
+                    ; when c (lift $ hClose h)
                     }
             _          -> return ()
         }
 
 swishOutputGraph :: String -> Handle -> SwishStateIO ()
 swishOutputGraph fnam hnd =
-    do  { fmt <- gets $ format
+    do  { fmt <- gets format
         ; case fmt of
             N3        -> swishFormatN3 fnam hnd
             _         -> swishError
-                         ("Unsupported file format: "++(show fmt)) 4
+                         ("Unsupported file format: "++show fmt) 4
         }
 
 swishFormatN3 :: String -> Handle -> SwishStateIO ()
@@ -312,7 +309,7 @@ swishOpenFile fnam =
                     Right h -> return (h,True)
                 }
         ; hrd <- lift $ hIsReadable hnd
-        ; res <- if hop && hrd then
+        ; if hop && hrd then
             do  {
                 ; fc <- lift $ hGetContents hnd
                 ; return $ Just (hnd,fc)
@@ -322,16 +319,15 @@ swishOpenFile fnam =
                 ; swishError ("Cannot read file: "++fnam) 3
                 ; return Nothing
                 }
-        ; return res
         }
 
 swishParse :: String -> String -> SwishStateIO (Maybe RDFGraph)
 swishParse fnam inp =
-    do  { fmt <- gets $ format
+    do  { fmt <- gets format
         ; case fmt of
             N3        -> swishParseN3 fnam inp
             _         ->
-                do  { swishError ("Unsupported file format: "++(show fmt)) 4
+                do  { swishError ("Unsupported file format: "++show fmt) 4
                     ; return Nothing
                     }
         }
@@ -367,7 +363,7 @@ swishWriteFile fnam =
         ; if hop && hwt then
                 return $ Just (hnd,cls)
             else
-            do  { if cls then lift $ hClose hnd else return ()
+            do  { when cls (lift $ hClose hnd)
                 ; swishError ("Cannot write file: "++fnam) 3
                 ; return Nothing
                 }
