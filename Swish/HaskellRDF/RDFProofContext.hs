@@ -100,7 +100,7 @@ makeFormula scope local gr =
     makeRDFFormula scope local (prefixRDF++gr)
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter
-requireAny rs = varFilterDisjunction rs
+requireAny = varFilterDisjunction
 
 isLiteralV            :: String -> RDFVarBindingFilter
 isLiteralV    ('?':l) = rdfVarBindingLiteral        (Var l)
@@ -151,17 +151,8 @@ sameDatatypedValueApplyAll ::
     RDFLabel -> RDFLabel -> RDFLabel -> RDFLabel
     -> [RDFVarBinding]
     -> [RDFVarBinding]
-sameDatatypedValueApplyAll val1 typ1 val2 typ2 vbinds =
-    {-
-    trace "\nsameDatatypedValueApplyAll:" $
-    seq (traceShow "\nval1:" val1) $
-    seq (traceShow "\ntyp1:" typ1) $
-    seq (traceShow "\nval2:" val2) $
-    seq (traceShow "\ntyp2:" typ2) $
-    seq (traceShow "\nvbinds:" vbinds) $
-    trace "\n" $
-    -}
-    concatMap (sameDatatypedValueApply val1 typ1 val2 typ2) vbinds
+sameDatatypedValueApplyAll val1 typ1 val2 typ2 =
+    concatMap (sameDatatypedValueApply val1 typ1 val2 typ2) 
 
 --  Auxiliary function that handles variable binding updates
 --  for sameDatatypedValue
@@ -170,16 +161,6 @@ sameDatatypedValueApply ::
     -> RDFVarBinding
     -> [RDFVarBinding]
 sameDatatypedValueApply val1 typ1 val2 typ2 vbind =
-    {-
-    trace "\nsameDatatypedValueApply:" $
-    seq (traceShow "\nval1:"   val1) $
-    seq (traceShow "\ntyp1:"   typ1) $
-    seq (traceShow "\nval2:"   val2) $
-    seq (traceShow "\ntyp2:"   typ2) $
-    seq (traceShow "\nvbind:"  vbind) $
-    seq (traceShow "\nresult:" result) $
-    trace "\n" $
-    -}
     result
     where
         v1    = applyVarBinding vbind val1
@@ -187,12 +168,11 @@ sameDatatypedValueApply val1 typ1 val2 typ2 vbind =
         t2    = applyVarBinding vbind typ2
         sametype = getCanonical v1 t1 t2
         result   =
-            if (isUri t1) && (isUri t2) then
-                if (t1 == t2) then
-                    if isJust sametype then
-                        [addVarBinding val2 (fromJust $ sametype) vbind]
-                    else
-                        []
+            if isUri t1 && isUri t2 then
+                if t1 == t2 then
+                    case sametype of
+                      Just st -> [addVarBinding val2 st vbind]
+                      _ -> []
                 else
                     error "subtype conversions not yet defined"
             else
@@ -200,7 +180,7 @@ sameDatatypedValueApply val1 typ1 val2 typ2 vbind =
 
 getCanonical :: RDFLabel -> RDFLabel -> RDFLabel -> Maybe RDFLabel
 getCanonical v1 t1 t2 =
-    if (isDatatyped dqn1 v1) && (isJust mdt1) then
+    if isDatatyped dqn1 v1 && isJust mdt1 then
         liftM mkLit $ typeMkCanonicalForm dt1 (getLiteralText v1)
     else
         Nothing
