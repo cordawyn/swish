@@ -92,6 +92,28 @@ Library
                         Swish.HaskellRDF.SwishScript
                         Swish.HaskellRDF.VarBinding
                         Swish.HaskellRDF.Vocabulary
+                        Swish.HaskellUtils.AccumulateM
+                        Swish.HaskellUtils.DateTime
+                        Swish.HaskellUtils.ErrorM
+                        Swish.HaskellUtils.FunctorM
+                        Swish.HaskellUtils.ListHelpers
+                        Swish.HaskellUtils.LookupMap
+                        Swish.HaskellUtils.MiscHelpers
+                        Swish.HaskellUtils.Namespace
+                        Swish.HaskellUtils.Parse
+                        Swish.HaskellUtils.ParseURI
+                        Swish.HaskellUtils.PartOrderedCollection
+                        Swish.HaskellUtils.ProcessURI
+                        Swish.HaskellUtils.QName
+--   COMEBCK!!!!                     Swish.HaskellUtils.RegexParser
+                        Swish.HaskellUtils.ShowM
+                        Swish.HaskellUtils.TestHelpers
+                        Swish.HaskellUtils.TraceHelpers
+                        Swish.HaskellUtils.Network.URI
+
+   -- hide the Sort modules since aim to replace these in the near future
+   -- and their documentation doesn't build at the moment
+   other-modules:
                         Swish.HaskellRDF.Sort.AdaptiveHeapSort
 -- WNH                         Swish.HaskellRDF.Sort.Benchmark
                         Swish.HaskellRDF.Sort.BraunHeap
@@ -117,28 +139,9 @@ Library
                         Swish.HaskellRDF.Sort.Stable
 -- WNH same prob QuickSortInPlace                        Swish.HaskellRDF.Sort.SuffixArrays
 -- WNH                         Swish.HaskellRDF.Sort.TestData
-                        Swish.HaskellUtils.AccumulateM
-                        Swish.HaskellUtils.DateTime
-                        Swish.HaskellUtils.ErrorM
-                        Swish.HaskellUtils.FunctorM
-                        Swish.HaskellUtils.ListHelpers
-                        Swish.HaskellUtils.LookupMap
-                        Swish.HaskellUtils.MiscHelpers
-                        Swish.HaskellUtils.Namespace
-                        Swish.HaskellUtils.Parse
-                        Swish.HaskellUtils.ParseURI
-                        Swish.HaskellUtils.PartOrderedCollection
-                        Swish.HaskellUtils.ProcessURI
-                        Swish.HaskellUtils.QName
---   COMEBCK!!!!                     Swish.HaskellUtils.RegexParser
-                        Swish.HaskellUtils.ShowM
-                        Swish.HaskellUtils.TestHelpers
-                        Swish.HaskellUtils.TraceHelpers
-                         Swish.HaskellUtils.Network.URI
 
    extensions:          CPP, ParallelListComp
    ghc-options:         -Wall -fexcess-precision -funbox-strict-fields -auto-all
-
 
 
 Executable         BuiltInMapTest
