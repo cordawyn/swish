@@ -74,7 +74,6 @@ Library
                         Swish.HaskellRDF.MapXsdInteger,
                         Swish.HaskellRDF.N3Formatter,
                         Swish.HaskellRDF.N3Parser,
-                        Swish.HaskellRDF.ParsecLanguage,
  -- YOH ADRIAN GHC EXTENSION??                       Swish.HaskellRDF.OwlAbstractSyntax,
                         Swish.HaskellRDF.Proof,
                         Swish.HaskellRDF.RDFDatatype,

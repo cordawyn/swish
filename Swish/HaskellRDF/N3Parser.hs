@@ -92,10 +92,8 @@ import Swish.HaskellUtils.ProcessURI
 import Swish.HaskellUtils.ErrorM
     ( ErrorM(Error,Result) )
 
-import Swish.HaskellRDF.ParsecLanguage
-    ( emptyDef )
-
 import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Language (emptyDef)
 
 import qualified Text.ParserCombinators.Parsec.Token as P
 
