@@ -3,7 +3,6 @@
 > import Data.List (group)
 > import Swish.HaskellRDF.Sort.ListLib
 > import Swish.HaskellRDF.Sort.LibBase
-> import Swish.HaskellRDF.Sort.PairingHeap
 
 Datentypen, um Stabilit"at zu testen.
 

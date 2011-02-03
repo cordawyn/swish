@@ -6,7 +6,6 @@
 
 > module Swish.HaskellRDF.Sort.FingerSearchtree 
 > where
-> import Swish.HaskellRDF.Sort.LibBase
 
 %align 33
 
