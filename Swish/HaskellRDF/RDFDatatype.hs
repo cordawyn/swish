@@ -38,40 +38,25 @@ import Swish.HaskellRDF.RDFGraph
     )
 
 import Swish.HaskellRDF.RDFVarBinding
-    ( RDFVarBinding, nullRDFVarBinding
-    , RDFVarBindingModify, RDFOpenVarBindingModify
-    )
+    ( RDFVarBinding, RDFOpenVarBindingModify )
 
 import Swish.HaskellRDF.Datatype
     ( Datatype -- , typeName, typeRules
     , DatatypeVal(..)
-    , getDTMod
     , DatatypeMap(..)
     , DatatypeMod(..), ModifierFn
-    , nullDatatypeMod
     , ApplyModifier
     , DatatypeSub(..)
     )
 
-import Swish.HaskellRDF.Ruleset
-    ( Ruleset(..)
-    )
-
 import Swish.HaskellUtils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , getQName
-    )
+    ( ScopedName(..) )
 
 import Swish.HaskellRDF.VarBinding
-    ( VarBinding(..)
-    , boundVars, subBinding, makeVarBinding
-    , applyVarBinding, joinVarBindings, addVarBinding
-    , VarBindingModify(..)
-    )
+    ( VarBindingModify(..) )
 
 import Data.Maybe
-    ( Maybe(..), fromMaybe, isJust, fromJust )
+    ( fromMaybe, isJust, fromJust )
 
 import Control.Monad
     ( liftM )
@@ -163,11 +148,11 @@ makeRDFModifierFn ::
     RDFDatatypeVal vt -> ModifierFn vt -> RDFModifierFn
 makeRDFModifierFn dtval fn ivs =
     let
-        ivals = sequence $ map (rdfNodeExtract dtval) ivs
+        ivals = mapM (rdfNodeExtract dtval) ivs
         ovals | isJust ivals = fn (fromJust ivals)
               | otherwise    = []
     in
-        fromMaybe [] $ sequence $ map (rdfNodeInject dtval) ovals
+        fromMaybe [] $ mapM (rdfNodeInject dtval) ovals
 
 -- |Extract datatyped value from RDFLabel value, or return Nothing.
 --
