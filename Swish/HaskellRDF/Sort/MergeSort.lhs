@@ -32,13 +32,13 @@ finally merged together.
 > (\+/)				=  mergeBy (<=)
 >
 > mergeBy			:: Rel a -> [a] -> [a] -> [a]
-> mergeBy (<=)			=  merge
+> mergeBy (<=)			=  tmerge
 >     where
->     merge [] bs		=  bs
->     merge as@(_ : _) []	=  as
->     merge as@(a : as') bs@(b : bs')
->         | a <= b		=  a : merge as' bs
->	  | otherwise		=  b : merge as  bs'
+>     tmerge [] bs		=  bs
+>     tmerge as@(_ : _) []	=  as
+>     tmerge as@(a : as') bs@(b : bs')
+>         | a <= b		=  a : tmerge as' bs
+>	  | otherwise		=  b : tmerge as  bs'
 >
 > mergeSort			:: (Ord a) => [a] -> [a]
 > mergeSort			=  mergeSortBy (<=)
@@ -65,7 +65,7 @@ lazy, but alas not in any way adaptive.
 > bottomUpMergeSort		=  bottomUpMergeSortBy (<=)
 >
 > bottomUpMergeSortBy		:: Rel a -> [a] -> [a]
-> bottomUpMergeSortBy (<=)	=  gfoldm [] (\a -> [a]) (mergeBy (<=))
+> bottomUpMergeSortBy (<=)	=  gfoldm [] (: []) (mergeBy (<=))
 
 %-------------------------------=  --------------------------------------------
 \section{Straight merge sort}
@@ -158,7 +158,7 @@ in |g| are grouped to allow for efficient access to the last element in
 >				|  G (Region a) (Sequ a)
 >
 > single			:: a -> Sequ a
-> single a			=  \x -> a : x
+> single a x			=  a : x
 >
 > g				:: Region a -> Sequ a -> Region a
 > g Nil gs			=  G Nil gs
@@ -166,7 +166,7 @@ in |g| are grouped to allow for efficient access to the last element in
 > g (G s gs1) gs2		=  G s (gs1 . gs2)
 >
 > lpDivisionBy			:: Rel a -> [a] -> ([a], [a], [a])
-> lpDivisionBy (<=) []          =  ([], [], [])
+> lpDivisionBy _    []          =  ([], [], [])
 > lpDivisionBy (<=) (a : as)    =  lp (S Nil a) [] as
 >     where
 >     lp s l []              	=  (g [], reverse s', reverse l)
