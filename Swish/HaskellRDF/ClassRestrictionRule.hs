@@ -1,4 +1,4 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
 --  $Id: ClassRestrictionRule.hs,v 1.15 2004/01/07 19:49:12 graham Exp $
 --
@@ -98,8 +98,7 @@ import Swish.HaskellUtils.ListHelpers
     ( powerSet )
 
 import Data.Maybe
-    ( Maybe(..)
-    , isJust, fromJust, fromMaybe, catMaybes )
+    ( isJust, fromJust, fromMaybe, mapMaybe )
 
 import Data.List
     ( delete, nub, (\\) )
@@ -128,7 +127,7 @@ instance Eq ClassRestriction where
     cr1 == cr2  =  crName cr1 == crName cr2
 
 instance Show ClassRestriction where
-    show cr = "ClassRestriction:"++(show $ crName cr)
+    show cr = "ClassRestriction:" ++ show (crName cr)
 
 instance LookupEntryClass ClassRestriction ScopedName ClassRestriction
     where
@@ -163,11 +162,11 @@ makeDatatypeRestriction dtv dtrel = ClassRestriction
 makeDatatypeRestrictionFn ::
     RDFDatatypeVal vt -> DatatypeRelFn vt -> ClassRestrictionFn
 makeDatatypeRestrictionFn dtv dtrelfn =
-    liftM (catMaybes . map toLabels) . dtrelfn . (map frLabel)
+    liftM (mapMaybe toLabels) . dtrelfn . map frLabel
     where
         frLabel Nothing  = Nothing
         frLabel (Just l) = fromRDFLabel dtv l
-        toLabels         = sequence . map toLabel   -- Maybe [RDFLabel]
+        toLabels         = mapM toLabel   -- Maybe [RDFLabel]
         toLabel          = toRDFLabel dtv
 
 ------------------------------------------------------------
@@ -195,7 +194,7 @@ falseGraphStr = "_:a rdfd:false _:b . "
 --
 makeRDFClassRestrictionRules :: [ClassRestriction] -> RDFGraph -> [RDFRule]
 makeRDFClassRestrictionRules crs gr =
-    catMaybes $ ( map constructRule . queryForRules ) gr
+    mapMaybe constructRule (queryForRules gr)
     where
         queryForRules = rdfQueryFind ruleQuery
         constructRule = makeRestrictionRule1 crs gr
@@ -243,7 +242,7 @@ makeRestrictionRule2 (Just restriction) cls@(Res cname) props cs =
             , checkInference = bwdCheckInference restrictionRule
             }
 makeRestrictionRule2 _ _ _ _ =
-    trace "\nmakeRestrictionRule: missing class restriction" $
+    trace "\nmakeRestrictionRule: missing class restriction"
     Nothing
 
 --  Forward apply class restriction.
@@ -263,7 +262,7 @@ fwdApplyRestriction restriction cls props cs antgrs =
         newgr :: RDFLabel -> Maybe [RDFGraph]
         newgr ri = fwdApplyRestriction1 restriction ri props cs antgr
         newgrs :: Maybe [[RDFGraph]]
-        newgrs = sequence $ map newgr ris
+        newgrs = mapM newgr ris
 
 --  Forward apply class restriction to single class instance (ci).
 --  Return single set of inferred results, for each combination of
@@ -285,7 +284,7 @@ fwdApplyRestriction1 restriction ci props cs antgr =
         (grConsistent,_,_,sts) = applyRestriction restriction ci props cs antgr
         --  Select results, eliminate those with unknowns
         nts :: [[RDFLabel]]
-        nts = catMaybes $ map sequence sts
+        nts = mapMaybe sequence sts
         --  Make new graph from results, including only newly generated arcs
         newarcs = nub [Arc ci p v | vs <- nts, (p,v) <- zip props vs ]
                   \\ getArcs antgr
@@ -300,7 +299,7 @@ bwdApplyRestriction ::
     ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int] -> RDFGraph
     -> [[RDFGraph]]
 bwdApplyRestriction restriction cls props cs congr =
-    if isJust newgrs then fromJust newgrs else [[falseGraph]]
+    fromMaybe [[falseGraph]] newgrs
     where
         -- Instances of the named class in the graph:
         ris = rdfFindValSubj res_rdf_type cls congr
@@ -313,7 +312,7 @@ bwdApplyRestriction restriction cls props cs congr =
         --  yielding an equivalent disjunction of conjunctions
         --  map concat flattens the conjunctions of conjuctions
         newgrs :: Maybe [[RDFGraph]]
-        newgrs = liftM (map concat . sequence) $ sequence $ map newgr ris
+        newgrs = liftM (map concat . sequence) $ mapM newgr ris
 
 --  Backward apply a class restriction to single class instance (ci).
 --  Return one or more sets of antecedent results from which the consequence
@@ -357,7 +356,7 @@ bwdApplyRestriction1 restriction cls ci props cs congr =
         newArcs dts =
             [ Arc ci p v | mvs <- dts, (p,Just v) <- zip props mvs ]
         --  Make graphs for one alternative
-        makeGraphs = map (toRDFGraph . (:[])) . ((Arc ci res_rdf_type cls):)
+        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci res_rdf_type cls :)
 
 --  Helper function to select sub-tuples from which some of a set of
 --  values can be derived using a class restriction.
@@ -376,7 +375,7 @@ deriveTuple ::
 deriveTuple restriction ft =
     map (tosnd ft) $ minima partCompareListMaybe $ filter derives partials
     where
-        partials = sequence $ map (\x -> [Nothing,Just x]) ft
+        partials = mapM (\x -> [Nothing,Just x]) ft
         derives  = ([ft]==) . fromJust . crFunc restriction
         tosnd    = flip (,)
 
@@ -417,7 +416,7 @@ applyRestriction ::
        , [[Maybe RDFLabel]]
        )
 applyRestriction restriction ci props cs gr =
-    ( (coversVals deleteMaybe sts pvs) && cardinalityOK, pvs, cts, sts )
+    (coversVals deleteMaybe sts pvs && cardinalityOK, pvs, cts, sts )
     where
         --  Extract from the antecedent graph all specified values of the
         --  restricted properties (constructs inner list for each property)
@@ -426,7 +425,7 @@ applyRestriction restriction ci props cs gr =
         --  Convert tuple of alternatives to list of alternative tuples
         --  (Each tuple is an inner list)
         pts :: [[Maybe RDFLabel]]
-        pts = sequence $ map allJustAndNothing pvs
+        pts = mapM allJustAndNothing pvs
         --  Try class restriction calculation for each tuple
         --  For each, result may be:
         --    Nothing  (inconsistent)
@@ -466,6 +465,7 @@ applyRestriction restriction ci props cs gr =
 allJustAndNothing :: [a] -> [Maybe a]
 allJustAndNothing as = Nothing:map Just as
 
+{-
 --  Get maximum information about possible tuple values from a
 --  given pair of input tuple, which is known to be consistent with
 --  the restriction, and calculated result tuples.  Where the result
@@ -481,6 +481,7 @@ allJustAndNothing as = Nothing:map Just as
 mostValues :: ([Maybe a],[[a]]) -> [[Maybe a]]
 mostValues (imvs,([])) = [imvs]
 mostValues (_,movss) = map (map Just) movss
+-}
 
 --  Get maximum information about possible tuple values from a
 --  given pair of input and possible result tuples, which is
@@ -529,9 +530,9 @@ coverSets  :: (Eq a) => [[a]] -> [([Maybe a],[a])] -> [[[Maybe a]]]
 coverSets pvs dts =
     minima partCompareListSubset $ map (map fst) ctss
     where
-        ctss = filter (coverspvs) $ powerSet cts
+        ctss = filter coverspvs $ powerSet cts
         cts  = minima (partComparePair partCompareListMaybe partCompareEq) dts
-        coverspvs cts = coversVals delete (map snd cts) pvs
+        coverspvs cs = coversVals delete (map snd cs) pvs
 
 --  Does a supplied list of tuples cover a list of possible alternative
 --  values for each tuple member?
@@ -543,7 +544,7 @@ coversVals dropVal ts vss =
     where
         --  Remove single tuple values from the list of supplied values:
         dropUsed []       []     = []
-        dropUsed (t:ts) (vs:vss) = dropVal t vs:dropUsed ts vss
+        dropUsed (a:as) (bs:bss) = dropVal a bs : dropUsed as bss
         dropUsed _ _ = error "coversVals.dropUsed: list length mismatch"
 
 {-
