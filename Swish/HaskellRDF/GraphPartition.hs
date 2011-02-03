@@ -28,7 +28,7 @@ where
 
 import Swish.HaskellRDF.GraphClass
     ( Label(..)
-    , Arc(..), arcSubj, arcPred, arcObj, arc, arcToTriple, arcFromTriple
+    , Arc(..), arcSubj, arcObj, 
     -- , hasLabel, arcLabels
     )
 
@@ -36,10 +36,10 @@ import Data.List
     ( partition )
 
 import Control.Monad.State
-    ( MonadState(..), State(..), evalState )
+    ( MonadState(..), State, evalState )
 
 import Data.Maybe
-    ( isJust, fromJust, catMaybes, listToMaybe )
+    ( isJust, fromJust, mapMaybe )
 
 
 ------------------------------------------------------------
@@ -66,6 +66,7 @@ getArcs (PartitionedGraph ps) = concatMap toArcs ps
 getPartitions :: PartitionedGraph lb -> [GraphPartition lb]
 getPartitions (PartitionedGraph ps) = ps
 
+-- QUS: is the list always guaranteed to be non-empty in PartSub?
 data GraphPartition lb
     = PartObj lb
     | PartSub lb [(lb,GraphPartition lb)]
@@ -76,9 +77,9 @@ node (PartSub sb _) = sb
 
 toArcs :: GraphPartition lb -> [Arc lb]
 toArcs (PartObj _)      = []
-toArcs (PartSub sb prs) = concat $ map toArcs1 prs
+toArcs (PartSub sb prs) = concatMap toArcs1 prs
     where
-        toArcs1 (pr,ob) = (Arc sb pr (node ob)):toArcs ob
+        toArcs1 (pr,ob) = Arc sb pr (node ob) : toArcs ob
 
 instance (Label lb) => Eq (GraphPartition lb) where
     (==) = partitionEq
@@ -88,24 +89,24 @@ instance (Label lb) => Show (GraphPartition lb) where
 
 --  Equality is based on total structural equivalence.
 --  This is not the same as graph equality.
-partitionEq :: (Label lb) => (GraphPartition lb) -> (GraphPartition lb) -> Bool
+partitionEq :: (Label lb) => GraphPartition lb -> GraphPartition lb -> Bool
 partitionEq (PartObj o1)    (PartObj o2)    = o1 == o2
-partitionEq (PartSub s1 p1) (PartSub s2 p2) = (s1 == s2) && (p1==p2)
+partitionEq (PartSub s1 p1) (PartSub s2 p2) = s1 == s2 && p1 == p2
 partitionEq  _               _              = False
 
-partitionShow :: (Label lb) => (GraphPartition lb) -> String
+partitionShow :: (Label lb) => GraphPartition lb -> String
 partitionShow (PartObj ob)          = show ob
 partitionShow (PartSub sb (pr:prs)) =
     "("++ show sb ++ " " ++ showpr pr ++ concatMap ((" ; "++).showpr) prs ++ ")"
     where
-        showpr (pr,ob) = show pr ++ " " ++ show ob
+        showpr (a,b) = show a ++ " " ++ show b
 
-partitionShowP :: (Label lb) => String -> (GraphPartition lb) -> String
-partitionShowP pref (PartObj ob)          = show ob
+partitionShowP :: (Label lb) => String -> GraphPartition lb -> String
+partitionShowP _    (PartObj ob)          = show ob
 partitionShowP pref (PartSub sb (pr:prs)) =
     pref++"("++ show sb ++ " " ++ showpr pr ++ concatMap (((pref++"  ; ")++).showpr) prs ++ ")"
     where
-        showpr (pr,ob) = show pr ++ " " ++ partitionShowP (pref++"  ") ob
+        showpr (a,b) = show a ++ " " ++ partitionShowP (pref++"  ") b
 
 ------------------------------------------------------------
 --  Creating partitioned graphs
@@ -184,7 +185,7 @@ makePartitions2 :: (Eq lb) =>
     (lb,[Arc lb]) -> State (MakePartitionState lb) [GraphPartition lb]
 makePartitions2 subs =
     do  { (part,moresubs) <- makeStatements subs
-        ; moreparts <- if (not $ null moresubs) then
+        ; moreparts <- if not (null moresubs) then
             makePartitions1 moresubs
           else
             return []
@@ -195,7 +196,7 @@ makeStatements :: (Eq lb) =>
     (lb,[Arc lb])
     -> State (MakePartitionState lb) (GraphPartition lb,[(lb,[Arc lb])])
 makeStatements (sub,stmts) =
-    do  { propmore <- sequence (map makeStatement stmts)
+    do  { propmore <- mapM makeStatement stmts
         ; let (props,moresubs) = unzip propmore
         ; return (PartSub sub props,concat moresubs)
         }
@@ -203,7 +204,7 @@ makeStatements (sub,stmts) =
 makeStatement :: (Eq lb) =>
     Arc lb
     -> State (MakePartitionState lb) ((lb,GraphPartition lb),[(lb,[Arc lb])])
-makeStatement (Arc sub prop obj) =
+makeStatement (Arc _ prop obj) =
     do  { intobj <- pickIntSubject obj
         ; (gpobj,moresubs) <- if null intobj
           then
@@ -217,8 +218,8 @@ makeStatement (Arc sub prop obj) =
 
 pickNextSubject :: State (MakePartitionState lb) [(lb,[Arc lb])]
 pickNextSubject =
-    do  { (s1,s2,s3) <- get
-        ; let (s,st) = case (s1,s2,s3) of
+    do  { (a1,a2,a3) <- get
+        ; let (s,st) = case (a1,a2,a3) of
                 (s1h:s1t,s2,s3) -> ([s1h],(s1t,s2,s3))
                 ([],s2h:s2t,s3) -> ([s2h],([],s2t,s3))
                 ([],[],s3h:s3t) -> ([s3h],([],[],s3t))
@@ -232,7 +233,7 @@ pickIntSubject :: (Eq lb) =>
 pickIntSubject sub =
     do  { (s1,s2,s3) <- get
         ; let varsub = removeBy (\x->(x==).fst) sub s3
-        ; if (isJust varsub) then
+        ; if isJust varsub then
             do  { let (vs,s3new) = fromJust varsub
                 ; put (s1,s2,s3new)
                 ; return [vs]
@@ -246,7 +247,7 @@ pickVarSubject :: (Eq lb) =>
 pickVarSubject sub =
     do  { (s1,s2,s3) <- get
         ; let varsub = removeBy (\x->(x==).fst) sub s2
-        ; if (isJust varsub) then
+        ; if isJust varsub then
             do  { let (vs,s2new) = fromJust varsub
                 ; put (s1,s2new,s3)
                 ; return [vs]
@@ -302,9 +303,9 @@ comparePartitions2 pg1@(PartSub l1 p1s) pg2@(PartSub l2 p2s) =
                     Just [] -> Just []
                     Just ps -> {- if matchVar then Nothing else -} Just ps
         matchVar = labelIsVar l1 && labelIsVar l2
-        match    = matchVar || (l1 == l2)
+        match    = matchVar || l1 == l2
 comparePartitions2 pg1 pg2 =
-    if not (labelIsVar l1) && (l1==l2)
+    if not (labelIsVar l1) && l1 == l2
         then Just [(Just pg1,Just pg2)]
         else Nothing
     where
@@ -323,13 +324,12 @@ comparePartitions3 l1 l2 s1s s2s = Just $
 comparePartitions4 :: (Label lb) =>
     lb -> lb -> (lb,GraphPartition lb) -> (lb,GraphPartition lb)
     -> Maybe [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
-comparePartitions4 s1 s2 po1@(p1,o1) po2@(p2,o2) =
+comparePartitions4 _ _ (p1,o1) (p2,o2) =
     if matchNodes p1 p2 then comp1 else Nothing
     where
         comp1   = case comparePartitions2 o1 o2 of
-                    Nothing -> Just [((Just o1),(Just o2))]
+                    Nothing -> Just [(Just o1,Just o2)]
                     ds      -> ds
-        -- nomatch = (Just (PartSub s1 [po1]),Just (PartSub s2 [po2]))
 
 matchNodes :: (Label lb) => lb -> lb -> Bool
 matchNodes l1 l2
@@ -358,7 +358,7 @@ collectBy :: (b->b->Bool) -> (a->b) -> [a] -> [(b,[a])]
 collectBy cmp sel = map reverseCollection . collectBy1 cmp sel []
 
 collectBy1 :: (b->b->Bool) -> (a->b) -> [(b,[a])] -> [a] -> [(b,[a])]
-collectBy1 cmp sel sofar []     = sofar
+collectBy1 _   _   sofar []     = sofar
 collectBy1 cmp sel sofar (a:as) =
     collectBy1 cmp sel (collectBy2 cmp sel a sofar) as
 
@@ -400,13 +400,13 @@ collectMoreBy cmp sel as cols =
 
 collectMoreBy1 ::
     (b->b->Bool) -> (a->b) -> [a] -> [(b,(c,[a]))] -> [(b,(c,[a]))]
-collectMoreBy1 cmp sel []     cols = cols
+collectMoreBy1 _   _   []     cols = cols
 collectMoreBy1 cmp sel (a:as) cols =
     collectMoreBy1 cmp sel as (collectMoreBy2 cmp sel a cols)
 
 collectMoreBy2 ::
     (b->b->Bool) -> (a->b) -> a -> [(b,(c,[a]))] -> [(b,(c,[a]))]
-collectMoreBy2 cmp sel a [] = []
+collectMoreBy2 _   _   _ [] = []
 collectMoreBy2 cmp sel a (col@(k,(b,as)):cols)
     | cmp (sel a) k = (k,(b,a:as)):cols
     | otherwise     = col:collectMoreBy2 cmp sel a cols
@@ -427,17 +427,9 @@ testCollectMore2 = testCollectMore1
 --  function, and return Just the element remoived and the
 --  remaining list, or Nothing if no element was matched for removal.
 --
+{-
 remove :: (Eq a) => a -> [a] -> Maybe (a,[a])
 remove = removeBy (==)
-
-removeBy :: (b->a->Bool) -> b -> [a] -> Maybe (a,[a])
-removeBy cmp a0 as = removeBy1 cmp a0 as []
-
-removeBy1 :: (b->a->Bool) -> b -> [a] -> [a] -> Maybe (a,[a])
-removeBy1 _   _  []     _     = Nothing
-removeBy1 cmp a0 (a:as) sofar
-    | cmp a0 a  = Just (a,reverseTo sofar as)
-    | otherwise = removeBy1 cmp a0 as (a:sofar)
 
 testRemove1  = remove 3 [1,2,3,4,5]
 testRemove2  = testRemove1 == Just (3,[1,2,4,5])
@@ -450,11 +442,21 @@ testRemove8  = testRemove7 == Just (1,[2,4])
 testRemove9  = remove 2 [2]
 testRemove10 = testRemove9 == Just (2,[])
 
+-}
+
+removeBy :: (b->a->Bool) -> b -> [a] -> Maybe (a,[a])
+removeBy cmp a0 as = removeBy1 cmp a0 as []
+
+removeBy1 :: (b->a->Bool) -> b -> [a] -> [a] -> Maybe (a,[a])
+removeBy1 _   _  []     _     = Nothing
+removeBy1 cmp a0 (a:as) sofar
+    | cmp a0 a  = Just (a,reverseTo sofar as)
+    | otherwise = removeBy1 cmp a0 as (a:sofar)
+
 -- |Reverse first argument, prepending the result to the second argument
 --
 reverseTo :: [a] -> [a] -> [a]
-reverseTo []        back = back
-reverseTo (a:front) back = reverseTo front (a:back)
+reverseTo front back = foldl (flip (:)) back front
 
 -- |Remove each element from a list, returning a list of pairs,
 --  each of which is the element removed and the list remaining.
@@ -488,7 +490,7 @@ testRemoveEach2 = testRemoveEach1 ==
 --  u2 is a list of elements in a2 not related to elements in a1.
 --
 listDifferences :: (a->a->Maybe [d]) -> [a] -> [a] -> ([d],[a],[a])
-listDifferences cmp []       a2s = ([],[],a2s)
+listDifferences _   []       a2s = ([],[],a2s)
 listDifferences cmp (a1:a1t) a2s =
     case mcomp of
         Nothing       -> morediffs [] [a1] a1t a2s
@@ -498,16 +500,16 @@ listDifferences cmp (a1:a1t) a2s =
         -- the first element in a2s related to a1, or Nothing
         -- [choose was listToMaybe,
         --  but that didn't handle repeated properties well]
-        mcomp = choose $ catMaybes $ map maybeResult comps
+        mcomp = choose $ mapMaybe maybeResult comps
         comps = [ (cmp a1 a2,a2t) | (a2,a2t) <- removeEach a2s ]
         maybeResult (Nothing,_)   = Nothing
         maybeResult (Just ds,a2t) = Just (ds,a2t)
-        morediffs ds a1h a1t a2t  = (ds++ds1,a1h++a1r,a2r)
+        morediffs xds xa1h xa1t xa2t  = (xds++xds1,xa1h++xa1r,xa2r)
             where
-                (ds1,a1r,a2r) = listDifferences cmp a1t a2t
+                (xds1,xa1r,xa2r) = listDifferences cmp xa1t xa2t
         choose  []       = Nothing
         choose  ds@(d:_) = choose1 d ds
-        choose1 _ (d@([],dr):_) = Just d
+        choose1 _ (d@([],_):_)  = Just d
         choose1 d []            = Just d
         choose1 d (_:ds)        = choose1 d ds
 
