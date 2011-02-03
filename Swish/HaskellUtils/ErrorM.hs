@@ -50,23 +50,6 @@ instance MonadPlus ErrorM where
     mplus (Error _) r = r
     mplus r         _ = r
 
-------------------------------------------------------------
---  Either
-------------------------------------------------------------
-
--- |Monad instance for (Either String b)
-instance Monad (Either String) where
-    (Left a)  >>= _ = Left a
-    (Right b) >>= f = f b
-    return          = Right
-    fail            = Left
-
--- |MonadPlus instance for (Either String b)
-instance MonadPlus (Either String) where
-    mzero             = Left "No result"
-    mplus (Left _) r  = r
-    mplus b        _  = b
-
 -- |Map maybe to (Either String) error monad
 eitherErrMaybe :: String -> (a->b) -> Maybe a -> Either String b
 eitherErrMaybe err f mv = case mv of

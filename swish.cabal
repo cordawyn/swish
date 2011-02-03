@@ -42,17 +42,25 @@ Description:        Swish is a framework, written in the purely functional
                     2) http://www.ninebynine.org/Software/swish-0.2.1.html
                     .
 
-Tested-With:         GHC>=6.8.2
+Tested-With:         GHC>=6.12.3
 Build-Type:          Simple
 Data-Files:          README
 
-Cabal-Version:       >= 1.2
+Cabal-Version:       >= 1.6
 
 Library
    Build-Depends:
-      base>3 && <4, binary, bytestring, containers, array, parallel, parsec, random, old-time,
-      mtl > 1 && < 2,
-      HUnit
+      base >=3 && < 5,
+      binary == 0.5.*,
+      bytestring == 0.9.*,
+      containers == 0.3.*,
+      array == 0.3.*,
+      parallel == 2.2.*,
+      parsec == 2.1.*,
+      random == 1.0.*,
+      old-time == 1.0.*,
+      mtl >= 1 && < 3,
+      HUnit == 1.2.*
    Exposed-modules:     Swish.HaskellRDF.BuiltInDatatypes,
                         Swish.HaskellRDF.BuiltInMap,
                         Swish.HaskellRDF.BuiltInRules,
