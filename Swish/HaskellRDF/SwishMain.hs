@@ -85,7 +85,7 @@ import System.Exit
 --  Command line description
 ------------------------------------------------------------
 
-usageText :: [[Char]]
+usageText :: [String]
 usageText =
     [ "Swish 0.2.1"
     , "Read, merge, write, compare and process RDF graphs."
@@ -146,9 +146,7 @@ usageText =
 --  chain.
 --
 swishCommands :: [String] -> SwishStateIO ()
-swishCommands args =
-    do  { sequence_ (map swishCommand args)
-        }
+swishCommands = mapM_ swishCommand
 
 swishCommand :: String -> SwishStateIO ()
 swishCommand cmd =
