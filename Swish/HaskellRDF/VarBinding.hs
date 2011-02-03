@@ -1,5 +1,4 @@
-{-# OPTIONS -XMultiParamTypeClasses #-}
-{-# OPTIONS -XTypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances #-}
 --------------------------------------------------------------------------------
 --  $Id: VarBinding.hs,v 1.12 2004/01/07 19:49:13 graham Exp $
 --
@@ -55,7 +54,7 @@ import Swish.HaskellUtils.ListHelpers
     ( equiv, subset, flist, headOrNothing, permutations )
 
 import Data.Maybe
-    ( catMaybes, fromMaybe, isJust, fromJust, listToMaybe )
+    ( mapMaybe, fromMaybe, isJust, fromJust, listToMaybe )
 
 import Data.List
     ( find, intersect, union, (\\) )
@@ -78,13 +77,13 @@ data VarBinding a b = VarBinding
 --  bindings can be compared for equivalence
 --
 instance (Eq a, Eq b) => Eq (VarBinding a b) where
-    vb1 == vb2 = (vbEnum vb1) `equiv` (vbEnum vb2)
+    vb1 == vb2 = vbEnum vb1 `equiv` vbEnum vb2
 
 -- |VarBinding is an instance of class Show, so that variable
 --  bindings can be displayed
 --
 instance (Show a, Show b) => Show (VarBinding a b) where
-    show vb = show (vbEnum vb)
+    show = show . vbEnum
 
 -- |nullVarBinding:  maps no query variables.
 --
@@ -104,8 +103,8 @@ boundVars = map fst . vbEnum
 --  is a subset of another;  i.e. every query variable mapping defined
 --  by one is also defined by the other.
 --
-subBinding :: (Eq a, Eq b) => (VarBinding a b) -> (VarBinding a b) -> Bool
-subBinding vb1 vb2 = (vbEnum vb1) `subset` (vbEnum vb2)
+subBinding :: (Eq a, Eq b) => VarBinding a b -> VarBinding a b -> Bool
+subBinding vb1 vb2 = vbEnum vb1 `subset` vbEnum vb2
 
 -- |Function to make a variable binding from a list of
 --  pairs of variable and corresponding assigned value.
@@ -272,7 +271,7 @@ instance Show (OpenVarBindingModify a b)
 vbmCompatibility :: (Eq a) => VarBindingModify a b -> [a] -> Maybe [a]
 vbmCompatibility vbm vars = find compat (vbmUsage vbm)
     where
-        compat ovars = vbmCompatibleVars vars (vbmVocab vbm) ovars
+        compat = vbmCompatibleVars vars (vbmVocab vbm)
 
 -- |Variable binding usage compatibility test.
 --
@@ -307,8 +306,8 @@ vbmCompose :: (Eq a) => VarBindingModify a b -> VarBindingModify a b
 vbmCompose
     (VarBindingModify nam1 app1 voc1 use1)
     (VarBindingModify nam2 app2 voc2 use2)
-    | not (null use12) = Just $ VarBindingModify
-        { vbmName  = swishName ("_"++(snLocal nam1)++"_"++(snLocal nam2)++"_")
+    | not (null use12) = Just VarBindingModify
+        { vbmName  = swishName ("_"++ snLocal nam1 ++"_"++ snLocal nam2 ++"_")
         , vbmApply = app2 . app1
         , vbmVocab = voc1 `union` voc2
         , vbmUsage = use12
@@ -352,7 +351,7 @@ compatibleUsage voc1 use1 use2 =
 findCompositions :: (Eq a) => [VarBindingModify a b] -> [a]
     -> [VarBindingModify a b]
 findCompositions vbms vars =
-    catMaybes $ map (composeCheckSequence vars) (permutations vbms)
+    mapMaybe (composeCheckSequence vars) (permutations vbms)
 
 -- |Compose sequence of variable binding modifiers, and check
 --  that the result can be used compatibly with a supplied list
@@ -366,9 +365,9 @@ composeCheckSequence vars vbms = useWith vars $ composeSequence vbms
         --  indicated set of bound variables, and return (Just modifier)
         --  or Nothing.
         useWith _    Nothing    = Nothing
-        useWith vars (Just vbm)
-            | isJust $ vbmCompatibility vbm vars = (Just vbm)
-            | otherwise                          = Nothing
+        useWith vs v@(Just vbm)
+            | isJust $ vbmCompatibility vbm vs = v
+            | otherwise                        = Nothing
 
 -- |Compose sequence of variable binding modifiers.
 --
@@ -437,7 +436,7 @@ nullVarBindingModify lbs = VarBindingModify
 data VarBindingFilter a b = VarBindingFilter
     { vbfName   :: ScopedName
     , vbfVocab  :: [a]
-    , vbfTest   :: (VarBinding a b) -> Bool
+    , vbfTest   :: VarBinding a b -> Bool
     }
 
 -- |Make a variable binding modifier from a variable binding filter value.
@@ -480,14 +479,14 @@ makeVarCompareFilter nam vcomp v1 v2 = VarBindingFilter
 -- |This function generates a query binding filter that ensures that
 --  two indicated query variables are mapped to the same value.
 varFilterEQ :: (Eq b) => a -> a -> VarBindingFilter a b
-varFilterEQ v1 v2 =
-    makeVarCompareFilter (swishName "varFilterEQ") (==) v1 v2
+varFilterEQ =
+    makeVarCompareFilter (swishName "varFilterEQ") (==) 
 
 -- |This function generates a query binding filter that ensures that
 --  two indicated query variables are mapped to different values.
 varFilterNE :: (Eq b) => a -> a -> VarBindingFilter a b
-varFilterNE v1 v2 =
-    makeVarCompareFilter (swishName "varFilterNE") (/=) v1 v2
+varFilterNE =
+    makeVarCompareFilter (swishName "varFilterNE") (/=) 
 
 -- |This function composes a number of query binding filters
 --  into a composite filter that accepts any query binding that
