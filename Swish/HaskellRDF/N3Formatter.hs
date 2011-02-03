@@ -58,9 +58,7 @@ import Swish.HaskellRDF.RDFGraph
     )
 
 import Swish.HaskellRDF.GraphClass
-    ( Arc(..)
-    , arc
-    )
+    ( Arc(..) )
 
 import Swish.HaskellUtils.LookupMap
     ( LookupEntryClass(..)
@@ -69,18 +67,8 @@ import Swish.HaskellUtils.LookupMap
     , mapFind, mapFindMaybe, mapAdd, mapDelete, mapMerge
     )
 
-import Swish.HaskellUtils.QName
-    ( QName(..)
-    , newQName, qnameFromPair, qnameFromURI
-    , getNamespace, getLocalName, getQNameURI
-    , splitURI
-    )
-
 import Swish.HaskellUtils.Namespace
     ( ScopedName(..), getScopeURI )
-
-import Swish.HaskellUtils.ProcessURI
-    ( isAbsoluteURIRef )
 
 import Swish.HaskellRDF.Sort.QuickSort
     ( stableQuickSort )
@@ -90,9 +78,6 @@ import Data.Char
 
 import Data.List
     ( groupBy )
-
-import Data.Maybe
-    ( Maybe(..), isJust, fromJust )
 
 ----------------------------------------------------------------------
 --  Ouptut string concatenation
@@ -181,9 +166,6 @@ instance Monad Fgsm where
 getFgs :: Fgsm Fgs
 getFgs = Fgsm (\fgs -> (fgs,fgs) )
 
-doTrace :: String -> Fgsm ()
-doTrace msg = Fgsm (\fgs -> (fgs {traceBuf=msg:(traceBuf fgs)},()) )
-
 getIndent :: Fgsm String
 getIndent = Fgsm (\fgs -> (fgs,indent fgs) )
 
@@ -210,10 +192,10 @@ queueFormula fn = Fgsm (\fgs ->
     let fa = formAvail fgs
         newState fv =
             fgs { formAvail=mapDelete fa fn
-                , formQueue=(fn,fv):(formQueue fgs)
+                , formQueue=(fn,fv) : formQueue fgs
                 }
     in
-        case (mapFindMaybe fn fa) of
+        case mapFindMaybe fn fa of
             Nothing -> (fgs,())
             Just fv -> (newState fv,())
     )
@@ -238,7 +220,7 @@ formatGraphAsString :: RDFGraph -> String
 formatGraphAsString gr = formatGraphAsShowS gr ""
 
 formatGraphAsShowS :: RDFGraph -> ShowS
-formatGraphAsShowS gr = formatGraphIndent "\n" True gr
+formatGraphAsShowS = formatGraphIndent "\n" True
 {- old code:
     where
         (out,_,_,_) = formatGraphDiag gr
@@ -290,9 +272,9 @@ formatGraph ind end dobreak dopref gr =
         ; more <- moreSubjects
         ; res  <- if more then do
             { fr <- formatSubjects
-            ; return $ fp . fr . (puts end)
+            ; return $ fp . fr . puts end
             }
-          else return $ fp
+          else return fp
         ; fgs <- getFgs
         ; return (fgs,res)
         }
@@ -320,7 +302,7 @@ formatSubjects =
         ; more  <- moreSubjects
         ; if more then do
             { fr <- formatSubjects
-            ; return $ (puts $ prstr ++ fmstr ++ " .") . fr
+            ; return $ puts (prstr ++ fmstr ++ " .") . fr
             }
           else return $ puts $ prstr ++ fmstr
         }
@@ -337,7 +319,7 @@ formatProperties sb sbstr =
             ; nl <- nextLine $ obstr ++ " ;"
             ; return $ nl ++ fr
             }
-          else nextLine $ obstr
+          else nextLine obstr
         }
 
 formatObjects :: RDFLabel -> RDFLabel -> String -> Fgsm String
@@ -362,7 +344,7 @@ formatFormulae fp =
             ; fnstr <- formatFormula fnlgr
             ; formatFormulae $ fp ++ " ." ++ fnstr
             }
-          else return $ fp
+          else return fp
         }
 
 -- [[[TODO: use above pattern for subject/property/object loops?]]]
@@ -379,7 +361,7 @@ formatFormula (fn,gr) =
         ; let (fgs',(_,f3str)) = grm (emptyFgs ngs0)
         ; setNgs (nodeGenSt fgs')
         ; f4str <- nextLine "    }"
-        ; return $ f1str ++ f2str ++ (f3str f4str)
+        ; return $ f1str ++ f2str ++ f3str f4str
         }
 
 ----------------------------------------------------------------------
@@ -419,7 +401,7 @@ moreProperties  :: Fgsm Bool
 moreProperties  = Fgsm (\fgs -> (fgs,not $ null (props fgs)))
 
 nextProperty    :: RDFLabel -> Fgsm RDFLabel
-nextProperty sb =
+nextProperty _ =
     Fgsm (\fgs ->
         let pr:prs = props fgs
             fgs' = fgs  { props = prs
@@ -432,7 +414,7 @@ moreObjects     :: Fgsm Bool
 moreObjects     = Fgsm (\fgs -> (fgs,not $ null (objs fgs)))
 
 nextObject      :: RDFLabel -> RDFLabel -> Fgsm RDFLabel
-nextObject sb pr =
+nextObject _ _ =
     Fgsm (\fgs ->
         let ob:obs = objs fgs
             fgs'   = fgs { objs = obs }
@@ -469,7 +451,7 @@ nextLine str =
 --  (e) generate multi-line literals when appropriate
 
 formatLabel :: RDFLabel -> Fgsm String
-formatLabel lab@(Blank nodeid@(lnc:_)) =
+formatLabel lab@(Blank (_:_)) =
     do  { name <- formatNodeId lab
         ; queueFormula lab
         ; return name
@@ -480,9 +462,9 @@ formatLabel lab@(Res sn) =
         ; let local  = snLocal sn
         ; let premap = reverseLookupMap pr :: RevNamespaceMap
         ; let prefix = mapFindMaybe nsuri premap
-        ; let name   = if (isJust prefix)
-                        then fromJust prefix++":"++local
-                        else "<"++nsuri++local++">"
+        ; let name   = case prefix of
+                         Just p -> p ++ ":" ++ local
+                         _ -> "<"++nsuri++local++">"
         ; queueFormula lab
         ; return name
         }
@@ -494,12 +476,10 @@ formatLabel lab@(Var vid) =
     do  { return $ show lab
         }
 -}
-formatLabel lab =
-    do  { return $ show lab
-        }
+formatLabel lab = return $ show lab
 
 formatNodeId :: RDFLabel -> Fgsm String
-formatNodeId lab@(Blank nodeid@(lnc:_)) =
+formatNodeId lab@(Blank (lnc:_)) =
     if isDigit lnc then mapBlankNode lab else return $ show lab
 
 mapBlankNode :: RDFLabel -> Fgsm String
@@ -507,17 +487,13 @@ mapBlankNode lab =
     do  { ngs <- getNgs
         ; let nmap = nodeMap ngs
         ; let nnxt = (nodeGen ngs)
-        ; (nval,nnxt',nmap') <- case mapFind 0 lab nmap of
+        ; (nval,_,_) <- case mapFind 0 lab nmap of
             0 -> do { let nn = nnxt + 1
                     ; let nm = mapAdd nmap (lab,nn)
                     ; setNgs $ ngs { nodeGen=nn, nodeMap=nm }
                     ; return (nn,nn,nm)
                     }
-            n -> return $ (n,nnxt,nmap)
-        {- ; doTrace $ "Map node id: "++(show lab)
-                        ++", nval "++(show nval)
-                        ++", next "++(show nnxt')
-                        ++", nmap "++(show nmap') -}
+            n -> return (n,nnxt,nmap)
         ; return $ show $ Blank ('_':show nval)
         }
 
