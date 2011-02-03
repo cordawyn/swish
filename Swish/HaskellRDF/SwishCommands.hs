@@ -77,7 +77,7 @@ import Control.Monad.State
     )
 
 import Data.Maybe
-    ( Maybe(..), isJust, fromJust )
+    ( isJust, fromJust )
 
 import Control.Monad
     ( when )
@@ -118,6 +118,7 @@ swishMerge fnam =
             _         -> return ()
         }
 
+mergeGraph :: RDFGraph -> SwishState -> SwishState
 mergeGraph gr state = state { graph = newgr }
     where
         newgr = merge gr (graph state)
@@ -192,7 +193,7 @@ swishOutputDiff fnam hnd (diffnum,(part1,part2)) =
 
 swishOutputPart :: (Label lb) =>
     String -> Handle -> Maybe (GraphPartition lb) -> SwishStateIO ()
-swishOutputPart fnam hnd part =
+swishOutputPart _ hnd part =
     do  { let out = case part of
                 Just p  -> partitionShowP "\n" p
                 Nothing -> "\n(No arcs)"
@@ -271,7 +272,7 @@ swishOutputGraph fnam hnd =
         }
 
 swishFormatN3 :: String -> Handle -> SwishStateIO ()
-swishFormatN3 fnam hnd =
+swishFormatN3 _ hnd =
     do  { out <- gets $ formatGraphAsShowS . graph
         ; lift $ hPutStr hnd (out "")
         }
@@ -305,7 +306,7 @@ swishOpenFile fnam =
             else
             do  { o <- try (openFile fnam ReadMode)
                 ; case o of
-                    Left  e -> return (stdin,False)
+                    Left  _ -> return (stdin,False)
                     Right h -> return (h,True)
                 }
         ; hrd <- lift $ hIsReadable hnd
@@ -356,7 +357,7 @@ swishWriteFile fnam =
             else
             do  { o <- try (openFile fnam WriteMode)
                 ; case o of
-                    Left  e -> return (stderr,False,False)
+                    Left  _ -> return (stderr,False,False)
                     Right h -> return (h,True,True)
                 }
         ; hwt <- lift $ hIsWritable hnd
