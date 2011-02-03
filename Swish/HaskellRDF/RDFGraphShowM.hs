@@ -1,4 +1,4 @@
-{-# OPTIONS -XTypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------------------
 --  $Id: RDFGraphShowM.hs,v 1.2 2003/09/24 18:50:52 graham Exp $
@@ -25,16 +25,13 @@ module Swish.HaskellRDF.RDFGraphShowM()
 where
 
 import Swish.HaskellRDF.RDFGraph
-    ( RDFLabel(..)
-    , isUri, isLiteral, isXMLLiteral, isBlank, isQueryVar, makeBlank
-    , RDFTriple
-    , NSGraph(..), RDFGraph )
+    ( RDFGraph )
 
 import Swish.HaskellRDF.N3Formatter
     ( formatGraphIndent )
 
 import Swish.HaskellUtils.ShowM
-    ( ShowM(..), showm )
+    ( ShowM(..) )
 
 
 ------------------------------------------------------------
@@ -42,7 +39,7 @@ import Swish.HaskellUtils.ShowM
 ------------------------------------------------------------
 
 instance ShowM RDFGraph where
-    showms linebreak graph = formatGraphIndent linebreak False graph
+    showms linebreak = formatGraphIndent linebreak False 
 
 
 --------------------------------------------------------------------------------
