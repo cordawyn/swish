@@ -1,5 +1,4 @@
-{-# OPTIONS -XFlexibleInstances #-}
-{-# OPTIONS -XMultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  $Id: GraphMem.hs,v 1.16 2004/02/09 22:22:44 graham Exp $
@@ -33,17 +32,14 @@ module Swish.HaskellRDF.GraphMem
     , matchGraphMem
     ) where
 
-import Swish.HaskellUtils.LookupMap
 import Swish.HaskellRDF.GraphClass
 import Swish.HaskellRDF.GraphMatch
 import Swish.HaskellUtils.MiscHelpers
     ( hash )
 import Swish.HaskellUtils.FunctorM
     ( FunctorM(..) )
-import Data.List
-    ( nub, union, (\\), group, sort, sortBy, any )
-import Data.Maybe
-    ( isJust )
+import Control.Monad (liftM)
+import Data.Ord (comparing)
 
 -----------------------------------------------------
 --  Memory-based graph type and graph class functions
@@ -55,6 +51,7 @@ instance (Label lb) => LDGraph GraphMem lb where
     getArcs      = arcs
     setArcs as g = g { arcs=as }
     -- gmap f g = g { arcs = (map $ fmap f) (arcs g) }
+    containedIn = undefined -- TODO: what should this method do?
 
 instance (Label lb) => Eq (GraphMem lb) where
     (==) = graphEq
@@ -66,16 +63,15 @@ instance Functor GraphMem where
     fmap f g = GraphMem $ map (fmap f) (arcs g)
 
 instance FunctorM GraphMem where
-    fmapM f g =
-        do  { arcs <- mapM (fmapM f) (arcs g)
-            ; return $ GraphMem arcs
-            }
+    fmapM f g = GraphMem `liftM` mapM (fmapM f) (arcs g)
 
 graphShow   :: (Label lb) => GraphMem lb -> String
-graphShow g = "Graph:"++(foldr (++) "" (map ("\n    "++) (map show (arcs g))))
+graphShow g = "Graph:" ++ foldr ((++) . ("\n    " ++) . show) "" (arcs g)
 
+{-
 toGraph :: (Label lb) => [Arc lb] -> GraphMem lb
-toGraph as = GraphMem { arcs=(nub as) }
+toGraph as = GraphMem { arcs=nub as }
+-}
 
 -----------
 --  graphEq
@@ -107,9 +103,9 @@ matchGraphMem g1 g2 =
         gs1     = arcs g1
         gs2     = arcs g2
         matchable l1 l2
-            | (labelIsVar l1) && (labelIsVar l2) = True
-            | (labelIsVar l1) || (labelIsVar l2) = False
-            | otherwise                          = l1 == l2
+            | labelIsVar l1 && labelIsVar l2 = True
+            | labelIsVar l1 || labelIsVar l2 = False
+            | otherwise                      = l1 == l2
     in
         graphMatch matchable gs1 gs2
 
@@ -144,8 +140,8 @@ instance Label LabelMem where
     labelIsVar (LV _)   = True
     labelIsVar _        = False
     getLocal   (LV loc) = loc
-    getLocal   lab      = error "getLocal of non-variable label: "++(show lab)
-    makeLabel  loc      = LV loc
+    getLocal   lab      = error "getLocal of non-variable label: " ++ show lab
+    makeLabel           = LV 
     labelHash  seed lb  = hash seed (show lb)
 
 instance Eq LabelMem where
@@ -154,11 +150,11 @@ instance Eq LabelMem where
     _ == _              = False
 
 instance Show LabelMem where
-    show (LF l1)        = "!"++l1
-    show (LV l2)        = "?"++l2
+    show (LF l1)        = '!' : l1
+    show (LV l2)        = '?' : l2
 
 instance Ord LabelMem where
-    compare l1 l2 = compare (show l1) (show l2)
+    compare = comparing show 
 
 --------------------------------------------------------------------------------
 --
