@@ -1,5 +1,5 @@
 Name:                swish
-Version:             0.2.1
+Version:             0.2.2.0
 License:             LGPL
 License-file:        LICENSE 
 Author:              Graham Klyne - GK@ninebynine.org
@@ -37,9 +37,11 @@ Description:        Swish is a framework, written in the purely functional
                     .
                     References
                     .
-                    1) http://www.ninebynine.org/RDFNotes/Swish/Intro.html
+                    1) <http://www.ninebynine.org/RDFNotes/Swish/Intro.html>
                     .
-                    2) http://www.ninebynine.org/Software/swish-0.2.1.html
+                    2) <http://www.ninebynine.org/Software/swish-0.2.1.html>
+                    .
+                    3) CWM: <http://www.w3.org/2000/10/swap/doc/cwm.html>
                     .
 
 Tested-With:         GHC>=6.12.3
