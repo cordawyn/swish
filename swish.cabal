@@ -63,84 +63,77 @@ Library
       old-time == 1.0.*,
       mtl >= 1 && < 3,
       HUnit == 1.2.*
-   Exposed-modules:     Swish.HaskellRDF.BuiltInDatatypes,
-                        Swish.HaskellRDF.BuiltInMap,
-                        Swish.HaskellRDF.BuiltInRules,
-                        Swish.HaskellRDF.ClassRestrictionRule,
-                        Swish.HaskellRDF.Dfa.Dfa
-                        Swish.HaskellRDF.Datatype,
-                        Swish.HaskellRDF.GraphClass
-                        Swish.HaskellRDF.GraphMatch,
-                        Swish.HaskellRDF.GraphMem,
-                        Swish.HaskellRDF.GraphPartition,
-                        Swish.HaskellRDF.MapXsdInteger,
-                        Swish.HaskellRDF.N3Formatter,
-                        Swish.HaskellRDF.N3Parser,
- -- YOH ADRIAN GHC EXTENSION??                       Swish.HaskellRDF.OwlAbstractSyntax,
-                        Swish.HaskellRDF.Proof,
-                        Swish.HaskellRDF.RDFDatatype,
-                        Swish.HaskellRDF.RDFDatatypeXsdInteger,
-                        Swish.HaskellRDF.RDFDatatypeXsdString,
-                        Swish.HaskellRDF.RDFGraph,
-                        Swish.HaskellRDF.RDFGraphShowM,
-                        Swish.HaskellRDF.RDFProofContext,
-                        Swish.HaskellRDF.RDFProof,
-                        Swish.HaskellRDF.RDFQuery,
-                        Swish.HaskellRDF.RDFRuleset,
-                        Swish.HaskellRDF.Ruleset
-                        Swish.HaskellRDF.SwishCommands
-                        Swish.HaskellRDF.SwishMain
-                        Swish.HaskellRDF.SwishMonad
-                        Swish.HaskellRDF.SwishScript
-                        Swish.HaskellRDF.VarBinding
-                        Swish.HaskellRDF.Vocabulary
-                        Swish.HaskellUtils.AccumulateM
-                        Swish.HaskellUtils.DateTime
-                        Swish.HaskellUtils.ErrorM
-                        Swish.HaskellUtils.FunctorM
-                        Swish.HaskellUtils.ListHelpers
-                        Swish.HaskellUtils.LookupMap
-                        Swish.HaskellUtils.MiscHelpers
-                        Swish.HaskellUtils.Namespace
-                        Swish.HaskellUtils.Parse
-                        Swish.HaskellUtils.ParseURI
-                        Swish.HaskellUtils.PartOrderedCollection
-                        Swish.HaskellUtils.ProcessURI
-                        Swish.HaskellUtils.QName
---   COMEBCK!!!!                     Swish.HaskellUtils.RegexParser
-                        Swish.HaskellUtils.ShowM
-                        Swish.HaskellUtils.TestHelpers
-                        Swish.HaskellUtils.TraceHelpers
-                        Swish.HaskellUtils.Network.URI
+   Exposed-Modules:
+      Paths_swish
+      Swish.HaskellRDF.BuiltInDatatypes
+      Swish.HaskellRDF.BuiltInMap
+      Swish.HaskellRDF.BuiltInRules
+      Swish.HaskellRDF.ClassRestrictionRule
+      Swish.HaskellRDF.Datatype
+      Swish.HaskellRDF.Dfa.Dfa
+      Swish.HaskellRDF.GraphClass
+      Swish.HaskellRDF.GraphMatch
+      Swish.HaskellRDF.GraphMem
+      Swish.HaskellRDF.GraphPartition
+      Swish.HaskellRDF.MapXsdInteger
+      Swish.HaskellRDF.N3Formatter
+      Swish.HaskellRDF.N3Parser
+      Swish.HaskellRDF.Proof
+      Swish.HaskellRDF.RDFDatatype
+      Swish.HaskellRDF.RDFDatatypeXsdInteger
+      Swish.HaskellRDF.RDFDatatypeXsdString
+      Swish.HaskellRDF.RDFGraph
+      Swish.HaskellRDF.RDFGraphShowM
+      Swish.HaskellRDF.RDFProof
+      Swish.HaskellRDF.RDFProofContext
+      Swish.HaskellRDF.RDFQuery
+      Swish.HaskellRDF.RDFRuleset
+      Swish.HaskellRDF.RDFVarBinding
+      Swish.HaskellRDF.Rule
+      Swish.HaskellRDF.Ruleset
+      Swish.HaskellRDF.SwishCommands
+      Swish.HaskellRDF.SwishMain
+      Swish.HaskellRDF.SwishMonad
+      Swish.HaskellRDF.SwishScript
+      Swish.HaskellRDF.VarBinding
+      Swish.HaskellRDF.Vocabulary
+      Swish.HaskellUtils.AccumulateM
+      Swish.HaskellUtils.DateTime
+      Swish.HaskellUtils.ErrorM
+      Swish.HaskellUtils.FunctorM
+      Swish.HaskellUtils.ListHelpers
+      Swish.HaskellUtils.LookupMap
+      Swish.HaskellUtils.MiscHelpers
+      Swish.HaskellUtils.Namespace
+      Swish.HaskellUtils.Parse
+      Swish.HaskellUtils.ParseURI
+      Swish.HaskellUtils.PartOrderedCollection
+      Swish.HaskellUtils.ProcessURI
+      Swish.HaskellUtils.QName
+      Swish.HaskellUtils.ShowM
+      Swish.HaskellUtils.TraceHelpers
+      Swish.HaskellUtils.Network.URI
 
    -- hide the Sort modules since aim to replace these in the near future
    -- and their documentation doesn't build at the moment
    other-modules:
                         Swish.HaskellRDF.Sort.AdaptiveHeapSort
--- WNH                         Swish.HaskellRDF.Sort.Benchmark
                         Swish.HaskellRDF.Sort.BraunHeap
                         Swish.HaskellRDF.Sort.CartesianTree
                         Swish.HaskellRDF.Sort.DigitalSort
                         Swish.HaskellRDF.Sort.FingerSearchtree
                         Swish.HaskellRDF.Sort.Force
                         Swish.HaskellRDF.Sort.HeapSort
--- WNH                        Swish.HaskellRDF.Sort.Killer
                         Swish.HaskellRDF.Sort.LibBase
                         Swish.HaskellRDF.Sort.ListLib
--- WNH                        Swish.HaskellRDF.Sort.Main   
                         Swish.HaskellRDF.Sort.MargeSort
                         Swish.HaskellRDF.Sort.MergeSort
                         Swish.HaskellRDF.Sort.PairingHeap
--- WNH                       Swish.HaskellRDF.Sort.QuickSortInPlace
                         Swish.HaskellRDF.Sort.QuickSort
--- WNH                        Swish.HaskellRDF.Sort.RandomLib
---                        Swish.HaskellRDF.Sort.RandomMonad
                         Swish.HaskellRDF.Sort.RedBlackTree
                         Swish.HaskellRDF.Sort.SplaySort
                         Swish.HaskellRDF.Sort.Squiggol
                         Swish.HaskellRDF.Sort.Stable
--- WNH same prob QuickSortInPlace                        Swish.HaskellRDF.Sort.SuffixArrays
--- WNH                         Swish.HaskellRDF.Sort.TestData
 
    extensions:          CPP, ParallelListComp
    ghc-options:         -Wall -fexcess-precision -funbox-strict-fields -auto-all
