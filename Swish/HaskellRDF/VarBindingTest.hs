@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: VarBindingTest.hs,v 1.6 2004/01/06 13:53:10 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  VarBindingTest
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -941,7 +938,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -961,31 +959,3 @@ tt = runTestTT
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/VarBindingTest.hs,v $
--- $Author: graham $
--- $Revision: 1.6 $
--- $Log: VarBindingTest.hs,v $
--- Revision 1.6  2004/01/06 13:53:10  graham
--- Created consolidated test harness (SwishTestAll.hs)
---
--- Revision 1.5  2003/12/08 16:58:27  graham
--- Add name to variable binding modifiers and filters.
--- Add namespace for Swish-defined names.
---
--- Revision 1.4  2003/10/16 16:01:49  graham
--- Reworked RDFProof and RDFProofContext to use new query binding
--- framework.  Also fixed a bug in the variable binding filter code that
--- caused failures when a variable used was not bound.
---
--- Revision 1.3  2003/10/15 16:40:52  graham
--- Reworked RDFQuery to use new query binding framework.
--- (Note: still uses VarBindingFilter rather than VarBindingModify.
--- The intent is to incorproate the VarBindingModify logic into RDFProof,
--- displaying the existing use of BindingFilter.)
---
--- Revision 1.2  2003/10/15 00:07:01  graham
--- Added variable binding filter structures, and some common filters
---
--- Revision 1.1  2003/10/14 20:30:58  graham
--- Add separate module for generic variable binding functions.
---

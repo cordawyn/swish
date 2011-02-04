@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: ParseURI.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ParseURI
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -26,14 +23,16 @@
 --  here, and it is intended that there is a direct relationship between
 --  the syntax definition in that document and the parser implementation.
 --
---  [1] http://www.ietf.org/rfc/rfc2396.txt
---  [2] http://www.ietf.org/rfc/rfc2732.txt
---  [3] http://www.apache.org/~fielding/uri/rev-2002/rfc2396bis.html
+--  [1] <http://www.ietf.org/rfc/rfc2396.txt>
+--
+--  [2] <http://www.ietf.org/rfc/rfc2732.txt>
+--
+--  [3] <http://www.apache.org/~fielding/uri/rev-2002/rfc2396bis.html>
 --
 --------------------------------------------------------------------------------
 
 module Swish.HaskellUtils.ParseURI
-  ( URI(URI),
+  ( URI(URI), CParser,
     absoluteUri, relativeUri, uriReference, absoluteUriReference,
     uriToString,
     hostname, ipv4address, ipv6address, relSegmentWithColon
@@ -51,8 +50,7 @@ module Swish.HaskellUtils.ParseURI
 -- Declare imports used from Parser module
 import qualified Swish.HaskellUtils.Parse as Parse
 
--- Originally this was generic in the parsing element,
--- but have now restricted to Char
+-- | A Parser restricted to 'Char' input.
 type CParser b = Parse.Parser Char b
 
 isOneOf :: String -> Char -> Bool
@@ -508,7 +506,8 @@ relSegmentWithColon = relSegment >++> colon >++> segment
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -528,48 +527,3 @@ relSegmentWithColon = relSegment >++> colon >++> segment
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/ParseURI.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: ParseURI.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.11  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.10  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.9  2003/05/20 23:35:28  graham
--- Modified code to compile with GHC hierarchical libraries
---
--- Revision 1.8  2003/03/05 22:16:23  graham
--- URI code passes all unit tests
---
--- Revision 1.7  2003/03/05 14:47:45  graham
--- Relative URI code complete, not tested
--- Fixed a URI parser bug
---
--- Revision 1.6  2003/02/27 20:29:53  graham
--- Fixed some more parser bugs.
--- All parser tests pass.
--- QName and relative path handling to do.
---
--- Revision 1.5  2003/02/27 18:48:05  graham
--- Fix URI parser bug.
--- Add more URI parser test cases.
---
--- Revision 1.4  2003/02/27 15:28:45  graham
--- Updated internal structure of parsed URI.
--- Passes parser unit tests
---
--- Revision 1.3  2003/02/27 13:54:30  graham
--- ParseURI module passes unit test
---
--- Revision 1.2  2003/02/27 09:50:25  graham
--- Add URI parser test cases, some name changes
---
--- Revision 1.1  2003/02/27 08:59:53  graham
--- Separate URI parser from main URI module
---

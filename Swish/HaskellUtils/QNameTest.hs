@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: QNameTest.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  QNameTest
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -352,7 +349,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -372,28 +370,3 @@ tt = runTestTT
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/QNameTest.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: QNameTest.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.5  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.4  2004/01/06 13:53:10  graham
--- Created consolidated test harness (SwishTestAll.hs)
---
--- Revision 1.3  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.2  2003/09/24 13:36:42  graham
--- QName handling separated from RDFGraph module, and
--- QName splitting moved from URI module to QName module.
---
--- Revision 1.1  2003/09/24 12:51:00  graham
--- Add separate QName module and test suite
---

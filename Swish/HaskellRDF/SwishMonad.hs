@@ -1,13 +1,10 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
---  $Id: SwishMonad.hs,v 1.12 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishMonad
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -28,7 +25,7 @@ module Swish.HaskellRDF.SwishMonad
     , setInfo, resetInfo, setError, resetError, setExitcode
     , emptyState
     , SwishFormat(..)
-    , NamedGraph(..)
+    , NamedGraph(..), NamedGraphMap
     , swishError
     , reportLines, reportLine
     )
@@ -232,7 +229,8 @@ reportLine line =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke 
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -252,53 +250,3 @@ reportLine line =
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/SwishMonad.hs,v $
--- $Author: graham $
--- $Revision: 1.12 $
--- $Log: SwishMonad.hs,v $
--- Revision 1.12  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.11  2003/12/11 19:11:07  graham
--- Script processor passes all initial tests.
---
--- Revision 1.10  2003/12/10 03:48:58  graham
--- SwishScript nearly complete:  BwdChain and PrrofCheck to do.
---
--- Revision 1.9  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.8  2003/12/05 02:31:32  graham
--- Script parsing complete.
--- Some Swish script functions run successfully.
--- Command execution to be completed.
---
--- Revision 1.7  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.6  2003/12/01 18:51:38  graham
--- Described syntax for Swish script.
--- Created Swish scripting test data.
--- Edited export/import lists in Swish main program modules.
---
--- Revision 1.5  2003/09/24 18:50:53  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.4  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.3  2003/05/29 12:39:49  graham
--- Improved error handling for stand-alone swish program
---
--- Revision 1.2  2003/05/21 13:34:13  graham
--- Various N3 parser bug fixes.
--- Need to fix handling of :name terms.
---
--- Revision 1.1  2003/05/20 23:36:30  graham
--- Add new Swish modules
---

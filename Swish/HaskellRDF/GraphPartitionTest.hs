@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: GraphPartitionTest.hs,v 1.2 2004/02/10 20:24:48 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphPartitionTest
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -493,7 +490,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -513,15 +511,3 @@ tt = runTestTT
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/GraphPartitionTest.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: GraphPartitionTest.hs,v $
--- Revision 1.2  2004/02/10 20:24:48  graham
--- Graph difference code now works.
---
--- Revision 1.1  2004/02/09 22:22:44  graham
--- Graph matching updates:  change return value to give some indication
--- of the extent match achieved in the case of no match.
--- Added new module GraphPartition and test cases.
--- Add VehicleCapcity demonstration script.

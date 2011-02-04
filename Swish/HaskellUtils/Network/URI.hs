@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: URI.hs,v 1.2 2004/02/02 14:00:39 graham Exp $
---
---  Copyright (c) 2004, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Network.URI
---  Copyright   :  (c) 2004, Graham Klyne
+--  Copyright   :  (c) 2004, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -20,10 +17,14 @@
 --
 --  In addition, four methods are provided for classifying different
 --  kinds of URI string (as noted in RFC2396bis):
---      isURI
---      isURIReference
---      isRelativeURI
---      isAbsoluteURI
+--
+--    *  'isURI'
+--
+--    *  'isURIReference'
+--
+--    *  'isRelativeURI'
+--
+--    *  'isAbsoluteURI'
 --
 --  The current official reference for URI handling is RFC2396 [1],
 --  as updated by RFC 2732 [2].
@@ -34,12 +35,14 @@
 --  here, and it is intended that there is a direct relationship between
 --  the syntax definition in that document and the parser implementation.
 --
---  [1] http://www.ietf.org/rfc/rfc2396.txt
---  [2] http://www.ietf.org/rfc/rfc2732.txt
---  [3] http://gbiv.com/protocols/uri/rev-2002/rfc2396bis.html
+--  [1] <http://www.ietf.org/rfc/rfc2396.txt>
+--
+--  [2] <http://www.ietf.org/rfc/rfc2732.txt>
+--
+--  [3] <http://gbiv.com/protocols/uri/rev-2002/rfc2396bis.html>
 --      (This implementation based on a version dated Sep-2003,
 --      also available as CVS revision 1.64 from
---      http://cvs.apache.org/viewcvs.cgi/ietf-uri/rev-2002/)
+--      <http://cvs.apache.org/viewcvs.cgi/ietf-uri/rev-2002/>)
 --
 --  Some of the code has been copied from the GHC implementation, but
 --  the parser is replaced with one that performs more complete
@@ -113,7 +116,8 @@ instance Show URI where
 --  Parse a URI
 ------------------------------------------------------------
 
--- |Turn a string into a @URI@.
+-- |Turn a string into a 'URI'.
+--
 --  Returns @Nothing@ if the string is not a valid URI.
 --
 parseURI :: String -> Maybe URI
@@ -747,15 +751,3 @@ stripWS = stripLeadingWS . stripTrailingWS
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/Network/URI.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: URI.hs,v $
--- Revision 1.2  2004/02/02 14:00:39  graham
--- Fix optional host name in URI.  Add test cases.
---
--- Revision 1.1  2004/01/27 21:13:45  graham
--- New URI module and test suite added,
--- implementing the GHC Network.URI interface.
---
---

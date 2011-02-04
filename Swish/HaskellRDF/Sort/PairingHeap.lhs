@@ -1,3 +1,5 @@
+> {-# OPTIONS_HADDOCK hide, prune, ignore-exports #-}
+
 %-------------------------------=  --------------------------------------------
 \chapter{Pairing heaps}
 %-------------------------------=  --------------------------------------------
@@ -47,19 +49,19 @@ appears below a |Node|.
 > pairingSortBy (<=)		=  unHeap . meldAll . map leaf
 >     where
 >     (\+/)			=  meldBy (<=)
+>
+>     meldAll []		=  Empty
+>     meldAll [t]		=  t
+>     meldAll (t1 : t2 : ts)	=  (t1 \+/ t2) \+/ meldAll ts
+>
+>     unHeap Empty		=  []
+>     unHeap (Node a ts)	=  a : unHeap (meldAll ts)
 
 Different variants of pairing heaps differ in the implementation of
 |meldAll|.
 
->     meldAll []		=  Empty
->     meldAll [t]		=  t
->     meldAll (t1 : t2 : ts)	=  (t1 \+/ t2) \+/ meldAll ts
-
 Note that subsequent trees are first paired using |meld|, hence the
 name of the data structure.
-
->     unHeap Empty		=  []
->     unHeap (Node a ts)	=  a : unHeap (meldAll ts)
 
 What about the running time? Fredman et al~\cite{FSS86Pai} show that
 |meld| and |splitMin| run in $O(\log n)$ amortized time. Hence we have

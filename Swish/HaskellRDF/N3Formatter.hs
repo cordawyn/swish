@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: N3Formatter.hs,v 1.23 2004/01/22 19:52:41 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3Formatter
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -19,26 +16,31 @@
 --
 -- REFERENCES:
 --
--- [1] http://www.w3.org/DesignIssues/Notation3.html
+-- (1) <http://www.w3.org/DesignIssues/Notation3.html>
 --     Tim Berners-Lee's design issues series notes and description
 --
--- [2] http://www.w3.org/2000/10/swap/Primer.html
+-- (2) <http://www.w3.org/2000/10/swap/Primer.html>
 --     Notation 3 Primer by Sean Palmer
 --
 --
---  [[[TODO:]]]
---  (a) Initial prefix list to include nested formulae;
+--  TODO:
+--
+--   * Initial prefix list to include nested formulae;
 --      then don't need to update prefix list for these.
---  (b) blank nodes used just once, can be expanded inline using
---      [...] syntax.
---  (c) generate multi-line literals when appropriate
---  (d) more flexible terminator generation for formatted formulae
---      (for inline blank nodes.)
+--
+--   * blank nodes used just once, can be expanded inline using
+--     [...] syntax.
+--
+--   * generate multi-line literals when appropriate
+--
+--   * more flexible terminator generation for formatted formulae
+--     (for inline blank nodes.)
 --
 --------------------------------------------------------------------------------
 
 module Swish.HaskellRDF.N3Formatter
-    ( formatGraphAsStringNl
+    ( NodeGenLookupMap
+    , formatGraphAsStringNl
     , formatGraphAsString
     , formatGraphAsShowS
     , formatGraphIndent
@@ -130,9 +132,8 @@ emptyFgs ngs = Fgs
     , traceBuf  = []
     }
 
---  Node name generation state information that carries through
+--  | Node name generation state information that carries through
 --  and is updated by nested formulae
-
 type NodeGenLookupMap = LookupMap (RDFLabel,Int)
 
 data NodeGenState = Ngs
@@ -231,7 +232,7 @@ formatGraphIndent ind dopref gr = out
     where
         (_,out) = formatGraphDiag1 ind dopref emptyLookupMap gr
 
---  Format graph and return additional information
+-- | Format graph and return additional information
 formatGraphDiag ::
     RDFGraph -> (ShowS,NodeGenLookupMap,Int,[String])
 formatGraphDiag gr = (out,nodeMap ngs,nodeGen ngs,traceBuf fgs)
@@ -554,11 +555,10 @@ getAutoBnodeIndex (Blank ('_':lns)) = res where
             _   -> 0
 getAutoBnodeIndex _                   = 0
 
-
-
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -578,94 +578,3 @@ getAutoBnodeIndex _                   = 0
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/N3Formatter.hs,v $
--- $Author: graham $
--- $Revision: 1.23 $
--- $Log: N3Formatter.hs,v $
--- Revision 1.23  2004/01/22 19:52:41  graham
--- Rename module URI to avoid awkward clash with Haskell libraries
---
--- Revision 1.22  2004/01/09 12:57:08  graham
--- Remove space between perfix and ':' in @prefix declaractions,
--- for compatibility with new Notation 3 syntax (and Jena).
---
--- Revision 1.21  2004/01/09 12:49:39  graham
--- Remove superfluous PutS class.
---
--- Revision 1.20  2004/01/09 12:44:52  graham
--- Fix up N3Formatter to suppress final statement-terminating '.' in a formula,
--- for compatibility with the current Notation3 syntax.
---
--- Revision 1.19  2004/01/07 19:49:12  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.18  2003/12/05 02:31:32  graham
--- Script parsing complete.
--- Some Swish script functions run successfully.
--- Command execution to be completed.
---
--- Revision 1.17  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.16  2003/11/24 15:46:04  graham
--- Rationalize N3Parser and N3Formatter to use revised vocabulary
--- terms defined in Namespace.hs
---
--- Revision 1.15  2003/10/24 21:03:25  graham
--- Changed kind-structure of LookupMap type classes.
---
--- Revision 1.14  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.13  2003/09/24 13:36:42  graham
--- QName handling separated from RDFGraph module, and
--- QName splitting moved from URI module to QName module.
---
--- Revision 1.12  2003/06/25 21:16:52  graham
--- Reworked N3 formatting logic to support proof display.
--- Basic proof display is working.
---
--- Revision 1.11  2003/06/12 00:47:55  graham
--- Allowed variable node (?v) and bare anonymous nodes in N3 parser.
---
--- Revision 1.10  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.9  2003/05/28 17:39:30  graham
--- Trying to track down N3 formatter performance problem.
---
--- Revision 1.8  2003/05/23 00:02:42  graham
--- Fixed blank node id generation bug in N3Formatter
---
--- Revision 1.7  2003/05/20 23:35:28  graham
--- Modified code to compile with GHC hierarchical libraries
---
--- Revision 1.6  2003/05/14 22:39:23  graham
--- Initial formatter tests all run OK.
--- The formatter could still use so,me improvement,
--- but it
--- passes the minimal round-tripping tests.
---
--- Revision 1.5  2003/05/14 19:38:32  graham
--- Simple formatter tests all working with reworked graph and lookup structures.
--- More complex formatter tests still to be coded.
---
--- Revision 1.4  2003/04/29 22:09:43  graham
--- Updated TODO notes
---
--- Revision 1.3  2003/04/29 22:07:10  graham
--- Some refactoring of N3 formatter.
--- N3 formatter now handles trivial cases.
--- More complex formatter test cases still to be developed.
---
--- Revision 1.2  2003/04/25 11:40:06  graham
--- Formatter compiles OK
---
--- Revision 1.1  2003/04/24 23:41:39  graham
--- Added Ord class membership to graph nodes
--- Added empty lookup table definition
--- Started on N3 formatter module
---

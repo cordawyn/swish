@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: PartOrderedCollection.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  PartOrderedCollection
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -102,12 +99,15 @@ partComparePair cmpa cmpb (a1,b1) (a2,b2) = case (cmpa a1 a2,cmpb b1 b2) of
 
 -- |Part-ordering comparison on lists of partially ordered values, where:
 --
---  as==bs  if members of as are all equal to corresponding members of bs
---  as<=bs  if members of as are all less than or equal to corresponding
+--  [@as==bs@]  if members of as are all equal to corresponding members of bs
+--    
+--  [@as<=bs@]  if members of as are all less than or equal to corresponding
 --          members of bs
---  as>=bs  if members of as are all greater than or equal to corresponding
+--    
+--  [@as>=bs@]  if members of as are all greater than or equal to corresponding
 --          members of bs
---  otherwise as and bs are unrelated
+--    
+--  [otherwise] as and bs are unrelated
 --
 partCompareListPartOrd :: PartCompare a -> [a] -> [a] -> Maybe Ordering
 partCompareListPartOrd cmp a1s b1s = pcomp a1s b1s EQ
@@ -127,12 +127,15 @@ partCompareListPartOrd cmp a1s b1s = pcomp a1s b1s EQ
 
 -- |Part-ordering comparison on lists of Ord values, where:
 --
---  as==bs  if members of as are all equal to corresponding members of bs
---  as<=bs  if members of as are all less than or equal to corresponding
+--  [@as==bs@]  if members of as are all equal to corresponding members of bs
+--    
+--  [@as<=bs@]  if members of as are all less than or equal to corresponding
 --          members of bs
---  as>=bs  if members of as are all greater than or equal to corresponding
+--    
+--  [@as>=bs@]  if members of as are all greater than or equal to corresponding
 --          members of bs
---  otherwise as and bs are unrelated
+--    
+--  [otherwise] as and bs are unrelated
 --
 partCompareListOrd :: (Ord a) => [a] -> [a] -> Maybe Ordering
 partCompareListOrd = partCompareListPartOrd (Just `c2` compare)
@@ -354,7 +357,8 @@ test = and
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -374,23 +378,3 @@ test = and
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/PartOrderedCollection.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: PartOrderedCollection.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.4  2003/11/20 18:35:59  graham
--- Compacted maxima code by use of foldl
--- (per further suggestion by Tom Pledger).
---
--- Revision 1.3  2003/11/20 17:58:09  graham
--- Class-constraint backward chaining: all test cases passed.
---
--- Revision 1.2  2003/11/19 22:13:03  graham
--- Some backward chaining tests passed
---
--- Revision 1.1  2003/11/19 15:21:26  graham
--- Add PartOrderedCollection module
---

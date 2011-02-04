@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: ListHelpers.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ListHelpers
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -88,7 +85,7 @@ a `equiv` b     = a `subset` b && b `subset` a
 -- |Set partition test
 --
 --  Is it possible to be more efficient here?
---  Maybe something like sort/merge/compare?
+--  Maybe something like sort\/merge\/compare?
 hasPartitions   :: (Eq a) => [a] -> ([a],[a]) -> Bool
 a `hasPartitions` (b1,b2) =
     null (b1 `intersect` b2) && (a `equiv` (b1 `union` b2))
@@ -102,9 +99,9 @@ addSetElem e es = if e `elem` es then es else e:es
 --  Lists and Maybes
 ------------------------------------------------------------
 
--- |Return head of a list of Maybe's, or Nothing if list is empty
+-- |Return head of a list of @Maybe@'s, or @Nothing@ if list is empty
 --
---  Use with 'filter isJust' to select a non-Nothing value from a
+--  Use with @filter isJust@ to select a non-Nothing value from a
 --  list when such a value is present.
 --
 headOrNothing :: [Maybe a] -> Maybe a
@@ -230,15 +227,15 @@ testperm = permutations [1,2,3] ==
 --  one element from each of the original members in the
 --  corresponding position.  Thus:
 --
---  listProduct [[a1,a2],[b1],[c1,c2]] =
---       [ [a1,b1,c1], [a1,b1,c2], [a2,b1,c1], [a2,b1,c2] ]
+--  > listProduct [[a1,a2],[b1],[c1,c2]] =
+--  >      [ [a1,b1,c1], [a1,b1,c2], [a2,b1,c1], [a2,b1,c2] ]
 --
 --  Note:  The length of the resulting list is the prodicty of
 --  lengths of the components of the original list.  Thus, if
 --  any member of the original list is empty then so is the
 --  resulting list:
 --
---  listProduct [[a1,a2],[],[c1,c2]] = []
+--  > listProduct [[a1,a2],[],[c1,c2]] = []
 --
 --  NOTE:  this is subsumed by 'sequence'
 --
@@ -410,7 +407,8 @@ anyptest  = and [not anyptest0,anyptest1,anyptest2,anyptest3]
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -430,72 +428,3 @@ anyptest  = and [not anyptest0,anyptest1,anyptest2,anyptest3]
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/ListHelpers.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: ListHelpers.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.16  2003/11/28 00:17:55  graham
--- Datatype constraint test cases all passed.
---
--- Revision 1.15  2003/11/07 21:45:47  graham
--- Started rework of datatype to use new DatatypeRel structure.
---
--- Revision 1.14  2003/10/24 21:05:09  graham
--- Working on datatype inference.  Most of the variable binding logic
--- is done, but the rule structure still needs to be worked out to support
--- forward and backward chaining through the same rule.
---
--- Revision 1.13  2003/10/16 16:01:49  graham
--- Reworked RDFProof and RDFProofContext to use new query binding
--- framework.  Also fixed a bug in the variable binding filter code that
--- caused failures when a variable used was not bound.
---
--- Revision 1.12  2003/10/14 20:31:21  graham
--- Add separate module for generic variable binding functions.
---
--- Revision 1.11  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.10  2003/06/27 20:46:00  graham
--- Coded initial version of RDF simple entailment rule.
--- New rule still needs testing, but other test cases still OK.
---
--- Revision 1.9  2003/06/18 14:59:27  graham
--- Augmented query variable binding structure.
--- RDFQuery tests OK.
---
--- Revision 1.8  2003/06/18 01:29:29  graham
--- Fixed up some problems with backward chaining queries.
--- Query test cases still to complete.
--- Proof incomplete.
---
--- Revision 1.7  2003/06/10 01:04:46  graham
--- Proof framework in progress;  compiles, incomplete
---
--- Revision 1.6  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.5  2003/05/29 00:57:37  graham
--- Resolved swish performance problem, which turned out to an inefficient
--- method used by the parser to add arcs to a graph.
---
--- Revision 1.4  2003/05/20 17:28:51  graham
--- Added 'breakAll' function
---
--- Revision 1.3  2003/05/14 02:01:59  graham
--- GraphMatch recoded and almost working, but
--- there are a couple of
--- obscure bugs that are proving rather stubborn to squash.
---
--- Revision 1.2  2003/05/09 00:28:48  graham
--- Added partitionBy to ListHelpers (may want to remove since
--- it's also in the standard List module).
--- Added mapSelect and mapMerge to LookupMap, and test cases.
---
--- Revision 1.1  2003/04/11 18:12:10  graham
--- Renamed GraphHelpers to ListHelpers
--- LookupMapTest, GraphTest, RDFGraphTest all run OK
---

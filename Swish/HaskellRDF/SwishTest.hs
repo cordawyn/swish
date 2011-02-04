@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: SwishTest.hs,v 1.10 2004/01/06 13:53:10 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishTest
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -121,7 +118,8 @@ main = testAll
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke 
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -141,42 +139,3 @@ main = testAll
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/SwishTest.hs,v $
--- $Author: graham $
--- $Revision: 1.10 $
--- $Log: SwishTest.hs,v $
--- Revision 1.10  2004/01/06 13:53:10  graham
--- Created consolidated test harness (SwishTestAll.hs)
---
--- Revision 1.9  2003/09/24 18:50:53  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.8  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.7  2003/05/29 11:53:31  graham
--- Juggle Swish code:  SwishMain.hs is main program logic, with
--- Swish.hs and SwishTest.hs being alternative "Main" modules for
--- the real program and test harness respectively.
---
--- Revision 1.6  2003/05/29 10:49:08  graham
--- Added and tested merge option (-m) for Swish program
---
--- Revision 1.5  2003/05/29 01:50:56  graham
--- More performance tuning, courtesy of GHC profiler.
--- All modules showing reasonable performance now.
---
--- Revision 1.4  2003/05/29 00:57:37  graham
--- Resolved swish performance problem, which turned out to an inefficient
--- method used by the parser to add arcs to a graph.
---
--- Revision 1.3  2003/05/28 19:57:50  graham
--- Adjusting code to compile with GHC
---
--- Revision 1.2  2003/05/28 17:39:30  graham
--- Trying to track down N3 formatter performance problem.
---
--- Revision 1.1  2003/05/23 00:03:55  graham
--- Added HUnit test module for swish program.
--- Greatly enhanced N3Formatter tests
---

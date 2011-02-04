@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: TestHelpers.hs,v 1.2 2004/01/13 12:18:34 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  TestHelpers
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -192,7 +189,8 @@ mainF = runTestTT allFailureTests
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -212,12 +210,3 @@ mainF = runTestTT allFailureTests
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/TestHelpers.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: TestHelpers.hs,v $
--- Revision 1.2  2004/01/13 12:18:34  graham
--- Clean up test case helpers module.
---
--- Revision 1.1.1.1  2004/01/13 12:15:56  graham
--- Fix up name of HaskellUtils project

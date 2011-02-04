@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: MiscHelpers.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  MiscHelpers
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -91,7 +88,8 @@ hash1 sofar _ _ []        = sofar
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -111,31 +109,3 @@ hash1 sofar _ _ []        = sofar
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/MiscHelpers.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: MiscHelpers.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.6  2004/01/07 19:49:12  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.5  2004/01/07 14:29:15  graham
--- Move stricmp to MiscHelpers
---
--- Revision 1.4  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.3  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.2  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.1  2003/05/20 17:29:44  graham
--- Split original helper functions module into ListHelpers and MiscHelpers
---

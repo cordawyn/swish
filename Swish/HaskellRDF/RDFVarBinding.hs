@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: RDFVarBinding.hs,v 1.4 2003/12/18 18:27:47 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFVarBinding
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -56,12 +53,12 @@ import Swish.HaskellUtils.LookupMap
 --  Types for RDF query variable bindings and modifiers
 ------------------------------------------------------------
 
--- |RDFVarBinding is the specific type type of a variable
+-- |@RDFVarBinding@ is the specific type type of a variable
 --  binding value used with RDF graph queries, returned by
 --  'RDFVarBindingFind' and used by 'RDFVarBindingSubs'
 type RDFVarBinding  = VarBinding RDFLabel RDFLabel
 
--- |nullRDFVarBinding:  maps no query variables.
+-- | maps no query variables.
 nullRDFVarBinding :: RDFVarBinding
 nullRDFVarBinding = nullVarBinding
 
@@ -70,14 +67,12 @@ type RDFVarBindingModify = VarBindingModify RDFLabel RDFLabel
 
 -- |Open variable binding modifier that operates on RDFLabel values
 --
---  RDFOpenVarBindingModify = [RDFLabel] -> RDFVarBindingModify
---
 type RDFOpenVarBindingModify = OpenVarBindingModify RDFLabel RDFLabel
 
 -- |Define type for lookup map of open query binding modifiers
 type RDFOpenVarBindingModifyMap = LookupMap RDFOpenVarBindingModify
 
--- |RDFVarBindingFilter is a function type that tests to see if
+-- |@RDFVarBindingFilter@ is a function type that tests to see if
 --  a query binding satisfies some criterion, and is used to
 --  create a variable binding modifier that simply filers
 --  given variable bindings.
@@ -88,7 +83,7 @@ type RDFOpenVarBindingModifyMap = LookupMap RDFOpenVarBindingModify
 --  the things that are matched.
 --
 --  This function type is used to perform such tests.
---  A number of simple implementations are included below.
+--  A number of simple implementations are included.
 --
 type RDFVarBindingFilter = VarBindingFilter RDFLabel RDFLabel
 
@@ -142,10 +137,10 @@ rdfVarBindingMemberProp =
 --  an indicated variable is bound to a literal value with a
 --  datatype whose URI is bound to another node
 --
---  dvar    a variable bound to the required datatype.
---  lvar    a variable bound to the literal node to be tested.
---
-rdfVarBindingDatatyped :: RDFLabel -> RDFLabel -> RDFVarBindingFilter
+rdfVarBindingDatatyped ::
+  RDFLabel    -- ^ variable bound to the required datatype. 
+  -> RDFLabel -- ^ variable bound to the literal node to be tested.
+  -> RDFVarBindingFilter
 rdfVarBindingDatatyped dvar lvar = VarBindingFilter
     { vbfName   = swishName "rdfVarBindingDatatyped"
     , vbfVocab  = [dvar,lvar]
@@ -164,7 +159,8 @@ testDatatyped vb dvar lvar = and
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -184,22 +180,3 @@ testDatatyped vb dvar lvar = and
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFVarBinding.hs,v $
--- $Author: graham $
--- $Revision: 1.4 $
--- $Log: RDFVarBinding.hs,v $
--- Revision 1.4  2003/12/18 18:27:47  graham
--- Datatyped literal inferences all working
--- (except equivalent literals with different datatypes)
---
--- Revision 1.3  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.2  2003/12/08 17:29:19  graham
--- Moved OpenVarBinding type definitions from -Datatype to -VarBinding modules.
---
--- Revision 1.1  2003/11/14 16:01:30  graham
--- Separate RDFVarBinding from module RDFQuery.
---

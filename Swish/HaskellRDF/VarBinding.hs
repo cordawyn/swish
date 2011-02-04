@@ -1,13 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances #-}
 --------------------------------------------------------------------------------
---  $Id: VarBinding.hs,v 1.12 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  VarBinding
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -85,7 +82,7 @@ instance (Eq a, Eq b) => Eq (VarBinding a b) where
 instance (Show a, Show b) => Show (VarBinding a b) where
     show = show . vbEnum
 
--- |nullVarBinding:  maps no query variables.
+-- | maps no query variables.
 --
 nullVarBinding :: VarBinding a b
 nullVarBinding = VarBinding
@@ -165,7 +162,7 @@ addVarBinding lb val vbind = joinVarBindings vbind $ makeVarBinding [(lb,val)]
 
 -- |Define the type of a function to modify variable bindings in
 --  forward chaining based on rule antecedent matches.  This
---  function is used to implement the "allocated to" logic described
+--  function is used to implement the \"allocated to\" logic described
 --  in Appendix B of the RDF semantics document, in which a specific
 --  blank node is associated with all matches of some specific value
 --  by applications of the rule on a given graph.
@@ -177,24 +174,27 @@ addVarBinding lb val vbind = joinVarBindings vbind $ makeVarBinding [(lb,val)]
 --  a set of bindings), and some additional descriptive information
 --  that allows possible usage patterns to be analyzed.
 --
---  Some usage patterns (see vbmUsage):
---  (a) filter:  all variables are input variables, and the effect
+--  Some usage patterns (see 'vbmUsage' for more details):
+--
+--  [filter]  all variables are input variables, and the effect
 --      of the modifier function is to drop variable bindings that
 --      don't satisfy some criterion.
---      Identifiable by an empty element in vbmUsage.
---  (b) source:  all variables are output variables:  a raw query
+--      Identifiable by an empty element in @vbmUsage@.
+--
+--  [source]  all variables are output variables:  a raw query
 --      could be viewed as a source of variable bindings.
---      Identifiable by an element of vbmUsage equal to vbmVocab.
---  (c) modifier:  for each supplied variable binding, one or more
+--      Identifiable by an element of @vbmUsage@ equal to @vbmVocab@.
+--
+--  [modifier]  for each supplied variable binding, one or more
 --      new variable bindings may be created that contain the
 --      input variables bound as supplied plus some additional variables.
---      Identifiable by an element of vbmUsage some subset of vbmVocab.
+--      Identifiable by an element of @vbmUsage@ some subset of @vbmVocab@.
 --
 --  A variety of variable usage patterns may be supported by a given
 --  modifier:  a modifier may be used to define new variable bindings
 --  from existing bindings in a number of ways, or simply to check that
 --  some required relationship between bindings is satisfied.
---  (Example, for a + b = c, any one variable can be deduced from the
+--  (Example, for @a + b = c@, any one variable can be deduced from the
 --  other two, or all three may be supplied to check that the relationship
 --  does indeed hold.)
 --
@@ -216,10 +216,10 @@ data VarBindingModify a b = VarBindingModify
                             --  a list of variables for which new bindings
                             --  may be created by some application of this
                             --  modifier, assuming that bindings for all other
-                            --  variables in vbmVocab are supplied.
+                            --  variables in @vbmVocab@ are supplied.
     }
 
--- |Allow a VarBindingModify value to be accessed using a LookupMap.
+-- |Allow a VarBindingModify value to be accessed using a 'LookupMap'.
 --
 instance LookupEntryClass
     (VarBindingModify a b) ScopedName (VarBindingModify a b)
@@ -232,20 +232,20 @@ instance LookupEntryClass
 --
 type OpenVarBindingModify lb vn = [lb] -> VarBindingModify lb vn
 
--- |Extract variable binding name from OpenVarBindingModify value
+-- |Extract variable binding name from @OpenVarBindingModify@ value
 --
 --  (Because only the name is required, the application to an undefined
 --  list of variable labels should never be evaluated, as long as the
 --  name is not dependent on the variable names in any way.)
 --
---  NOT QUITE... some of the functions that create OpenVarBindingModify
+--  NOT QUITE... some of the functions that create @OpenVarBindingModify@
 --  instances also pattern-match the number of labels provided, forcing
 --  evaluation of the labels parameter, even though it's not used.
 --
 openVbmName :: OpenVarBindingModify lb vn -> ScopedName
 openVbmName ovbm = vbmName (ovbm (error "Undefined labels in variable binding"))
 
--- |Allow an OpenVarBindingModify value to be accessed using a LookupMap.
+-- |Allow an @OpenVarBindingModify@ value to be accessed using a @LookupMap@.
 --
 instance LookupEntryClass
     (OpenVarBindingModify a b) ScopedName (OpenVarBindingModify a b)
@@ -262,7 +262,7 @@ instance Show (OpenVarBindingModify a b)
 -- |Variable binding modifier compatibility test.
 --
 --  Given a list of bound variables and a variable binding modifier, return
---  a list of new variables that may be bound, or Nothing.
+--  a list of new variables that may be bound, or @Nothing@.
 --
 --  Note:  if the usage pattern component is well-formed (i.e. all
 --  elements different) then at most one element can be compatible with
@@ -292,9 +292,9 @@ vbmCompatibleVars bvars vocab ovars =
 
 -- |Compose variable binding modifiers.
 --
---  Returns Just a new variable binding modifier that corresponds to
+--  Returns @Just a@ new variable binding modifier that corresponds to
 --  applying the first supplied modifier and then applying the second
---  one, or Nothing if the two modifiers cannot be compatibly composed.
+--  one, or @Nothing@ if the two modifiers cannot be compatibly composed.
 --
 --  NOTE:  this function does not, in general, commute.
 --
@@ -319,14 +319,6 @@ vbmCompose
 -- |Determine compatible ways in which variable binding modifiers may
 --  be combined.
 --
---  voc1    is the total vocabulary of the first modifier to be applied
---  use1    is a list of usage patterns for the first modifier.
---  use2    is a list of usage patterns for the second modifier.
---
---  Returns a list of possible usage patterns for the composition of
---  the first modifier with the second modifier, or an empty list if
---  the modifiers are incompatible.
---
 --  The total vocabulary of a modifier is the complete set of variables
 --  that are used or bound by the modifier.  After the modifier has been
 --  applied, bindings must exist for all of these variables.
@@ -337,12 +329,19 @@ vbmCompose
 --  The only way in which two variable binding modifiers can be incompatible
 --  with each other is when they both attempt to create a new binding for
 --  the same variable.  (Note that this does not mean the composition will
---  be compatible with all inputs:  see vbmCompatibleVars above.)
+--  be compatible with all inputs:  see 'vbmCompatibleVars'.)
 --
 --  NOTE:  if there are different ways to achieve the same usage, that
 --  usage is currently repeated in the result returned.
 --
-compatibleUsage :: (Eq a) => [a] -> [[a]] -> [[a]] -> [[a]]
+compatibleUsage ::
+  (Eq a)
+  => [a]   -- ^ the total vocabulary of the first modifier to be applied
+  -> [[a]] -- ^ usage patterns for the first modifier
+  -> [[a]] -- ^ usage patterns for the second modifier
+  -> [[a]] -- ^ a list of possible usage patterns for the composition of
+           --  the first modifier with the second modifier, or an empty list if
+           --  the modifiers are incompatible.
 compatibleUsage voc1 use1 use2 =
     [ u1++u2 | u2 <- use2, null (voc1 `intersect` u2), u1 <- use1 ]
 
@@ -355,7 +354,8 @@ findCompositions vbms vars =
 
 -- |Compose sequence of variable binding modifiers, and check
 --  that the result can be used compatibly with a supplied list
---  of bound variables, returning Just (composed modifier), or Nothing
+--  of bound variables, returning @Just (composed modifier)@,
+--  or @Nothing@.
 --
 composeCheckSequence :: (Eq a) => [a] -> [VarBindingModify a b]
     -> Maybe (VarBindingModify a b)
@@ -378,15 +378,15 @@ composeSequence (vbm:vbms) =
     foldl composePair (Just vbm) vbms
 
 -- |Compose a pair of variable binding modifiers, returning
---  Just (composed modifier), or Nothing
+--  @Just (composed modifier)@, or @Nothing@.
 --
 composePair :: (Eq a) => Maybe (VarBindingModify a b) -> VarBindingModify a b
     -> Maybe (VarBindingModify a b)
 composePair Nothing     _    = Nothing
 composePair (Just vbm1) vbm2 = vbmCompose vbm1 vbm2
 
--- |Return Just a compatible composition of variable binding modifiers
---  for a given set of supplied bound variables, or Nothing if there
+-- |Return @Just a@ compatible composition of variable binding modifiers
+--  for a given set of supplied bound variables, or @Nothing@ if there
 --  is no compatible composition
 --
 findComposition :: (Eq a) => [VarBindingModify a b] -> [a]
@@ -408,7 +408,7 @@ varBindingId = VarBindingModify
 
 -- |Null variable binding modifier
 --
---  This is like varBindingId except parameterized by some labels.
+--  This is like 'varBindingId' except parameterized by some labels.
 --  I think this is redundant, and should be eliminated.
 --
 nullVarBindingModify :: OpenVarBindingModify a b
@@ -517,7 +517,8 @@ varFilterConjunction vbfs = VarBindingFilter
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -537,56 +538,3 @@ varFilterConjunction vbfs = VarBindingFilter
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/VarBinding.hs,v $
--- $Author: graham $
--- $Revision: 1.12 $
--- $Log: VarBinding.hs,v $
--- Revision 1.12  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.11  2003/12/10 03:48:58  graham
--- SwishScript nearly complete:  BwdChain and PrrofCheck to do.
---
--- Revision 1.10  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.9  2003/12/08 17:29:19  graham
--- Moved OpenVarBinding type definitions from -Datatype to -VarBinding modules.
---
--- Revision 1.8  2003/12/08 16:58:27  graham
--- Add name to variable binding modifiers and filters.
--- Add namespace for Swish-defined names.
---
--- Revision 1.7  2003/12/04 02:53:28  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.6  2003/10/24 21:05:08  graham
--- Working on datatype inference.  Most of the variable binding logic
--- is done, but the rule structure still needs to be worked out to support
--- forward and backward chaining through the same rule.
---
--- Revision 1.5  2003/10/22 15:47:46  graham
--- Working on datatype inference support.
---
--- Revision 1.4  2003/10/16 16:01:49  graham
--- Reworked RDFProof and RDFProofContext to use new query binding
--- framework.  Also fixed a bug in the variable binding filter code that
--- caused failures when a variable used was not bound.
---
--- Revision 1.3  2003/10/15 16:40:52  graham
--- Reworked RDFQuery to use new query binding framework.
--- (Note: still uses VarBindingFilter rather than VarBindingModify.
--- The intent is to incorproate the VarBindingModify logic into RDFProof,
--- displaying the existing use of BindingFilter.)
---
--- Revision 1.2  2003/10/15 00:07:01  graham
--- Added variable binding filter structures, and some common filters
---
--- Revision 1.1  2003/10/14 20:30:58  graham
--- Add separate module for generic variable binding functions.
---

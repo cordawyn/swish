@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: RDFQuery.hs,v 1.32 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFQuery
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -91,11 +88,12 @@ import Data.Maybe
 ------------------------------------------------------------
 
 -- |Basic graph-query function.
+--
 --  A very basic form of graph query, a query graph and
 --  a target graph, and returns a list of 'RDFVarBinding'
 --  values, each of which corresponds to a set of variable
 --  bindings that make the query graph a subgraph of the
---  target graph, or [] if the query cannot be matched.
+--  target graph, or @[]@ if the query cannot be matched.
 --
 --  The triples of the query graph are matched sequentially
 --  against the target graph, each taking account of any
@@ -140,7 +138,9 @@ rdfQueryPrim2 ::
 rdfQueryPrim2 nodeq qa tg =
         mapMaybe (getBinding nodeq qa) (getArcs tg)
 
--- |RDF query filter.  This function applies a supplied query binding
+-- |RDF query filter.
+--
+--  This function applies a supplied query binding
 --  filter to the result from a call of 'rdfQueryFind'.
 --
 --  If none of the query bindings found satisfy the filter, a null
@@ -162,13 +162,14 @@ rdfQueryFilter qbf = filter (vbfTest qbf)
 ------------------------------------------------------------
 
 -- |Reverse graph-query function.
---  Similar to rdfQueryFind, but with different success criteria.
+--
+--  Similar to 'rdfQueryFind', but with different success criteria.
 --  The query graph is matched against the supplied graph,
 --  but not every triple of the query is required to be matched.
 --  Rather, every triple of the target graph must be matched,
 --  and substitutions for just the variables thus bound are
 --  returned.  In effect, these are subsitutions in the query
---  that entail the target graph (where rdfQueryFind returns
+--  that entail the target graph (where @rdfQueryFind@ returns
 --  substitutions that are entailed by the target graph).
 --
 --  Multiple substitutions may be used together, so the result
@@ -254,6 +255,7 @@ rdfQueryBackModify1 qbm qbs = listProduct $ map (vbmApply qbm . (:[])) qbs
 ------------------------------------------------------------
 
 -- |Simple entailment (instance) graph query.
+--
 --  This function queries a graph to find instances of the
 --  query graph in the target graph.  It is very similar
 --  to the normal forward chaining query 'rdfQueryFind',
@@ -261,10 +263,10 @@ rdfQueryBackModify1 qbm qbs = listProduct $ map (vbmApply qbm . (:[])) qbs
 --  in the query graph are matched against nodes in the target
 --  graph.  Neither graph should contain query variables.
 --
---  An "instance" is defined by the RDF semantics specification,
+--  An instance is defined by the RDF semantics specification,
 --  per <http://www.w3.org/TR/rdf-mt/>, and is obtained by replacing
 --  blank nodes with URIs, literals or other blank nodes.  RDF
---  "simple entailment" can be determined in terms of instances.
+--  simple entailment can be determined in terms of instances.
 --  This function looks for a subgraph of the target graph that
 --  is an instance of the query graph, which is a necessary and
 --  sufficient condition for RDF entailment (see the Interpolation
@@ -283,9 +285,13 @@ rdfQueryInstance =
 ------------------------------------------------------------
 
 -- |Type of query node testing function.  Return value is:
---  - Nothing    if no match
---  - Just True  if match with new variable binding
---  - Just False if match with new variable binding
+--
+--  * @Nothing@    if no match
+--
+--  * @Just True@  if match with new variable binding
+--
+--  * @Just False@ if match with new variable binding
+--
 type NodeQuery a = a -> a -> Maybe Bool
 
 --  Extract query binding from matching a single query triple with a
@@ -331,6 +337,7 @@ matchQueryBnode q t
 ------------------------------------------------------------
 
 -- |Graph substitution function.
+--
 --  Uses the supplied variable bindings to substitute variables in
 --  a supplied graph, returning a list of result graphs corresponding
 --  to each set of variable bindings applied to the input graph.
@@ -342,6 +349,7 @@ rdfQuerySubs vars gr =
     map fst $ filter (null . snd) $ rdfQuerySubsAll vars gr
 
 -- |Graph back-substitution function.
+--
 --  Uses the supplied variable bindings from 'rdfQueryBack' to perform
 --  a series of variable substitutions in a supplied graph, returning
 --  a list of lists of result graphs corresponding to each set of variable
@@ -355,12 +363,14 @@ rdfQueryBackSubs ::
 rdfQueryBackSubs varss gr = [ rdfQuerySubsAll v gr | v <- varss ]
 
 -- |Graph substitution function.
+--
 --  This function performs the substitutions and returns a list of
 --  result graphs each paired with a list unbound variables in each.
 rdfQuerySubsAll :: [RDFVarBinding] -> RDFGraph -> [(RDFGraph,[RDFLabel])]
 rdfQuerySubsAll vars gr = [ rdfQuerySubs2 v gr | v <- vars ]
 
 -- |Graph substitution function.
+--
 --  This function performs each of the substitutions in 'vars', and
 --  replaces any nodes corresponding to unbound query variables
 --  with new blank nodes.
@@ -373,6 +383,7 @@ rdfQuerySubsBlank vars gr =
     ]
 
 -- |Graph back-substitution function, replacing variables with bnodes.
+--
 --  Uses the supplied variable bindings from 'rdfQueryBack' to perform
 --  a series of variable substitutions in a supplied graph, returning
 --  a list of lists of result graphs corresponding to each set of variable
@@ -428,17 +439,20 @@ addVar var vars = if var `elem` vars then vars else var:vars
 --
 --  Use combinations of these as follows:
 --
---  (a) find all statements with given subject:
---          rdfQuerySimple (rdfSubjEq s)
---  (b) find all statements with given property:
---          rdfQuerySimple (rdfPredEq p)
---  (c) find all statements with given object:
---          rdfQuerySimple (rdfObjEq  o)
---  (d) find all statements matching conjunction of these conditions:
---          rdfQuerySimple (allp [...])
---  (e) find all statements matching disjunction of these conditions:
---          rdfQuerySimple (anyp [...])
---  (See ListHelpers for allp, anyp.)
+--  * find all statements with given subject:
+--          @rdfQuerySimple (rdfSubjEq s)@
+--
+--  * find all statements with given property:
+--          @rdfQuerySimple (rdfPredEq p)@
+--
+--  * find all statements with given object:
+--          @rdfQuerySimple (rdfObjEq  o)@
+--
+--  * find all statements matching conjunction of these conditions:
+--          @rdfQuerySimple ('allp' [...])@
+--
+--  * find all statements matching disjunction of these conditions:
+--          @rdfQuerySimple ('anyp' [...])@
 --
 --  Custom predicates can also be used.
 --
@@ -582,7 +596,8 @@ qb3 = rdfQueryBack2 matchQueryVariable [qa1,qa3] ta1
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke 
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -602,136 +617,3 @@ qb3 = rdfQueryBack2 matchQueryVariable [qa1,qa3] ta1
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFQuery.hs,v $
--- $Author: graham $
--- $Revision: 1.32 $
--- $Log: RDFQuery.hs,v $
--- Revision 1.32  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.31  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.30  2003/11/24 17:20:35  graham
--- Separate module Vocabulary from module Namespace.
---
--- Revision 1.29  2003/11/14 16:04:43  graham
--- Add primitive query to get integer values from a graph.
---
--- Revision 1.28  2003/11/14 16:01:30  graham
--- Separate RDFVarBinding from module RDFQuery.
---
--- Revision 1.27  2003/11/13 01:13:48  graham
--- Reworked ruleset to use ScopedName lookup.
--- Various minor fixes.
---
--- Revision 1.26  2003/10/16 16:01:48  graham
--- Reworked RDFProof and RDFProofContext to use new query binding
--- framework.  Also fixed a bug in the variable binding filter code that
--- caused failures when a variable used was not bound.
---
--- Revision 1.25  2003/10/15 16:40:52  graham
--- Reworked RDFQuery to use new query binding framework.
--- (Note: still uses VarBindingFilter rather than VarBindingModify.
--- The intent is to incorproate the VarBindingModify logic into RDFProof,
--- displaying the existing use of BindingFilter.)
---
--- Revision 1.24  2003/10/09 17:16:13  graham
--- Added test cases to exercise features of rules used to capture
--- RDF semantics.  Also added proof test case using XML literal.
---
--- Revision 1.23  2003/10/02 13:41:26  graham
--- Supporting changes for RDF axioms and rules defined as Rulesets,
--- and moved out of module RDFProofCheck.
--- Datatype named using ScopedName rather than QName
--- (Datatype framework is still work in progress).
---
--- Revision 1.22  2003/10/01 00:38:00  graham
--- Correct error in previous commit.
---
--- Revision 1.21  2003/10/01 00:36:25  graham
--- Added RDFGraph method to test for container membership property label.
--- Added RDFQuery filter function to select container membership properties.
---
--- Revision 1.20  2003/09/30 20:02:40  graham
--- Proof mechanisms now use scoped names and rulesets.
--- Move some functionality between modules so that RDFProofCheck
--- contains less generic code.
---
--- Revision 1.19  2003/09/30 16:39:41  graham
--- Refactor proof code to use new ruleset logic.
--- Moved some support code from RDFProofCheck to RDFRuleset.
---
--- Revision 1.18  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.17  2003/07/03 20:31:07  graham
--- Add initial draft of datatype framework.
---
--- Revision 1.16  2003/07/02 22:39:36  graham
--- Subgraph entailment and Graph closure instance entailment rules
--- now tested.  RDF forward chaining revised to combine output graphs,
--- to preserve blank node relationships.
---
--- Revision 1.15  2003/07/02 21:27:30  graham
--- Graph closure with instance rule tested.
--- About to change ProofTest for graph forward chaining to return
--- a single result graph.
---
--- Revision 1.14  2003/07/02 13:51:14  graham
--- Intermediate save:  partially coded RDFS rules.
---
--- Revision 1.13  2003/06/27 20:46:00  graham
--- Coded initial version of RDF simple entailment rule.
--- New rule still needs testing, but other test cases still OK.
---
--- Revision 1.12  2003/06/26 15:37:23  graham
--- Added rdfQueryInstance, and tests, all works.
---
--- Revision 1.11  2003/06/25 09:52:25  graham
--- Replaced Rule class with algebraic data type
---
--- Revision 1.10  2003/06/19 19:49:07  graham
--- RDFProofCheck compiles, but test fails
---
--- Revision 1.9  2003/06/19 00:26:29  graham
--- Query binding filter methods tested.
---
--- Revision 1.8  2003/06/18 23:37:53  graham
--- Added query binding filter methods.  Not yet tested.
---
--- Revision 1.7  2003/06/18 14:59:27  graham
--- Augmented query variable binding structure.
--- RDFQuery tests OK.
---
--- Revision 1.6  2003/06/18 01:29:29  graham
--- Fixed up some problems with backward chaining queries.
--- Query test cases still to complete.
--- Proof incomplete.
---
--- Revision 1.5  2003/06/17 17:53:08  graham
--- Added backward chaining query primitive.
---
--- Revision 1.4  2003/06/17 16:29:20  graham
--- Eliminate redundant Maybe in return type of rdfQueryPrim.
--- (A null list suffices for the Nothing case.)
---
--- Revision 1.3  2003/06/17 15:59:09  graham
--- Update to use revised version of remapNodes, which accepts a
--- node-mapping function rather than just a Boolean to control conversion
--- of query variable nodes to blank
--- nodes.
---
--- Revision 1.2  2003/06/13 21:40:08  graham
--- Graph closure forward chaining works.
--- Backward chaining generates existentials.
--- Some problems with query logic for backward chaining.
---
--- Revision 1.1  2003/06/12 00:49:06  graham
--- Basic query processor runs test cases OK.
--- Proof framework compiles, not yet tested.
---

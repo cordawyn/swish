@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: RDFDatatypeXsdString.hs,v 1.2 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatypeXsdString
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -102,11 +99,11 @@ import Monad
 nameXsdString :: String
 nameXsdString      = "string"
 
--- |Type name for xsd:integer datatype
+-- |Type name for @xsd:string@ datatype
 typeNameXsdString :: ScopedName
 typeNameXsdString  = ScopedName namespaceXSD nameXsdString
 
--- |Namespace for xsd:integer datatype functions
+-- |Namespace for @xsd:string@ datatype functions
 namespaceXsdString :: Namespace
 namespaceXsdString = namespaceXsdType nameXsdString
 
@@ -129,7 +126,7 @@ rdfDatatypeXsdString = Datatype rdfDatatypeValXsdString
 --  Implmentation of RDFDatatypeVal for xsd:integer
 ------------------------------------------------------------
 
--- |Define Datatype value for xsd:string
+-- |Define Datatype value for @xsd:string@.
 --
 rdfDatatypeValXsdString :: RDFDatatypeVal String
 rdfDatatypeValXsdString = DatatypeVal
@@ -144,7 +141,7 @@ rdfDatatypeValXsdString = DatatypeVal
     }
 
 -- |mapXsdString contains functions that perform lexical-to-value
---  and value-to-canonical-lexical mappings for xsd:string values
+--  and value-to-canonical-lexical mappings for @xsd:string@ values
 --
 --  These are identity mappings.
 --
@@ -156,7 +153,7 @@ mapXsdString = DatatypeMap
     , mapV2L = Just
     }
 
--- |relXsdString contains useful relations for xsd:string values.
+-- |relXsdString contains useful relations for @xsd:string@ values.
 --
 relXsdString :: [DatatypeRel String]
 relXsdString =
@@ -208,7 +205,7 @@ relXsdStringNe :: DatatypeRel String
 relXsdStringNe = mkStrRel2 "ne" (lcomp (/=))
     ( repeat (const True, []) )
 
--- |modXsdString contains variable binding modifiers for xsd:string values.
+-- |modXsdString contains variable binding modifiers for @xsd:string@ values.
 --
 modXsdString :: [RDFDatatypeMod String]
 modXsdString =
@@ -332,7 +329,8 @@ stringPlainValue svar lvar = VarBindingModify
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -352,16 +350,3 @@ stringPlainValue svar lvar = VarBindingModify
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFDatatypeXsdString.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: RDFDatatypeXsdString.hs,v $
--- Revision 1.2  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.1  2003/12/18 20:46:24  graham
--- Added xsd:string module to capture equivalence of xsd:string
--- and plain literals without a language tag
---

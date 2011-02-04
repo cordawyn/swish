@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: MapXsdInteger.hs,v 1.1 2003/11/14 15:59:51 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  MapXsdInteger
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -66,7 +63,8 @@ reInteger = ReCat [ReOpt (alt "+-"), digits]
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -86,10 +84,3 @@ reInteger = ReCat [ReOpt (alt "+-"), digits]
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/MapXsdInteger.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: MapXsdInteger.hs,v $
--- Revision 1.1  2003/11/14 15:59:51  graham
--- Separate MapXsdInteger from RDFDatatypeXsdInteger.
---

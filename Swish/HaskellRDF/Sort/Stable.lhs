@@ -1,3 +1,5 @@
+> {-# OPTIONS_HADDOCK hide, prune, ignore-exports #-}
+
 > module Swish.HaskellRDF.Sort.Stable (module Swish.HaskellRDF.Sort.Stable)
 > where
 > import Data.List (group)

@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: GraphPartition.hs,v 1.3 2004/02/11 14:19:36 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphPartition
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -48,14 +45,14 @@ import Data.Maybe
 
 -- |Representation of a graph as a collection of (possibly nested)
 --  partitions.  Each node in the graph appears at least once as the
---  root value of a GraphPartition value:
+--  root value of a 'GraphPartition' value:
 --
 --  * Nodes that are the subject of at least one statement appear as
---    the first value of exactly one PartSub constructor, and may
---    also appear in any number of PartObj constructors.
+--    the first value of exactly one 'PartSub' constructor, and may
+--    also appear in any number of 'PartObj' constructors.
 --
 --  * Nodes appearing only as objects of statements appear only in
---    PartObj constructors.
+--    'PartObj' constructors.
 
 data PartitionedGraph lb = PartitionedGraph [GraphPartition lb]
     deriving (Eq,Show)
@@ -116,29 +113,41 @@ partitionShowP pref (PartSub sb (pr:prs)) =
 --  The interesting challenge is to turn a flat graph into a
 --  partitioned graph that is more useful for certain purposes.
 --  Currently, I'm interested in:
---  (a) isolating differences between graphs
---  (b) pretty-printing graphs
+--        
+--  (1) isolating differences between graphs
+--        
+--  (2) pretty-printing graphs
 --
---  For (a), the goal is to separate subgraphs that are known
+--  For (1), the goal is to separate subgraphs that are known
 --  to be equivalent from subgraphs that are known to be different,
---  such that (i) different sub-graphs are minimized, (ii) different
---  sub-graphs are placed into 1:1 correspondence (possibly with null
---  subgraphs), and (iii) only deterministic matching decisions are made.
+--  such that: 
 --
---  For (b), the goal is to decide when a subgraph is to be treated
+--  * different sub-graphs are minimized,
+--
+--  * different
+--  sub-graphs are placed into 1:1 correspondence (possibly with null
+--  subgraphs), and
+--
+--  * only deterministic matching decisions are made.
+--
+--  For (2), the goal is to decide when a subgraph is to be treated
 --  as nested in another partition, or treated as a new top-level partition.
 --  If a subgraph is referenced by exactly one graph partition, it should
 --  be nested in that partition, otherwise it should be a new top-level
 --  partition.
 --
 --  Strategy.  Examining just subject and object nodes:
---  1. all non-blank subject nodes are the root of a top-level partition
---  2. blank subject nodes that are not the object of exactly one statement
+--
+--  * all non-blank subject nodes are the root of a top-level partition
+--
+--  * blank subject nodes that are not the object of exactly one statement
 --     are the root of a top-level partition.
---  3. blank nodes referenced as the object of exactly 1 statement
+--
+--  * blank nodes referenced as the object of exactly 1 statement
 --     of an existing partition are the root of a sub-partition of the
 --     refering partition.
---  4. what remain are circular chains of blank nodes not referenced
+--
+--  * what remain are circular chains of blank nodes not referenced
 --     elsewhere:  for each such chain, pick a root node arbitrarily.
 --
 partitionGraph :: (Label lb) => [Arc lb] -> PartitionedGraph lb
@@ -386,8 +395,8 @@ testCollect2 = testCollect1
 --  augmented with a further list of values from the supplied list,
 --  each of which are related to the existing collection in some way.
 --
---  [[[NOTE: the basic pattern of collect and collectMore is similar,
---  and might be generalized into a common set of core functions.]]]
+--  NOTE: the basic pattern of 'collect' and 'collectMore' is similar,
+--  and might be generalized into a common set of core functions.
 --
 collectMore :: (Eq b) => (a->b) -> [a] -> [(b,c)] -> [(b,(c,[a]))]
 collectMore = collectMoreBy (==)
@@ -525,7 +534,8 @@ testdiff2 = testdiff1 == ([((12,15),(13,15)),((5,8),(6,9))],[(1,2)],[(0,1)])
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -545,18 +555,3 @@ testdiff2 = testdiff1 == ([((12,15),(13,15)),((5,8),(6,9))],[(1,2)],[(0,1)])
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/GraphPartition.hs,v $
--- $Author: graham $
--- $Revision: 1.3 $
--- $Log: GraphPartition.hs,v $
--- Revision 1.3  2004/02/11 14:19:36  graham
--- Add graph-difference option to Swish
---
--- Revision 1.2  2004/02/10 20:24:48  graham
--- Graph difference code now works.
---
--- Revision 1.1  2004/02/09 22:22:44  graham
--- Graph matching updates:  change return value to give some indication
--- of the extent match achieved in the case of no match.
--- Added new module GraphPartition and test cases.
--- Add VehicleCapcity demonstration script.

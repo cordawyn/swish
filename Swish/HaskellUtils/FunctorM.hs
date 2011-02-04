@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: FunctorM.hs,v 1.2 2004/01/13 17:12:08 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  FunctorM
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -62,7 +59,8 @@ instance FunctorM Arc where
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -82,24 +80,3 @@ instance FunctorM Arc where
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/FunctorM.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: FunctorM.hs,v $
--- Revision 1.2  2004/01/13 17:12:08  graham
--- Complete functionality of AccumulateM, using functional dependencies
--- in the MonadAccum type class.
---
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.3  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.2  2003/06/12 00:49:04  graham
--- Basic query processor runs test cases OK.
--- Proof framework compiles, not yet tested.
---
--- Revision 1.1  2003/06/10 17:34:29  graham
--- Create FunctorM module
---

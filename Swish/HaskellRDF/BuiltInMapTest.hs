@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: BuiltInMapTest.hs,v 1.5 2004/01/06 13:53:10 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  BuiltInMapTest
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -255,7 +252,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -275,25 +273,3 @@ tt = runTestTT
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/BuiltInMapTest.hs,v $
--- $Author: graham $
--- $Revision: 1.5 $
--- $Log: BuiltInMapTest.hs,v $
--- Revision 1.5  2004/01/06 13:53:10  graham
--- Created consolidated test harness (SwishTestAll.hs)
---
--- Revision 1.4  2003/12/18 18:27:46  graham
--- Datatyped literal inferences all working
--- (except equivalent literals with different datatypes)
---
--- Revision 1.3  2003/12/11 19:11:07  graham
--- Script processor passes all initial tests.
---
--- Revision 1.2  2003/12/10 03:48:57  graham
--- SwishScript nearly complete:  BwdChain and PrrofCheck to do.
---
--- Revision 1.1  2003/12/08 23:56:07  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---

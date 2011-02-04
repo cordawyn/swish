@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: N3Parser.hs,v 1.36 2004/01/22 19:52:41 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3Parser
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -14,18 +11,17 @@
 --  Portability :  H98
 --
 --  This Module implements a Notation 3 parser (see [1], [2]), returning a
---  new RDFGraph consisting of triples and namespace information parsed from
+--  new 'RDFGraph' consisting of triples and namespace information parsed from
 --  the supplied N3 input string, or an error indication.
 --
 --  Uses the Parsec monadic parser library.
 --
---
 -- REFERENCES:
 --
--- [1] http://www.w3.org/DesignIssues/Notation3.html
+-- 1 <http://www.w3.org/DesignIssues/Notation3.html>
 --     Tim Berners-Lee's design issues series notes and description
 --
--- [2] http://www.w3.org/2000/10/swap/Primer.html
+-- 2 <http://www.w3.org/2000/10/swap/Primer.html>
 --     Notation 3 Primer by Sean Palmer
 --
 --------------------------------------------------------------------------------
@@ -37,8 +33,8 @@ module Swish.HaskellRDF.N3Parser
     , parseTextFromString, parseAltFromString
     , parseNameFromString, parsePrefixFromString
     , parseAbsURIrefFromString, parseLexURIrefFromString, parseURIref2FromString
-    -- Exports for parsers that embed Notation3 in a bigger syntax
-    , N3Parser, N3State(..)
+    -- * Exports for parsers that embed Notation3 in a bigger syntax
+    , N3Parser, N3State(..), SpecialMap
     , whiteSpace, symbol, lexeme, eof, identStart, identLetter
     , defaultPrefix, namedPrefix
     , document, subgraph, uriRef2, varid, lexUriRef
@@ -153,7 +149,7 @@ colon = istring ":"
 -- Define parser state and helper functions
 ----------------------------------------------------------------------
 
---  N3 parser state
+-- | N3 parser state
 data N3State = N3State
         { graphState :: RDFGraph            -- Graph under construction
         , thisNode   :: RDFLabel            -- current context node (aka 'this')
@@ -162,16 +158,16 @@ data N3State = N3State
         , nodeGen    :: Int                 -- blank node id generator
         }
 
---  Type for special name lookup table
+-- | Type for special name lookup table
 type SpecialMap = LookupMap (String,ScopedName)
 
---  Functions to update N3State vector (use with Parsec updateState)
+-- | Functions to update N3State vector (use with Parsec updateState)
 setPrefix :: String -> String -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
         p'    = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
 
---  Set name for special syntax element
+-- | Set name for special syntax element
 setSName :: String -> ScopedName -> N3State -> N3State
 setSName nam snam st =  st { syntaxUris=s' }
     where
@@ -179,14 +175,14 @@ setSName nam snam st =  st { syntaxUris=s' }
 setSUri :: String -> String -> N3State -> N3State
 setSUri nam suri = setSName nam (makeScopedName "" suri "")
 
---  Get name for special syntax element, default null
+-- | Get name for special syntax element, default null
 getSName :: N3State -> String -> ScopedName
 getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
 
 getSUri :: N3State -> String -> String
 getSUri st nam = getScopedNameURI $ getSName st nam
 
---  Lookup prefix in table and return URI or 'prefix:'
+-- | Lookup prefix in table and return URI or 'prefix:'
 mapPrefix :: NamespaceMap -> String -> String
 mapPrefix ps pre = mapFind (pre++":") pre ps
 
@@ -246,13 +242,12 @@ parseN3fromString input =
             Left  err -> Error err
             Right gr  -> Result gr
 
---  Function to supply initial context and parse supplied term
+-- | Function to supply initial context and parse supplied term
 --
---  parser  is parser to apply
---  base    is base URI of the input, or Nothing to use default base value
---  input   is the input to be parsed
---
-parseAnyfromString :: N3Parser a -> Maybe String -> String -> Either String a
+parseAnyfromString :: N3Parser a      -- ^ parser to apply
+                      -> Maybe String -- ^ base URI of the input, or @Nothing@ to use default base value
+                      -> String       -- ^ input to be parsed
+                      -> Either String a
 parseAnyfromString parser base input =
         let
             pmap   = LookupMap prefixTable
@@ -959,7 +954,8 @@ uriChar =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -979,142 +975,3 @@ uriChar =
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/N3Parser.hs,v $
--- $Author: graham $
--- $Revision: 1.36 $
--- $Log: N3Parser.hs,v $
--- Revision 1.36  2004/01/22 19:52:41  graham
--- Rename module URI to avoid awkward clash with Haskell libraries
---
--- Revision 1.35  2004/01/09 11:23:54  graham
--- Fix up N3Parser so that the final statement-terminating '.' in a formula
--- or file is optional.
---
--- Revision 1.34  2004/01/07 19:49:12  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.33  2003/12/20 12:53:40  graham
--- Fix up code to compile and test with GHC 5.04.3
---
--- Revision 1.32  2003/12/10 03:48:57  graham
--- SwishScript nearly complete:  BwdChain and PrrofCheck to do.
---
--- Revision 1.31  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.30  2003/12/05 02:31:32  graham
--- Script parsing complete.
--- Some Swish script functions run successfully.
--- Command execution to be completed.
---
--- Revision 1.29  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.28  2003/12/03 17:07:23  graham
--- Replace occurrences of QName in N3Parser with ScopedName.
---
--- Revision 1.27  2003/12/03 15:57:00  graham
--- Use common parser wrapper function for all parsing.
--- (This will also be used for Swish script parsing.)
---
--- Revision 1.26  2003/12/03 15:42:09  graham
--- Eliminate special return type in favour of ErrorM
---
--- Revision 1.25  2003/11/24 17:20:34  graham
--- Separate module Vocabulary from module Namespace.
---
--- Revision 1.24  2003/11/24 15:46:04  graham
--- Rationalize N3Parser and N3Formatter to use revised vocabulary
--- terms defined in Namespace.hs
---
--- Revision 1.23  2003/10/24 21:02:42  graham
--- Changed kind-structure of LookupMap type classes.
---
--- Revision 1.22  2003/10/09 16:26:31  graham
--- Added parser support for literal language tags and datatypes.
--- (Language tags are names, not strictly per RFC3066)
---
--- Revision 1.21  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.20  2003/09/24 13:36:42  graham
--- QName handling separated from RDFGraph module, and
--- QName splitting moved from URI module to QName module.
---
--- Revision 1.19  2003/07/01 14:18:57  graham
--- Allow blank node in predicate position.
--- Add parser and formatter test case for this.
---
--- Revision 1.18  2003/06/19 19:48:03  graham
--- Allow variable id in predicate position
---
--- Revision 1.17  2003/06/12 00:47:56  graham
--- Allowed variable node (?v) and bare anonymous nodes in N3 parser.
---
--- Revision 1.16  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.15  2003/05/29 00:57:37  graham
--- Resolved swish performance problem, which turned out to an inefficient
--- method used by the parser to add arcs to a graph.
---
--- Revision 1.14  2003/05/22 15:16:39  graham
--- Added additional parser test cases for lists
---
--- Revision 1.13  2003/05/21 13:55:13  graham
--- N3 parser now handles relative URIs and default prefixes.
--- (Still need to figure better default base URI handling; i.e. current document)
---
--- Revision 1.12  2003/05/21 13:34:13  graham
--- Various N3 parser bug fixes.
--- Need to fix handling of :name terms.
---
--- Revision 1.11  2003/05/20 23:35:28  graham
--- Modified code to compile with GHC hierarchical libraries
---
--- Revision 1.10  2003/05/08 18:55:36  graham
--- Updated graph matching module to deal consistently
--- with graphs containing formulae.  All graph tests now
--- run OK, but the GraphMatch module is a mess and
--- desperately needs restructuring.  Also, graph matching
--- performance needs to be improved.
---
--- Revision 1.9  2003/05/07 23:58:09  graham
--- More restructuring.
--- RDFGraphTest runs OK.
--- N3ParserTest needs to be updated to use new structure for formulae.
---
--- Revision 1.8  2003/04/17 00:35:38  graham
--- Added module N3ParserTest
--- N3parser is mostly working
--- Formulae remain to test
---
--- Revision 1.7  2003/04/15 21:40:54  graham
--- N3Parser compiles
--- Some small changes to RDFGraph
--- Added some QName methods
---
--- Revision 1.6  2003/04/11 17:38:34  graham
--- Rename GraphLookupMap to LookupMap
---
--- Revision 1.5  2003/04/10 20:08:39  graham
--- Reorganized RDFGraph naming (RDFGraphTest OK)
--- Progressing N3Parser
---
--- Revision 1.4  2003/03/12 23:00:43  graham
--- Graph model coded and working, except for graph isomorphism test.
---
--- Revision 1.3  2003/03/12 13:41:59  graham
--- N3 parser initial coding done.
--- Graph not yet implemented.
---
--- Revision 1.2  2003/03/08 17:28:45  graham
--- Added string literal parsing code
---
--- Revision 1.1  2003/03/07 22:53:38  graham
--- Started on N3 parser in Haskell

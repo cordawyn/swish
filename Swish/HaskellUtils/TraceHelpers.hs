@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: TraceHelpers.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  TraceHelpers
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -16,6 +13,8 @@
 --  This module provides access to tracing functions from the pre-2003
 --  Hugs trace module.  Over time, it may accumulate other tracing
 --  functions that I find useful.
+--
+--  This should probably just be replaced by "Debug.Trace".
 --
 --------------------------------------------------------------------------------
 
@@ -36,7 +35,8 @@ traceShow msg x = trace (msg ++ show x) x
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -56,16 +56,3 @@ traceShow msg x = trace (msg ++ show x) x
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/TraceHelpers.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: TraceHelpers.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.1  2003/12/20 12:02:08  graham
--- Introduced new TraceHelpers module for Hugs-2003 compatibility.
---
--- Revision 1.3  2003/12/18 18:29:03  graham
--- ??????
---

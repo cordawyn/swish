@@ -1,14 +1,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
-
 --------------------------------------------------------------------------------
---  $Id: RDFGraphShowM.hs,v 1.2 2003/09/24 18:50:52 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFGraphShowM
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -44,7 +40,8 @@ instance ShowM RDFGraph where
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -64,15 +61,3 @@ instance ShowM RDFGraph where
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFGraphShowM.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: RDFGraphShowM.hs,v $
--- Revision 1.2  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.1  2003/06/25 21:20:12  graham
--- Add ShowM class and RDF graph instance to CVS.
--- This is part of reworking N3 formatting logic to support proof display,
--- and other multiline display requirements.
---

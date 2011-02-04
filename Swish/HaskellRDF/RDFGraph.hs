@@ -1,14 +1,10 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
-
 --------------------------------------------------------------------------------
---  $Id: RDFGraph.hs,v 1.48 2004/02/09 22:22:44 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFGraph
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -30,7 +26,7 @@ module Swish.HaskellRDF.RDFGraph
     , getLiteralText, getScopedName, makeBlank
     , RDFTriple
     , NSGraph(..), RDFGraph
-    , NamespaceMap, RevNamespaceMap
+    , NamespaceMap, RevNamespaceMap, RevNamespace
     , emptyNamespaceMap
     , LookupFormula(..), Formula, FormulaMap, emptyFormulaMap
     , addArc, merge
@@ -531,29 +527,29 @@ unionNodes p ls1 ls2 = ls1 `union` filter p ls2
 
 -- |Remap selected nodes in graph:
 --
---  dupbn is list of variable nodes to be renamed
---  allbn is list of variable nodes used that must be avoided
---  cnvbn is a node conversion function that is applied to nodes
---        from 'dupbn' in the graph that are to be replaced by
---        new blank nodes.  If no such conversion is required,
---        supply 'id'.  Function 'makeBlank' can be used to convert
---        RDF query nodes into RDF blank nodes.
---  gr    is graph in which nodes are to be renamed
---
 --  This is the node renaming operation that prevents graph-scoped
 --  variable nodes from being merged when two graphs are merged.
 remapLabels ::
-    (Label lb) => [lb] -> [lb] -> (lb -> lb) -> NSGraph lb -> NSGraph lb
+    (Label lb)
+    => [lb] -- ^ variable nodes to be renamed (@dupbn@)
+    -> [lb] -- ^ variable nodes used that must be avoided (@allbn@)
+    -> (lb -> lb) -- ^ node conversion function that is applied to nodes
+    -- from @dupbn@ in the graph that are to be replaced by
+    -- new blank nodes.  If no such conversion is required,
+    -- supply @id@.  The function 'makeBlank' can be used to convert
+    -- RDF query nodes into RDF blank nodes.
+    -> NSGraph lb -- ^ graph in which nodes are to be renamed
+    -> NSGraph lb
 remapLabels dupbn allbn cnvbn = fmap (mapnode dupbn allbn cnvbn)
 
 -- |Externally callable function to construct a list of (old,new)
---  values to be used for graph label remapping.  The supplied arguments
---  are (a) a list of labels to be remaped, and (b) a list of labels
---  to be avoided by the remapping:  the latter should be a list of
---  all the variable nodes in the graph to which the remapping will be
---  applied.
+--  values to be used for graph label remapping.
+--
 remapLabelList ::
-    (Label lb) => [lb] -> [lb] -> [(lb,lb)]
+    (Label lb)
+    => [lb] -- ^ labels to be remaped
+    -> [lb] -- ^ labels to be avoided by the remapping
+    -> [(lb,lb)]
 remapLabelList remap avoid = maplist remap avoid id []
 
 --  Remap a single graph node.
@@ -582,8 +578,9 @@ maplist (dn:dupbn) allbn cnvbn mapbn = maplist dupbn allbn' cnvbn mapbn'
 --  (Generates an non-terminating list of possible replacements, and
 --  picks the first one that isn't already in use.)
 --
---  [[[TODO: optimize this for common case nnn and _nnn:
---    always generate _nnn and keep track of last allocated]]]
+--  TODO: optimize this for common case @nnn@ and @_nnn@:
+--    always generate @_nnn@ and keep track of last allocated
+--
 newNode :: (Label lb) => lb -> [lb] -> lb
 newNode dn existnodes =
     head $ newNodes dn existnodes
@@ -638,7 +635,8 @@ updateRDFGraph gr as = gr { statements=as }
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -658,198 +656,3 @@ updateRDFGraph gr as = gr { statements=as }
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFGraph.hs,v $
--- $Author: graham $
--- $Revision: 1.48 $
--- $Log: RDFGraph.hs,v $
--- Revision 1.48  2004/02/09 22:22:44  graham
--- Graph matching updates:  change return value to give some indication
--- of the extent match achieved in the case of no match.
--- Added new module GraphPartition and test cases.
--- Add VehicleCapcity demonstration script.
---
--- Revision 1.47  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.46  2004/01/06 16:29:56  graham
--- Fix up module exports to avoid GHC warnings
---
--- Revision 1.45  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.44  2003/11/24 17:20:34  graham
--- Separate module Vocabulary from module Namespace.
---
--- Revision 1.43  2003/11/24 15:46:03  graham
--- Rationalize N3Parser and N3Formatter to use revised vocabulary
--- terms defined in Namespace.hs
---
--- Revision 1.42  2003/11/14 21:48:35  graham
--- First cut cardinality-checked datatype-constraint rules to pass test cases.
--- Backward chaining is still to do.
---
--- Revision 1.41  2003/11/13 01:13:48  graham
--- Reworked ruleset to use ScopedName lookup.
--- Various minor fixes.
---
--- Revision 1.40  2003/10/24 21:02:42  graham
--- Changed kind-structure of LookupMap type classes.
---
--- Revision 1.39  2003/10/22 15:47:46  graham
--- Working on datatype inference support.
---
--- Revision 1.38  2003/10/01 00:36:25  graham
--- Added RDFGraph method to test for container membership property label.
--- Added RDFQuery filter function to select container membership properties.
---
--- Revision 1.37  2003/09/30 16:39:41  graham
--- Refactor proof code to use new ruleset logic.
--- Moved some support code from RDFProofCheck to RDFRuleset.
---
--- Revision 1.36  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.35  2003/09/24 13:36:42  graham
--- QName handling separated from RDFGraph module, and
--- QName splitting moved from URI module to QName module.
---
--- Revision 1.34  2003/07/03 20:31:07  graham
--- Add initial draft of datatype framework.
---
--- Revision 1.33  2003/07/02 21:27:30  graham
--- Graph closure with instance rule tested.
--- About to change ProofTest for graph forward chaining to return
--- a single result graph.
---
--- Revision 1.32  2003/06/30 19:07:00  graham
--- Instance entailment, subgraph entailment and simple entailment
--- tests now working.
---
--- Revision 1.31  2003/06/27 21:02:59  graham
--- Coded initial version of RDF simple entailment rule.
--- New rule still needs testing, but other test cases still OK.
---
--- Revision 1.30  2003/06/25 21:16:52  graham
--- Reworked N3 formatting logic to support proof display.
--- Basic proof display is working.
---
--- Revision 1.29  2003/06/19 19:49:07  graham
--- RDFProofCheck compiles, but test fails
---
--- Revision 1.28  2003/06/17 15:43:35  graham
--- remapNodes now accepts a node-mapping function rather than just
--- a Boolean to control conversion of query variable nodes to blank
--- nodes, and who knows what else.
---
--- Revision 1.27  2003/06/13 21:40:08  graham
--- Graph closure forward chaining works.
--- Backward chaining generates existentials.
--- Some problems with query logic for backward chaining.
---
--- Revision 1.26  2003/06/12 00:49:05  graham
--- Basic query processor runs test cases OK.
--- Proof framework compiles, not yet tested.
---
--- Revision 1.25  2003/06/10 17:38:34  graham
--- Remove some unneeded calss constraints from data type declarations
--- Reworked NSGraph to be an instance of Functor, replacing function
--- gmap with fmap.  Graph formulae are still not handled well:  the data types
--- will need re-working so that a "Formula lb" type constructor can be
--- introduced having the correct (* -> *) kind to be a Functor.
---
--- Revision 1.24  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.23  2003/05/30 15:04:56  graham
--- Fix references to defunct GraphHelpers module
---
--- Revision 1.22  2003/05/29 00:57:37  graham
--- Resolved swish performance problem, which turned out to an inefficient
--- method used by the parser to add arcs to a graph.
---
--- Revision 1.21  2003/05/28 19:57:50  graham
--- Adjusting code to compile with GHC
---
--- Revision 1.20  2003/05/28 17:39:30  graham
--- Trying to track down N3 formatter performance problem.
---
--- Revision 1.19  2003/05/27 19:15:50  graham
--- Graph merge (with blank node renaming) complete and passes tests.
---
--- Revision 1.18  2003/05/26 22:30:36  graham
--- Working on graph merge.
--- Added methods to Graph class for manipulating variable node.
--- Need to get RDFGraph to compile.  And test.
---
--- Revision 1.17  2003/05/23 19:33:36  graham
--- Added and tested RDF graph label translation functions
---
--- Revision 1.16  2003/05/23 00:02:42  graham
--- Fixed blank node id generation bug in N3Formatter
---
--- Revision 1.15  2003/05/14 22:39:23  graham
--- Initial formatter tests all run OK.
--- The formatter could still use so,me improvement,
--- but it
--- passes the minimal round-tripping tests.
---
--- Revision 1.14  2003/05/14 16:50:32  graham
--- Graph matching seems solid now:
--- RDFGraphTest and N3ParserTest pass all tests
--- Updated TODO file with comments from code
---
--- Revision 1.13  2003/05/08 18:55:36  graham
--- Updated graph matching module to deal consistently
--- with graphs containing formulae.  All graph tests now
--- run OK, but the GraphMatch module is a mess and
--- desperately needs restructuring.  Also, graph matching
--- performance needs to be improved.
---
--- Revision 1.12  2003/05/07 23:58:09  graham
--- More restructuring.
--- RDFGraphTest runs OK.
--- N3ParserTest needs to be updated to use new structure for formulae.
---
--- Revision 1.11  2003/05/07 19:25:00  graham
--- Restructured formula handling in RDF graph
---
--- Revision 1.10  2003/05/01 00:21:41  graham
--- Started refactoring LookupMap.
--- Revised module compiles OK.
--- Working on test module.
---
--- Revision 1.9  2003/04/29 22:07:10  graham
--- Some refactoring of N3 formatter.
--- N3 formatter now handles trivial cases.
--- More complex formatter test cases still to be developed.
---
--- Revision 1.8  2003/04/24 23:41:39  graham
--- Added Ord class membership to graph nodes
--- Added empty lookup table definition
--- Started on N3 formatter module
---
--- Revision 1.7  2003/04/15 21:40:54  graham
--- N3Parser compiles
--- Some small changes to RDFGraph
--- Added some QName methods
---
--- Revision 1.6  2003/04/11 17:38:34  graham
--- Rename GraphLookupMap to LookupMap
---
--- Revision 1.5  2003/04/10 20:08:39  graham
--- Reorganized RDFGraph naming (RDFGraphTest OK)
--- Progressing N3Parser
---
--- Revision 1.4  2003/04/10 15:06:30  graham
--- RDFGraph now passes all test cases
---
--- Revision 1.3  2003/04/10 13:36:45  graham
--- Renamed GraphRDF to RDFGraph
---
--- Revision 1.1  2003/04/10 08:36:06  graham
--- Graph matching passes battery of new tests
--- Started work on RDF graph
---

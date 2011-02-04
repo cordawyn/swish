@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: Swish.hs,v 1.11 2004/01/09 14:36:33 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Swish
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -54,7 +51,8 @@ main = do
   
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -74,44 +72,3 @@ main = do
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/Swish.hs,v $
--- $Author: graham $
--- $Revision: 1.11 $
--- $Log: Swish.hs,v $
--- Revision 1.11  2004/01/09 14:36:33  graham
--- Revert Swish.hs and Sw3ishtestAll.hs to declare module Main.
--- GHC compilation without -main-is option.  Tests OK.
---
--- Revision 1.10  2004/01/06 16:29:56  graham
--- Fix up module exports to avoid GHC warnings
---
--- Revision 1.9  2003/09/24 18:50:53  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.8  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.7  2003/05/29 12:39:49  graham
--- Improved error handling for stand-alone swish program
---
--- Revision 1.6  2003/05/29 11:52:41  graham
--- Juggle Swish code:  SwishMain.hs is main program logic, with
--- Swish.hs and SwishTest.hs being alternative "Main" modules for
--- the real program and test harness respectively.
---
--- Revision 1.5  2003/05/28 19:57:50  graham
--- Adjusting code to compile with GHC
---
--- Revision 1.4  2003/05/23 00:02:42  graham
--- Fixed blank node id generation bug in N3Formatter
---
--- Revision 1.3  2003/05/21 13:34:13  graham
--- Various N3 parser bug fixes.
--- Need to fix handling of :name terms.
---
--- Revision 1.2  2003/05/20 23:35:28  graham
--- Modified code to compile with GHC hierarchical libraries
---
--- Revision 1.1  2003/05/20 17:30:48  graham
--- Initial swish program skeleton runs using isolated tests under Hugs
---

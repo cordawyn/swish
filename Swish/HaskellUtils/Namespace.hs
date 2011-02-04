@@ -1,13 +1,10 @@
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
---  $Id: Namespace.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Namespace
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -51,7 +48,9 @@ import Maybe
 ------------------------------------------------------------
 
 -- |A NameSpace value consists of a prefix and a corresponding URI.
---  The prefix may be Nothing, in which case it is assumed to be inknown.
+--  The prefix may be empty (@\"\"@), in which case it is assumed to be unknown.
+--
+-- NOTE: not clear whether @nsPrefix@ should be empty or set to @\"?\"@.
 --
 data Namespace = Namespace { nsPrefix :: String, nsURI :: String }
 
@@ -89,7 +88,7 @@ nullNamespace = Namespace "?" ""
 
 -- |A full ScopedName value has a QName prefix, namespace URI
 --  and a local part.  ScopedName values may omit the prefix
---  (see Namespace) or the local part.
+--  (see 'Namespace') or the local part.
 --
 --  Some applications may handle null namespace URIs as meaning
 --  the local part is relative to some base URI.
@@ -149,13 +148,14 @@ makeQNameScopedName (QName u l) = makeScopedName "?" u l
 makeUriScopedName :: String -> ScopedName
 makeUriScopedName u = makeScopedName "?" u ""
 
--- |Null scoped name:  this should never appear as a valid name
+-- |This should never appear as a valid name
 nullScopedName :: ScopedName
 nullScopedName = makeScopedName "?" "" ""
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -175,69 +175,3 @@ nullScopedName = makeScopedName "?" "" ""
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/Namespace.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: Namespace.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.13  2004/01/07 19:49:12  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.12  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.11  2003/12/03 17:07:24  graham
--- Replace occurrences of QName in N3Parser with ScopedName.
---
--- Revision 1.10  2003/11/24 17:20:34  graham
--- Separate module Vocabulary from module Namespace.
---
--- Revision 1.9  2003/11/24 15:46:03  graham
--- Rationalize N3Parser and N3Formatter to use revised vocabulary
--- terms defined in Namespace.hs
---
--- Revision 1.8  2003/11/14 21:48:35  graham
--- First cut cardinality-checked datatype-constraint rules to pass test cases.
--- Backward chaining is still to do.
---
--- Revision 1.7  2003/11/13 01:13:47  graham
--- Reworked ruleset to use ScopedName lookup.
--- Various minor fixes.
---
--- Revision 1.6  2003/11/12 20:44:24  graham
--- Added some vocabulary to Namespace.
--- Enhaced ScopedName to allow null namespace prefixes,
--- following N3 display conventions.
---
--- Revision 1.5  2003/10/24 21:05:08  graham
--- Working on datatype inference.  Most of the variable binding logic
--- is done, but the rule structure still needs to be worked out to support
--- forward and backward chaining through the same rule.
---
--- Revision 1.4  2003/10/22 16:18:37  graham
--- Move common namespace definitions into Namespace module
--- (May later move these into separate modules.)
---
--- Revision 1.3  2003/10/02 13:41:26  graham
--- Supporting changes for RDF axioms and rules defined as Rulesets,
--- and moved out of module RDFProofCheck.
--- Datatype named using ScopedName rather than QName
--- (Datatype framework is still work in progress).
---
--- Revision 1.2  2003/09/30 20:02:40  graham
--- Proof mechanisms now use scoped names and rulesets.
--- Move some functionality between modules so that RDFProofCheck
--- contains less generic code.
---
--- Revision 1.1  2003/09/24 18:51:36  graham
--- Add module Namespace and test cases.
---
--- Revision 1.1  2003/09/24 12:51:00  graham
--- Add separate QName module and test suite
---

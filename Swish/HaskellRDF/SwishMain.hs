@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: SwishMain.hs,v 1.15 2004/02/11 17:37:02 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishMain
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -32,17 +29,21 @@
 --  some broader utility is not ruled out).  As such, it is part of
 --  another experiment along the lines described in [3].
 --
---  [1] Semantic werb: http://www.w3.org/2001/sw/
---  [2] CWM:           http://www.w3.org/2000/10/swap/doc/cwm.html
---  [3] Motivation:    http://www.w3.org/2000/10/swap/doc/Motivation.html
---  [4] Notation 3:    http://www.w3.org/DesignIssues/Notation3.html
---  [5] RDF:           http://www.w3.org/RDF/
+--  [1] Semantic web: <http://www.w3.org/2001/sw/>
 --
---  For command line details, see 'usageText' below.
+--  [2] CWM:          <http://www.w3.org/2000/10/swap/doc/cwm.html>
+--
+--  [3] Motivation:   <http://www.w3.org/2000/10/swap/doc/Motivation.html>
+--
+--  [4] Notation 3:   <http://www.w3.org/DesignIssues/Notation3.html>
+--
+--  [5] RDF:          <http://www.w3.org/RDF/>
 --
 --  TODO:
---  + Add RDF/XML input and output
---  + Add N-triples input and output
+--
+--  * Add RDF/XML input and output
+--
+--  * Add N-triples input and output
 --
 --------------------------------------------------------------------------------
 
@@ -138,12 +139,8 @@ usageText =
 ------------------------------------------------------------
 --
 --  This is a composite monad combining some state with an IO
---  Monad.  "lift" allows a pure IO monad to be used as a step
+--  Monad.  lift allows a pure IO monad to be used as a step
 --  of the computation.
---
---  sequence_ is a Monad sequencer, returning a new monad that
---  executes members of a list in turn, passing state along the
---  chain.
 --
 swishCommands :: [String] -> SwishStateIO ()
 swishCommands = mapM_ swishCommand
@@ -189,7 +186,8 @@ runSwishArgs args =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -209,63 +207,3 @@ runSwishArgs args =
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/SwishMain.hs,v $
--- $Author: graham $
--- $Revision: 1.15 $
--- $Log: SwishMain.hs,v $
--- Revision 1.15  2004/02/11 17:37:02  graham
--- Update for Swish 0.2.1
---
--- Revision 1.14  2004/02/11 14:19:36  graham
--- Add graph-difference option to Swish
---
--- Revision 1.13  2004/02/09 22:22:44  graham
--- Graph matching updates:  change return value to give some indication
--- of the extent match achieved in the case of no match.
--- Added new module GraphPartition and test cases.
--- Add VehicleCapcity demonstration script.
---
--- Revision 1.12  2003/12/20 17:07:48  graham
--- Display swish version number in usage message
---
--- Revision 1.11  2003/12/20 14:34:21  graham
--- Update command line options help message.
---
--- Revision 1.10  2003/12/19 21:29:33  graham
--- Minor edits
---
--- Revision 1.9  2003/12/19 16:34:12  graham
--- Add 'test' function to run SwishTest script
---
--- Revision 1.8  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.7  2003/12/05 02:31:32  graham
--- Script parsing complete.
--- Some Swish script functions run successfully.
--- Command execution to be completed.
---
--- Revision 1.6  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.5  2003/12/01 18:51:38  graham
--- Described syntax for Swish script.
--- Created Swish scripting test data.
--- Edited export/import lists in Swish main program modules.
---
--- Revision 1.4  2003/09/24 18:50:53  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.3  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.2  2003/05/29 12:39:49  graham
--- Improved error handling for stand-alone swish program
---
--- Revision 1.1  2003/05/29 11:52:41  graham
--- Juggle Swish code:  SwishMain.hs is main program logic, with
--- Swish.hs and SwishTest.hs being alternative "Main" modules for
--- the real program and test harness respectively.

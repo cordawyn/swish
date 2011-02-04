@@ -1,14 +1,10 @@
 {-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
-
 --------------------------------------------------------------------------------
---  $Id: RDFProof.hs,v 1.22 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFProof
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -89,10 +85,10 @@ import Swish.HaskellUtils.ListHelpers
 
 -- The following is an orphan instance
 
--- |Instances of LDGraph are also instance of the
---  Expression class, for which proofs can be constructed.
---  The empty RDF graph is always True (other enduring
---  truths are asserted as axioms.
+-- |Instances of 'LDGraph' are also instance of the
+--  @Expression@ class, for which proofs can be constructed.
+--  The empty RDF graph is always @True@ (other enduring
+--  truths are asserted as axioms).
 instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
     isValid gr = null $ getArcs gr
 
@@ -110,12 +106,10 @@ type RDFProofStep = Step RDFGraph
 
 -- |Make an RDF graph proof step
 --
---  rul     is a rule to use for this step
---  ants    is a list of antecedent RDF formulae for this step
---  con     is an RDF formula that is the consequent for this step
---
 makeRDFProofStep ::
-    RDFRule -> [RDFFormula] -> RDFFormula
+    RDFRule  -- ^ rule to use for this step
+    -> [RDFFormula] -- ^ antecedent RDF formulae for this step
+    -> RDFFormula -- ^ RDF formula that is the consequent for this step 
     -> RDFProofStep
 makeRDFProofStep rul ants con = Step
     { stepRule = rul
@@ -125,14 +119,10 @@ makeRDFProofStep rul ants con = Step
 
 -- |Make an RDF proof
 --
---  rsets   is a list of RDF rulesets that constitute a proof context
---          for this proof.
---  base    is an initial statement from which the goal is claimed
---          to be proven.
---  goal    is a statement that is claimed to be proven.
---
 makeRDFProof ::
-    [RDFRuleset] -> RDFFormula -> RDFFormula
+    [RDFRuleset]      -- ^ RDF rulesets that constitute a proof context for this proof
+    -> RDFFormula     -- ^ initial statement from which the goal is claimed to be proven
+    -> RDFFormula     -- ^ statement that is claimed to be proven
     -> [RDFProofStep]
     -> RDFProof
 makeRDFProof rsets base goal steps = Proof
@@ -164,7 +154,9 @@ makeRDFProof rsets base goal steps = Proof
 --  Note:  graph method 'allNodes' can be used to obtain a list of all
 --  the subjects and objuects used ina  graph, not counting nested
 --  formulae;  use a call of the form:
---    allNodes (not . labelIsVar) graph
+--
+--  >  allNodes (not . labelIsVar) graph
+--
 makeRdfInstanceEntailmentRule :: ScopedName -> [RDFLabel] -> RDFRule
 makeRdfInstanceEntailmentRule name vocab = newrule
     where
@@ -366,7 +358,8 @@ rdfSimpleEntailCheckInference ante cons =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -386,98 +379,3 @@ rdfSimpleEntailCheckInference ante cons =
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFProof.hs,v $
--- $Author: graham $
--- $Revision: 1.22 $
--- $Log: RDFProof.hs,v $
--- Revision 1.22  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.21  2003/12/16 07:05:37  graham
--- Working on updated RDFProofContext
---
--- Revision 1.20  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.19  2003/12/05 02:31:32  graham
--- Script parsing complete.
--- Some Swish script functions run successfully.
--- Command execution to be completed.
---
--- Revision 1.18  2003/10/16 16:01:49  graham
--- Reworked RDFProof and RDFProofContext to use new query binding
--- framework.  Also fixed a bug in the variable binding filter code that
--- caused failures when a variable used was not bound.
---
--- Revision 1.17  2003/10/02 13:41:26  graham
--- Supporting changes for RDF axioms and rules defined as Rulesets,
--- and moved out of module RDFProofCheck.
--- Datatype named using ScopedName rather than QName
--- (Datatype framework is still work in progress).
---
--- Revision 1.16  2003/09/30 20:02:39  graham
--- Proof mechanisms now use scoped names and rulesets.
--- Move some functionality between modules so that RDFProofCheck
--- contains less generic code.
---
--- Revision 1.15  2003/09/30 16:39:41  graham
--- Refactor proof code to use new ruleset logic.
--- Moved some support code from RDFProofCheck to RDFRuleset.
---
--- Revision 1.14  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.13  2003/07/02 21:27:30  graham
--- Graph closure with instance rule tested.
--- About to change ProofTest for graph forward chaining to return
--- a single result graph.
---
--- Revision 1.12  2003/07/01 14:20:30  graham
--- Added instance entailment to proof check module.
---
--- Revision 1.11  2003/06/30 19:07:00  graham
--- Instance entailment, subgraph entailment and simple entailment
--- tests now working.
---
--- Revision 1.10  2003/06/27 20:46:00  graham
--- Coded initial version of RDF simple entailment rule.
--- New rule still needs testing, but other test cases still OK.
---
--- Revision 1.9  2003/06/25 21:16:53  graham
--- Reworked N3 formatting logic to support proof display.
--- Basic proof display is working.
---
--- Revision 1.8  2003/06/25 09:52:25  graham
--- Replaced Rule class with algebraic data type
---
--- Revision 1.7  2003/06/24 23:08:18  graham
--- Replaced Rule class with algebraic data type
---
--- Revision 1.6  2003/06/24 19:56:31  graham
--- Basic proof-check now works
---
--- Revision 1.5  2003/06/19 19:49:07  graham
--- RDFProofCheck compiles, but test fails
---
--- Revision 1.4  2003/06/18 18:40:08  graham
--- Basic proof backchaining tests OK.
--- Next:  add filtering on variable bindings.
---
--- Revision 1.3  2003/06/18 01:29:29  graham
--- Fixed up some problems with backward chaining queries.
--- Query test cases still to complete.
--- Proof incomplete.
---
--- Revision 1.2  2003/06/13 21:40:08  graham
--- Graph closure forward chaining works.
--- Backward chaining generates existentials.
--- Some problems with query logic for backward chaining.
---
--- Revision 1.1  2003/06/12 00:49:06  graham
--- Basic query processor runs test cases OK.
--- Proof framework compiles, not yet tested.
---

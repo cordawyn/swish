@@ -1,13 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
---  $Id: ClassRestrictionRule.hs,v 1.15 2004/01/07 19:49:12 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ClassRestrictionRule
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -140,8 +137,8 @@ instance LookupEntryClass ClassRestriction ScopedName ClassRestriction
 
 -- |Make a class restriction from a datatype relation.
 --
---  This "lifts" application of the datatype relation to operate
---  on RDFLabel values, which are presumed to contain appropriately
+--  This lifts application of the datatype relation to operate
+--  on 'RDFLabel' values, which are presumed to contain appropriately
 --  datatyped values.
 --
 makeDatatypeRestriction ::
@@ -151,13 +148,11 @@ makeDatatypeRestriction dtv dtrel = ClassRestriction
     , crFunc = makeDatatypeRestrictionFn dtv (dtRelFunc dtrel)
     }
 
--- |Make a class restriction function from a datatype relation function.
---
---  The core logic is something like (map toLabels . dtrelfn . map frLabel)
+--  The core logic below is something like @(map toLabels . dtrelfn . map frLabel)@
 --  but the extra lifting and catMaybes are needed to get the final result
 --  type in the right form.
---
---  ClassRestrictionFn = [Maybe RDFLabel] -> Maybe [[RDFLabel]]
+
+-- |Make a class restriction function from a datatype relation function.
 --
 makeDatatypeRestrictionFn ::
     RDFDatatypeVal vt -> DatatypeRelFn vt -> ClassRestrictionFn
@@ -582,7 +577,8 @@ makeRDFDatatypeRestrictionRules dtval gr =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -602,66 +598,3 @@ makeRDFDatatypeRestrictionRules dtval gr =
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/ClassRestrictionRule.hs,v $
--- $Author: graham $
--- $Revision: 1.15 $
--- $Log: ClassRestrictionRule.hs,v $
--- Revision 1.15  2004/01/07 19:49:12  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.14  2003/12/20 12:53:39  graham
--- Fix up code to compile and test with GHC 5.04.3
---
--- Revision 1.13  2003/12/20 12:00:14  graham
--- Introduced new TraceHelpers module for Hugs-2003 compatibility.
---
--- Revision 1.12  2003/12/19 21:01:25  graham
--- Change Debug.Trace import (from Hugs.Trace)
---
--- Revision 1.11  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.10  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.9  2003/11/28 00:17:55  graham
--- Datatype constraint test cases all passed.
---
--- Revision 1.8  2003/11/27 11:35:49  graham
--- Variable modifier tests all run.
--- Initial class constraint reasoning tests pass.
--- Fixed bug in class constraint backward-chained reasoning that returned
--- multiple instances of some statements, and did not filter out all occurrences
--- of the original statements.
---
--- Revision 1.7  2003/11/24 22:13:09  graham
--- Working on reworking datatype variable modifiers to work with
--- revised datatype framework.
---
--- Revision 1.6  2003/11/24 17:20:35  graham
--- Separate module Vocabulary from module Namespace.
---
--- Revision 1.5  2003/11/20 17:58:09  graham
--- Class-constraint backward chaining: all test cases passed.
---
--- Revision 1.4  2003/11/19 22:13:03  graham
--- Some backward chaining tests passed
---
--- Revision 1.3  2003/11/17 21:53:30  graham
--- Datatype inference forward chaining updated to allow inconsistent
--- partial inputs to be detected.  All forward chaining test cases passed.
--- Need to develop backward chaining test cases.
---
--- Revision 1.2  2003/11/14 21:48:35  graham
--- First cut cardinality-checked datatype-constraint rules to pass test cases.
--- Backward chaining is still to do.
---
--- Revision 1.1  2003/11/13 01:15:23  graham
--- Working on ClassRestrictionRule.
--- Code almost complete, some test cases missing.
---

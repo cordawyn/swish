@@ -1,14 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-
 --------------------------------------------------------------------------------
---  $Id: AccumulateM.hs,v 1.3 2004/01/22 19:53:46 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  AccummulateM
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -16,27 +12,29 @@
 --  Portability :  H98
 --
 --  This module defines a monadic accumulator type.  The plan is that it be
---  used in conjunction with FunctorM and similar constructs to accumulate
+--  used in conjunction with "Swish.HaskellUtils.FunctorM" and similar constructs to accumulate
 --  some or all of the values visited.
 --
---  Using a monad of type Accumulator, which wraps some type 'c' and is
---  also declared to be an instance of MonadAccum Accumulator c e, for some e,
---  then foldM can be used to accumulate values of type e with an initial
---  value of type c with the instance-supplied growVal method.
+--  Using a monad of type Accumulator, which wraps some type @c@ and is
+--  also declared to be an instance of @MonadAccum Accumulator c e@, for some @e@,
+--  then 'foldM' can be used to accumulate values of type @e@ with an initial
+--  value of type @c@ with the instance-supplied 'growVal' method.
 --
---  This module also declares accumulator instances for Int, Integer and list
+--  This module also declares accumulator instances for 'Int', 'Integer' and @[]@
 --  datatypes.
 --
 --  This is all very well, but rather unnecessary:  it is just as easy, and
 --  more standard (hence easier for other Haskell programmers to follow),
 --  to use a state monad with a nullary return type; e.g.
---     execsState (stateMonadExpr) initialState
+--
+--  >   execsState (stateMonadExpr) initialState
+--
 --  which returns the final state value.
 --
 --------------------------------------------------------------------------------
 
 module Swish.HaskellUtils.AccumulateM
-    ( Accumulator(..) )
+    ( Accumulator(..), MonadAccum(..) )
 where
 
 import Control.Monad
@@ -121,7 +119,8 @@ test = and
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -141,24 +140,3 @@ test = and
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/AccumulateM.hs,v $
--- $Author: graham $
--- $Revision: 1.3 $
--- $Log: AccumulateM.hs,v $
--- Revision 1.3  2004/01/22 19:53:46  graham
--- Sync.
---
--- Revision 1.2  2004/01/13 17:12:08  graham
--- Complete functionality of AccumulateM, using functional dependencies
--- in the MonadAccum type class.
---
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.2  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.1  2003/06/12 00:49:04  graham
--- Basic query processor runs test cases OK.
--- Proof framework compiles, not yet tested.
---

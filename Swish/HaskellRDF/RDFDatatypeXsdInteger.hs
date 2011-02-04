@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: RDFDatatypeXsdInteger.hs,v 1.15 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatypeXsdInteger
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -143,10 +140,10 @@ rdfDatatypeXsdInteger = Datatype rdfDatatypeValXsdInteger
 -- |Define Datatype value for xsd:integer
 --  Members of this datatype are positive or negative integer values.
 --
---  The lexical form consists of an option '+' or '-'
+--  The lexical form consists of an option @+@ or @-@
 --  followed by a sequence of decimal digits.
 --
---  The canonical lexical form has leading zeros and '+' sign removed.
+--  The canonical lexical form has leading zeros and @+@ sign removed.
 --
 rdfDatatypeValXsdInteger :: RDFDatatypeVal Integer
 rdfDatatypeValXsdInteger = DatatypeVal
@@ -528,7 +525,8 @@ rulesXsdIntegerStr = prefixXsdInteger
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -548,72 +546,3 @@ rulesXsdIntegerStr = prefixXsdInteger
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/RDFDatatypeXsdInteger.hs,v $
--- $Author: graham $
--- $Revision: 1.15 $
--- $Log: RDFDatatypeXsdInteger.hs,v $
--- Revision 1.15  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.14  2003/12/18 18:27:47  graham
--- Datatyped literal inferences all working
--- (except equivalent literals with different datatypes)
---
--- Revision 1.13  2003/12/10 03:48:57  graham
--- SwishScript nearly complete:  BwdChain and PrrofCheck to do.
---
--- Revision 1.12  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.11  2003/11/28 00:17:55  graham
--- Datatype constraint test cases all passed.
---
--- Revision 1.10  2003/11/27 11:35:49  graham
--- Variable modifier tests all run.
--- Initial class constraint reasoning tests pass.
--- Fixed bug in class constraint backward-chained reasoning that returned
--- multiple instances of some statements, and did not filter out all occurrences
--- of the original statements.
---
--- Revision 1.9  2003/11/25 23:02:17  graham
--- Reworked datatype variable modifier logic.
--- Limited range of test cases so far all pass.
---
--- Revision 1.8  2003/11/24 22:13:09  graham
--- Working on reworking datatype variable modifiers to work with
--- revised datatype framework.
---
--- Revision 1.7  2003/11/24 17:20:35  graham
--- Separate module Vocabulary from module Namespace.
---
--- Revision 1.6  2003/11/14 21:48:34  graham
--- First cut cardinality-checked datatype-constraint rules to pass test cases.
--- Backward chaining is still to do.
---
--- Revision 1.5  2003/11/14 15:59:51  graham
--- Separate MapXsdInteger from RDFDatatypeXsdInteger.
---
--- Revision 1.4  2003/11/11 21:02:55  graham
--- Working on datatype class-constraint inference rule.  Incomplete.
---
--- Revision 1.3  2003/11/07 21:45:47  graham
--- Started rework of datatype to use new DatatypeRel structure.
---
--- Revision 1.2  2003/10/24 21:05:08  graham
--- Working on datatype inference.  Most of the variable binding logic
--- is done, but the rule structure still needs to be worked out to support
--- forward and backward chaining through the same rule.
---
--- Revision 1.1  2003/10/22 16:19:34  graham
--- DatatypeXsdInteger module renamed to RDFDatatypeXsdInteger.
---
--- Revision 1.2  2003/10/22 15:47:46  graham
--- Working on datatype inference support.
---
--- Revision 1.1  2003/10/09 17:16:59  graham
--- Add initial attempt at xsd:integer datatype module
---

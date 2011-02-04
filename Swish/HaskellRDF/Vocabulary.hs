@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: Vocabulary.hs,v 1.7 2004/01/07 19:49:13 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Vocabulary
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -14,7 +11,7 @@
 --  Portability :  H98
 --
 --  This module defines some commonly used vocabulary terms,
---  using the Namespace and ScopedName data types.
+--  using the 'Namespace' and 'ScopedName' data types.
 --
 --------------------------------------------------------------------------------
 
@@ -262,7 +259,8 @@ default_base            = ScopedName namespaceDefault "base"
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -282,33 +280,3 @@ default_base            = ScopedName namespaceDefault "base"
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/Vocabulary.hs,v $
--- $Author: graham $
--- $Revision: 1.7 $
--- $Log: Vocabulary.hs,v $
--- Revision 1.7  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.6  2004/01/06 16:29:56  graham
--- Fix up module exports to avoid GHC warnings
---
--- Revision 1.5  2003/12/16 07:05:37  graham
--- Working on updated RDFProofContext
---
--- Revision 1.4  2003/12/11 19:11:07  graham
--- Script processor passes all initial tests.
---
--- Revision 1.3  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.2  2003/12/08 16:58:27  graham
--- Add name to variable binding modifiers and filters.
--- Add namespace for Swish-defined names.
---
--- Revision 1.1  2003/11/24 17:20:35  graham
--- Separate module Vocabulary from module Namespace.
---

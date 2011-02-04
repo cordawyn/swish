@@ -1,3 +1,5 @@
+> {-# OPTIONS_HADDOCK hide, prune, ignore-exports #-}
+
 %-------------------------------=  --------------------------------------------
 \chapter{Braun heaps}
 %-------------------------------=  --------------------------------------------
@@ -46,7 +48,7 @@ trees.
 > splitLeft			:: Heap a -> OptPair a (Heap a)
 > splitLeft Empty		=  Null
 > splitLeft (Bin a l r)		=  case splitLeft l of
->     Null			-> Pair a Empty		-- |r == Empty|
+>     Null			-> Pair a Empty		-- r == Empty
 >     Pair b l'			-> Pair b (Bin a r l')
 
 The recursion scheme is dual to that of |insert|: the element is always
@@ -57,8 +59,8 @@ have the same size).
 > siftBy			:: Rel a -> a -> Heap a -> Heap a -> Heap a
 > siftBy (<=)			=  sift
 >   where
->   sift a Empty r		=  leaf a		-- |r == Empty|
->   sift a l@(Bin b _ _) Empty				-- |l == leaf b|
+>   sift a Empty r		=  leaf a		-- r == Empty
+>   sift a l@(Bin b _ _) Empty				-- l == leaf b
 >       | a <= b		=  Bin a l Empty
 >       | otherwise		=  Bin b (leaf a) Empty
 >   sift a l@(Bin a1 l1 r1) r@(Bin a2 l2 r2)

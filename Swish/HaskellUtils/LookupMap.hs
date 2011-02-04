@@ -1,14 +1,11 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
 --------------------------------------------------------------------------------
---  $Id: LookupMap.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  LookupMap
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -51,10 +48,10 @@ import Swish.HaskellUtils.ListHelpers ( equiv )
 --  Class for lookup map entries
 ------------------------------------------------------------
 
--- |LookupEntryClass defines essential functions of any datatype
---  that can be used to make a LookupMap.
+-- |@LookupEntryClass@ defines essential functions of any datatype
+--  that can be used to make a 'LookupMap'.
 --
---  Minimal definition: newEntry and keyVal
+--  Minimal definition: @newEntry@ and @keyVal@
 --
 class (Eq k, Show k) => LookupEntryClass a k v | a -> k, a -> v
     where
@@ -82,20 +79,20 @@ instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
 
 -- |Define a lookup map based on a list of values.
 --
---  Note:  the class constraint that a is an instance of LookupEntryClass
+--  Note:  the class constraint that a is an instance of 'LookupEntryClass'
 --  is not defined here, for good reasons (which I forget right now, but
---  something to do with the method disctionary being superfluous on
+--  something to do with the method dictionary being superfluous on
 --  an algebraic data type).
 --
 data LookupMap a = LookupMap [a]
 
--- |Define equality of LookupMap values based on equality of entries.
+-- |Define equality of 'LookupMap' values based on equality of entries.
 --
 --  (This is possibly a poor definition, as it is dependent on ordering
 --  of list members.  But it passes all current test cases, and is used
 --  only for testing.)
 --
---  See also mapEq
+--  See also 'mapEq'
 --  (why not just use that here?  I don't know:  it's probably historic.)
 --
 instance (Eq a) => Eq (LookupMap a) where
@@ -112,7 +109,7 @@ instance (Show a ) => Show (LookupMap a) where
 emptyLookupMap :: (LookupEntryClass a k v) => LookupMap a
 emptyLookupMap = LookupMap []
 
--- |Function to create a LookupMap from a list of entries.
+-- |Function to create a 'LookupMap' from a list of entries.
 --
 --  Currently, this is trivial but future versions could be
 --  more substantial.
@@ -185,7 +182,8 @@ mapContains :: (LookupEntryClass a k v) =>
 mapContains (LookupMap es) key  = any match es where
     match ent = key == entryKey ent
 
--- |Replace an existing occurrence of a key a with a new key-value pair
+-- |Replace an existing occurrence of a key a with a new key-value pair.
+--    
 --  The resulting lookup map has the same form as the original in all
 --  other respects.  Assumes exactly one occurrence of the supplied key.
 --
@@ -210,7 +208,8 @@ mapReplaceOrAdd newe (LookupMap (e:es))
         more = mapReplaceOrAdd newe (LookupMap es)
 mapReplaceOrAdd newe (LookupMap [])     = LookupMap [newe]
 
--- |Replace any occurrence of a key a with a new key-value pair
+-- |Replace any occurrence of a key a with a new key-value pair.
+--
 --  The resulting lookup map has the same form as the original in all
 --  other respects.
 --
@@ -224,8 +223,8 @@ mapReplaceAll (LookupMap []) _          = LookupMap []
 -- |Replace any occurrence of a key in the first argument with a
 --  corresponding key-value pair from the second argument, if present.
 --
---  This could be implemented by multiple applications of mapReplaceAll,
---  but is arranged differently so that only one new LookupMap value is
+--  This could be implemented by multiple applications of 'mapReplaceAll',
+--  but is arranged differently so that only one new @LookupMap@ value is
 --  created.
 --
 --  Note:  keys in the new map that are not present in the old map
@@ -241,7 +240,7 @@ mapReplaceMap (LookupMap []) _ = LookupMap []
 
 -- |Add supplied key-value pair to the lookup map.
 --
---  This is effectively an optimized case of MapReplaceOrAdd or mapAddIfNew,
+--  This is effectively an optimized case of 'mapReplaceOrAdd' or 'mapAddIfNew',
 --  where the caller guarantees to avoid duplicate key values.
 --
 mapAdd :: (LookupEntryClass a k v) =>
@@ -289,7 +288,7 @@ mapApplyToAll (LookupMap es) f = [ f (entryKey e) | e <- es ]
 -- |Find a node in a lookup map list, and returns the
 --  corresponding value from a supplied list.  The appropriate ordering
 --  of the list is not specified here, but an appropriately ordered list
---  may be obtained by mapApplyToAll.
+--  may be obtained by 'mapApplyToAll'.
 --
 mapTranslate :: (LookupEntryClass a k v) =>
     LookupMap a -> [w] -> k -> w -> w
@@ -410,7 +409,8 @@ mapTranslateEntriesM f (LookupMap es) =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -430,129 +430,3 @@ mapTranslateEntriesM f (LookupMap es) =
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/LookupMap.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: LookupMap.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.29  2003/12/07 19:10:35  graham
--- Cleaned up LookupMap code comments.
---
--- Revision 1.28  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.27  2003/12/03 22:04:00  graham
--- Re-ordered mapFind (again), to simplify currying of default value.
---
--- Revision 1.26  2003/12/03 22:02:09  graham
--- Re-ordered mapFind, to simplify currying of default value.
---
--- Revision 1.25  2003/11/24 15:46:03  graham
--- Rationalize N3Parser and N3Formatter to use revised vocabulary
--- terms defined in Namespace.hs
---
--- Revision 1.24  2003/11/13 01:13:48  graham
--- Reworked ruleset to use ScopedName lookup.
--- Various minor fixes.
---
--- Revision 1.23  2003/10/24 21:02:42  graham
--- Changed kind-structure of LookupMap type classes.
---
--- Revision 1.22  2003/10/23 18:54:00  graham
--- Moved context requirements for using LookupMap.
--- Some context requirements are now applied to individual
--- LoopkupMap routines that depend upon them.
---
--- Revision 1.21  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.20  2003/06/30 19:07:00  graham
--- Instance entailment, subgraph entailment and simple entailment
--- tests now working.
---
--- Revision 1.19  2003/06/13 21:40:08  graham
--- Graph closure forward chaining works.
--- Backward chaining generates existentials.
--- Some problems with query logic for backward chaining.
---
--- Revision 1.18  2003/06/11 14:07:53  graham
--- Added mapTranslateEntriesM, which performs monadic translation of
--- LookupMap entries.  (Tested using Maybe monad.)
---
--- Revision 1.17  2003/06/10 17:38:34  graham
--- Remove some unneeded calss constraints from data type declarations
--- Reworked NSGraph to be an instance of Functor, replacing function
--- gmap with fmap.  Graph formulae are still not handled well:  the data types
--- will need re-working so that a "Formula lb" type constructor can be
--- introduced having the correct (* -> *) kind to be a Functor.
---
--- Revision 1.16  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.15  2003/05/26 22:30:36  graham
--- Working on graph merge.
--- Added methods to Graph class for manipulating variable node.
--- Need to get RDFGraph to compile.  And test.
---
--- Revision 1.14  2003/05/23 19:33:36  graham
--- Added and tested RDF graph label translation functions
---
--- Revision 1.13  2003/05/14 19:38:32  graham
--- Simple formatter tests all working with reworked graph and lookup structures.
--- More complex formatter tests still to be coded.
---
--- Revision 1.12  2003/05/14 02:01:59  graham
--- GraphMatch recoded and almost working, but
--- there are a couple of
--- obscure bugs that are proving rather stubborn to squash.
---
--- Revision 1.11  2003/05/09 00:28:48  graham
--- Added partitionBy to ListHelpers (may want to remove since
--- it's also in the standard List module).
--- Added mapSelect and mapMerge to LookupMap, and test cases.
---
--- Revision 1.10  2003/05/07 23:58:09  graham
--- More restructuring.
--- RDFGraphTest runs OK.
--- N3ParserTest needs to be updated to use new structure for formulae.
---
--- Revision 1.9  2003/05/07 19:25:26  graham
--- Added mapFindMaybe to LookupMap export list
---
--- Revision 1.8  2003/05/07 18:50:38  graham
--- Add LookupMap functions: mapFindMaybe, mapKeys, mapEq
---
--- Revision 1.7  2003/05/01 23:15:44  graham
--- GraphTest passes all tests using refactored LookupMap
--- Extensive changes to GraphMatch were required.
---
--- Revision 1.6  2003/05/01 19:14:26  graham
--- LookupMap refactored to use class for entry, so that it can be
--- applied to a variety of different types with identifiable key and value
--- components.  All tests pass.
---
--- Revision 1.5  2003/05/01 00:21:41  graham
--- Started refactoring LookupMap.
--- Revised module compiles OK.
--- Working on test module.
---
--- Revision 1.4  2003/04/29 22:07:10  graham
--- Some refactoring of N3 formatter.
--- N3 formatter now handles trivial cases.
--- More complex formatter test cases still to be developed.
---
--- Revision 1.3  2003/04/24 23:41:39  graham
--- Added Ord class membership to graph nodes
--- Added empty lookup table definition
--- Started on N3 formatter module
---
--- Revision 1.2  2003/04/11 18:04:49  graham
--- Rename GraphLookupMap to LookupMap:
--- GraphTest runs OK.
---
--- Revision 1.1  2003/04/11 17:38:33  graham
--- Rename GraphLookupMap to LookupMap
---

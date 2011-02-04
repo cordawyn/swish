@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: QName.hs,v 1.1 2004/01/13 12:31:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  QName
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -127,7 +124,8 @@ isNameChar      c = isAlphaNum c || c `elem` ".-_"
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -147,31 +145,3 @@ isNameChar      c = isAlphaNum c || c `elem` ".-_"
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/QName.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: QName.hs,v $
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.5  2004/01/07 19:49:13  graham
--- Reorganized RDFLabel details to eliminate separate language field,
--- and to use ScopedName rather than QName.
--- Removed some duplicated functions from module Namespace.
---
--- Revision 1.4  2003/10/24 21:05:09  graham
--- Working on datatype inference.  Most of the variable binding logic
--- is done, but the rule structure still needs to be worked out to support
--- forward and backward chaining through the same rule.
---
--- Revision 1.3  2003/09/30 20:02:40  graham
--- Proof mechanisms now use scoped names and rulesets.
--- Move some functionality between modules so that RDFProofCheck
--- contains less generic code.
---
--- Revision 1.2  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.1  2003/09/24 12:51:00  graham
--- Add separate QName module and test suite
---

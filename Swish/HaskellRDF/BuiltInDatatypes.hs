@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: BuiltInDatatypes.hs,v 1.2 2003/12/18 20:46:24 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  BuiltInDatatypes
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -64,7 +61,8 @@ allDatatypeSubtypes = []
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -84,15 +82,3 @@ allDatatypeSubtypes = []
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/BuiltInDatatypes.hs,v $
--- $Author: graham $
--- $Revision: 1.2 $
--- $Log: BuiltInDatatypes.hs,v $
--- Revision 1.2  2003/12/18 20:46:24  graham
--- Added xsd:string module to capture equivalence of xsd:string
--- and plain literals without a language tag
---
--- Revision 1.1  2003/12/17 16:56:39  graham
--- Split content of BuiltInMap into separate modules, to avoid recursive
--- module dependency with RDFProofContext.
---

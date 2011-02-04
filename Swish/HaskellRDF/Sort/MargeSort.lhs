@@ -1,3 +1,5 @@
+> {-# OPTIONS_HADDOCK hide, prune, ignore-exports #-}
+
 %if codeOnly
 
 > module Swish.HaskellRDF.Sort.MargeSort (margeSort, naturalMargeSort)

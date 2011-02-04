@@ -1,14 +1,10 @@
 {-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses #-}
-
 --------------------------------------------------------------------------------
---  $Id: Datatype.hs,v 1.21 2003/12/18 18:27:46 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Datatype
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -21,7 +17,9 @@
 --
 --  Testing note:  this module supports a number of specific datatypes.
 --  It is intended that functionality in this module will be tested via
---  modules RDFDatatype, ClassRestrictionRule and RDFDatatypeXsdInteger.
+--  modules "Swish.HaskellRDF.RDFDatatype", 
+--  "Swish.HaskellRDF.ClassRestrictionRule" and
+--  "Swish.HaskellRDF.RDFDatatypeXsdInteger".
 --  See also module ClassRestrictionRuleTest for test cases.
 --
 --------------------------------------------------------------------------------
@@ -95,7 +93,7 @@ import Control.Monad( join, liftM )
 --  Datatype framework
 ------------------------------------------------------------
 
--- |Datatype wraps a DatatypeVal value, hiding the value type that
+-- |Datatype wraps a 'DatatypeVal' value, hiding the value type that
 --  is used only in implementations of the datatype.
 --  Users see just the datatype name and associated ruleset.
 --
@@ -156,11 +154,13 @@ typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 --  of the value type is hidden from users of the Datatype class.)
 --
 --  The datatype characteristic functions have two goals:
---  - to support the general datatype entailment rules defined by
---    the RDF semantics specification, and
---  - to define additional datatype-specific inference patterns by
---    means of which provide additional base functionality to
---    applications based on RDF inference.
+--
+--  (1) to support the general datatype entailment rules defined by
+--      the RDF semantics specification, and
+--
+--  (2) to define additional datatype-specific inference patterns by
+--      means of which provide additional base functionality to
+--      applications based on RDF inference.
 --
 --  Datatype-specific inferences are provided using the DatatypeRel
 --  structure for a datatype, which allows a number of named relations
@@ -175,26 +175,35 @@ typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 --
 --  An alternative model for datatype value calculations is inspired
 --  by that introduced by CWM for arithmetic operations, e.g.
---       (1 2 3) math:sum ?x => ?x rdf:value 6
---  (where the bare integer n here is shorthand for "n"^^xsd:integer)
+--
+--  >     (1 2 3) math:sum ?x => ?x rdf:value 6
+--
+--  (where the bare integer @n@ here is shorthand for @\"n\"^^xsd:integer@).
 --
 --  Datatype-specific inference patterns are provided in two ways:
---  (a) by variable binding modifiers that can be combined with the
---      query results during forward- for backward-chaining of
---      inference rules, and
---  (b) by the definition of inference rulesets that involve
---      datatype values.
+--
+--  * by variable binding modifiers that can be combined with the
+--    query results during forward- for backward-chaining of
+--    inference rules, and
+--
+--  * by the definition of inference rulesets that involve
+--    datatype values.
+--
 --  I believe the first method to be more flexible than the second,
 --  in that it more readily supports forward and backward chaining,
 --  but can be used only through the definition of new rules.
 --
 --  Type parameters:
---  ex      is the type of expression with which the datatype may be used.
---  vt      is the internal value type with which the labels are associated.
---  lb      is the type of label that may be used as a variable in an
---          expression or rule.
---  vn      is the type of node that may be used to carry a value in an
---          expression or rule.
+--
+--  [@ex@] is the type of expression with which the datatype may be used.
+--
+--  [@vt@] is the internal value type with which the labels are associated.
+--
+--  [@lb@] is the type of label that may be used as a variable in an
+--         expression or rule.
+--
+--  [@vn@] is the type of node that may be used to carry a value in an
+--         expression or rule.
 --
 data DatatypeVal ex vt lb vn = DatatypeVal
     { tvalName      :: ScopedName
@@ -215,23 +224,24 @@ data DatatypeVal ex vt lb vn = DatatypeVal
                                 --  binding modifiers based on tvalMod,
                                 --  but hiding the actual value type.
     , tvalMap       :: DatatypeMap vt
-                                -- ^Lexical to value mapping, where 'vt' is
+                                -- ^Lexical to value mapping, where @vt@ is
                                 --  a datatype used within a Haskell program
                                 --  to represent and manipulate values in
                                 --  the datatype's value space
     , tvalRel       :: [DatatypeRel vt]
                                 -- ^A set of named relations on datatype
                                 --  values.  Each relation accepts a list
-                                --  of (Maybe vt), and computes any
+                                --  of @Maybe vt@, and computes any
                                 --  unspecified values that are in the
                                 --  relation with values supplied.
     , tvalMod       :: [DatatypeMod vt lb vn]
                                 -- ^A list of named values that are used to
                                 --  construct variable binding modifiers, which
                                 --  in turn may be used by a rule definition.
-                                --  [[[TODO: In due course, this value may be
+                                --
+                                --  TODO: In due course, this value may be
                                 --  calculated automatically from the supplied
-                                --  value for tvalRel.]]]
+                                --  value for @tvalRel@.
     }
 
 --  Other accessor functions
@@ -246,7 +256,7 @@ getDTMod ::
 getDTMod nam dtv =
     mapFindMaybe nam (LookupMap (tvalMod dtv))
 
--- |Get canonical form of datatype value, or None
+-- |Get canonical form of datatype value, or @Nothing@.
 --
 tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> String -> Maybe String
 tvalMkCanonicalForm dtv str = can
@@ -265,7 +275,7 @@ data DatatypeMap vt = DatatypeMap
                             --   datatype value.  This effectively
                             --   defines the lexical space of the
                             --   datatype to be all strings for which
-                            --   yield a value other than Nothing.
+                            --   yield a value other than @Nothing@.
     , mapV2L  :: vt -> Maybe String
                             -- ^ Function to map a value to its canonical
                             --   lexical form, if it has such.
@@ -277,15 +287,18 @@ data DatatypeMap vt = DatatypeMap
 --  relation.  A datatype relation inference function calculates
 --  values that complete a relation with values supplied.
 --
---  The function accepts a list of Maybe vt, where vt is the
---  datatype value type.  It returns:
---  (a) Just a list of lists, where each inner list returned is a
+--  The function accepts a list of @Maybe vt@, where vt is the
+--  datatype value type.  It returns one of:
+--
+--  * Just a list of lists, where each inner list returned is a
 --      complete set of values, including the values supplied, that
 --      are in the relation.
---  (b) Just an empty list is returned if the supplied values are
+--
+--  * Just an empty list is returned if the supplied values are
 --      insufficient to compute any complete sets of values in the
 --      relation.
---  (c) Nothing if the supplied values are not consistent with
+--
+--  * Nothing if the supplied values are not consistent with
 --      the relation.
 --
 type DatatypeRelFn vt = [Maybe vt] -> Maybe [[vt]]
@@ -311,7 +324,7 @@ instance LookupEntryClass (DatatypeRel vt) ScopedName (DatatypeRel vt)
 --
 --  Each function accepts a list of values and returns a list of values.
 --  The exact significance of the different values supplied and returned
---  depends on the variable binding pattern used (cf. ApplyModifier),
+--  depends on the variable binding pattern used (cf. 'ApplyModifier'),
 --  but in all cases an empty list returned means that the corresponding
 --  inputs are not consistent with the function and cannot be used.
 --
@@ -322,8 +335,8 @@ type ModifierFn vn = [vn] -> [vn]
 --  name of the datatype modifier and carries it into the resulting
 --  variable binding modifier.
 --
---  (Note that vn is not necessarily the same as vt, the datatype value
---  type:  the modifier functions may be "lifted" or otherwise adapted
+--  (Note that @vn@ is not necessarily the same as @vt@, the datatype value
+--  type:  the modifier functions may be lifted or otherwise adapted
 --  to operate on some other type from which the raw data values are
 --  extracted.)
 --
@@ -379,32 +392,35 @@ dmAppf dtmod (dmName dtmod)
 --  Functions for creating datatype variable binding modifiers
 --------------------------------------------------------------
 
--- |ApplyModifier function for use with DatatypeMod in cases
---  when the value mapping is a 1->1 function and inverse, such
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases
+--  when the value mapping is a @1->1@ function and inverse, such
 --  as negate.
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@]     is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--        
+--  [@fns@]     are functions used to implement details of the variable
 --          binding modifier:
---          (0) is [x,y] -> [?], used as a filter (i.e. not creating any
---              new variable bindings), returning a non-empty list if x and y
+--
+--          (0) is @[x,y] -> [?]@, used as a filter (i.e. not creating any
+--              new variable bindings), returning a non-empty list if @x@ and @y@
 --              are in the appropriate relationship.
---          (1) is [y] -> [x], used to perform the calculation in a forward
+--
+--          (1) is @[y] -> [x]@, used to perform the calculation in a forward
 --              direction.
---          (2) is [x] -> [y], used to perform the calculation in a backward
+--
+--          (2) is @[x] -> [y]@, used to perform the calculation in a backward
 --              direction.  This may be the same as (2) (e.g. for negation)
 --              or may be different (e.g. increment).
---  lbs     is a list of specific label values for which a variable binding
+--
+--  [@lbs@]     is a list of specific label values for which a variable binding
 --          modifier will be generated.  (The intent is that a variable-free
 --          value can be generated as a Curried function, and instantiated
 --          for particular variables as required.)
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
---
---  type ApplyModifer lb vn = [ModifierFn vn] -> [lb] -> VarBindingModify lb vn
 --
 makeVmod_1_1_inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
 makeVmod_1_1_inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
@@ -422,23 +438,27 @@ makeVmod_1_1_inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
 makeVmod_1_1_inv _ _ _ =
     error "makeVmod_1_1_inv: requires 3 functions and 2 labels"
 
--- |ApplyModifier function for use with DatatypeMod in cases when
---  the value mapping is a non-invertable 1->1 injection, such as
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases when
+--  the value mapping is a non-invertable @1->1@ injection, such as
 --  absolute value.
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@] is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--
+--  [@fns@] are functions used to implement details of the variable
 --          binding modifier:
---          (0) is [x,y] -> [?], used as a filter (i.e. not creating any
---              new variable bindings), returning a non-empty list if x and y
+--
+--          (0) is @[x,y] -> [?]@, used as a filter (i.e. not creating any
+--              new variable bindings), returning a non-empty list if @x@ and @y@
 --              are in the appropriate relationship.
---          (1) is [x] -> [y], used to perform the calculation.
---  lbs     is a list of specific label values for which a variable binding
+--
+--          (1) is @[x]@ -> @[y]@, used to perform the calculation.
+--
+--  [@lbs@] is a list of specific label values for which a variable binding
 --          modifier will be generated.
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
 makeVmod_1_1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
@@ -456,28 +476,34 @@ makeVmod_1_1 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
 makeVmod_1_1 _ _ _ =
     error "makeVmod_1_1: requires 2 functions and 2 labels"
 
--- |ApplyModifier function for use with DatatypeMod in cases
---  when the value mapping is a 2->1 invertable function, such as
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases
+--  when the value mapping is a @2->1@ invertable function, such as
 --  addition or subtraction.
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@]     is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--
+--  [@fns@]     are functions used to implement details of the variable
 --          binding modifier:
---          (1) is [x,y,z] -> [?], used as a filter (i.e. not creating any
+--
+--          (1) is @[x,y,z] -> [?]@, used as a filter (i.e. not creating any
 --              new variable bindings), returning a non-empty list if
---              x, y and z are in the appropriate relationship.
---          (2) is [y,z] -> [x], used to perform the calculation in a
+--              @x@, @y@ and @z@ are in the appropriate relationship.
+--
+--          (2) is @[y,z] -> [x]@, used to perform the calculation in a
 --              forward direction.
---          (3) is [x,z] -> [y], used to run the calculation backwards to
+--
+--          (3) is @[x,z] -> [y]@, used to run the calculation backwards to
 --              determine the first input argument
---          (4) is [x,y] -> [z], used to run the calculation backwards to
+--
+--          (4) is @[x,y] -> [z]@, used to run the calculation backwards to
 --              determine the second input argument
---  lbs     is a list of specific label values for which a variable binding
+--
+--  [@lbs@]     is a list of specific label values for which a variable binding
 --          modifier will be generated.
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
 makeVmod_2_1_inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
@@ -497,24 +523,28 @@ makeVmod_2_1_inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
 makeVmod_2_1_inv _ _ _ =
     error "makeVmod_2_1_inv: requires 4 functions and 3 labels"
 
--- |ApplyModifier function for use with DatatypeMod in cases
---  when the value mapping is a 2->1 non-invertable function, such as
---  logical AND or OR.
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases
+--  when the value mapping is a @2->1@ non-invertable function, such as
+--  logical @AND@ or @OR@.
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@]     is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--
+--  [@fns@]     are functions used to implement details of the variable
 --          binding modifier:
---          (1) is [x,y,z] -> [?], used as a filter (i.e. not creating any
+--
+--          (1) is @[x,y,z] -> [?]@, used as a filter (i.e. not creating any
 --              new variable bindings), returning a non-empty list if
---              x, y and z are in the appropriate relationship.
---          (2) is [y,z] -> [x], used to perform the calculation in a
+--              @x@, @y@ and @z@ are in the appropriate relationship.
+--
+--          (2) is @[y,z] -> [x]@, used to perform the calculation in a
 --              forward direction.
---  lbs     is a list of specific label values for which a variable binding
+--
+--  [@lbs@]     is a list of specific label values for which a variable binding
 --          modifier will be generated.
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
 makeVmod_2_1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
@@ -532,21 +562,24 @@ makeVmod_2_1 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
 makeVmod_2_1 _ _ _ =
     error "makeVmod_2_1: requires 2 functions and 3 labels"
 
--- |ApplyModifier function for use with DatatypeMod in cases
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases
 --  when the value mapping is a simple comparson of two values.
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@]     is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--
+--  [@fns@]     are functions used to implement details of the variable
 --          binding modifier:
---          (1) is [x,y] -> [?], used as a filter (i.e. not creating any
+--
+--          (1) is @[x,y] -> [?]@, used as a filter (i.e. not creating any
 --              new variable bindings), returning a non-empty list if
---              x and y are in the appropriate relationship.
---  lbs     is a list of specific label values for which a variable binding
+--              @x@ and @y@ are in the appropriate relationship.
+--
+--  [@lbs@]     is a list of specific label values for which a variable binding
 --          modifier will be generated.
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
 makeVmod_2_0 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
@@ -563,28 +596,32 @@ makeVmod_2_0 nam [f0] lbs@(~[_,_]) = VarBindingModify
 makeVmod_2_0 _ _ _ =
     error "makeVmod_2_0: requires 1 function and 2 labels"
 
--- |ApplyModifier function for use with DatatypeMod in cases
---  when the value mapping is a 2->2 non-invertable function, such as
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases
+--  when the value mapping is a @2->2@ non-invertable function, such as
 --  quotient/remainder
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@]     is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--
+--  [@fns@]     are functions used to implement details of the variable
 --          binding modifier:
---          (1) is [w,x,y,z] -> [?], used as a filter (i.e. not creating
+--
+--          (1) is @[w,x,y,z] -> [?]@, used as a filter (i.e. not creating
 --              any new variable bindings), returning a non-empty list if
---              w, x, y and z are in the appropriate relationship.
---          (2) is [y,z] -> [w,x], used to perform the calculation given
+--              @w@, @x@, @y@ and @z@ are in the appropriate relationship.
+--
+--          (2) is @[y,z] -> [w,x]@, used to perform the calculation given
 --              two input values.
---  lbs     is a list of specific label values for which a variable binding
+--
+--  [@lbs@]     is a list of specific label values for which a variable binding
 --          modifier will be generated.
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
---  [[[NOTE: this might be generalized to allow one of w or x to be
---  specified, and return null if it doesn't match the calculated value.]]]
+--  NOTE: this might be generalized to allow one of @w@ or @x@ to be
+--  specified, and return null if it doesn't match the calculated value.
 --
 makeVmod_2_2 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
 makeVmod_2_2 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
@@ -603,23 +640,27 @@ makeVmod_2_2 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
 makeVmod_2_2 _ _ _ =
     error "makeVmod_2_2: requires 2 functions and 4 labels"
 
--- |ApplyModifier function for use with DatatypeMod in cases
---  when the value mapping is a N->1 function,
+-- |'ApplyModifier' function for use with 'DatatypeMod' in cases
+--  when the value mapping is a @N->1@ function,
 --  such as Sigma (sum) of a vector.
 --
---  nam     ia the name from the DatatypeMod value that is carried into
+--  [@nam@]     is the name from the 'DatatypeMod' value that is carried into
 --          the resulting variable binding modifier.
---  fns     are functions used to implement details of the variable
+--
+--  [@fns@]     are functions used to implement details of the variable
 --          binding modifier:
---          (1) is [x,y...] -> [?], used as a filter (i.e. not creating
+--
+--          (1) is @[x,y...] -> [?]@, used as a filter (i.e. not creating
 --              any new variable bindings), returning a non-empty list if
---              x and y... are in the appropriate relationship.
---          (2) is [y...] -> [x], used to perform the calculation.
---  lbs     is a list of specific label values for which a variable binding
+--              @x@ and @y...@ are in the appropriate relationship.
+--
+--          (2) is @[y...] -> [x]@, used to perform the calculation.
+--
+--  [@lbs@]     is a list of specific label values for which a variable binding
 --          modifier will be generated.
 --
---  Note: an irrefutable pattern match for 'lbs' is used so that a name
---  for the VarBindingModify value can be extracted using an undefined
+--  Note: an irrefutable pattern match for @lbs@ is used so that a name
+--  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
 makeVmod_N_1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
@@ -694,57 +735,58 @@ selv _  vbind = [vbind]
 
 -- |Given a list of argument values and a list of functions for
 --  calculating new values from supplied values, return a list
---  of argument values, or Nothing if the supplied values are
+--  of argument values, or @Nothing@ if the supplied values are
 --  inconsistent with the calculations specified.
 --
 --  Each list of values returned corresponds to a set of values that
 --  satisfy the relation, consistent with the values supplied.
 --
 --  Functions are described as tuple consisting of
+--
 --  (a) a predicate that the argument is required to satisfy
+--
 --  (b) a function to apply,
+--
 --  (c) a function to apply function (b) to a list of arguments
+--
 --  (d) argument list index values to which the function is applied.
 --
---  Each supplied argument is of the form 'Maybe a', where the argument
---  has value type a.  'Nothing' indicates arguments of unknown value.
+--  Each supplied argument is of the form @Maybe a@, where the argument
+--  has value type a.  @Nothing@ indicates arguments of unknown value.
 --
 --  The basic idea is that, for each argument position in the relation,
 --  a function may be supplied to calculate that argument's possible values
 --  from some combination of the other arguments.  The results calculated
 --  in this way are compared with the original arguments provided:
 --  if the values conflict then the relation is presumed to be
---  unsatisfiable with the supplied values, and 'Nothing' is returned;
+--  unsatisfiable with the supplied values, and @Nothing@ is returned;
 --  if there are any calculated values for arguments supplied without
 --  any values, then tbe calculated values are used.
 --  If there are any arguments for which no values are supplied or
 --  calculated, then the relation is presumed to be underdetermined,
---  and 'Just []' is returned.
+--  and @Just []@ is returned.
 --
---  fnss    is a list of argument value predicates and
+--  [@fnss@] is a list of argument value predicates and
 --          function descriptors.  The predicate indicates any
 --          additional constraints on argument values (e.g. the result
---          of abs must be positive).  Use (const True) for the predicate
+--          of abs must be positive).  Use @(const True)@ for the predicate
 --          associated with unconstrained relation arguments.
 --          For each argument, a list of function descriptors is
 --          supplied corresponding to alternative values (e.g. a square
 --          relation would offer two alternative values for the root.)
---  apfn    is a function that takes an argument value predicate,
+--
+--  [@apfn@] is a function that takes an argument value predicate,
 --          a function descriptor and applies it to a supplied argument
 --          list to return:
---          Just a calculated list of one or more possible argument values,
---          Just [] indicating insufficient information provided, or
---          Nothing indicating inconsistent information provided.
---          May be one of unaryFnApp, binaryFnApp, listFnApp or
+--          @Just a@ calculated list of one or more possible argument values,
+--          @Just []@ indicating insufficient information provided, or
+--          @Nothing@ indicating inconsistent information provided.
+--          May be one of 'unaryFnApp', 'binaryFnApp', 'listFnApp' or
 --          some other caller-supplied value.
---          The value used must match the type of 'fnss' used.
+--          The value used must match the type of @fnss@ used.
 --
---  Returns a 'DatatypeRelFn vt' value that can be used as the
---  'dtRelFunc' component of a DatatypeRel value.
---  cf. type DatatypeRelFn vt = [Maybe vt] -> Maybe [[vt]]
---
--- type DatatypeRelFn vt = [Maybe vt] -> Maybe [[vt]]
--- type DatatypeRelPr vt = [vt] -> Bool
+--  Returns a @'DatatypeRelFn' vt@ value that can be used as the
+--  'dtRelFunc' component of a 'DatatypeRel' value.
 --
 altArgs :: (Eq vt)
     => DatatypeRelPr vt -> [(vt->Bool,[b])]
@@ -828,33 +870,33 @@ mergeTupleVals (p:ps) (Just a1:a1s) (Just a2s:a2ss)
 mergeTupleVals _ [] _        = []
 mergeTupleVals _ _  _        = [Nothing]
 
--- |altArgs support for unary functions: function descriptor type
+-- |'altArgs' support for unary functions: function descriptor type
 type UnaryFnDescr a = (a->a,Int)
 
--- |altArgs support for unary functions: function descriptor table type
+-- |'altArgs' support for unary functions: function descriptor table type
 type UnaryFnTable a = [(a->Bool,[UnaryFnDescr a])]
 
--- |altArgs support for unary functions: function applicator type
+-- |'altArgs' support for unary functions: function applicator type
 type UnaryFnApply a = (a->Bool) -> UnaryFnDescr a -> [Maybe a] -> Maybe [a]
 
--- |altArgs support for unary functions: function applicator
+-- |'altArgs' support for unary functions: function applicator
 unaryFnApp :: UnaryFnApply a
 unaryFnApp p (f1,n) args = apf (args!!n)
     where
         apf (Just a) = if p r then Just [r] else Nothing where r = f1 a
         apf Nothing  = Just []
 
--- |altArgs support for binary functions: function descriptor type
+-- |'altArgs' support for binary functions: function descriptor type
 type BinaryFnDescr a = (a->a->a,Int,Int)
 
--- |altArgs support for binary functions: function descriptor table type
+-- |'altArgs' support for binary functions: function descriptor table type
 type BinaryFnTable a = [(a->Bool,[BinaryFnDescr a])]
 
--- |altArgs support for binary functions: function applicator type
+-- |'altArgs' support for binary functions: function applicator type
 type BinaryFnApply a =
     (a->Bool) -> BinaryFnDescr a -> [Maybe a] -> Maybe [a]
 
--- |altArgs support for binary functions: function applicator
+-- |'altArgs' support for binary functions: function applicator
 binaryFnApp :: BinaryFnApply a
 binaryFnApp p (f,n1,n2) args = apf (args!!n1) (args!!n2)
     where
@@ -862,20 +904,20 @@ binaryFnApp p (f,n1,n2) args = apf (args!!n1) (args!!n2)
             where r = f a1 a2
         apf _ _  = Just []
 
--- |altArgs support for binary function with provision for indicating
+-- |'altArgs' support for binary function with provision for indicating
 --  inconsistent supplied values:  function descriptor type
 type BinMaybeFnDescr a = (a->a->Maybe [a],Int,Int)
 
--- |altArgs support for binary function with provision for indicating
+-- |'altArgs' support for binary function with provision for indicating
 --  inconsistent supplied values:  function descriptor table type
 type BinMaybeFnTable a = [(a->Bool,[BinMaybeFnDescr a])]
 
--- |altArgs support for binary function with provision for indicating
+-- |'altArgs' support for binary function with provision for indicating
 --  inconsistent supplied values:  function applicator type
 type BinMaybeFnApply a =
     (a->Bool) -> BinMaybeFnDescr a -> [Maybe a] -> Maybe [a]
 
--- |altArgs support for binary function with provision for indicating
+-- |'altArgs' support for binary function with provision for indicating
 --  inconsistent supplied values:  function applicator
 binMaybeFnApp :: BinMaybeFnApply a
 binMaybeFnApp p (f,n1,n2) args = apf (args!!n1) (args!!n2)
@@ -887,25 +929,32 @@ binMaybeFnApp p (f,n1,n2) args = apf (args!!n1) (args!!n2)
                 pm (Just x) = all p x
         apf _ _  = Just []
 
--- |altArgs support for list functions (e.g. sum over list of args),
+-- |'altArgs' support for list functions (e.g. sum over list of args),
 --  where first element of list is a fold over the rest of the list,
 --  and remaining elements of list can be calculated in terms
 --  of the result of the fold and the remaining elements
 --
 --  List function descriptor is
+--
 --  (a) list-fold function, f  (e.g. (+)
+--        
 --  (b) list-fold identity, z  (e.g. 0)
+--        
 --  (c) list-fold-function inverse, g (e.g. (-))
+--        
 --  (d) index of element to evaluate
+--        
 --  such that:
---      (a `f` z) == (z `f` a) == a
---      (a `g` c) == b <=> a == b `f` c
---      (a `g` z) == a
---      (a `g` a) == z
+--        
+--  >    (a `f` z) == (z `f` a) == a
+--  >    (a `g` c) == b <=> a == b `f` c
+--  >    (a `g` z) == a
+--  >    (a `g` a) == z
+--
 --  and the result of the folded function does not depend on
 --  the order that the list elements are processed.
 --
---  NOTE:  the list of 'ListFnDescr' values supplied to altArgs must
+--  NOTE:  the list of 'ListFnDescr' values supplied to 'altArgs' must
 --  be at least as long as the argument list.  In many cases, Haskell
 --  lazy evaluation can be used to supply an arbitrarily long list.
 --  See test cases in spike-altargs.hs for an example.
@@ -916,10 +965,10 @@ type ListFnDescr a = (a->a->a,a,a->a->a,Int)
 -- |Function table type
 type ListFnTable a = [(a->Bool,[ListFnDescr a])]
 
--- |altArgs support for list functions:  function applicator type
+-- |'altArgs' support for list functions:  function applicator type
 type ListFnApply a = (a->Bool) -> ListFnDescr a -> [Maybe a] -> Maybe [a]
 
--- |altArgs support for list functions:  function applicator
+-- |'altArgs' support for list functions:  function applicator
 listFnApp :: ListFnApply a
 listFnApp p (f,z,g,n) (a0:args)
     | n == 0    =
@@ -944,24 +993,30 @@ listFnApp p (f,z,g,n) (a0:args)
 --
 --  Originally, I had this as a supertype field of the DatatypeVal structure,
 --  but that suffered from some problems:
---  (a) supertypes may be introduced retrospectively,
---  (b) the relationship expressed with respect to a single datatype
+--
+--  * supertypes may be introduced retrospectively,
+--
+--  * the relationship expressed with respect to a single datatype
 --      cannot indicate hiow to do injections/restrictions between the
 --      underlying value types.
 --
---  ex      is the type of expression with which the datatype may be used.
---  lb      is the type of the variable labels used.
---  vn      is the type of value node used to contain a datatyped value
---  supvt   is the internal value type of the super-datatype
---  subvt   is the internal value type of the sub-datatype
+--  [@ex@]      is the type of expression with which the datatype may be used.
+--
+--  [@lb@]      is the type of the variable labels used.
+--
+--  [@vn@]      is the type of value node used to contain a datatyped value
+--
+--  [@supvt@]   is the internal value type of the super-datatype
+--
+--  [@subvt@]   is the internal value type of the sub-datatype
 --
 data DatatypeSub ex lb vn supvt subvt = DatatypeSub
     { trelSup   :: DatatypeVal ex supvt lb vn
-                                -- ^ Datatype that is a supertype of trelSub,
-                                --   having value space supvt.
+                                -- ^ Datatype that is a supertype of @trelSub@,
+                                --   having value space @supvt@.
     , trelSub   :: DatatypeVal ex subvt lb vn
-                                -- ^ Datatype that is a subtype of trelSup,
-                                --   having value space supvt.
+                                -- ^ Datatype that is a subtype of @trelSup@,
+                                --   having value space @supvt@.
     , trelToSup :: subvt -> supvt
                                 -- ^ Function that maps subtype value to
                                 --   corresponding supertype value.
@@ -971,10 +1026,10 @@ data DatatypeSub ex lb vn supvt subvt = DatatypeSub
                                 --   is such a value.
     }
 
-
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -994,89 +1049,3 @@ data DatatypeSub ex lb vn supvt subvt = DatatypeSub
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellRDF/Datatype.hs,v $
--- $Author: graham $
--- $Revision: 1.21 $
--- $Log: Datatype.hs,v $
--- Revision 1.21  2003/12/18 18:27:46  graham
--- Datatyped literal inferences all working
--- (except equivalent literals with different datatypes)
---
--- Revision 1.20  2003/12/10 03:48:57  graham
--- SwishScript nearly complete:  BwdChain and PrrofCheck to do.
---
--- Revision 1.19  2003/12/08 23:55:36  graham
--- Various enhancements to variable bindings and proof structure.
--- New module BuiltInMap coded and tested.
--- Script processor is yet to be completed.
---
--- Revision 1.18  2003/12/08 17:29:19  graham
--- Moved OpenVarBinding type definitions from -Datatype to -VarBinding modules.
---
--- Revision 1.17  2003/12/04 02:53:27  graham
--- More changes to LookupMap functions.
--- SwishScript logic part complete, type-checks OK.
---
--- Revision 1.16  2003/11/28 00:17:55  graham
--- Datatype constraint test cases all passed.
---
--- Revision 1.15  2003/11/27 11:35:49  graham
--- Variable modifier tests all run.
--- Initial class constraint reasoning tests pass.
--- Fixed bug in class constraint backward-chained reasoning that returned
--- multiple instances of some statements, and did not filter out all occurrences
--- of the original statements.
---
--- Revision 1.14  2003/11/25 23:02:17  graham
--- Reworked datatype variable modifier logic.
--- Limited range of test cases so far all pass.
---
--- Revision 1.13  2003/11/24 22:13:09  graham
--- Working on reworking datatype variable modifiers to work with
--- revised datatype framework.
---
--- Revision 1.12  2003/11/17 21:53:31  graham
--- Datatype inference forward chaining updated to allow inconsistent
--- partial inputs to be detected.  All forward chaining test cases passed.
--- Need to develop backward chaining test cases.
---
--- Revision 1.11  2003/11/13 01:13:48  graham
--- Reworked ruleset to use ScopedName lookup.
--- Various minor fixes.
---
--- Revision 1.10  2003/11/11 21:02:55  graham
--- Working on datatype class-constraint inference rule.  Incomplete.
---
--- Revision 1.9  2003/11/07 21:45:47  graham
--- Started rework of datatype to use new DatatypeRel structure.
---
--- Revision 1.8  2003/11/06 17:58:33  graham
--- About to rework Datatype to better support class-based reasoning.
---
--- Revision 1.7  2003/10/24 21:05:08  graham
--- Working on datatype inference.  Most of the variable binding logic
--- is done, but the rule structure still needs to be worked out to support
--- forward and backward chaining through the same rule.
---
--- Revision 1.6  2003/10/22 15:47:46  graham
--- Working on datatype inference support.
---
--- Revision 1.5  2003/10/09 13:58:59  graham
--- Sync with CVS.  Preparing to eliminate QueryBindingFilter in favour
--- of using just QueryBindingModifier.
---
--- Revision 1.4  2003/10/02 13:41:26  graham
--- Supporting changes for RDF axioms and rules defined as Rulesets,
--- and moved out of module RDFProofCheck.
--- Datatype named using ScopedName rather than QName
--- (Datatype framework is still work in progress).
---
--- Revision 1.3  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.2  2003/09/22 23:25:01  graham
--- Add some tweaks to the datatyping framework
---
--- Revision 1.1  2003/07/03 20:31:07  graham
--- Add initial draft of datatype framework.
---

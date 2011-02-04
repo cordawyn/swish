@@ -1,12 +1,9 @@
 --------------------------------------------------------------------------------
---  $Id: ProcessURI.hs,v 1.1 2004/01/22 19:52:27 graham Exp $
---
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ProcessURI
---  Copyright   :  (c) 2003, Graham Klyne
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Graham Klyne
@@ -16,21 +13,28 @@
 --  This module defines a collection of functions for manipulating URIs.
 --
 --  Functions provided deal with:
---    Validating and parsing URI syntax
---    Separating a fragment from a URI
---    Separating URI into QName and local name
---    Relative URI computations
+--
+--  * Validating and parsing URI syntax
+--
+--  * Separating a fragment from a URI
+--
+--  * Separating URI into QName and local name
+--
+--  * Relative URI computations
 --
 --  The primary reference for URI handling is RFC2396 [1],
 --  as updated by RFC 2732 [2].
 --  RFC 1808 [3] contains a number of test cases for relative URI handling.
---  Dan Connolly's Python module 'uripath.py' [4] also contains useful details
+--  Dan Connolly's Python module @uripath.py@ [4] also contains useful details
 --  and test cases.
 --
---  [1] http://www.ietf.org/rfc/rfc2396.txt
---  [2] http://www.ietf.org/rfc/rfc2732.txt
---  [3] http://www.ietf.org/rfc/rfc1808.txt
---  [4] http://www.w3.org/2000/10/swap/uripath.py
+--  [1] <http://www.ietf.org/rfc/rfc2396.txt>
+--
+--  [2] <http://www.ietf.org/rfc/rfc2732.txt>
+--
+--  [3] <http://www.ietf.org/rfc/rfc1808.txt>
+--
+--  [4] <http://www.w3.org/2000/10/swap/uripath.py>
 --
 --------------------------------------------------------------------------------
 
@@ -287,7 +291,8 @@ looksLikeURI name = not ( null ( relSegmentWithColon name ) )
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, G. KLYNE.  All rights reserved.
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  All rights reserved.
 --
 --  This file is part of Swish.
 --
@@ -307,52 +312,3 @@ looksLikeURI name = not ( null ( relSegmentWithColon name ) )
 --    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 --------------------------------------------------------------------------------
--- $Source: /file/cvsdev/HaskellUtils/ProcessURI.hs,v $
--- $Author: graham $
--- $Revision: 1.1 $
--- $Log: ProcessURI.hs,v $
--- Revision 1.1  2004/01/22 19:52:27  graham
--- Rename module URI to avoid awkward clash with Haskell libraries
---
--- Revision 1.1  2004/01/13 12:31:24  graham
--- Move modules from HaskellRDF to HaskellUtils project
---
--- Revision 1.12  2003/09/24 18:50:52  graham
--- Revised module format to be Haddock compatible.
---
--- Revision 1.11  2003/09/24 13:35:44  graham
--- QName splitting moved from URI module to QName module
---
--- Revision 1.10  2003/06/03 19:24:13  graham
--- Updated all source modules to cite GNU Public Licence
---
--- Revision 1.9  2003/05/28 19:57:50  graham
--- Adjusting code to compile with GHC
---
--- Revision 1.8  2003/03/05 22:16:23  graham
--- URI code passes all unit tests
---
--- Revision 1.7  2003/03/05 14:47:45  graham
--- Relative URI code complete, not tested
--- Fixed a URI parser bug
---
--- Revision 1.6  2003/02/28 14:02:52  graham
--- A few new test cases
---
--- Revision 1.5  2003/02/27 23:33:54  graham
--- QName splitting tested OK
---
--- Revision 1.4  2003/02/27 18:48:05  graham
--- Fix URI parser bug.
--- Add more URI parser test cases.
---
--- Revision 1.3  2003/02/27 08:59:53  graham
--- Separate URI parser from main URI module
---
--- Revision 1.2  2003/02/27 00:30:14  graham
--- Syntax code nearly complete, untested
---
--- Revision 1.1  2003/02/20 19:45:07  graham
--- Add URI module and unit tests.
--- Code incomplete.
---
