@@ -17,8 +17,9 @@
 --     WNH RIP OUT module Swish.HaskellRDF.Swish where
 -- module Main where      WNH RIP OUT!!!!
 
-import Swish.HaskellRDF.SwishMain
+import Paths_swish (version)
 
+import Swish.HaskellRDF.SwishMain
 
 import System.Environment
        ( getArgs )
@@ -27,6 +28,8 @@ import System.Exit
     ( ExitCode(ExitSuccess,ExitFailure), exitWith )
 
 import Control.Monad (unless)
+
+import Data.Version (showVersion)
 
 ------------------------------------------------------------
 --  Swish main program
@@ -40,7 +43,7 @@ import Control.Monad (unless)
 
 main :: IO ()
 main = do
-  putStrLn "Swish-0.2.1 CLI\n\n"
+  putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n"
   args <- getArgs
   code <- runSwishArgs args
   unless (code == ExitSuccess) $ 

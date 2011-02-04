@@ -49,6 +49,8 @@
 
 module Swish.HaskellRDF.SwishMain(runSwish,runSwishArgs) where
 
+import Paths_swish (version)
+
 import Swish.HaskellRDF.SwishCommands
     ( swishFormat
     , swishInput
@@ -76,6 +78,8 @@ import Control.Monad.State
 import Data.Char
     ( isSpace )
 
+import Data.Version (showVersion)
+
 import Control.Monad
     ( when )
 
@@ -88,7 +92,7 @@ import System.Exit
 
 usageText :: [String]
 usageText =
-    [ "Swish 0.2.1"
+    [ "Swish " ++ showVersion version
     , "Read, merge, write, compare and process RDF graphs."
     , ""
     , "Usage: swish option option ..."
