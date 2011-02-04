@@ -99,6 +99,7 @@ usageText =
     , ""
     , "where the options are processed from left to right, and may be"
     , "any of the following:"
+    , "-h        display this message."
     , "-?        display this message."
     , "-n3       use Notation3 format for subsequent input and output."
     , "-i[=file] read file in selected format into the graph workspace,"
@@ -158,6 +159,7 @@ swishCommand cmd =
         case nam of
             ""      -> return ()    -- do nothing
             "-?"    -> swishHelp
+            "-h"    -> swishHelp
             "-n3"   -> swishFormat N3
             "-i"    -> swishInput arg
             "-m"    -> swishMerge arg
