@@ -111,7 +111,6 @@ Library
       Swish.HaskellUtils.QName
       Swish.HaskellUtils.ShowM
       Swish.HaskellUtils.TraceHelpers
-      Swish.HaskellUtils.Network.URI
 
    -- hide the Sort modules since aim to replace these in the near future
    -- and their documentation doesn't build at the moment
