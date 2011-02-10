@@ -106,7 +106,6 @@ Library
       Swish.HaskellUtils.MiscHelpers
       Swish.HaskellUtils.Namespace
       Swish.HaskellUtils.Parse
-      Swish.HaskellUtils.ParseURI
       Swish.HaskellUtils.PartOrderedCollection
       Swish.HaskellUtils.ProcessURI
       Swish.HaskellUtils.QName
@@ -321,13 +320,6 @@ Executable         ParseTest
 
 
 
-Executable         ParseURITest
-   Main-Is:        Swish/HaskellUtils/ParseURITest.hs
-   Other-Modules:  Swish.HaskellUtils.ParseURITest
-                   Swish.HaskellUtils.Parse
-
-
-
 Executable         QNameTest
    Main-Is:        Swish/HaskellUtils/QNameTest.hs
    Other-Modules:  Swish.HaskellUtils.QName
@@ -346,7 +338,7 @@ Executable         SwishTest
    Other-Modules:  Swish.HaskellRDF.SwishMain
 
 
-
+ -- TODO: remove this section
  Executable         SwishTestAll
     Main-Is:        Swish/HaskellRDF/SwishTestAll.hs
     Other-Modules:  Swish.HaskellUtils.DateTimeTest
@@ -354,7 +346,6 @@ Executable         SwishTest
                     Swish.HaskellUtils.LookupMapTest
                     Swish.HaskellUtils.NamespaceTest
                     Swish.HaskellUtils.URITest
-                    Swish.HaskellUtils.ParseURITest
                     Swish.HaskellRDF.GraphTest
                     Swish.HaskellRDF.VarBindingTest
                     Swish.HaskellRDF.RDFGraphTest
