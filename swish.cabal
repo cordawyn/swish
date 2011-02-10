@@ -105,7 +105,6 @@ Library
       Swish.HaskellUtils.LookupMap
       Swish.HaskellUtils.MiscHelpers
       Swish.HaskellUtils.Namespace
-      Swish.HaskellUtils.Parse
       Swish.HaskellUtils.PartOrderedCollection
       Swish.HaskellUtils.ProcessURI
       Swish.HaskellUtils.QName
@@ -286,18 +285,13 @@ Executable         LookupMapTest
    Other-Modules:  Swish.HaskellUtils.LookupMap
                    Swish.HaskellUtils.ListHelpers
 
-Executable         ParseTest
-   Main-Is:        Swish/HaskellUtils/ParseTest.hs
-   Other-Modules:  Swish.HaskellUtils.Parse
-
 Executable         QNameTest
    Main-Is:        Swish/HaskellUtils/QNameTest.hs
    Other-Modules:  Swish.HaskellUtils.QName
 
 Executable         URITest 
    Main-Is:        Swish/HaskellUtils/URITest.hs
-   Other-Modules:  Swish.HaskellUtils.Parse
-                   Swish.HaskellUtils.ProcessURI
+   Other-Modules:  Swish.HaskellUtils.ProcessURI
 
 Executable         SwishTest
    Main-Is:        Swish/HaskellRDF/SwishTest.hs

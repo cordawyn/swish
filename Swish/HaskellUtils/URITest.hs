@@ -73,7 +73,6 @@ Cases: 251  Tried: 251  Errors: 0  Failures: 12
 -- WNH RIP OUT module Swish.HaskellUtils.URITest where
 
 import Test.HUnit
-import Swish.HaskellUtils.Parse
 import Swish.HaskellUtils.ProcessURI
 import System.IO ( Handle, openFile, IOMode(WriteMode), hClose, hPutStr, hPutStrLn )
 
