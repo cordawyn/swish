@@ -684,8 +684,8 @@ testRelative36 = testRelative "testRelative36"
 -- relativeRefPart "mailto:local/qual@domain.org" "mailto:local/qual@domain.org#frag"
 testRelative37 = testRelative "testRelative37"
                     "mailto:local/qual@domain.org"
-                    "mailto:local/qual@domain.org#frag"
-                    "local/qual@domain.org#frag"
+                    "mailto:local/qual@domain.org#frag" --- DJB: shouldn't this be mailto:local/local/qual@domain.org#frag ?
+                    "local/qual@domain.org#frag" 
 testRelative38 = testRelative "testRelative38"
                     "http://ex/x/y?q" "http://ex/x/y?q" "y?q"
 testRelative39 = testRelative "testRelative39"
@@ -746,7 +746,7 @@ testRelative64 = testRelative "testRelative64"
                     "local@domain?query2"
 testRelative65 = testRelative "testRelative65"
                     "mailto:local@domain?query1" "mailto:?query2"
-                    "?query2"
+                    "?query2" -- DJB I don't agree with this test
 
 -- testRelative  base abs rel
 -- testRelSplit  base abs rel
@@ -769,7 +769,7 @@ testRelative74 = testRelJoin "testRelative74"
 testRelative75 = testRelJoin "testRelative74"
                     "f://example.org/base/a" "b/c//d/e"
                     "f://example.org/base/b/c//d/e"
-testRelative76 = testRelJoin "testRelative74"
+testRelative76 = testRelJoin "testRelative76"
                     "mid:m@example.ord/c@example.org" "m2@example.ord/c2@example.org"
                     "mid:m2@example.ord/c2@example.org"
 

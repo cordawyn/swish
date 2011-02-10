@@ -62,7 +62,11 @@ Library
       random == 1.0.*,
       old-time == 1.0.*,
       mtl >= 1 && < 3,
-      HUnit == 1.2.*
+      HUnit == 1.2.*,
+      -- split is being used in the clean up of ProcessURI but will hopefully not be needed 
+      split == 0.1.*, 
+      network >= 2.2 && < 2.4
+      -- uri >= 0.1 && < 0.1.2
    Exposed-Modules:
       Swish.HaskellRDF.BuiltInDatatypes
       Swish.HaskellRDF.BuiltInMap
