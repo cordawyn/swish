@@ -82,11 +82,13 @@ import Swish.HaskellRDF.Vocabulary
     , default_base
     )
 
-import Swish.HaskellUtils.ProcessURI
-    ( isAbsoluteURIRef, isValidURIRef, absoluteUriPart )
-
 import Swish.HaskellUtils.ErrorM
     ( ErrorM(Error,Result) )
+
+import Network.URI (URI, isURI, isURIReference, relativeTo,
+                    parseURI, parseURIReference, uriToString)
+
+import Data.Maybe (fromJust)
 
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language (emptyDef)
@@ -928,13 +930,22 @@ numberFW base baseDigit width val =
 lexUriRef :: N3Parser String
 lexUriRef = lexeme absUriRef
 
+-- from Swish.HaskellUtils.ProcessURI
+absoluteUriPart :: String -- ^ URI base
+                   -> String -- ^ URI reference
+                   -> String
+absoluteUriPart base rel = showURI $ fromJust $ relativeTo (fromJust (parseURIReference rel)) (fromJust (parseURI base))
+  
+showURI :: URI -> String
+showURI u = uriToString id u ""
+
 absUriRef :: N3Parser String
 absUriRef =
         do  { u <- between (char '<') (char '>' <?> "end of URI '>'") anyUriChars
-            ; if isAbsoluteURIRef u
+            ; if isURI u
               then return u
               else
-              if isValidURIRef u
+              if isURIReference u
               then
                 do  { s <- getState
                     ; (return $ absoluteUriPart (getSUri s "base") u)

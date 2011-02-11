@@ -1,0 +1,128 @@
+
+URI differences
+---------------
+
+The following tests failed when converting from the URI-handling code in
+Swish-0.2.1 to using the Network.URI module.
+
+  Swish.HaskellUtils.ProcessURI.isValidURIRef ->
+    Network.URI.isURIReference
+
+  Swish.HaskellUtils.ProcessURI.isAbsoluteURIRef ->
+    Network.URI.isURI
+
+  Swish.HaskellUtils.Process.absoluteUriPart base rel ->
+    uriToString id (fromJust $ relativeTo (fromJust (parseURIReference rel)) (fromJust (parseURI base))) ""
+
+data URIType = AbsId    -- URI form (absolute, no fragment)
+             | AbsRf    -- Absolute URI reference
+             | RelRf    -- Relative URI reference
+             | InvRf    -- Invalid URI reference
+isValidT :: URIType -> Bool
+isValidT InvRf = False
+isValidT _     = True
+
+isAbsRfT :: URIType -> Bool
+isAbsRfT AbsId = True
+isAbsRfT AbsRf = True
+isAbsRfT _     = False
+
+isAbsIdT :: URIType -> Bool
+isAbsIdT AbsId = True
+isAbsIdT _     = False
+
+testURIRef :: URIType -> String -> Test
+testURIRef t u = TestList
+  [
+    TestCase ( assertEqual ("testValidURIRef:"++u)    (isValidT t) (isValidURIRef    u) ),
+    TestCase ( assertEqual ("testAbsoluteURIRef:"++u) (isAbsRfT t) (isAbsoluteURIRef u) )
+  ]
+
+testRelJoin  :: String -> String -> String -> String -> Test
+testRelJoin label base urel uabs =
+    TestCase ( assertEqual label uabs ( absoluteUriPart base urel ) )
+
+rfcbase  = "http://a/b/c/d;p?q"
+mailbase = "mailto:local/option@domain.org?notaquery#frag"
+
+*) testURIRef InvRf "http://example.123./aaa/bbb#ccc"
+
+### Failure in: 0:Test URIrefs:17:0          
+testValidURIRef:http://example.123./aaa/bbb#ccc
+expected: False
+ but got: True
+### Failure in: 0:Test URIrefs:17:1          
+testAbsoluteURIRef:http://example.123./aaa/bbb#ccc
+expected: False
+ but got: True
+
+*) testRelJoin "testRFC23" rfcbase "#s" "#s"   -- current document
+
+### Failure in: 1:Test RFC2396 examples:22    
+testRFC23
+expected: "#s"
+ but got: "http://a/b/c/d;p?q#s"
+
+*) testRelJoin "testRFC24" rfcbase "" ""       -- current document
+
+### Failure in: 1:Test RFC2396 examples:23    
+testRFC24
+expected: ""
+ but got: "http://a/b/c/d;p?q"
+
+*) testRelJoin "testRFC32" rfcbase "../../../g" "http://a/../g"
+
+### Failure in: 1:Test RFC2396 examples:25    
+testRFC32
+expected: "http://a/../g"
+ but got: "http://a/g"
+
+*) testRelJoin "testRFC33" rfcbase "../../../../g" "http://a/../../g"
+
+### Failure in: 1:Test RFC2396 examples:26    
+testRFC33
+expected: "http://a/../../g"
+ but got: "http://a/g"
+
+*) testRelJoin "testRFC35" rfcbase "/../g" "http://a/../g"
+
+### Failure in: 1:Test RFC2396 examples:28    
+testRFC35
+expected: "http://a/../g"
+ but got: "http://a/g"
+
+*) testRelJoin "testMail01" mailbase "local@domain" "mailto:local@domain"
+
+### Failure in: 2:Test oddball examples:0     
+testMail01
+expected: "mailto:local@domain"
+ but got: "mailto:local/local@domain"
+
+*) testRelJoin "testMail02" mailbase "#newfrag" "mailto:#newfrag"
+            -- "mailto:local/option@domain.org?notaquery#newfrag"
+
+### Failure in: 2:Test oddball examples:1     
+testMail02
+expected: "mailto:#newfrag"
+ but got: "mailto:local/option@domain.org?notaquery#newfrag"
+
+*) testRelJoin "testMail03" mailbase "l1/q1@domain" "mailto:l1/q1@domain"
+
+### Failure in: 2:Test oddball examples:2     
+testMail03
+expected: "mailto:l1/q1@domain"
+ but got: "mailto:local/l1/q1@domain"
+
+*) testRelJoin "testMail16" "mailto:local@domain?query1" "?query2" "mailto:?query2"
+
+### Failure in: 2:Test oddball examples:8      
+testMail16
+expected: "mailto:?query2"
+ but got: "mailto:local@domain?query2"
+
+*) testRelJoin "testInfo17" "info:name/1234/../567" "name/9876/../543" "info:name/9876/../543"
+
+### Failure in: 2:Test oddball examples:9      
+testInfo17
+expected: "info:name/9876/../543"
+ but got: "info:name/name/543"
