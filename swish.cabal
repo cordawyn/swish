@@ -114,26 +114,11 @@ Library
    -- and their documentation doesn't build at the moment
    other-modules:
       Paths_swish
-      Swish.HaskellRDF.Sort.AdaptiveHeapSort
-      Swish.HaskellRDF.Sort.BraunHeap
-      Swish.HaskellRDF.Sort.CartesianTree
-      Swish.HaskellRDF.Sort.DigitalSort
-      Swish.HaskellRDF.Sort.FingerSearchtree
-      Swish.HaskellRDF.Sort.Force
-      Swish.HaskellRDF.Sort.HeapSort
       Swish.HaskellRDF.Sort.LibBase
       Swish.HaskellRDF.Sort.ListLib
-      Swish.HaskellRDF.Sort.MargeSort
       Swish.HaskellRDF.Sort.MergeSort
-      Swish.HaskellRDF.Sort.PairingHeap
       Swish.HaskellRDF.Sort.QuickSort
-      Swish.HaskellRDF.Sort.RedBlackTree
-      Swish.HaskellRDF.Sort.SplaySort
-      Swish.HaskellRDF.Sort.Squiggol
-      Swish.HaskellRDF.Sort.Stable
 
-   -- extensions:
-   --   CPP, ParallelListComp
    ghc-options:
       -Wall -fexcess-precision -funbox-strict-fields -auto-all
 
