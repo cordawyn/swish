@@ -1,10 +1,23 @@
 
 0.2.1 to 0.3.0.0:
 
-  - removed Swish.HaskellRDF.ParsecLanguage module
+  - removed modules, wither because un-needed or replaced
+    by other libraries:
+
+      Swish.HaskellRDF.ParsecLanguage
+      Swish.HaskellRDF.ProcessURI
+      Swish.HaskellRDF.ParseURI
+      Swish.HaskellRDF.Parse
+
   - Swish.HaskellRDF.Sort modules are now hidden
+
   - updated Haddock documentation to build
+
   - removed Either String instance from ErrorM
+
   - added upper and lower bounds to package dependencies
+
   - should now compile with mtl-2
 
+  - a number of Test executables have been removed, either
+    because of a removed module or missing data files.
