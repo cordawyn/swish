@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -37,9 +38,16 @@ module Swish.HaskellUtils.LookupMap
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
     )
-where
+    where
 
-import Data.List( nub, sortBy )
+import qualified Data.Foldable as F
+import qualified Data.Traversable as T
+import qualified Data.List as L
+
+import Data.Monoid (Monoid(..))
+import Control.Applicative (Applicative(..))
+import Control.Monad (ap)
+
 import Data.Ord (comparing)
 
 import Swish.HaskellUtils.ListHelpers ( equiv )
@@ -85,6 +93,10 @@ instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
 --  an algebraic data type).
 --
 data LookupMap a = LookupMap [a]
+  deriving (Functor, F.Foldable, T.Traversable)
+
+gLM :: LookupMap a -> [a]
+gLM (LookupMap es) = es
 
 -- |Define equality of 'LookupMap' values based on equality of entries.
 --
@@ -103,6 +115,32 @@ instance (Eq a) => Eq (LookupMap a) where
 --
 instance (Show a ) => Show (LookupMap a) where
     show (LookupMap es) = "LookupMap " ++ show es
+
+{-
+QUS: are all these instances useful?
+-}
+instance Monoid (LookupMap a) where
+  mempty  = LookupMap []
+  mappend (LookupMap ls) (LookupMap rs) = LookupMap $ ls ++ rs
+        
+instance Monad LookupMap where
+  return x = LookupMap [x]
+  fail _   = LookupMap []
+  
+  (LookupMap es) >>= k = LookupMap $ foldr ((++) . gLM . k) [] es
+  (LookupMap es) >> k  = LookupMap $ foldr ((++) . gLM . (\_ -> k)) [] es
+  
+instance Applicative LookupMap where
+  pure = return
+  (<*>) = ap
+  
+{-
+TODO: should the LookupEntryClass constraint be removed from
+emptyLookupMap and makeLookupMap?
+
+I guess not since LookupMap is exported, so users can use
+that if they do not need the constraint.
+-}
 
 -- |Empty lookup map of arbitrary (i.e. polymorphic) type.
 --
@@ -123,7 +161,7 @@ makeLookupMap = LookupMap
 --  more substantial.
 --
 listLookupMap :: (LookupEntryClass a k v) => LookupMap a -> [a]
-listLookupMap (LookupMap es) = es
+listLookupMap = gLM
 
 -- |Given a lookup map entry, return a new entry that can be used
 --  in the reverse direction of lookup.  This is used to construct
@@ -138,7 +176,7 @@ reverseEntry e = newEntry (v,k) where (k,v) = keyVal e
 --
 reverseLookupMap :: (LookupEntryClass a1 b c, LookupEntryClass a2 c b)
     => LookupMap a1 -> LookupMap a2
-reverseLookupMap (LookupMap es) = LookupMap (map reverseEntry es)
+reverseLookupMap = fmap reverseEntry
 
 -- |Given a pair of lookup entry values, return the ordering of their
 --  key values.
@@ -153,8 +191,7 @@ keyOrder e1 e2 = compare k1 k2
 --  Local helper function to build a new LookupMap from
 --  a new entry and an exiting map.
 --
-mapCons :: (LookupEntryClass a k v) =>
-    a -> LookupMap a -> LookupMap a
+mapCons :: a -> LookupMap a -> LookupMap a
 mapCons e (LookupMap es) = LookupMap (e:es)
 
 -- |Find key in lookup map and return corresponding value,
@@ -243,8 +280,7 @@ mapReplaceMap (LookupMap []) _ = LookupMap []
 --  This is effectively an optimized case of 'mapReplaceOrAdd' or 'mapAddIfNew',
 --  where the caller guarantees to avoid duplicate key values.
 --
-mapAdd :: (LookupEntryClass a k v) =>
-    LookupMap a -> a -> LookupMap a
+mapAdd :: LookupMap a -> a -> LookupMap a
 mapAdd emap e = mapCons e emap
 
 -- |Add supplied key-value pair to the lookup map,
@@ -283,7 +319,7 @@ mapDeleteAll (LookupMap []) _ = LookupMap []
 --
 mapApplyToAll :: (LookupEntryClass a k v) =>
     LookupMap a -> (k -> w) -> [w]
-mapApplyToAll (LookupMap es) f = [ f (entryKey e) | e <- es ]
+mapApplyToAll es f = gLM $ fmap (f . entryKey) es
 
 -- |Find a node in a lookup map list, and returns the
 --  corresponding value from a supplied list.  The appropriate ordering
@@ -315,13 +351,13 @@ mapEq es1 es2 =
 --
 mapKeys :: (LookupEntryClass a k v) =>
     LookupMap a -> [k]
-mapKeys (LookupMap es) = nub $ map (fst . keyVal) es
+mapKeys (LookupMap es) = L.nub $ map (fst . keyVal) es
 
 -- |Return list of distinct values in a supplied LookupMap
 --
 mapVals :: (Eq v, LookupEntryClass a k v) =>
     LookupMap a -> [v]
-mapVals (LookupMap es) = nub $ map (snd . keyVal) es
+mapVals (LookupMap es) = L.nub $ map (snd . keyVal) es
 
 -- |Select portion of a lookup map that corresponds to
 --  a supplied list of keys
@@ -339,7 +375,7 @@ mapSelect (LookupMap es) ks =
 mapMerge :: (LookupEntryClass a k v, Eq a, Show a, Ord k) =>
     LookupMap a -> LookupMap a -> LookupMap a
 mapMerge (LookupMap s1) (LookupMap s2) =
-    LookupMap $ merge (sortBy keyOrder s1) (sortBy keyOrder s2)
+    LookupMap $ merge (L.sortBy keyOrder s1) (L.sortBy keyOrder s2)
     where
         merge es1 [] = es1
         merge [] es2 = es2
@@ -360,7 +396,7 @@ mapMerge (LookupMap s1) (LookupMap s2) =
 mapSortByKey :: (LookupEntryClass a k v, Ord k) =>
     LookupMap a -> LookupMap a
 mapSortByKey (LookupMap es) =
-    LookupMap $ sortBy (comparing entryKey) es
+    LookupMap $ L.sortBy (comparing entryKey) es
 
 -- |Creates a new map that is the same as the supplied map, except
 --  that its entries are sorted by key value.
@@ -370,7 +406,7 @@ mapSortByKey (LookupMap es) =
 mapSortByVal :: (LookupEntryClass a k v, Ord v) =>
     LookupMap a -> LookupMap a
 mapSortByVal (LookupMap es) =
-    LookupMap $ sortBy (comparing entryVal) es
+    LookupMap $ L.sortBy (comparing entryVal) es
 
 -- |An fmap-like function that returns a new lookup map that is a
 --  copy of the supplied map with entry keys replaced according to
@@ -378,8 +414,7 @@ mapSortByVal (LookupMap es) =
 --
 mapTranslateKeys :: (LookupEntryClass a1 k1 v, LookupEntryClass a2 k2 v) =>
     (k1 -> k2) -> LookupMap a1 -> LookupMap a2
-mapTranslateKeys f (LookupMap es) =
-    LookupMap $ map (kmap f) es
+mapTranslateKeys f = fmap (kmap f)
 
 -- |An fmap-like function that returns a new lookup map that is a
 --  copy of the supplied map with entry values replaced according to
@@ -387,25 +422,30 @@ mapTranslateKeys f (LookupMap es) =
 --
 mapTranslateVals :: (LookupEntryClass a1 k v1, LookupEntryClass a2 k v2) =>
     (v1 -> v2) -> LookupMap a1 -> LookupMap a2
-mapTranslateVals f = mapTranslateEntries (vmap f)
+mapTranslateVals f = fmap (vmap f)
 
 -- |A function that returns a new lookup map that is a copy of the
 --  supplied map with complete entries replaced according to
 --  a supplied function.
 --
-mapTranslateEntries ::
-    (a1 -> a2) -> LookupMap a1 -> LookupMap a2
-mapTranslateEntries f (LookupMap es) =
-    LookupMap $ map f es
+-- Since 'LookupMap' now has a 'Functor' instance this is just 'fmap'
+mapTranslateEntries :: (a1 -> a2) -> LookupMap a1 -> LookupMap a2
+mapTranslateEntries = fmap
 
--- |A monadic form of mapTranslateEntries
+-- |A monadic form of 'mapTranslateEntries'
+--
+-- Since 'LookupMap' now has a 'Data.Traversable.Traversable' instance
+-- this is just 'Data.Traversable.mapM'.
 --
 mapTranslateEntriesM :: (Monad m)
     => (a1 -> m a2) -> LookupMap a1 -> m (LookupMap a2)
+mapTranslateEntriesM = T.mapM 
+{-
 mapTranslateEntriesM f (LookupMap es) =
     do  { m2 <- mapM f es
         ; return $ LookupMap m2
         }
+-}
 
 --------------------------------------------------------------------------------
 --
