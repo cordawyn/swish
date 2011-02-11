@@ -288,7 +288,8 @@ Executable         QNameTest
    Main-Is:        Swish/HaskellUtils/QNameTest.hs
    Other-Modules:  Swish.HaskellUtils.QName
 
-Executable         SwishTest
+ -- we do not have the data files to run this test
+ Executable         SwishTest
    Main-Is:        Swish/HaskellRDF/SwishTest.hs
    Other-Modules:  Swish.HaskellRDF.SwishMain
 
