@@ -115,8 +115,6 @@ Library
    other-modules:
       Paths_swish
       Swish.HaskellRDF.Sort.LibBase
-      Swish.HaskellRDF.Sort.ListLib
-      Swish.HaskellRDF.Sort.MergeSort
       Swish.HaskellRDF.Sort.QuickSort
 
    ghc-options:
