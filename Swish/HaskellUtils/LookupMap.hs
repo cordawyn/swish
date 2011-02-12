@@ -44,10 +44,6 @@ import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 import qualified Data.List as L
 
-import Data.Monoid (Monoid(..))
-import Control.Applicative (Applicative(..))
-import Control.Monad (ap)
-
 import Data.Ord (comparing)
 
 import Swish.HaskellUtils.ListHelpers ( equiv )
