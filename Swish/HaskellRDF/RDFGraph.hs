@@ -94,6 +94,10 @@ import Swish.HaskellUtils.LookupMap
 import Swish.HaskellUtils.FunctorM
     ( FunctorM(..) )
 
+import qualified Data.Traversable as T
+
+import Control.Monad (liftM, ap)
+
 import Data.Char
     ( isDigit )
 
@@ -423,11 +427,8 @@ instance Functor NSGraph where
                  }
 
 instance FunctorM NSGraph where
-    fmapM f g =
-        do  { s2 <- (mapM $ fmapM f) (statements g)
-            ; f2 <- formulaeMapM f (formulae g)
-            ; return $ g { statements = s2, formulae = f2 }
-            }
+    fmapM f (NSGraph ns fml stmts) =
+      (NSGraph ns) `liftM` formulaeMapM f fml `ap` (mapM $ T.mapM f) stmts
 
 instance (Label lb) => Eq (NSGraph lb) where
     (==) = grEq

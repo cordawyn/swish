@@ -31,14 +31,10 @@ module Swish.HaskellRDF.GraphClass
     )
 where
 
-import Swish.HaskellUtils.FunctorM
-    ( FunctorM(..) )
-
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
-import Data.List
-    ( union, (\\) )
+import Data.List (union, (\\))
 
 --------------------------------
 --  Labelled Directed Graph class
@@ -144,9 +140,6 @@ instance Ord lb => Ord (Arc lb) where
     | p1 /= p2 = p1 <= p2
     | otherwise = o1 <= o2
 
-instance FunctorM Arc where
-  fmapM = T.mapM
-  
 instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =
         "("++ show lb1 ++","++ show lb2 ++","++ show lb3 ++")"
