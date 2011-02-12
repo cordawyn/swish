@@ -34,9 +34,7 @@ import Swish.HaskellRDF.GraphClass
 import Swish.HaskellRDF.GraphMatch
 import Swish.HaskellUtils.MiscHelpers
     ( hash )
-import Swish.HaskellUtils.FunctorM
-    ( FunctorM(..) )
-import Control.Monad (liftM)
+
 import Data.Ord (comparing)
 
 import qualified Data.Foldable as F
@@ -61,9 +59,6 @@ instance (Label lb) => Eq (GraphMem lb) where
 instance (Label lb) => Show (GraphMem lb) where
     show = graphShow
 
-instance FunctorM GraphMem where
-  fmapM = T.mapM
-  
 graphShow   :: (Label lb) => GraphMem lb -> String
 graphShow g = "Graph:" ++ foldr ((++) . ("\n    " ++) . show) "" (arcs g)
 
