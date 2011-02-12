@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -37,12 +39,16 @@ import Swish.HaskellUtils.FunctorM
 import Control.Monad (liftM)
 import Data.Ord (comparing)
 
+import qualified Data.Foldable as F
+import qualified Data.Traversable as T
+
 -----------------------------------------------------
 --  Memory-based graph type and graph class functions
 -----------------------------------------------------
 
 data GraphMem lb = GraphMem { arcs :: [Arc lb] }
-
+                   deriving (Functor, F.Foldable, T.Traversable)
+                            
 instance (Label lb) => LDGraph GraphMem lb where
     getArcs      = arcs
     setArcs as g = g { arcs=as }
@@ -55,12 +61,9 @@ instance (Label lb) => Eq (GraphMem lb) where
 instance (Label lb) => Show (GraphMem lb) where
     show = graphShow
 
-instance Functor GraphMem where
-    fmap f g = GraphMem $ map (fmap f) (arcs g)
-
 instance FunctorM GraphMem where
-    fmapM f g = GraphMem `liftM` mapM (fmapM f) (arcs g)
-
+  fmapM = T.mapM
+  
 graphShow   :: (Label lb) => GraphMem lb -> String
 graphShow g = "Graph:" ++ foldr ((++) . ("\n    " ++) . show) "" (arcs g)
 

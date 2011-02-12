@@ -1,4 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -31,6 +33,9 @@ where
 
 import Swish.HaskellUtils.FunctorM
     ( FunctorM(..) )
+
+import qualified Data.Foldable as F
+import qualified Data.Traversable as T
 
 import Data.List
     ( union, (\\) )
@@ -104,7 +109,7 @@ class (Eq lb, Show lb, Ord lb) => Label lb where
 ------------
 
 data Arc lb = Arc { asubj, apred, aobj :: lb }
-    deriving Eq
+    deriving (Eq, Functor, F.Foldable, T.Traversable)
 
 arcSubj :: Arc lb -> lb
 arcSubj = asubj
@@ -139,19 +144,9 @@ instance Ord lb => Ord (Arc lb) where
     | p1 /= p2 = p1 <= p2
     | otherwise = o1 <= o2
 
-instance Functor Arc where
-    -- fmap :: (lb -> l2) -> Arc lb -> Arc l2
-    fmap f (Arc s p o) = Arc (f s) (f p) (f o)
-
 instance FunctorM Arc where
-    -- fmapM :: (lb -> m l2) -> Arc lb -> m (Arc l2)
-    fmapM f (Arc s p o) =
-        do  { s' <- f s
-            ; p' <- f p
-            ; o' <- f o
-            ; return $ Arc s' p' o'
-            }
-
+  fmapM = T.mapM
+  
 instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =
         "("++ show lb1 ++","++ show lb2 ++","++ show lb3 ++")"
