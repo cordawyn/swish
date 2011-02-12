@@ -117,24 +117,6 @@ instance (Show a ) => Show (LookupMap a) where
     show (LookupMap es) = "LookupMap " ++ show es
 
 {-
-QUS: are all these instances useful?
--}
-instance Monoid (LookupMap a) where
-  mempty  = LookupMap []
-  mappend (LookupMap ls) (LookupMap rs) = LookupMap $ ls ++ rs
-        
-instance Monad LookupMap where
-  return x = LookupMap [x]
-  fail _   = LookupMap []
-  
-  (LookupMap es) >>= k = LookupMap $ foldr ((++) . gLM . k) [] es
-  (LookupMap es) >> k  = LookupMap $ foldr ((++) . gLM . (\_ -> k)) [] es
-  
-instance Applicative LookupMap where
-  pure = return
-  (<*>) = ap
-  
-{-
 TODO: should the LookupEntryClass constraint be removed from
 emptyLookupMap and makeLookupMap?
 
