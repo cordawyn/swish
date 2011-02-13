@@ -20,11 +20,11 @@
     *) Un-needed 
 
       Swish.HaskellRDF.Parse
+      Swish.HaskelUtils.AccumulateM
 
-  - Swish.HaskellRDF.Sort modules are now hidden (and most of
-    them have been removed since they were unused)
+    *) Either un-needed or now hidden
 
-  - updated Haddock documentation to build
+      Swish.HaskellRDF.Sort.*
 
   - removed Either String instance from ErrorM
 
@@ -34,3 +34,6 @@
 
   - a number of Test executables have been removed, either
     because of a removed module or missing data files.
+
+  - updated Haddock documentation to build
+

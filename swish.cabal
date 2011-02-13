@@ -97,7 +97,6 @@ Library
       Swish.HaskellRDF.SwishScript
       Swish.HaskellRDF.VarBinding
       Swish.HaskellRDF.Vocabulary
-      Swish.HaskellUtils.AccumulateM
       Swish.HaskellUtils.DateTime
       Swish.HaskellUtils.ErrorM
       Swish.HaskellUtils.ListHelpers
