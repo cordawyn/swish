@@ -71,11 +71,10 @@ import Swish.HaskellRDF.Vocabulary
     ( xsd_integer, xsd_nonneg_integer
     )
 
-import Swish.HaskellUtils.FunctorM
-    ( FunctorM(..) )
-
 import Swish.HaskellUtils.ListHelpers
     ( listProduct, allp, anyp )
+
+import qualified Data.Traversable as T
 
 import Control.Monad.State
     ( State, runState, modify )
@@ -404,7 +403,8 @@ rdfQueryBackSubsBlank varss gr = [ rdfQuerySubsBlank v gr | v <- varss ]
 rdfQuerySubs2 :: RDFVarBinding -> RDFGraph -> (RDFGraph,[RDFLabel])
 rdfQuerySubs2 varb gr = (add emptyRDFGraph g,vs)
     where
-        (g,vs) = runState ( fmapM (mapNode varb) gr ) []
+        (g,vs) = runState ( T.traverse (mapNode varb) gr ) []
+        -- (g,vs) = runState ( fmapM (mapNode varb) gr ) []
 
 --  Auxiliary monad function for rdfQuerySubs2.
 --  This returns a state transformer Monad which in turn returns the

@@ -4,20 +4,33 @@
   - removed modules, wither because un-needed or replaced
     by other libraries:
 
-      Swish.HaskellRDF.ParsecLanguage
+    *) replaced with Data.Traversable instances
+
+      Swish.HaskellUtils.FunctorM
+
+    *) replaced with routines from Network.URI
+
       Swish.HaskellRDF.ProcessURI
       Swish.HaskellRDF.ParseURI
+
+    *) copy of a Parsec module
+
+      Swish.HaskellRDF.ParsecLanguage
+
+    *) Un-needed 
+
       Swish.HaskellRDF.Parse
 
-  - Swish.HaskellRDF.Sort modules are now hidden
+  - Swish.HaskellRDF.Sort modules are now hidden (and most of
+    them have been removed since they were unused)
 
   - updated Haddock documentation to build
 
   - removed Either String instance from ErrorM
 
-  - added upper and lower bounds to package dependencies
-
   - should now compile with mtl-2
+
+  - added upper and lower bounds to package dependencies
 
   - a number of Test executables have been removed, either
     because of a removed module or missing data files.

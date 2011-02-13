@@ -100,7 +100,6 @@ Library
       Swish.HaskellUtils.AccumulateM
       Swish.HaskellUtils.DateTime
       Swish.HaskellUtils.ErrorM
-      Swish.HaskellUtils.FunctorM
       Swish.HaskellUtils.ListHelpers
       Swish.HaskellUtils.LookupMap
       Swish.HaskellUtils.MiscHelpers
@@ -197,8 +196,7 @@ Executable         RDFDatatypeXsdIntegerTest
 
 Executable         RDFGraphTest
    Main-Is:        Swish/HaskellRDF/RDFGraphTest.hs
-   Other-Modules:  Swish.HaskellUtils.FunctorM
-                   Swish.HaskellUtils.LookupMap
+   Other-Modules:  Swish.HaskellUtils.LookupMap
                    Swish.HaskellUtils.ListHelpers
                    Swish.HaskellRDF.GraphClass
                    Swish.HaskellUtils.Namespace

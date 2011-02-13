@@ -16,9 +16,6 @@
 
 --  WNH RIP OUT module Swish.HaskellRDF.RDFGraphTest where
 
-import Swish.HaskellUtils.FunctorM
-    ( FunctorM(..) )
-
 import Swish.HaskellUtils.LookupMap
     ( LookupMap(..)
     , mapFind, mapFindMaybe, mapContains )
@@ -88,6 +85,8 @@ import Swish.HaskellRDF.Vocabulary
 import System.IO
     ( Handle, IOMode(WriteMode)
     , openFile, hClose, hPutStr, hPutStrLn )
+
+import qualified Data.Traversable as T
 
 import Data.List
     ( elemIndex )
@@ -1093,7 +1092,7 @@ testGraphTranslate06d = testFormulaLookup "GraphTranslate06d" ft6 st3 (Just gt3)
 
 -- Monadic translate tests, using Maybe Monad
 gt1f1aM = Just gt1
-gt1f1bM = fmapM translateM g1f1
+gt1f1bM = T.mapM translateM g1f1
 ft1M    = getFormulae $ fromJust gt1f1bM
 testGraphTranslate07a = testGraphEqM "gt1f1aM-gt1f1bM" True gt1f1aM gt1f1bM
 testGraphTranslate07b = testFormulaLookup "GraphTranslate07b" ft1M st1 Nothing
@@ -1102,7 +1101,7 @@ testGraphTranslate07d = testFormulaLookup "GraphTranslate07d" ft1M st3 Nothing
 testGraphTranslate07e = testEq "gt1f1aM-gt1f1bM" gt1f1aM gt1f1bM
 
 gt1f2aM = Just gt1f2a
-gt1f2bM = fmapM translateM g1f2
+gt1f2bM = T.mapM translateM g1f2
 ft2M    = getFormulae $ fromJust gt1f2bM
 testGraphTranslate08a = testGraphEqM "gt1f2aM-gt1f2bM" True gt1f2aM gt1f2bM
 testGraphTranslate08b = testFormulaLookup "GraphTranslate08b" ft2M st1 Nothing
@@ -1110,7 +1109,7 @@ testGraphTranslate08c = testFormulaLookup "GraphTranslate08c" ft2M st2 (Just gt2
 testGraphTranslate08d = testFormulaLookup "GraphTranslate08d" ft2M st3 Nothing
 testGraphTranslate08e = testEq "gt1f2aM-gt1f2bM" gt1f2aM gt1f1bM
 
-gt1f5M = fmapM translateM g1f5
+gt1f5M = T.mapM translateM g1f5
 testGraphTranslate09a = testEq "GraphTranslate09a" Nothing gt1f5M
 
 testGraphTranslateSuite = TestLabel "TestTranslate" $ TestList

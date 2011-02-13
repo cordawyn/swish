@@ -90,14 +90,11 @@ import Swish.HaskellUtils.LookupMap
     , listLookupMap
     , mapFind, mapFindMaybe, mapReplaceOrAdd, mapVals, mapKeys )
 
-import Swish.HaskellUtils.FunctorM
-    ( FunctorM(..) )
-
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad (liftM, ap)
+import Control.Applicative (Applicative, liftA, (<$>), (<*>))
+-- import Control.Monad (liftM, ap)
 
 import Data.Char
     ( isDigit )
@@ -366,17 +363,18 @@ formulaEntryMap ::
     -> Formula l2
 formulaEntryMap f (Formula k gr) = Formula (f k) (fmap f gr)
 
-{-
 formulaeMapA :: Applicative f => (lb -> f l2) -> 
                 FormulaMap lb -> f (FormulaMap l2)
-formulaeMapA f (Formula k gr) = 
-  Formula <$> 
--}
+formulaeMapA f = T.traverse (formulaEntryMapA f)
 
---  What follows is a monadic variant of formulaeMap, used to
---  apply a transformation and collect some result in a single
---  pass.
+formulaEntryMapA ::
+  (Applicative f) => 
+  (lb -> f l2)
+  -> Formula lb
+  -> f (Formula l2)
+formulaEntryMapA f (Formula k gr) = Formula `liftA` f k <*> T.traverse f gr
 
+{-
 formulaeMapM ::
     (Monad m) => (lb -> m l2) -> FormulaMap lb -> m (FormulaMap l2)
 formulaeMapM f = T.mapM (formulaEntryMapM f)
@@ -387,8 +385,9 @@ formulaEntryMapM ::
     -> Formula lb
     -> m (Formula l2)
 formulaEntryMapM f (Formula k gr) =
-  Formula `liftM` f k `ap` fmapM f gr
+  Formula `liftM` f k `ap` T.mapM f gr
     
+-}
 
 ---------------------------------------------------------
 --  Memory-based graph with namespaces and subgraphs
@@ -431,10 +430,13 @@ instance Functor NSGraph where
   fmap f (NSGraph ns fml stmts) =
     NSGraph ns (formulaeMap f fml) ((map $ fmap f) stmts)
 
-instance FunctorM NSGraph where
-  fmapM f (NSGraph ns fml stmts) =
-    (NSGraph ns) `liftM` formulaeMapM f fml `ap` (mapM $ T.mapM f) stmts
+instance F.Foldable NSGraph where
+  foldMap = T.foldMapDefault
 
+instance T.Traversable NSGraph where
+  traverse f (NSGraph ns fml stmts) = 
+    (NSGraph ns) <$> formulaeMapA f fml <*> (T.traverse $ T.traverse f) stmts
+  
 instance (Label lb) => Eq (NSGraph lb) where
     (==) = grEq
 
