@@ -85,6 +85,8 @@ import Swish.HaskellRDF.Vocabulary
 import Swish.HaskellUtils.ErrorM
     ( ErrorM(Error,Result) )
 
+import Control.Monad (liftM2)
+
 import Network.URI (URI, isURI, isURIReference, relativeTo,
                     parseURI, parseURIReference, uriToString)
 
@@ -137,9 +139,6 @@ identLetter = P.identLetter n3Style
 
 istring :: String -> CharParser st ()
 istring s = string s >> return ()
-
-ichar :: Char -> CharParser st ()
-ichar c = char c >> return ()
 
 isymbol :: String -> N3Parser ()
 isymbol s = symbol s >> return ()
@@ -271,13 +270,12 @@ parseAnyfromString parser base input =
                 Right res -> Right res
 
 newBlankNode :: N3Parser RDFLabel
-newBlankNode =
-        do  { s <- getState
-            ; let n = nodeGen s + 1
-            ; setState ( s { nodeGen = n } )
-            ; return (Blank (show n))
-            }
-
+newBlankNode = do
+  s <- getState
+  let n = nodeGen s + 1
+  setState $ s { nodeGen = n } 
+  return $ Blank (show n)
+  
 --  Test functions for selected element parsing
 
 parseTextFromString :: String -> String -> Either String String
@@ -315,16 +313,15 @@ parseURIref2FromString =
 --  document         = directive* statement-list
 
 document :: N3Parser RDFGraph
-document =
-        do  { whiteSpace
-            ; _ <- many directive
-            ; statements
-            ; eof
-            ; s <- getState
-            ; return $ setNamespaces (prefixUris s) (graphState s)
-            }
-
-
+document = do
+  whiteSpace
+  _ <- many directive
+  statements
+  eof
+  s <- getState
+  return $ setNamespaces (prefixUris s) (graphState s)
+    
+  
 --  directive        = "@prefix" prefix ":" uriRef2 "."   // Namespace declaration
 --                   | "@prefix" ":" uriRef2 "."          // Default namespace
 --                   | "@equivalence" uriRef2 "."         // Alternative to daml:equivalent
@@ -338,52 +335,45 @@ document =
 --                   | "@base"  uriRef2 "."               // Base URI for relative URIs.
 
 directive :: N3Parser ()
-directive =
-        do  { try $ isymbol "@prefix"
-            ; ( defaultPrefix <|> namedPrefix )
-            }
-    <|>
-        (istring "@" >> syntaxUri)
-    <?>
-        "directive"
+directive = 
+  (try (isymbol "@prefix") >> (defaultPrefix <|> namedPrefix))
+  <|> (string "@" >> syntaxUri)
+  <?> "directive"
 
 defaultPrefix :: N3Parser ()
-defaultPrefix =
-        do  { isymbol ":"
-            ; u <- uriRef2
-            ; isymbol "."
-            ; updateState $ setPrefix "" (getScopedNameURI u)
-            }
-
+defaultPrefix = do
+  isymbol ":"
+  u <- uriRef2
+  isymbol "."
+  updateState $ setPrefix "" (getScopedNameURI u)
+  
 namedPrefix :: N3Parser ()
-namedPrefix =
-        do  { n <- name
-            ; isymbol ":"
-            ; u <- uriRef2
-            ; isymbol "."
-            ; updateState $ setPrefix n (getScopedNameURI u)
-            }
-
+namedPrefix = do
+  n <- name
+  isymbol ":"
+  u <- uriRef2
+  isymbol "."
+  updateState $ setPrefix n (getScopedNameURI u)
+        
 syntaxUri :: N3Parser ()
-syntaxUri =
-        do  { s <- uriName
-            ; u <- uriRef2
-            ; isymbol "."
-            ; updateState $ setSUri s (getScopedNameURI u)
-            }
-
+syntaxUri = do
+  s <- uriName
+  u <- uriRef2
+  isymbol "."
+  updateState $ setSUri s (getScopedNameURI u)
+        
 uriName :: N3Parser String
 uriName =
-        try (symbol "equivalence")
-    <|> try (symbol "listfirst")
-    <|> try (symbol "listrest")
-    <|> try (symbol "listnull")
-    <|> try (symbol "plus")
-    <|> try (symbol "minus")
-    <|> try (symbol "slash")
-    <|> try (symbol "star")
-    <|> try (symbol "base")
-    <?> "special URI directive"
+  try (symbol "equivalence")
+  <|> try (symbol "listfirst")
+  <|> try (symbol "listrest")
+  <|> try (symbol "listnull")
+  <|> try (symbol "plus")
+  <|> try (symbol "minus")
+  <|> try (symbol "slash")
+  <|> try (symbol "star")
+  <|> try (symbol "base")
+  <?> "special URI directive"
 
 
 --  statements       = [ statement ( "." statement )* ]
@@ -421,28 +411,25 @@ properties subj = sepBy1 (property subj) (symbol ";") >> return ()
 
 property :: RDFLabel -> N3Parser ()
 property subj =
-    do  { (ppty,swap) <- verb
-        ; objects subj ppty swap
-        }
-    <|>
-    (isymbol ":-" >> anonNode subj >> return ())
+  (verb >>= uncurry (objects subj))
+  <|>
+  (isymbol ":-" >> anonNode subj >> return ())
+
+-- a specialization of bracket 
+br :: String -> String -> N3Parser a -> N3Parser a
+br lsym rsym = between (symbol lsym) (symbol rsym)
 
 verb :: N3Parser (RDFLabel,Bool)
-verb =  do  { p <- prop ;                                return (p,False) }
-    <|> do  { p <- operator ;                            return (p,False) }
-    <|> do  { isymbol ">-"  ; p <- prop ; isymbol "->" ; return (p,False) }
-    <|> do  { isymbol "<-"  ; p <- prop ; isymbol "<-" ; return (p,True) }
-    <|> do  { isymbol "has" ; p <- prop ; isymbol "of" ; return (p,False) }
-    <|> do  { isymbol "is"  ; p <- prop ; isymbol "of" ; return (p,True) }
-    <|> do  { isymbol "a"
-            ; lab <- operatorLabel rdf_type
-            ; return (lab,False)
-            }
-    <|> do  { isymbol "="
-            ; lab <- operatorLabel owl_sameAs
-            ; return (lab,False)
-            }
-    <?> "property"
+verb = 
+  (prop >>= \p -> return (p, False))    
+  <|> (operator >>= \p -> return (p, False))
+  <|> (br ">-"  "->" prop >>= \p -> return (p, False))
+  <|> (br "<-"  "<-" prop >>= \p -> return (p, True))
+  <|> (br "has" "of" prop >>= \p -> return (p, False))
+  <|> (br "is"  "of" prop >>= \p -> return (p, True))
+  <|> (symbol "a" >> operatorLabel rdf_type   >>= \lab -> return (lab, False))
+  <|> (symbol "=" >> operatorLabel owl_sameAs >>= \lab -> return (lab, False))
+  <?> "property"
 
 
 --  objects          = object
@@ -456,10 +443,8 @@ verb =  do  { p <- prop ;                                return (p,False) }
 --  New statements are added to the graph in the parser's user state
 
 objects :: RDFLabel -> RDFLabel -> Bool -> N3Parser ()
-objects subj ppty swap =
-        do  { _ <- sepBy1 (object subj ppty swap) (symbol ",")
-            ; return ()
-            }
+objects subj ppty swap = 
+  sepBy1 (object subj ppty swap) (symbol ",") >> return ()
 
 --  anonNode         = "[" property-list "]"    // Something with given properties
 --                   | "{" statement-list "}"   // List of statements as resource
@@ -477,34 +462,34 @@ objects subj ppty swap =
 
 anonNode :: RDFLabel -> N3Parser RDFLabel
 anonNode subj =
-        do  { isymbol "[" ; properties subj ; isymbol "]" ; return subj }
-    <|> do  { isymbol "{" ; form <- formula  subj ; isymbol "}" ; return form }
-    <|> do  { isymbol "(" ; list <- nodeList subj ; isymbol ")" ; return list }
-    <?> "anon node (\"[\", \"(\" or \"{\")"
+  (br "[" "]" (properties subj) >> return subj)
+  <|> br "{" "}" (formula subj)
+  <|> br "(" ")" (nodeList subj)
+  <?> "anon node (\"[\", \"(\" or \"{\")"
 
 --  This method allows a statement list to be parsed as a subgraph
 --  whose value is associated with the supplied node of the current
 --  graph.
 
 formula :: RDFLabel -> N3Parser RDFLabel
-formula subj =
-        do  { subgr <- subgraph subj
-            ; updateState $ updateGraph
-                          $ setFormula (Formula subj subgr)
-            ; return subj
-            }
+formula subj = do
+  subgr <- subgraph subj
+  updateState
+    $ updateGraph
+    $ setFormula (Formula subj subgr)
+  return subj
 
 subgraph :: RDFLabel -> N3Parser RDFGraph
-subgraph this =
-        do  { pstate <- getState
-            ; let fstate = pstate { graphState = emptyRDFGraph, thisNode = this }
-            ; setState fstate       -- switch new state into parser
-            ; statements            -- parse statements of formula
-            ; fstate' <- getState
-            ; let nstate = pstate { nodeGen = nodeGen fstate' }
-            ; setState nstate       -- swap back state, with updated nodeGen
-            ; return (graphState fstate')
-            }
+subgraph this = do
+  pstate <- getState
+  let fstate = pstate { graphState = emptyRDFGraph, thisNode = this }
+  setState fstate       -- switch new state into parser
+  statements            -- parse statements of formula
+  fstate' <- getState
+  let nstate = pstate { nodeGen = nodeGen fstate' }
+  setState nstate       -- swap back state, with updated nodeGen
+  return (graphState fstate')
+
 
 --  prop             = uri-ref2
 --                   | varid
@@ -524,17 +509,16 @@ prop = nodeid <|> varid <|> uriNode
 
 operator :: N3Parser RDFLabel
 operator =
-        do  { isymbol "+" ; operatorLabel operator_plus  }
-    <|> do  { isymbol "-" ; operatorLabel operator_minus }
-    <|> do  { isymbol "*" ; operatorLabel operator_star  }
-    <|> do  { isymbol "/" ; operatorLabel operator_slash }
-    <?> ""
+  (symbol "+" >> operatorLabel operator_plus)
+  <|> (symbol "-" >> operatorLabel operator_minus)
+  <|> (symbol "*" >> operatorLabel operator_star)
+  <|> (symbol "/" >> operatorLabel operator_slash)
+  <?> ""
 
 operatorLabel :: ScopedName -> N3Parser RDFLabel
-operatorLabel snam =
-        do  { s <- getState
-            ; return $ Res (getPrefixScopedName s snam)
-            }
+operatorLabel snam = do
+  s <- getState
+  return $ Res $ getPrefixScopedName s snam
 
 --  subject          = node
 
@@ -586,30 +570,30 @@ addStatement s p o = updateState (updateGraph (addArc (arc s p o) ))
 
 nodeList :: RDFLabel -> N3Parser RDFLabel
 nodeList subj =
-        do  { val   <- litNode
-            ; first <- operatorLabel rdf_first
-            ; addStatement subj first val
-            ; nodeList1 subj
-            ; return subj
-            }
-    <|> operatorLabel rdf_nil
-    <?> "Node or ')'"
+  (do
+      val   <- litNode
+      first <- operatorLabel rdf_first
+      addStatement subj first val
+      nodeList1 subj
+      return subj)
+  <|> operatorLabel rdf_nil
+  <?> "Node or ')'"
 
 nodeList1 :: RDFLabel -> N3Parser ()
 nodeList1 prev =
-        do  { val   <- litNode
-            ; lnk   <- newBlankNode
-            ; first <- operatorLabel rdf_first
-            ; rest  <- operatorLabel rdf_rest
-            ; addStatement lnk  first val
-            ; addStatement prev rest  lnk
-            ; nodeList1 lnk
-            }
-    <|> do  { nil   <- operatorLabel rdf_nil
-            ; rest  <- operatorLabel rdf_rest
-            ; addStatement prev rest nil
-            }
-    <?> "Node or ')'"
+  (do
+      val   <- litNode
+      lnk   <- newBlankNode
+      first <- operatorLabel rdf_first
+      rest  <- operatorLabel rdf_rest
+      addStatement lnk  first val
+      addStatement prev rest  lnk
+      nodeList1 lnk)
+  <|> (do 
+          nil   <- operatorLabel rdf_nil
+          rest  <- operatorLabel rdf_rest
+          addStatement prev rest nil)
+  <?> "Node or ')'"
 
 
 --  lit-node         = node
@@ -621,13 +605,10 @@ nodeList1 prev =
 --  Returns a new node value.
 
 litNode :: N3Parser RDFLabel
-litNode =
-        node
-    <|> do  { s <- strNode
-            ; t <- litTypeOrLang
-            ; return $ Lit s t
-            }
-    <?> "URI, blank node or literal"
+litNode = 
+  node
+  <|> liftM2 Lit strNode litTypeOrLang
+  <?> "URI, blank node or literal"
 
 strNode :: N3Parser String
 strNode =
@@ -644,19 +625,13 @@ litTypeOrLang =
 
 langTag :: N3Parser (Maybe ScopedName)
 langTag =
-        do  { istring "@"
-            ; l <- name -- name1 letter
-            ; return $ Just (langName l)
-            }
-    <?> "'@tag' (language tag)"
-
+  fmap (Just . langName) (string "@" >> name)
+  <?> "'@tag' (language tag)"
+                                               
 typeUri :: N3Parser (Maybe ScopedName)
 typeUri =
-        do  { istring "^^"
-            ; u <- uriRef2
-            ; return $ Just u
-            }
-    <?> "'^^name' (datatype URI)"
+  fmap Just (string "^^" >> uriRef2)
+  <?> "'^^name' (datatype URI)"
 
 --  node             = nodeid
 --                   | varid
@@ -673,9 +648,7 @@ node :: N3Parser RDFLabel
 node =  nodeid
     <|> varid
     <|> uriNode
-    <|> do  { n <- newBlankNode
-            ; anonNode n
-            }
+    <|> (newBlankNode >>= anonNode)
     <?> "URI or blank node"
 
 --  Identified blank node in input
@@ -687,35 +660,22 @@ node =  nodeid
 
 nodeid :: N3Parser RDFLabel
 -- nodeid = lexeme nodeid1
-nodeid =
-    do  { istring "_:"
-        ; n <- name
-        ; return (Blank n)
-        }
+nodeid = fmap Blank (string "_:" >> name)
 
 --  variable identifier
 
 varid :: N3Parser RDFLabel
-varid = do  { istring "?"
-            ; n <- name
-            ; return (Var n)
-            }
+varid = fmap Var (string "?" >> name)
 
 --  uriNode          = qname
 --                   | "<" URI-reference ">"
 --                   | "this"
 
 uriNode :: N3Parser RDFLabel
-uriNode =
-        do  { sn <- uriRef2 ;
-            ; return ( Res sn )
-            }
-    <|>
-        do  { istring "this"
-            ; s <- getState
-            ; return ( thisNode s )
-            }
-    <?> "URI node"
+uriNode = 
+  fmap Res uriRef2
+  <|> fmap thisNode (string "this" >> getState)
+  <?> "URI node"
 
 
 --  uriRef2          = qname
@@ -746,35 +706,21 @@ uriRef2 = lexeme (try uriRef2a)
 
 uriRef2a :: N3Parser ScopedName
 uriRef2a =
-        do  { ns    <- prefix
-            ; colon
-            ; local <- localname
-            ; return $ ScopedName ns local
-            }
-    <|>
-        do  { colon
-            ; ns    <- defaultprefix
-            ; local <- localname
-            ; return $ ScopedName ns local
-            }
-    <|>
-        do  { u <- absUriRef
-            ; return $ makeUriScopedName u
-            }
-    <?> "URI or QName"
+  liftM2 ScopedName prefix (colon >> localname)
+  <|> (colon >> liftM2 ScopedName defaultprefix localname)
+  <|> fmap makeUriScopedName absUriRef
+  <?> "URI or QName"
 
 prefix :: N3Parser Namespace
-prefix =
-        do  { pref <- prefixname
-            ; st   <- getState
-            ; return (getPrefixNs st pref)   -- map prefix to namespace
-            }
+prefix = do
+  pref <- prefixname
+  st   <- getState
+  return (getPrefixNs st pref)   -- map prefix to namespace
 
 defaultprefix :: N3Parser Namespace
-defaultprefix =
-        do  { st <- getState
-            ; return (getPrefixNs st "")
-            }
+defaultprefix = do
+  st <- getState
+  return (getPrefixNs st "")
 
 name :: N3Parser String
 name =  lexeme $ name1 identStart
@@ -789,11 +735,8 @@ localname =  lexeme $ name1 identLetter
 --  initChar is a parser for the first character
 name1 :: N3Parser Char -> N3Parser String
 name1 initChar =
-    do  { c  <- initChar
-        ; cs <- many identLetter
-        ; return (c:cs)
-        }
-    <?> "identifier"
+  liftM2 (:) initChar (many identLetter)
+  <?> "identifier"
 
 
 ----------------------------------------------------------------------
@@ -815,21 +758,17 @@ singleQuoteString =
     <?> "literal string" )
 
 anyStringChars :: CharParser st String
-anyStringChars =
-        do  { str <- many stringChar
-            ; return (foldr (maybe id (:)) "" str)
-            }
-
+anyStringChars = 
+  fmap (foldr (maybe id (:)) "") (many stringChar)
+      
 -- Triple-quoted string -- may include line breaks, '"' or '""'.
 tripleQuoteString :: N3Parser String
 tripleQuoteString =
     lexeme
-    (   do  { str <- between (try $ string "\"\"\"")
-                             (string "\"\"\"" <?> "end of string (\"\"\")")
-                             (many tripleQuoteSubstring)
-            ; return (foldr (++) "" str)
-            }
-    <?> "triple-quoted literal string" )
+    (fmap (foldr (++) "") $ between (try $ string "\"\"\"")
+                                    (string "\"\"\"" <?> "end of string (\"\"\")")
+                                    (many tripleQuoteSubstring))
+    <?> "triple-quoted literal string"
 
 -- Match non-quote substring or one or two quote characters
 tripleQuoteSubstring :: N3Parser String
@@ -839,84 +778,62 @@ tripleQuoteSubstring =
     <|> try dqTripleQuoteSubstring1
 
 dqTripleQuoteSubstring1 :: N3Parser String
-dqTripleQuoteSubstring1 =
-        do  { istring "\"\""
-            ; s <- tripleQuoteSubstring1
-            ; return $ "\"\""++s
-            }
+dqTripleQuoteSubstring1 = 
+  fmap ("\"\""++) $ string "\"\"" >> tripleQuoteSubstring1
 
 sqTripleQuoteSubstring1 :: N3Parser String
 sqTripleQuoteSubstring1 =
-        do  { ichar '"'
-            ; s <- tripleQuoteSubstring1
-            ; return $ '"' : s
-            }
+  fmap ('"':) $ char '"' >> tripleQuoteSubstring1
 
 -- match at least one non-quote character in a triple-quoted string
 tripleQuoteSubstring1 :: N3Parser String
 tripleQuoteSubstring1 =
-        do  { str <- many1 tripleQuoteStringChar
-            ; return $ foldr (maybe id (:)) "" str
-            }
+  fmap (foldr (maybe id (:)) "") $ many1 tripleQuoteStringChar
 
 tripleQuoteStringChar :: CharParser st (Maybe Char)
 tripleQuoteStringChar =
-            stringChar
-    <|> do  { istring "\n"
-            ; return $ Just '\n'
-            }
+  stringChar <|> (string "\n" >> return (Just '\n'))
 
 stringChar :: CharParser st (Maybe Char)
-stringChar      =
-        do  { c <- stringLetter
-            ; return $ Just c
-            }
-    <|> stringEscape
-    <?> "string character"
+stringChar =
+  fmap Just stringLetter
+  <|> stringEscape
+  <?> "string character"
 
 stringLetter :: CharParser st Char
 stringLetter    = satisfy (\c -> (c /= '"') && (c /= '\\') && (c >= '\032'))
 
 stringEscape :: CharParser st (Maybe Char)
-stringEscape    =
-        do  { ichar '\\'
-            ; do { esc <- escapeCode; return (Just esc) }
-            }
+stringEscape =
+  fmap Just $ char '\\' >> escapeCode
 
 -- escape codes
 escapeCode :: CharParser st Char
-escapeCode      = charEsc <|> charUCS2 <|> charUCS4 <?> "escape code"
+escapeCode = charEsc <|> charUCS2 <|> charUCS4 <?> "escape code"
 
 -- \c
 charEsc :: CharParser st Char
-charEsc         = choice (map parseEsc escMap)
-                where
-                    parseEsc (c,code) = do { ichar c; return code }
-                    escMap            = zip "nrt\\\"\'" "\n\r\t\\\"\'"
+charEsc = choice (map parseEsc escMap)
+        where
+            parseEsc (c,code) = fmap (const code) (char c)
+            escMap            = zip "nrt\\\"\'" "\n\r\t\\\"\'"
 
 -- \uhhhh
 charUCS2 :: CharParser st Char
-charUCS2        =
-        do  { ichar 'u'
-            ; n <- numberFW 16 hexDigit 4 0
-            ; return $ chr n
-            }
+charUCS2 =
+  fmap chr $ char 'u' >> numberFW 16 hexDigit 4 0
 
 -- \Uhhhhhhhh
 charUCS4 :: CharParser st Char
-charUCS4        =
-        do  { ichar 'U'
-            ; n <- numberFW 16 hexDigit 8 0
-            ; return $ chr n
-            }
+charUCS4 =
+  fmap chr $ char 'U' >> numberFW 16 hexDigit 8 0
 
 -- parse fixed-width number:
 numberFW :: Int -> CharParser st Char -> Int -> Int -> CharParser st Int
 numberFW _    _         0     val = return val
-numberFW base baseDigit width val =
-        do  { d <- baseDigit
-            ; numberFW base baseDigit (width-1) (val*base + digitToInt d)
-            }
+numberFW base baseDigit width val = do
+  d <- baseDigit
+  numberFW base baseDigit (width-1) (val*base + digitToInt d)
 
 
 ----------------------------------------------------------------------
@@ -940,18 +857,15 @@ showURI :: URI -> String
 showURI u = uriToString id u ""
 
 absUriRef :: N3Parser String
-absUriRef =
-        do  { u <- between (char '<') (char '>' <?> "end of URI '>'") anyUriChars
-            ; if isURI u
-              then return u
-              else
-              if isURIReference u
-              then
-                do  { s <- getState
-                    ; (return $ absoluteUriPart (getSUri s "base") u)
-                    }
-              else fail ("Invalid URI: <"++u++">")
-            }
+absUriRef = do
+  u <- between (char '<') (char '>' <?> "end of URI '>'") anyUriChars
+  if isURI u
+    then return u
+    else if isURIReference u
+         then do
+           s <- getState
+           return $ absoluteUriPart (getSUri s "base") u
+         else fail ("Invalid URI: <"++u++">")
 
 anyUriChars :: N3Parser String
 anyUriChars = many uriChar
