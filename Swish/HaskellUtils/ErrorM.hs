@@ -18,9 +18,7 @@
 --------------------------------------------------------------------------------
 
 module Swish.HaskellUtils.ErrorM
-    ( ErrorM(Error,Result)
-    , eitherErrMaybe
-    )
+    ( ErrorM(Error,Result) )
 where
 
 import Control.Monad
@@ -46,12 +44,6 @@ instance MonadPlus ErrorM where
     mzero             = Error "No result"
     mplus (Error _) r = r
     mplus r         _ = r
-
--- |Map maybe to (Either String) error monad
-eitherErrMaybe :: String -> (a->b) -> Maybe a -> Either String b
-eitherErrMaybe err f mv = case mv of
-    Nothing -> Left  err
-    Just v  -> Right (f v)
 
 --------------------------------------------------------------------------------
 --
