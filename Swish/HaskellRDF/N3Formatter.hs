@@ -262,32 +262,29 @@ formatGraphDiag1 ind dopref pref gr = res where
 -- dopref   is True if prefix strings are to be generated
 --
 formatGraph :: String -> String -> Bool -> Bool -> RDFGraph -> Fgsm (Fgs,ShowS)
-formatGraph ind end dobreak dopref gr =
-    do  { setIndent ind
-        ; setLineBreak dobreak
-        ; setGraph gr
-        ; fp <- if dopref then
-                    formatPrefixes (getNamespaces gr)
-                else
-                    return $ puts ""
-        ; more <- moreSubjects
-        ; res  <- if more then do
-            { fr <- formatSubjects
-            ; return $ fp . fr . puts end
-            }
+formatGraph ind end dobreak dopref gr = do
+  setIndent ind
+  setLineBreak dobreak
+  setGraph gr
+  fp <- if dopref
+        then formatPrefixes (getNamespaces gr)
+        else return $ puts ""
+  more <- moreSubjects
+  res  <- if more
+          then do
+            fr <- formatSubjects
+            return $ fp . fr . puts end
           else return fp
-        ; fgs <- getFgs
-        ; return (fgs,res)
-        }
+  fgs <- getFgs
+  return (fgs,res)
 
 formatPrefixes :: NamespaceMap -> Fgsm ShowS
-formatPrefixes pmap =
-    do  { let mls = map (pref . keyVal) (listLookupMap pmap)
-        ; ls <- sequence mls
-        ; return $ puts $ concat ls
-        }
+formatPrefixes pmap = do
+  let mls = map (pref . keyVal) (listLookupMap pmap)
+  ls <- sequence mls
+  return $ puts $ concat ls
     where
-        pref (p,u) = nextLine $ "@prefix "++p++": <"++u++"> ."
+      pref (p,u) = nextLine $ "@prefix "++p++": <"++u++"> ."
 
 --  The above function creates a list of 'Fgsm String' monads, then
 --  uses 'sequence' to turn that to a single 'Fgsm [String]' and finally
@@ -295,75 +292,70 @@ formatPrefixes pmap =
 --  result as a 'Fgsm ShowS'.  Phew!
 
 formatSubjects :: Fgsm ShowS
-formatSubjects =
-    do  { sb    <- nextSubject
-        ; sbstr <- formatLabel sb
-        ; prstr <- formatProperties sb sbstr
-        ; fmstr <- formatFormulae ""
-        ; more  <- moreSubjects
-        ; if more then do
-            { fr <- formatSubjects
-            ; return $ puts (prstr ++ fmstr ++ " .") . fr
-            }
-          else return $ puts $ prstr ++ fmstr
-        }
+formatSubjects = do
+  sb    <- nextSubject
+  sbstr <- formatLabel sb
+  prstr <- formatProperties sb sbstr
+  fmstr <- formatFormulae ""
+  more  <- moreSubjects
+  if more
+    then do
+      fr <- formatSubjects
+      return $ puts (prstr ++ fmstr ++ " .") . fr
+    else return $ puts $ prstr ++ fmstr
 
 formatProperties :: RDFLabel -> String -> Fgsm String
-formatProperties sb sbstr =
-    do  { pr    <- nextProperty sb
-        ; prstr <- formatLabel pr
-        ; obstr <- formatObjects sb pr (sbstr++" "++prstr)
-        ; more  <- moreProperties
-        ; let sbindent = replicate (length sbstr) ' '
-        ; if more then do
-            { fr <- formatProperties sb sbindent
-            ; nl <- nextLine $ obstr ++ " ;"
-            ; return $ nl ++ fr
-            }
-          else nextLine obstr
-        }
+formatProperties sb sbstr = do
+  pr    <- nextProperty sb
+  prstr <- formatLabel pr
+  obstr <- formatObjects sb pr (sbstr++" "++prstr)
+  more  <- moreProperties
+  let sbindent = replicate (length sbstr) ' '
+  if more
+    then do
+      fr <- formatProperties sb sbindent
+      nl <- nextLine $ obstr ++ " ;"
+      return $ nl ++ fr
+    else nextLine obstr
 
 formatObjects :: RDFLabel -> RDFLabel -> String -> Fgsm String
-formatObjects sb pr prstr =
-    do  { ob    <- nextObject sb pr
-        ; obstr <- formatLabel ob
-        ; more  <- moreObjects
-        ; if more then do
-            { let prindent = replicate (length prstr) ' '
-            ; fr <- formatObjects sb pr prindent
-            ; nl <- nextLine $ prstr ++ " " ++ obstr ++ ","
-            ; return $ nl ++ fr
-            }
-          else return $ prstr ++ " " ++ obstr
-        }
+formatObjects sb pr prstr = do
+  ob    <- nextObject sb pr
+  obstr <- formatLabel ob
+  more  <- moreObjects
+  if more
+    then do
+      let prindent = replicate (length prstr) ' '
+      fr <- formatObjects sb pr prindent
+      nl <- nextLine $ prstr ++ " " ++ obstr ++ ","
+      return $ nl ++ fr
+    else return $ prstr ++ " " ++ obstr
 
 formatFormulae :: String -> Fgsm String
-formatFormulae fp =
-    do  { more  <- moreFormulae
-        ; if more then do
-            { fnlgr <- nextFormula
-            ; fnstr <- formatFormula fnlgr
-            ; formatFormulae $ fp ++ " ." ++ fnstr
-            }
-          else return fp
-        }
+formatFormulae fp = do
+  more  <- moreFormulae
+  if more
+    then do
+      fnlgr <- nextFormula
+      fnstr <- formatFormula fnlgr
+      formatFormulae $ fp ++ " ." ++ fnstr
+    else return fp
 
 -- [[[TODO: use above pattern for subject/property/object loops?]]]
 
 formatFormula :: (RDFLabel,RDFGraph) -> Fgsm String
-formatFormula (fn,gr) =
-    do  { fnstr <- formatLabel fn
-        ; f1str <- nextLine $ fnstr ++ " :-"
-        ; f2str <- nextLine "    {"
-        ; ngs0  <- getNgs
-        ; ind   <- getIndent
-        ; let Fgsm grm = formatGraph (ind++"    ") "" True False
-                                     (setNamespaces emptyNamespaceMap gr)
-        ; let (fgs',(_,f3str)) = grm (emptyFgs ngs0)
-        ; setNgs (nodeGenSt fgs')
-        ; f4str <- nextLine "    }"
-        ; return $ f1str ++ f2str ++ f3str f4str
-        }
+formatFormula (fn,gr) = do
+  fnstr <- formatLabel fn
+  f1str <- nextLine $ fnstr ++ " :-"
+  f2str <- nextLine "    {"
+  ngs0  <- getNgs
+  ind   <- getIndent
+  let Fgsm grm = formatGraph (ind++"    ") "" True False
+                             (setNamespaces emptyNamespaceMap gr)
+  let (fgs',(_,f3str)) = grm (emptyFgs ngs0)
+  setNgs (nodeGenSt fgs')
+  f4str <- nextLine "    }"
+  return $ f1str ++ f2str ++ f3str f4str
 
 ----------------------------------------------------------------------
 --  Formatting helpers
@@ -422,17 +414,15 @@ nextObject _ _ =
         in (fgs',ob) )
 
 nextLine        :: String -> Fgsm String
-nextLine str =
-    do  { ind <- getIndent
-        ; brk <- getLineBreak
-        ; if brk then
-            return $ ind++str
-          else
-            --  After first line, always insert line break
-            do  { setLineBreak True
-                ; return str
-                }
-        }
+nextLine str = do
+  ind <- getIndent
+  brk <- getLineBreak
+  if brk
+    then return $ ind++str
+    else do
+      --  After first line, always insert line break
+      setLineBreak True
+      return str
 
 --  Format a label
 --  Most labels are simply displayed as provided, but there are a
@@ -452,23 +442,23 @@ nextLine str =
 --  (e) generate multi-line literals when appropriate
 
 formatLabel :: RDFLabel -> Fgsm String
-formatLabel lab@(Blank (_:_)) =
-    do  { name <- formatNodeId lab
-        ; queueFormula lab
-        ; return name
-        }
-formatLabel lab@(Res sn) =
-    do  { pr <- getPrefixes
-        ; let nsuri  = getScopeURI sn
-        ; let local  = snLocal sn
-        ; let premap = reverseLookupMap pr :: RevNamespaceMap
-        ; let prefix = mapFindMaybe nsuri premap
-        ; let name   = case prefix of
-                         Just p -> p ++ ":" ++ local
-                         _ -> "<"++nsuri++local++">"
-        ; queueFormula lab
-        ; return name
-        }
+formatLabel lab@(Blank (_:_)) = do
+  name <- formatNodeId lab
+  queueFormula lab
+  return name
+
+formatLabel lab@(Res sn) = do
+  pr <- getPrefixes
+  let nsuri  = getScopeURI sn
+      local  = snLocal sn
+      premap = reverseLookupMap pr :: RevNamespaceMap
+      prefix = mapFindMaybe nsuri premap
+      name   = case prefix of
+                 Just p -> p ++ ":" ++ local
+                 _ -> "<"++nsuri++local++">"
+  queueFormula lab
+  return name
+
 {-
 formatLabel lab@(Lit str typ) =
     do  { return $ show lab
@@ -482,21 +472,21 @@ formatLabel lab = return $ show lab
 formatNodeId :: RDFLabel -> Fgsm String
 formatNodeId lab@(Blank (lnc:_)) =
     if isDigit lnc then mapBlankNode lab else return $ show lab
+formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to shut up -Wall
 
 mapBlankNode :: RDFLabel -> Fgsm String
-mapBlankNode lab =
-    do  { ngs <- getNgs
-        ; let nmap = nodeMap ngs
-        ; let nnxt = (nodeGen ngs)
-        ; (nval,_,_) <- case mapFind 0 lab nmap of
-            0 -> do { let nn = nnxt + 1
-                    ; let nm = mapAdd nmap (lab,nn)
-                    ; setNgs $ ngs { nodeGen=nn, nodeMap=nm }
-                    ; return (nn,nn,nm)
-                    }
-            n -> return (n,nnxt,nmap)
-        ; return $ show $ Blank ('_':show nval)
-        }
+mapBlankNode lab = do
+  ngs <- getNgs
+  let nmap = nodeMap ngs
+  nval <- case mapFind 0 lab nmap of
+    0 -> do 
+      let nn = nodeGen ngs + 1
+          nm = mapAdd nmap (lab,nn)
+      setNgs $ ngs { nodeGen=nn, nodeMap=nm }
+      return nn
+    n -> return n
+  
+  return $ show $ Blank ('_':show nval)
 
 ----------------------------------------------------------------------
 --  Graph-related helper functions
@@ -541,11 +531,8 @@ testArcTree2 =
 -}
 
 
-findMaxBnode    :: RDFGraph -> Int
-findMaxBnode gr =
-    maximum $
-    map getAutoBnodeIndex $
-    labels gr
+findMaxBnode :: RDFGraph -> Int
+findMaxBnode = maximum . map getAutoBnodeIndex . labels
 
 getAutoBnodeIndex   :: RDFLabel -> Int
 getAutoBnodeIndex (Blank ('_':lns)) = res where
