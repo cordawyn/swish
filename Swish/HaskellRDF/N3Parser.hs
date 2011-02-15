@@ -310,6 +310,8 @@ parseURIref2FromString =
 --  Syntax productions
 ----------------------------------------------------------------------
 
+-- XXX TODO: check that this grammar is still valid
+
 --  document         = directive* statement-list
 
 document :: N3Parser RDFGraph
@@ -336,23 +338,23 @@ document = do
 
 directive :: N3Parser ()
 directive = 
-  (try (isymbol "@prefix") >> (defaultPrefix <|> namedPrefix))
+  (try (symbol "@prefix") >> (defaultPrefix <|> namedPrefix))
   <|> (string "@" >> syntaxUri)
   <?> "directive"
 
+-- a specialization of bracket/between 
+br :: String -> String -> N3Parser a -> N3Parser a
+br lsym rsym = between (symbol lsym) (symbol rsym)
+
 defaultPrefix :: N3Parser ()
 defaultPrefix = do
-  isymbol ":"
-  u <- uriRef2
-  isymbol "."
+  u <- br ":" "." uriRef2
   updateState $ setPrefix "" (getScopedNameURI u)
-  
+
 namedPrefix :: N3Parser ()
 namedPrefix = do
   n <- name
-  isymbol ":"
-  u <- uriRef2
-  isymbol "."
+  u <- br ":" "." uriRef2
   updateState $ setPrefix n (getScopedNameURI u)
         
 syntaxUri :: N3Parser ()
@@ -414,10 +416,6 @@ property subj =
   (verb >>= uncurry (objects subj))
   <|>
   (isymbol ":-" >> anonNode subj >> return ())
-
--- a specialization of bracket 
-br :: String -> String -> N3Parser a -> N3Parser a
-br lsym rsym = between (symbol lsym) (symbol rsym)
 
 verb :: N3Parser (RDFLabel,Bool)
 verb = 
@@ -841,7 +839,6 @@ numberFW base baseDigit width val = do
 --  The result returned has absolute form;  relative URIs are resolved
 --  relative to the current base prefix (set using "@base").
 --
---  [[[TODO:  rework the URI parser to use the Parsec library]]]
 
 --  lexeme version
 lexUriRef :: N3Parser String
