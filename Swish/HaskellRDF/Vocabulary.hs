@@ -40,7 +40,7 @@ module Swish.HaskellRDF.Vocabulary
     , rdfs_member
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs
+    , owl_sameAs, log_implies,
     , xsd_type, xsd_string, xsd_boolean
     , xsd_decimal, xsd_integer
     , xsd_nonneg_integer, xsd_nonpos_integer, xsd_pos_integer, xsd_neg_integer
@@ -103,7 +103,8 @@ namespaceMATH   =
 
 namespaceLOG :: Namespace
 namespaceLOG    =
-    Namespace   "log"   "http://www.w3.org/2000/10/swap/log.n3#"
+    Namespace   "log"   "http://www.w3.org/2000/10/swap/log#"
+    -- Namespace   "log"   "http://www.w3.org/2000/10/swap/log.n3#"
 
 namespaceDAML :: Namespace
 namespaceDAML   =
@@ -241,6 +242,9 @@ xsd_double              = xsd_type "double"
 
 owl_sameAs              :: ScopedName
 owl_sameAs              = ScopedName namespaceOWL  "sameAs"
+
+log_implies             :: ScopedName
+log_implies             = ScopedName namespaceLOG "implies"
 
 operator_plus           :: ScopedName
 operator_plus           = ScopedName namespaceRDFO "plus"

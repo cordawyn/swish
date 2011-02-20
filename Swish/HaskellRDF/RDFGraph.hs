@@ -43,7 +43,7 @@ module Swish.HaskellRDF.RDFGraph
     , res_rdfs_member
     , res_rdfd_GeneralRestriction
     , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
-    , res_owl_sameAs
+    , res_owl_sameAs, res_log_implies
     , res_operator_plus, res_operator_minus
     , res_operator_slash, res_operator_star
       -- Exported for testing:
@@ -67,7 +67,7 @@ import Swish.HaskellRDF.Vocabulary
     , rdfs_member
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs
+    , owl_sameAs, log_implies
     , operator_plus, operator_minus, operator_slash, operator_star
     )
 
@@ -121,6 +121,9 @@ import Data.Ord (comparing)
 --      as blank nodes.
 --  (c) a "NoNode" option is defined.
 --      This might otherwise be handled by Maybe (RDFLabel g)
+
+-- TODO: should Lit be split up so that can easily differentiate between
+-- a type and a language tag
 
 data RDFLabel =
       Res ScopedName                    -- resource
@@ -202,7 +205,7 @@ labelEq _                   _               = False
 res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil,
   res_rdfs_member, res_rdfd_GeneralRestriction,
   res_rdfd_onProperties, res_rdfd_constraint,
-  res_rdfd_maxCardinality, res_owl_sameAs,
+  res_rdfd_maxCardinality, res_owl_sameAs, res_log_implies,
   res_operator_plus, res_operator_minus, 
   res_operator_slash, res_operator_star :: RDFLabel
 
@@ -216,6 +219,7 @@ res_rdfd_onProperties       = Res rdfd_onProperties
 res_rdfd_constraint         = Res rdfd_constraint
 res_rdfd_maxCardinality     = Res rdfd_maxCardinality
 res_owl_sameAs              = Res owl_sameAs
+res_log_implies             = Res log_implies
 res_operator_plus           = Res operator_plus
 res_operator_minus          = Res operator_minus
 res_operator_slash          = Res operator_slash
