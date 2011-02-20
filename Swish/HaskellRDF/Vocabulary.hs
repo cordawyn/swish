@@ -40,7 +40,7 @@ module Swish.HaskellRDF.Vocabulary
     , rdfs_member
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs, log_implies,
+    , owl_sameAs, log_implies
     , xsd_type, xsd_string, xsd_boolean
     , xsd_decimal, xsd_integer
     , xsd_nonneg_integer, xsd_nonpos_integer, xsd_pos_integer, xsd_neg_integer
