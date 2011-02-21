@@ -208,7 +208,7 @@ type NamedGraphMap = LookupMap NamedGraph
 swishError :: String -> Int -> SwishStateIO ()
 swishError msg sts =
     do  { reportLine msg
-        ; when (sts == 4) $ reportLine "Use 'Swish -?' for help"
+        ; when (sts == 4) $ reportLine "Use 'Swish -h' or 'Swish -?' for help"
         ; modify $ setExitcode (ExitFailure sts)
         }
 
