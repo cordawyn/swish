@@ -439,9 +439,7 @@ g8 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         -- , statements = [t801,t802,t803,t804,t805,t806,t807,t808,t809,t810]
-        -- , statements = [t801,t802,t807,t808,t811,t812]
-        -- , statements = [t801,t802,t807,t808,t811]
-        , statements = [t811]
+        , statements = [t801,t802,t807,t808,t811,t812]
         }
 
 g81 = NSGraph
@@ -884,18 +882,19 @@ simpleN3Graph_g6 =
     " base3:s3 base1:p1 \"\"\"l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'\"\"\" . \n"
 
 --  String escapes
+-- DJB is not sure this is a valid string for N3
+{-
 simpleN3Graph_g7 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
     " base3:s3 base2:p2 " ++
     " \"l3--\\r\\\"\\'\\\\--\\u0020--\\U000000A0--\" " ++
     " . \n"
+-}
 
 --  Different verb forms
 simpleN3Graph_g8 =
     commonPrefixes ++
-    " base1:s1 => base1:o1 . \n"
-    {-
     " base1:s1 a base1:o1 . \n" ++
     " base2:s2 = base2:o2 . \n" ++
     -- " base3:s3 + base3:o3 . \n" ++
@@ -907,11 +906,7 @@ simpleN3Graph_g8 =
     -- " base1:s1 >-  base2:p2 -> base1:o1 . \n" ++
     -- " base2:s2 <-  base2:p2 <- base2:o2 . \n"
     " base1:s1 => base1:o1 . \n" ++
-    -- XXX " base2:s2 <= base2:o2 . \n"
-    ""
-    -}
-    
--- TODO: what is going on with log:implies
+    " base2:s2 <= base2:o2 . \n"
 
 simpleN3Graph_g81 =
     commonPrefixes ++
@@ -1003,7 +998,7 @@ simpleTest04  = parseTest "simpleTest04"  simpleN3Graph_g3    g3  noError
 simpleTest05  = parseTest "simpleTest05"  simpleN3Graph_g4    g4  noError
 simpleTest06  = parseTest "simpleTest06"  simpleN3Graph_g5    g5  noError
 simpleTest07  = parseTest "simpleTest07"  simpleN3Graph_g6    g6  noError
-simpleTest08  = parseTest "simpleTest08"  simpleN3Graph_g7    g7  noError
+-- simpleTest08  = parseTest "simpleTest08"  simpleN3Graph_g7    g7  noError
 simpleTest09  = parseTest "simpleTest09"  simpleN3Graph_g8    g8  noError
 simpleTest10  = parseTest "simpleTest10"  simpleN3Graph_g81   g81 noError
 -- simpleTest11  = parseTest "simpleTest11"  simpleN3Graph_g82   g82 noError
@@ -1026,7 +1021,7 @@ simpleTestSuite = TestList
   , simpleTest05
   , simpleTest06
   , simpleTest07
-  , simpleTest08
+--  , simpleTest08
   , simpleTest09
   , simpleTest10
 --  , simpleTest11

@@ -33,6 +33,7 @@
 {-
 TODO:
 
+ - this is significantly slower than the original parser
  - should error out if a namespace is unknown
 
 cwm gives
@@ -95,10 +96,11 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceRDFD
     , namespaceRDFO
     , namespaceOWL
+    , namespaceLOG
     , langName
     , rdf_type
     , rdf_first, rdf_rest, rdf_nil
-    , owl_sameAs
+    , owl_sameAs, log_implies
     , operator_plus, operator_minus, operator_slash, operator_star
     , default_base
     , xsd_boolean, xsd_integer, xsd_decimal, xsd_double
@@ -235,12 +237,14 @@ prefixTable =   [ namespaceRDF
                 , namespaceRDFD     -- datatypes
                 , namespaceRDFO     -- operators
                 , namespaceOWL
+                , namespaceLOG
                 ]
 
 --  Define default special-URI table
 specialTable :: [(String,ScopedName)]
 specialTable =  [ ( "a",         rdf_type       ),
                   ( "equals",    owl_sameAs     ),
+                  ( "implies",   log_implies    ),
                   ( "listfirst", rdf_first      ),
                   ( "listrest",  rdf_rest       ),
                   ( "listnull",  rdf_nil        ),
@@ -249,9 +253,6 @@ specialTable =  [ ( "a",         rdf_type       ),
                   ( "slash",     operator_slash ),
                   ( "star",      operator_star  ),
                   ( "base",      default_base   ) ]
-
-logImplies :: ScopedName
-logImplies = ScopedName (Namespace "log" "http://www.w3.org/2000/10/swap/log#") "implies"
 
 ----------------------------------------------------------------------
 --  Define top-level parser function:
@@ -448,14 +449,25 @@ string' = try tripleQuoted' <|> singleQuoted' <?> "string"
 {-
 singleQuoted ::=  "[^"\\]*(?:\\.[^"\\]*)*"
 
-single quoted strings can not contain a " or a new-line character;
+TODO: we do NOT match this at present (I don't think).
+
+single quoted strings can not contain a " or an end-of-line character;
 are there any others we should exclude?
 
+eol' :: N3Parser String
+eol =   
+  try (string "\r\n")
+  <|> string "\n"
+  <|> string "\r"
+
 -}
+
+sQuot' :: N3Parser Char
+sQuot' = char '"'
+
 singleQuoted' :: N3Parser String
-singleQuoted' = between sQuot sQuot $ many (noneOf "\"\n")
-  where
-    sQuot = char '"'
+-- singleQuoted' = between sQuot' (try sQuot') $ many (noneOf "\"\n\r") -- I think the \r check is not valid here
+singleQuoted' = between sQuot' (try sQuot') $ many (noneOf "\"\n")
     
 {-
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
@@ -463,9 +475,14 @@ tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
 TODO: we do NOT match this at present
 -}
 tripleQuoted' :: N3Parser String
-tripleQuoted' = between tQuot tQuot $ many (noneOf "\"")
+{-
+tripleQuoted' = between tQuot tQuot $ many anyChar
   where
-    tQuot = char '"' *> char '"' *> char '"'
+    tQuot = try (char '"' *> char '"') *> char '"'
+-}
+tripleQuoted' = tQuot' *> manyTill anyChar tQuot'
+  where
+    tQuot' = try (char '"' *> char '"' *> char '"')
 
 getDefaultPrefix' :: N3Parser Namespace
 getDefaultPrefix' = do
@@ -935,13 +952,13 @@ verb' =
 -- those verbs for which subject is on the right and object on the left
 verbReverse' :: N3Parser RDFLabel
 verbReverse' =
-  try (string "<=") *> operatorLabel logImplies
+  try (string "<=") *> operatorLabel log_implies
   <|> between (try (atWord' "is")) (atWord' "of") (lexeme expression')
 
 -- those verbs with subject on the left and object on the right
 verbForward' :: N3Parser RDFLabel
 verbForward' =  
-  (try (string "=>") *> operatorLabel logImplies)
+  (try (string "=>") *> operatorLabel log_implies)
   <|> (string "=" *> operatorLabel owl_sameAs)
   <|> (try (string "a") *> operatorLabel rdf_type)
   <|> (atWord' "has" *> lexeme expression')
