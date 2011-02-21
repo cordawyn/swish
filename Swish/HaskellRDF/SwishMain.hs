@@ -35,7 +35,8 @@
 --
 --  [3] Motivation:   <http://www.w3.org/2000/10/swap/doc/Motivation.html>
 --
---  [4] Notation 3:   <http://www.w3.org/DesignIssues/Notation3.html>
+--  [4] Notation 3:   <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
+--                    <http://www.w3.org/DesignIssues/Notation3.html>
 --
 --  [5] RDF:          <http://www.w3.org/RDF/>
 --
