@@ -78,10 +78,6 @@ namespaceRDFC :: Namespace
 namespaceRDFC   =
     Namespace   "rdfc"  "http://id.ninebynine.org/2003/rdfext/rdfc#"
 
-namespaceRDFO :: Namespace
-namespaceRDFO   =
-    Namespace   "rdfo"  "http://id.ninebynine.org/2003/rdfext/rdfo#"
-
 namespaceOWL :: Namespace
 namespaceOWL    =
     Namespace   "owl"   "http://www.w3.org/2002/07/owl#"
