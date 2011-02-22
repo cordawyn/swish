@@ -42,8 +42,6 @@ import Swish.HaskellRDF.RDFGraph
     , res_rdfd_GeneralRestriction
     , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
     , res_owl_sameAs
-    , res_operator_plus, res_operator_minus
-    , res_operator_slash, res_operator_star
     )
 
 import Swish.HaskellUtils.Namespace
@@ -60,7 +58,6 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceRDFS
     , namespaceRDFD
     , namespaceRDFC
-    , namespaceRDFO
     , namespaceXSD
     , namespaceXsdType
     , namespaceOWL
@@ -73,7 +70,6 @@ import Swish.HaskellRDF.Vocabulary
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs
-    , operator_plus, operator_minus, operator_slash, operator_star
     )
 
 import Swish.HaskellUtils.QName
@@ -340,16 +336,14 @@ g7 = NSGraph
         , statements = [t01,t07]
         }
 
-pref_rdf = nsURI namespaceRDF
-pref_op  = nsURI namespaceRDFO
-pref_owl = nsURI namespaceOWL
-
 t801 = arc s1 res_rdf_type       o1
 t802 = arc s2 res_owl_sameAs     o2
+{-
 t803 = arc s3 res_operator_plus  o3
 t804 = arc s3 res_operator_minus o3
 t805 = arc s3 res_operator_star  o3
 t806 = arc s3 res_operator_slash o3
+-}
 t807 = arc o1 p1 s1
 t808 = arc s2 p1 o2
 t809 = arc s1 p2 o1
@@ -358,7 +352,8 @@ t810 = arc o2 p2 s2
 g8 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
-        , statements = [t801,t802,t803,t804,t805,t806,t807,t808,t809,t810]
+        , statements = [t801,t802,t807,t808,t809,t810]
+        -- , statements = [t801,t802,t803,t804,t805,t806,t807,t808,t809,t810]
         }
 
 g81 = NSGraph
@@ -367,11 +362,13 @@ g81 = NSGraph
         , statements = [t801,t802]
         }
 
+{-
 g82 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t803,t804,t805,t806]
         }
+-}
 
 g83 = NSGraph
         { namespaces = nslist
@@ -1040,7 +1037,7 @@ simpleTest04 = simpleTest "04" g5
 -- simpleTest06 = simpleTest "06" g7 -- TODO: parsing quoted string
 simpleTest07 = simpleTest "07" g8
 simpleTest08 = simpleTest "08" g81
-simpleTest09 = simpleTest "09" g82
+-- simpleTest09 = simpleTest "09" g82 -- removed the +*/- operators
 simpleTest10 = simpleTest "10" g83
 simpleTest11 = simpleTest "11" g9
 simpleTest12 = simpleTest "12" g10
@@ -1055,7 +1052,7 @@ simpleTestSuite = TestList
 --  , simpleTest06
   , simpleTest07
   , simpleTest08
-  , simpleTest09
+--  , simpleTest09
   , simpleTest10
   , simpleTest11
   , simpleTest12

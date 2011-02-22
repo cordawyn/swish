@@ -39,8 +39,6 @@ import Swish.HaskellRDF.RDFGraph
     , res_rdfd_GeneralRestriction
     , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
     , res_owl_sameAs, res_log_implies
-    , res_operator_plus, res_operator_minus
-    , res_operator_slash, res_operator_star
     )
 
 import Swish.HaskellUtils.Namespace
@@ -58,7 +56,6 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceRDFS
     , namespaceRDFD
     , namespaceRDFC
-    , namespaceRDFO
     , namespaceXSD
     , namespaceXsdType
     , namespaceOWL
@@ -72,7 +69,6 @@ import Swish.HaskellRDF.Vocabulary
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs
-    , operator_plus, operator_minus, operator_slash, operator_star
     )
 
 import Swish.HaskellUtils.LookupMap
@@ -101,8 +97,6 @@ import System.IO
 ------------------------------------------------------------
 
 pref_rdf = nsURI namespaceRDF
-pref_op  = nsURI namespaceRDFO
-pref_owl = nsURI namespaceOWL
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper

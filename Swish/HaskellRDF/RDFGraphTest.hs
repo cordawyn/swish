@@ -64,7 +64,6 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceRDFS
     , namespaceRDFD
     , namespaceRDFC
-    , namespaceRDFO
     , namespaceXSD
     , namespaceXsdType
     , namespaceOWL
@@ -79,7 +78,6 @@ import Swish.HaskellRDF.Vocabulary
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs
-    , operator_plus, operator_minus, operator_slash, operator_star
     )
 
 import System.IO

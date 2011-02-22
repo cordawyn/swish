@@ -21,7 +21,6 @@ module Swish.HaskellRDF.Vocabulary
     , namespaceRDFS
     , namespaceRDFD
     , namespaceRDFC
-    , namespaceRDFO
     , namespaceOWL
     , namespaceXSD
     , namespaceXsdType
@@ -45,7 +44,6 @@ module Swish.HaskellRDF.Vocabulary
     , xsd_decimal, xsd_integer
     , xsd_nonneg_integer, xsd_nonpos_integer, xsd_pos_integer, xsd_neg_integer
     , xsd_float, xsd_double
-    , operator_plus, operator_minus, operator_slash, operator_star
     , default_base
     )
 where
@@ -245,18 +243,6 @@ owl_sameAs              = ScopedName namespaceOWL  "sameAs"
 
 log_implies             :: ScopedName
 log_implies             = ScopedName namespaceLOG "implies"
-
-operator_plus           :: ScopedName
-operator_plus           = ScopedName namespaceRDFO "plus"
-
-operator_minus          :: ScopedName
-operator_minus          = ScopedName namespaceRDFO "minus"
-
-operator_slash          :: ScopedName
-operator_slash          = ScopedName namespaceRDFO "slash"
-
-operator_star           :: ScopedName
-operator_star           = ScopedName namespaceRDFO "star"
 
 default_base            :: ScopedName
 default_base            = ScopedName namespaceDefault "base"

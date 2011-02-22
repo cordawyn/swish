@@ -63,10 +63,14 @@ import Swish.HaskellRDF.RDFGraph
 
 import Swish.HaskellRDF.N3Parser
     ( parseAnyfromString
+    , parseN3      
     , N3Parser, N3State(..)
     , whiteSpace, symbol, eof, identLetter
-    , defaultPrefix, namedPrefix
-    , document, subgraph, uriRef2, varid, lexUriRef
+    , getPrefix
+    , subgraph
+    , n3symbol -- was uriRef2,
+    , quickVariable -- was varid
+    , lexUriRef
     , newBlankNode
     )
 
@@ -144,7 +148,9 @@ import System.Exit
 --  The parser is based on the Notation3 parser, and uses many
 --  of the same syntax productions, but the top-level productions used
 --  are quite different.
-
+--
+-- NOTE: during the parser re-write we strip out some of this functionality
+-- 
 parseScriptFromString :: Maybe String -> String -> ErrorM [SwishStateIO ()]
 parseScriptFromString base inp =
     case parseAnyfromString script base inp of
@@ -169,7 +175,7 @@ isymbol s = symbol s >> return ()
 command :: N3Parser (SwishStateIO ())
 command =
         do  { try $ isymbol "@prefix"
-            ; ( defaultPrefix <|> namedPrefix )
+            ; getPrefix
             ; return $ return ()
             }
     <|> nameItem
@@ -192,7 +198,7 @@ nameItem :: N3Parser (SwishStateIO ())
 nameItem =
         --  name :- graph
         --  name :- ( graph* )
-        do  { u <- uriRef2
+        do  { u <- n3symbol
             ; isymbol ":-"
             ; g <- graphOrList
             ; return $ ssAddGraph u g
@@ -202,7 +208,7 @@ readGraph :: N3Parser (SwishStateIO ())
 readGraph =
         --  @read name  [ <uri> ]
         do  { commandName "@read"
-            ; n <- uriRef2
+            ; n <- n3symbol
             ; u <- option "" lexUriRef
             ; return $ ssRead n (if null u then Nothing else Just u)
             }
@@ -211,7 +217,7 @@ writeGraph :: N3Parser (SwishStateIO ())
 writeGraph =
         --  @write name [ <uri> ] ; Comment
         do  { commandName "@write"
-            ; n <- uriRef2
+            ; n <- n3symbol
             ; let gs = ssGetList n :: SwishStateIO (Either String [RDFGraph])
             ; u <- option "" lexUriRef
             ; isymbol ";"
@@ -226,7 +232,7 @@ mergeGraphs =
         do  { commandName "@merge"
             ; gs <- graphList
             ; isymbol "=>"
-            ; n <- uriRef2
+            ; n <- n3symbol
             ; return $ ssMerge n gs
             }
 
@@ -234,8 +240,8 @@ compareGraphs :: N3Parser (SwishStateIO ())
 compareGraphs =
         --  @compare  name name
         do  { commandName "@compare"
-            ; n1 <- uriRef2
-            ; n2 <- uriRef2
+            ; n1 <- n3symbol
+            ; n2 <- n3symbol
             ; return $ ssCompare n1 n2
             }
 
@@ -243,8 +249,8 @@ assertEquiv :: N3Parser (SwishStateIO ())
 assertEquiv =
         --  @asserteq name name ; Comment
         do  { commandName "@asserteq"
-            ; n1 <- uriRef2
-            ; n2 <- uriRef2
+            ; n1 <- n3symbol
+            ; n2 <- n3symbol
             ; isymbol ";"
             ; c <- restOfLine
             ; return $ ssAssertEq n1 n2 c
@@ -254,8 +260,8 @@ assertMember :: N3Parser (SwishStateIO ())
 assertMember =
         --  @assertin name name ; Comment
         do  { commandName "@assertin"
-            ; n1 <- uriRef2
-            ; n2 <- uriRef2
+            ; n1 <- n3symbol
+            ; n2 <- n3symbol
             ; isymbol ";"
             ; c <- restOfLine
             ; return $ ssAssertIn n1 n2 c
@@ -265,7 +271,7 @@ defineRule :: N3Parser (SwishStateIO ())
 defineRule =
         --  @rule name :- ( name* ) => name [ | ( (name var*)* ) ]
         do  { commandName "@rule"
-            ; rn <- uriRef2
+            ; rn <- n3symbol
             ; isymbol ":-"
             ; ags <- graphOrList
             ; isymbol "=>"
@@ -278,7 +284,7 @@ defineRuleset :: N3Parser (SwishStateIO ())
 defineRuleset =
         --  @ruleset name :- ( name* ) ; ( name* )
         do  { commandName "@ruleset"
-            ; sn <- uriRef2
+            ; sn <- n3symbol
             ; isymbol ":-"
             ; ags <- nameList
             ; isymbol ";"
@@ -290,7 +296,7 @@ defineConstraints :: N3Parser (SwishStateIO ())
 defineConstraints =
         --  @constraints pref :- ( name* ) | ( name* )
         do  { commandName "@constraints"
-            ; sn <- uriRef2
+            ; sn <- n3symbol
             ; isymbol ":-"
             ; cgs <- graphOrList
             ; isymbol "|"
@@ -305,7 +311,7 @@ checkProofCmd =
         --    @step name ( name* ) => name  # rule-name, antecedents, consequent
         --    @result name
         do  { commandName "@proof"
-            ; pn  <- uriRef2
+            ; pn  <- n3symbol
             ; sns <- nameList
             ; commandName "@input"
             ; igf <- formulaExpr
@@ -320,7 +326,7 @@ checkStep ::
                 -> SwishStateIO (Either String RDFProofStep))
 checkStep =
         do  { commandName "@step"
-            ; rn   <- uriRef2
+            ; rn   <- n3symbol
             ; agfs <- formulaList
             ; isymbol "=>"
             ; cgf  <- formulaExpr
@@ -332,11 +338,11 @@ fwdChain =
         --  #   ruleset rule (antecedents) => result
         --  @fwdchain pref name ( name* ) => name
         do  { commandName "@fwdchain"
-            ; sn  <- uriRef2
-            ; rn  <- uriRef2
+            ; sn  <- n3symbol
+            ; rn  <- n3symbol
             ; ags <- graphOrList
             ; isymbol "=>"
-            ; cn  <- uriRef2
+            ; cn  <- n3symbol
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
             ; return $ ssFwdChain sn rn ags cn prefs
@@ -347,11 +353,11 @@ bwdChain =
         --  #   ruleset rule consequent <= (antecedent-alts)
         --  @bwdchain pref name graph <= name
         do  { commandName "@bwdchain"
-            ; sn  <- uriRef2
-            ; rn  <- uriRef2
+            ; sn  <- n3symbol
+            ; rn  <- n3symbol
             ; cg  <- graphExpr
             ; isymbol "<="
-            ; an  <- uriRef2
+            ; an  <- n3symbol
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
             ; return $ ssBwdChain sn rn cg an prefs
@@ -378,14 +384,14 @@ restOfLine =
 nameList :: N3Parser [ScopedName]
 nameList =
         do  { isymbol "("
-            ; ns <- many uriRef2
+            ; ns <- many n3symbol
             ; isymbol ")"
             ; return ns
             }
 
 nameOrList :: N3Parser [ScopedName]
 nameOrList =
-        do  { n <- uriRef2
+        do  { n <- n3symbol
             ; return [n]
             }
     <|>
@@ -431,7 +437,7 @@ graphOrList =
 
 formulaExpr :: N3Parser (SwishStateIO (Either String RDFFormula))
 formulaExpr =
-        do  { n <- uriRef2
+        do  { n <- n3symbol
             ; namedGraph n
             }
     <?> "Formula (name or named graph)"
@@ -470,8 +476,8 @@ varModList =
 
 varMod :: N3Parser (ScopedName,[RDFLabel])
 varMod =
-        do  { rn  <- uriRef2
-            ; vns <- many varid
+        do  { rn  <- n3symbol
+            ; vns <- many quickVariable
             ; return (rn,vns)
             }
 
@@ -536,7 +542,7 @@ ssReadGraph muri =
         where
             gf inp = case inp of
                 Left  es -> Left es
-                Right is -> parseAnyfromString document muri is
+                Right is -> parseN3 is muri
 
 ssWriteList ::
     Maybe String -> SwishStateIO (Either String [RDFGraph]) -> String

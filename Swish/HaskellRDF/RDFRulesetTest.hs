@@ -83,7 +83,6 @@ import Swish.HaskellUtils.Namespace
 
 import Swish.HaskellRDF.Vocabulary
     ( namespaceRDF
-    , namespaceRDFO
     , namespaceOWL
     , scopeRDF
     )
@@ -172,7 +171,6 @@ testSameRules lab rs1 rs2 =
 ------------------------------------------------------------
 
 pref_rdf = nsURI namespaceRDF
-pref_op  = nsURI namespaceRDFO
 pref_owl = nsURI namespaceOWL
 
 ------------------------------------------------------------
