@@ -10,13 +10,17 @@
 --  Stability   :  provisional
 --  Portability :  H98
 --
---  This Module implements a Notation 3 formatter (see [1], [2]),
+--  This Module implements a Notation 3 formatter (see [1], [2] and [3]),
 --  for an RDFGraph value.
 --
 --
 -- REFERENCES:
 --
--- (1) <http://www.w3.org/DesignIssues/Notation3.html>
+-- (1) <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
+--     Notation3 (N3): A readable RDF syntax,
+--     W3C Team Submission 14 January 2008
+--
+-- (2) <http://www.w3.org/DesignIssues/Notation3.html>
 --     Tim Berners-Lee's design issues series notes and description
 --
 -- (2) <http://www.w3.org/2000/10/swap/Primer.html>
@@ -201,6 +205,21 @@ queueFormula fn = Fgsm (\fgs ->
             Just fv -> (newState fv,())
     )
 
+{-
+Return the graph associated with the label and delete it
+from the store, if there is an association, otherwise
+return Nothing.
+-}
+extractFormula :: RDFLabel -> Fgsm (Maybe RDFGraph)
+extractFormula fn = Fgsm $ \fgs ->
+  let fa = formAvail fgs
+      newState = fgs { formAvail=mapDelete fa fn }
+  in
+   case mapFindMaybe fn fa of
+     Nothing -> (fgs, Nothing)
+     Just fv -> (newState,Just fv)
+  
+
 moreFormulae :: Fgsm Bool
 moreFormulae =  Fgsm (\fgs -> (fgs,not $ null (formQueue fgs)) )
 
@@ -343,6 +362,12 @@ formatFormulae fp = do
 
 -- [[[TODO: use above pattern for subject/property/object loops?]]]
 
+{-
+TODO: need to remove the use of :-. It's not clear to me whether
+we are guaranteed that fn is only used once in the graph - ie
+if it is safe to inline this formula at the label location.
+-}
+
 formatFormula :: (RDFLabel,RDFGraph) -> Fgsm String
 formatFormula (fn,gr) = do
   fnstr <- formatLabel fn
@@ -441,11 +466,33 @@ nextLine str = do
 --      [...] syntax.
 --  (e) generate multi-line literals when appropriate
 
+{-
+TODO: replace blank nodes that refer to a formula by the formula
+itself. Probably need to think this through rather than small hacky
+edits!
+-}
 formatLabel :: RDFLabel -> Fgsm String
+{-
 formatLabel lab@(Blank (_:_)) = do
   name <- formatNodeId lab
   queueFormula lab
   return name
+-}
+
+formatLabel lab@(Blank (_:_)) = do
+  mfml <- extractFormula lab
+  case mfml of
+    Nothing -> formatNodeId lab
+    Just gr -> do
+      -- taken from formatFormula
+      ngs0  <- getNgs
+      ind   <- getIndent
+      let Fgsm grm = formatGraph (ind++"    ") "" True False
+                     (setNamespaces emptyNamespaceMap gr)
+          (fgs',(_,f3str)) = grm (emptyFgs ngs0)
+      setNgs (nodeGenSt fgs')
+      f4str <- nextLine " } "
+      return $ " { " ++ f3str f4str
 
 formatLabel lab@(Res sn) = do
   pr <- getPrefixes

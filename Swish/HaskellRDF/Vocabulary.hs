@@ -20,7 +20,6 @@ module Swish.HaskellRDF.Vocabulary
     , namespaceRDF
     , namespaceRDFS
     , namespaceRDFD
-    , namespaceRDFC
     , namespaceOWL
     , namespaceXSD
     , namespaceXsdType
@@ -73,10 +72,6 @@ namespaceRDFS   =
 namespaceRDFD :: Namespace
 namespaceRDFD   =
     Namespace   "rdfd"  "http://id.ninebynine.org/2003/rdfext/rdfd#"
-
-namespaceRDFC :: Namespace
-namespaceRDFC   =
-    Namespace   "rdfc"  "http://id.ninebynine.org/2003/rdfext/rdfc#"
 
 namespaceOWL :: Namespace
 namespaceOWL    =

@@ -25,6 +25,12 @@ parser-update branch
   - I plan to move to using Text rather than String, which will mean
     changing from Parsec to attoparsec-text (probably).
 
+Thoughts:
+
+  - need to remove the use of :- in N3Formatter; should probably aim to
+    create turtle-compatible output where possible, with flags to control
+    the use of existential statements (@forSome), a la cwm
+
 0.2.1 to 0.3.0.0:
 
   - removed modules, wither because un-needed or replaced

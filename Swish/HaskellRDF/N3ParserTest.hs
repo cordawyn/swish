@@ -55,7 +55,6 @@ import Swish.HaskellRDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
     , namespaceRDFD
-    , namespaceRDFC
     , namespaceXSD
     , namespaceXsdType
     , namespaceOWL

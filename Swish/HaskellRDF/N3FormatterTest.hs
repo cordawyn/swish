@@ -57,7 +57,6 @@ import Swish.HaskellRDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
     , namespaceRDFD
-    , namespaceRDFC
     , namespaceXSD
     , namespaceXsdType
     , namespaceOWL
@@ -831,25 +830,33 @@ simpleN3Graph_g1_07 =
 -}
 
 --  Single statement with formula blank node
-{-
 simpleN3Graph_g1_08 =
     commonPrefixes ++
+    "base1:s1 base1:p1  { \n"++
+    "    base1:s1 base1:p1 base1:o1\n"++
+    " }  .\n"
+    {-
     "base1:s1 base1:p1 _:b2 .\n"++
     "_:b2 :-\n"++
     "    {\n"++
     "    base1:s1 base1:p1 base1:o1\n"++
     "    } .\n"
--}
-
+    -}
+    
 --  Three blank nodes (or is that blind mice?)
 simpleN3Graph_g1_09 =
     commonPrefixes ++
     "_:b1 _:b2 _:b3 .\n"
 
 --  Simple nested foprmula case
-{-
 simpleN3Graph_g1_10 =
     commonPrefixes ++
+    "base1:s1 base1:p1  { \n"           ++
+    "    base1:s1 base1:p1  { \n"       ++
+    "        base1:s1 base1:p1 base1:o1\n" ++
+    "     } \n"                          ++
+    " }  .\n"
+{-
     "base1:s1 base1:p1 _:b3 .\n"           ++
     "_:b3 :-\n"                            ++
     "    {\n"                              ++
@@ -881,9 +888,9 @@ trivialTest04 = formatTest "trivialTest04" g1a1 simpleN3Graph_g1_04
 trivialTest05 = formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
 -- trivialTest06 = formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06
 -- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07
--- trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
+trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
 trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
--- trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
+trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
 trivialTest13 = formatTest "trivialTest13" x13a simpleN3Graph_x13a
 
 diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
@@ -896,9 +903,9 @@ trivialTestSuite = TestList
   , trivialTest05
 --  , trivialTest06
 --  , trivialTest07
---  , trivialTest08
+  , trivialTest08
   , trivialTest09
---  , trivialTest10
+  , trivialTest10
   , trivialTest13
   ]
 
@@ -927,7 +934,7 @@ parseTest04 = parseTest "04" simpleN3Graph_g1_04 g1a1 noError
 parseTest05 = parseTest "05" simpleN3Graph_g1_05 g1l1 noError
 -- parseTest06 = parseTest "06" simpleN3Graph_g1_06 g1l2 noError
 -- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError
--- parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError
+parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError
 
 parseTestSuite = TestList
   [ parseTest01
@@ -937,7 +944,7 @@ parseTestSuite = TestList
   , parseTest05
 --  , parseTest06
 --  , parseTest07
---  , parseTest08
+  , parseTest08
   ]
 
 ------------------------------------------------------------
@@ -987,8 +994,8 @@ roundTripTest03 = roundTripTest "03" g1b1
 roundTripTest04 = roundTripTest "04" g1a1
 roundTripTest05 = roundTripTest "05" g1l1
 -- roundTripTest06 = roundTripTest "06" g1l2 -- TODO: at present we do not round-trip this correctly (string quoting)
--- roundTripTest07 = roundTripTest "07" g1f1 -- TODO: Swish uses :- to serialize this at present
--- roundTripTest08 = roundTripTest "08" g1f2 -- TODO: Swish uses :- to serialize this at present
+-- roundTripTest07 = roundTripTest "07" g1f1 -- TODO: serialisation uses :- with a named node
+roundTripTest08 = roundTripTest "08" g1f2
 roundTripTest11 = fullRoundTripTest "11" simpleN3Graph_g1_01
 roundTripTest12 = fullRoundTripTest "12" simpleN3Graph_g1_02
 roundTripTest13 = fullRoundTripTest "13" simpleN3Graph_g1_03
@@ -996,7 +1003,7 @@ roundTripTest14 = fullRoundTripTest "14" simpleN3Graph_g1_04
 roundTripTest15 = fullRoundTripTest "15" simpleN3Graph_g1_05
 -- roundTripTest16 = fullRoundTripTest "16" simpleN3Graph_g1_06
 -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07
--- roundTripTest18 = fullRoundTripTest "18" simpleN3Graph_g1_08
+roundTripTest18 = fullRoundTripTest "18" simpleN3Graph_g1_08
 
 roundTripTestSuite = TestList
   [ roundTripTest01
@@ -1006,7 +1013,7 @@ roundTripTestSuite = TestList
   , roundTripTest05
 --  , roundTripTest06
 --  , roundTripTest07
---  , roundTripTest08
+  , roundTripTest08
   , roundTripTest11
   , roundTripTest12
   , roundTripTest13
@@ -1014,7 +1021,7 @@ roundTripTestSuite = TestList
   , roundTripTest15
 --  , roundTripTest16
 --  , roundTripTest17
---  , roundTripTest18
+  , roundTripTest18
   ]
 
 ------------------------------------------------------------
@@ -1279,12 +1286,12 @@ exoticTest03 = exoticTest "03" x3
 exoticTest04 = exoticTest "04" x4
 exoticTest05 = exoticTest "05" x5
 exoticTest06 = exoticTest "06" x6
--- exoticTest07 = exoticTest "07" x7 -- TODO: serialisation uses :-
--- exoticTest08 = exoticTest "08" x8 -- TODO: serialisation uses :-
--- exoticTest09 = exoticTest "09" x9 -- TODO: serialisation uses :-
+exoticTest07 = exoticTest "07" x7
+-- exoticTest08 = exoticTest "08" x8 -- TODO: serialisation uses :- with a named node
+-- exoticTest09 = exoticTest "09" x9 -- TODO: serialisation uses :- with a named node
 exoticTest10 = testGraphEq  "exoticTest10" False x7 x8
 exoticTest11 = testGraphEq  "exoticTest11" False x8 x9
--- exoticTest12 = exoticTest "12" x12 -- TODO: serialisation uses :- 
+exoticTest12 = exoticTest "12" x12
 exoticTest13 = exoticTest "13" x13
 exoticTest13a = exoticTest "13a" x13a
 exoticTest14 = exoticTest "14" x14
@@ -1298,10 +1305,10 @@ exoticRoundTripTest02 = fullRoundTripTest "Exotic02" exoticN3Graph_x2
 exoticRoundTripTest04 = fullRoundTripTest "Exotic04" exoticN3Graph_x4
 exoticRoundTripTest05 = fullRoundTripTest "Exotic05" exoticN3Graph_x5
 -- exoticRoundTripTest06 = fullRoundTripTest "Exotic06" exoticN3Graph_x6
--- exoticRoundTripTest07 = fullRoundTripTest "Exotic07" exoticN3Graph_x7 -- TODO: serialisation uses :- 
+exoticRoundTripTest07 = fullRoundTripTest "Exotic07" exoticN3Graph_x7
 -- exoticRoundTripTest08 = fullRoundTripTest "Exotic08" exoticN3Graph_x8
 -- exoticRoundTripTest09 = fullRoundTripTest "Exotic09" exoticN3Graph_x9
--- exoticRoundTripTest12 = fullRoundTripTest "Exotic12" exoticN3Graph_x12 -- TODO: serialisation uses :- 
+exoticRoundTripTest12 = fullRoundTripTest "Exotic12" exoticN3Graph_x12
 -- exoticRoundTripTest13 = fullRoundTripTest "Exotic13" exoticN3Graph_x13
 -- exoticRoundTripTest14 = fullRoundTripTest "Exotic14" exoticN3Graph_x14
 -- exoticRoundTripTest15 = fullRoundTripTest "Exotic15" exoticN3Graph_x15
@@ -1332,12 +1339,12 @@ exoticTestSuite = TestList
   , exoticTest04
   , exoticTest05
   , exoticTest06
---  , exoticTest07
+  , exoticTest07
 --  , exoticTest08
 --  , exoticTest09
   , exoticTest10
   , exoticTest11
---  , exoticTest12
+  , exoticTest12
   , exoticTest13
   , exoticTest13a
   , exoticTest14
@@ -1350,10 +1357,10 @@ exoticTestSuite = TestList
   , exoticRoundTripTest04
   , exoticRoundTripTest05
 --  , exoticRoundTripTest06
---  , exoticRoundTripTest07
+  , exoticRoundTripTest07
 --  , exoticRoundTripTest08
 --  , exoticRoundTripTest09
---  , exoticRoundTripTest12
+  , exoticRoundTripTest12
 --  , exoticRoundTripTest13
 --  , exoticRoundTripTest14
 --  , exoticRoundTripTest15

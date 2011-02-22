@@ -60,17 +60,6 @@ import Swish.HaskellRDF.RDFGraph
 
 import Swish.HaskellRDF.Vocabulary
     ( namespaceRDF
-{-
-    , namespaceRDFS
-    , namespaceRDFD
-    , namespaceRDFC
-    , namespaceXSD
-    , namespaceXsdType
-    , namespaceOWL
-    , namespaceMATH
-    , namespaceLOG
-    , namespaceDAML
--}
     , namespaceLang, langName, langTag, isLang
     , rdf_type
     , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
