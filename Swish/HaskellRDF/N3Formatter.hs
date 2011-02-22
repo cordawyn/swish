@@ -63,6 +63,8 @@ import Swish.HaskellRDF.RDFGraph
     , emptyRDFGraph
     )
 
+import Swish.HaskellRDF.Vocabulary (rdf_first, rdf_rest, rdf_nil)
+
 import Swish.HaskellRDF.GraphClass
     ( Arc(..) )
 
@@ -79,11 +81,11 @@ import Swish.HaskellUtils.Namespace
 import Swish.HaskellRDF.Sort.QuickSort
     ( stableQuickSort )
 
-import Data.Char
-    ( isDigit )
+import Data.Char (isDigit)
 
-import Data.List
-    ( groupBy )
+import Data.List (groupBy, intercalate)
+
+import Data.Maybe (fromMaybe)
 
 ----------------------------------------------------------------------
 --  Ouptut string concatenation
@@ -228,6 +230,55 @@ nextFormula =  Fgsm (\fgs ->
     let (nf:fq) = (formQueue fgs) in (fgs {formQueue=fq},nf)
     )
 
+{-
+The label contains a list if
+
+  label rdf:first foo
+  label rdf:rest bar
+
+and ditto for bar until end up with rdf:nil, and no other use of
+label. Is this sufficient or in fact necessary?
+
+This is very inefficient.
+-}
+
+findList :: 
+  SubjTree RDFLabel -- ^ subjects
+  -> ([RDFLabel], [RDFLabel]) -- ^ list of nodes found so far
+  -> RDFLabel -- ^ the node we are interested in
+  -> Maybe ([RDFLabel], [RDFLabel]) -- ^ list of named nodes and blank nodes, all in the list
+                                    -- (named nodes are in order, blank nodes are reversed)
+findList subjList (xs,ys) lbl | lbl == Res rdf_nil = Just (reverse xs, ys)
+                              | otherwise =
+  -- TODO: could be made much smarter
+  let preds = fromMaybe [] $ lookup lbl subjList
+      pFirst = fromMaybe [] $ lookup (Res rdf_first) preds
+      pNext = fromMaybe [] $ lookup (Res rdf_rest) preds
+  in if length pFirst == 1 && length pNext == 1 && length preds == 2
+     then findList subjList (pFirst!!0 : xs, lbl : ys) (pNext !! 0)
+     else Nothing
+    
+extractList :: RDFLabel -> Fgsm (Maybe [RDFLabel])
+extractList ln = Fgsm $ \fgs -> 
+  let osubjs = subjs fgs
+      mlst = findList osubjs ([],[]) ln
+  in case mlst of
+    Just (ls,bs) -> (fgs { subjs = deleteSubjects osubjs bs }, Just ls)
+    Nothing      -> (fgs, Nothing)
+  
+-- for safety I am assuming no ordering of the subject tree
+-- but really should be using one of the container types
+--    
+deleteSubjects :: (Eq a) => SubjTree a -> [a] -> SubjTree a
+deleteSubjects [] _  = []
+deleteSubjects os [] = os
+deleteSubjects os (x:xs) =
+  let (as, bs) = break (\a -> fst a == x) os
+      nos = case bs of
+        (_:bbs) -> as ++ bbs
+        _ -> as
+  in deleteSubjects nos xs
+    
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
 --  accepts a graph and returns a string
@@ -382,6 +433,25 @@ formatFormula (fn,gr) = do
   f4str <- nextLine "    }"
   return $ f1str ++ f2str ++ f3str f4str
 
+--- DJB's version of formatFormula when it can be inserted inline
+insertFormula :: RDFGraph -> Fgsm String
+insertFormula gr = do
+  ngs0  <- getNgs
+  ind   <- getIndent
+  let Fgsm grm = formatGraph (ind++"    ") "" True False
+                 (setNamespaces emptyNamespaceMap gr)
+      (fgs',(_,f3str)) = grm (emptyFgs ngs0)
+  setNgs (nodeGenSt fgs')
+  f4str <- nextLine " } "
+  return $ " { " ++ f3str f4str
+
+-- add a list inline
+insertList :: [RDFLabel] -> Fgsm String
+insertList [] = return "()" -- not convinced this can happen
+insertList xs = do
+  ls <- mapM formatLabel xs
+  return $ "( " ++ intercalate " " ls ++ " )"
+  
 ----------------------------------------------------------------------
 --  Formatting helpers
 ----------------------------------------------------------------------
@@ -465,12 +535,10 @@ nextLine str = do
 --  (d) blank nodes used just once, can be expanded inline using
 --      [...] syntax.
 --  (e) generate multi-line literals when appropriate
-
-{-
-TODO: replace blank nodes that refer to a formula by the formula
-itself. Probably need to think this through rather than small hacky
-edits!
--}
+--
+-- This is being updated to produce inline formula, lists and     
+-- blank nodes. The code is not efficient.
+--
 formatLabel :: RDFLabel -> Fgsm String
 {-
 formatLabel lab@(Blank (_:_)) = do
@@ -482,29 +550,27 @@ formatLabel lab@(Blank (_:_)) = do
 formatLabel lab@(Blank (_:_)) = do
   mfml <- extractFormula lab
   case mfml of
-    Nothing -> formatNodeId lab
-    Just gr -> do
-      -- taken from formatFormula
-      ngs0  <- getNgs
-      ind   <- getIndent
-      let Fgsm grm = formatGraph (ind++"    ") "" True False
-                     (setNamespaces emptyNamespaceMap gr)
-          (fgs',(_,f3str)) = grm (emptyFgs ngs0)
-      setNgs (nodeGenSt fgs')
-      f4str <- nextLine " } "
-      return $ " { " ++ f3str f4str
+    Just gr -> insertFormula gr
+    Nothing -> do
+      mlst <- extractList lab
+      case mlst of
+        Just lst -> insertList lst
+        Nothing -> formatNodeId lab -- presumably we default to []
 
-formatLabel lab@(Res sn) = do
-  pr <- getPrefixes
-  let nsuri  = getScopeURI sn
-      local  = snLocal sn
-      premap = reverseLookupMap pr :: RevNamespaceMap
-      prefix = mapFindMaybe nsuri premap
-      name   = case prefix of
-                 Just p -> p ++ ":" ++ local
-                 _ -> "<"++nsuri++local++">"
-  queueFormula lab
-  return name
+formatLabel lab@(Res sn) = 
+  if sn == rdf_nil
+    then return "()"
+    else do
+      pr <- getPrefixes
+      let nsuri  = getScopeURI sn
+          local  = snLocal sn
+          premap = reverseLookupMap pr :: RevNamespaceMap
+          prefix = mapFindMaybe nsuri premap
+          name   = case prefix of
+            Just p -> p ++ ":" ++ local
+            _ -> "<"++nsuri++local++">"
+      queueFormula lab
+      return name
 
 {-
 formatLabel lab@(Lit str typ) =

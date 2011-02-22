@@ -869,8 +869,15 @@ simpleN3Graph_g1_10 =
 -}
 
 --  Simple troublesome case
+-- DJB as can be seen, do not convert this correctly
 simpleN3Graph_x13a =
     commonPrefixes ++
+    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
+    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( _:_2 _:_3 ) .\n"++
+    "_:_1 base1:p1 base1:o1 .\n"++
+    "_:_2 base1:p1 base2:o2 .\n"++
+    "_:_3 base1:p1 base3:o3 .\n"
+    {-
     "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
     "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_2 .\n"++
     "_:_1 base1:p1 base1:o1 .\n"++
@@ -880,7 +887,8 @@ simpleN3Graph_x13a =
     "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_5 .\n"++
     "_:_5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_4 ;\n"++
     "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n"
-
+    -}
+    
 trivialTest01 = formatTest "trivialTest01" g1np simpleN3Graph_g1_01
 trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
 trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
@@ -1001,8 +1009,8 @@ roundTripTest12 = fullRoundTripTest "12" simpleN3Graph_g1_02
 roundTripTest13 = fullRoundTripTest "13" simpleN3Graph_g1_03
 roundTripTest14 = fullRoundTripTest "14" simpleN3Graph_g1_04
 roundTripTest15 = fullRoundTripTest "15" simpleN3Graph_g1_05
--- roundTripTest16 = fullRoundTripTest "16" simpleN3Graph_g1_06
--- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07
+-- roundTripTest16 = fullRoundTripTest "16" simpleN3Graph_g1_06 -- TODO: string parsing
+-- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
 roundTripTest18 = fullRoundTripTest "18" simpleN3Graph_g1_08
 
 roundTripTestSuite = TestList
@@ -1153,6 +1161,9 @@ exoticN3Graph_x5 =
     " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
 
 {-
+If you take this, pass it through Swish and then cwm you get 
+:- replaced by =.
+
 exoticN3Graph_x6 =
     commonPrefixes ++
     " base1:s1 :- (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
