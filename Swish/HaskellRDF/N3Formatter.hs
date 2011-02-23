@@ -42,6 +42,60 @@
 --
 --------------------------------------------------------------------------------
 
+{-
+TODO:
+
+*) trailing . on formula
+
+exoticN3Graph_x7 =
+    commonPrefixes ++
+    " { \n" ++
+    "    base1:s1 base1:p1 base1:o1 .\n" ++
+    "    base2:s2 base1:p1 base2:o2 .\n" ++
+    "    base3:s3 base1:p1 base3:o3 .\n" ++
+    " }  base2:p2 base2:f2 ."
+
+the . after the base3:s3 base1:p1 base3:o3 statement is missed out.
+
+*) list syntax
+
+There are times when the first element of a list is not being
+recognized as such:
+
+exoticN3Graph_x5 =
+    commonPrefixes ++
+    " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
+
+which we output as
+
+  _:b1 rdf:first base1:o1 ;
+        rdf:rest ( base2:o2 base3:o3 "l1" ) ;
+        = base1:s1 .
+
+also
+
+@prefix : <urn:base#> .
+:xx rdf:first :a ;
+   rdf:rest _:_1 .
+_:_1 rdf:first :b ;
+     rdf:rest _:_2 .
+_:_2 rdf:first :c ;
+     rdf:rest _:_3 .
+_:_3 rdf:first "lbl" ;
+     rdf:rest rdf:nil .
+
+to
+
+@prefix : <urn:base#> .
+:xx rdf:first :a ;
+    rdf:rest ( :b :c "lbl" ) .
+
+*) base issues
+
+do not have test failures for these
+
+-}
+
 module Swish.HaskellRDF.N3Formatter
     ( NodeGenLookupMap
     , formatGraphAsStringNl
@@ -63,7 +117,11 @@ import Swish.HaskellRDF.RDFGraph
     , emptyRDFGraph
     )
 
-import Swish.HaskellRDF.Vocabulary (rdf_first, rdf_rest, rdf_nil)
+import Swish.HaskellRDF.Vocabulary (
+  rdf_type,
+  rdf_first, rdf_rest, rdf_nil,
+  owl_sameAs, log_implies
+  )
 
 import Swish.HaskellRDF.GraphClass
     ( Arc(..) )
@@ -221,7 +279,6 @@ extractFormula fn = Fgsm $ \fgs ->
      Nothing -> (fgs, Nothing)
      Just fv -> (newState,Just fv)
   
-
 moreFormulae :: Fgsm Bool
 moreFormulae =  Fgsm (\fgs -> (fgs,not $ null (formQueue fgs)) )
 
@@ -281,6 +338,32 @@ deleteItem os x =
   in case bs of
     (_:bbs) -> as ++ bbs
     [] -> as
+
+{-
+Return the arcs associated with the label and delete them
+from the store.
+
+Do we need to worry about any formulae?
+-}
+
+{-
+extractBNode :: RDFLabel -> Fgsm RDFGraph
+extractBNode bn = Fgsm $ \fgs ->
+  let osubjs = subjs fgs
+      opreds = preds fgs
+      oobjs  = objs fgs
+      ongst  = nodeGenSt fgs
+XXXX what do we need to copy over to the new graph and what do we      
+need to return?
+
+Hmm, maybe having an extraction and a insertion step for BNode isn't
+ideal?
+
+  in
+   case mapFindMaybe fn fa of
+     Nothing -> (fgs, Nothing)
+     Just fv -> (newState,Just fv)
+-}
 
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
@@ -448,12 +531,26 @@ insertFormula gr = do
   f4str <- nextLine " } "
   return $ " { " ++ f3str f4str
 
--- add a list inline
+{-
+Add a list inline. We are given the labels that constitute
+the list, in order, so just need to display them surrounded
+by ().
+-}
 insertList :: [RDFLabel] -> Fgsm String
 insertList [] = return "()" -- not convinced this can happen
 insertList xs = do
   ls <- mapM formatLabel xs
   return $ "( " ++ intercalate " " ls ++ " )"
+  
+  
+{-
+Add a blank node inline, where the input is the
+graph (and how about formula) to display.
+
+insertBNode :: RDFGraph -> Fgsm String  
+insertBNode gr = do
+  undefined
+-}
   
 ----------------------------------------------------------------------
 --  Formatting helpers
@@ -542,6 +639,16 @@ nextLine str = do
 -- This is being updated to produce inline formula, lists and     
 -- blank nodes. The code is not efficient.
 --
+
+-- modified from the version in N3Parser
+specialTable :: [(ScopedName, String)]
+specialTable = 
+  [ (rdf_type, "a")
+  , (owl_sameAs, "=")
+  , (log_implies, "=>")
+  , (rdf_nil, "()")
+  ]
+  
 formatLabel :: RDFLabel -> Fgsm String
 {-
 formatLabel lab@(Blank (_:_)) = do
@@ -558,12 +665,21 @@ formatLabel lab@(Blank (_:_)) = do
       mlst <- extractList lab
       case mlst of
         Just lst -> insertList lst
-        Nothing -> formatNodeId lab -- presumably we default to []
+        Nothing -> do
+          -- gr <- extractBNode lab
+          -- insertBNode gr
+          formatNodeId lab
 
 formatLabel lab@(Res sn) = 
-  if sn == rdf_nil
-    then return "()"
-    else do
+  case lookup sn specialTable of
+    Just txt -> return txt
+    Nothing -> do
+      {-
+      mlst <- extractList lab
+      case mlst of
+        Just lst -> insertList lst
+        Nothing -> do
+      -}
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
           local  = snLocal sn

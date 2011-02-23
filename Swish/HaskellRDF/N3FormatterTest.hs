@@ -901,6 +901,10 @@ trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
 trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
 trivialTest13 = formatTest "trivialTest13" x13a simpleN3Graph_x13a
 
+trivialTestx4 = formatTest "trivialTestx3" x4 exoticN3Graph_x4
+trivialTestx5 = formatTest "trivialTestx3" x5 exoticN3Graph_x5
+trivialTestx7 = formatTest "trivialTestx7" x7 exoticN3Graph_x7
+
 diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
 
 trivialTestSuite = TestList
@@ -915,6 +919,9 @@ trivialTestSuite = TestList
   , trivialTest09
   , trivialTest10
   , trivialTest13
+  , trivialTestx4
+  , trivialTestx5
+  , trivialTestx7
   ]
 
 ------------------------------------------------------------
@@ -1154,16 +1161,14 @@ exoticN3Graph_x3 =
 
 exoticN3Graph_x4 =
     commonPrefixes ++
-    " base1:s1 = (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
+    "base1:s1 = ( base1:o1 base2:o2 base3:o3 \"l1\" ) .\n"
+    -- " base1:s1 = (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
 
 exoticN3Graph_x5 =
     commonPrefixes ++
     " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
 
 {-
-If you take this, pass it through Swish and then cwm you get 
-:- replaced by =.
-
 exoticN3Graph_x6 =
     commonPrefixes ++
     " base1:s1 :- (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
@@ -1173,10 +1178,17 @@ exoticN3Graph_x6 =
 
 exoticN3Graph_x7 =
     commonPrefixes ++
+    " { \n" ++
+    "    base1:s1 base1:p1 base1:o1 .\n" ++
+    "    base2:s2 base1:p1 base2:o2 .\n" ++
+    "    base3:s3 base1:p1 base3:o3 .\n" ++
+    " }  base2:p2 base2:f2 ."
+    {-
     " { base1:s1 base1:p1 base1:o1 .   \n" ++
     "   base2:s2 base1:p1 base2:o2 .   \n" ++
     "   base3:s3 base1:p1 base3:o3 . } \n" ++
     " base2:p2 base2:f2 . "
+    -}
 
 {-
 exoticN3Graph_x8 =
