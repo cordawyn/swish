@@ -45,18 +45,6 @@
 {-
 TODO:
 
-*) trailing . on formula
-
-exoticN3Graph_x7 =
-    commonPrefixes ++
-    " { \n" ++
-    "    base1:s1 base1:p1 base1:o1 .\n" ++
-    "    base2:s2 base1:p1 base2:o2 .\n" ++
-    "    base3:s3 base1:p1 base3:o3 .\n" ++
-    " }  base2:p2 base2:f2 ."
-
-the . after the base3:s3 base1:p1 base3:o3 statement is missed out.
-
 *) list syntax
 
 There are times when the first element of a list is not being

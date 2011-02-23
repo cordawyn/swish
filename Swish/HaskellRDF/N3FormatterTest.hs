@@ -1181,14 +1181,23 @@ exoticN3Graph_x7 =
     " { \n" ++
     "    base1:s1 base1:p1 base1:o1 .\n" ++
     "    base2:s2 base1:p1 base2:o2 .\n" ++
-    "    base3:s3 base1:p1 base3:o3 .\n" ++
-    " }  base2:p2 base2:f2 ."
+    "    base3:s3 base1:p1 base3:o3\n" ++
+    " }  base2:p2 base2:f2 .\n"
     {-
     " { base1:s1 base1:p1 base1:o1 .   \n" ++
     "   base2:s2 base1:p1 base2:o2 .   \n" ++
     "   base3:s3 base1:p1 base3:o3 . } \n" ++
     " base2:p2 base2:f2 . "
     -}
+
+-- as above with without the trailing . in the formula
+exoticN3Graph_x7a =
+    commonPrefixes ++
+    " { \n" ++
+    "    base1:s1 base1:p1 base1:o1 .\n" ++
+    "    base2:s2 base1:p1 base2:o2 .\n" ++
+    "    base3:s3 base1:p1 base3:o3 .\n" ++
+    " }  base2:p2 base2:f2 ."
 
 {-
 exoticN3Graph_x8 =
@@ -1293,6 +1302,7 @@ exoticParseTest04 = parseTest "exoticParseTest04" exoticN3Graph_x4 x4 noError
 exoticParseTest05 = parseTest "exoticParseTest05" exoticN3Graph_x5 x5 noError
 -- exoticParseTest06 = parseTest "exoticParseTest06" exoticN3Graph_x6 x6 noError
 exoticParseTest07 = parseTest "exoticParseTest07" exoticN3Graph_x7 x7 noError
+exoticParseTest07a = parseTest "exoticParseTest07a" exoticN3Graph_x7a x7 noError
 -- exoticParseTest08 = parseTest "exoticParseTest08" exoticN3Graph_x8 x8 noError
 -- exoticParseTest09 = parseTest "exoticParseTest09" exoticN3Graph_x9 x9 noError
 exoticParseTest12 = parseTest "exoticParseTest12" exoticN3Graph_x12 x12 noError
@@ -1347,6 +1357,7 @@ exoticTestSuite = TestList
   , exoticParseTest05
 --  , exoticParseTest06
   , exoticParseTest07
+  , exoticParseTest07a
 --  , exoticParseTest08
 --  , exoticParseTest09
   , exoticParseTest12
