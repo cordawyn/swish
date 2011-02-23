@@ -263,22 +263,25 @@ extractList ln = Fgsm $ \fgs ->
   let osubjs = subjs fgs
       mlst = findList osubjs ([],[]) ln
   in case mlst of
-    Just (ls,bs) -> (fgs { subjs = deleteSubjects osubjs bs }, Just ls)
+    Just (ls,bs) -> (fgs { subjs = deleteItems osubjs bs }, Just ls)
     Nothing      -> (fgs, Nothing)
   
 -- for safety I am assuming no ordering of the subject tree
 -- but really should be using one of the container types
 --    
-deleteSubjects :: (Eq a) => SubjTree a -> [a] -> SubjTree a
-deleteSubjects [] _  = []
-deleteSubjects os [] = os
-deleteSubjects os (x:xs) =
-  let (as, bs) = break (\a -> fst a == x) os
-      nos = case bs of
-        (_:bbs) -> as ++ bbs
-        _ -> as
-  in deleteSubjects nos xs
+deleteItems :: (Eq a) => [(a,b)] -> [a] -> [(a,b)]
+deleteItems [] _  = []
+deleteItems os [] = os
+deleteItems os (x:xs) =
+  deleteItems (deleteItem os x) xs
     
+deleteItem :: (Eq a) => [(a,b)] -> a -> [(a,b)]
+deleteItem os x =
+  let (as, bs) = break (\a -> fst a == x) os
+  in case bs of
+    (_:bbs) -> as ++ bbs
+    [] -> as
+
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
 --  accepts a graph and returns a string
