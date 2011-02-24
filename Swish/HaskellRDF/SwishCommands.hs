@@ -271,7 +271,7 @@ swishOutputGraph fnam hnd =
 swishFormatN3 :: String -> Handle -> SwishStateIO ()
 swishFormatN3 _ hnd =
     do  { out <- gets $ formatGraphAsShowS . graph
-        ; lift $ hPutStr hnd (out "")
+        ; lift $ hPutStrLn hnd (out "")
         }
 
 ------------------------------------------------------------
