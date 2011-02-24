@@ -78,6 +78,8 @@ to
 :xx rdf:first :a ;
     rdf:rest ( :b :c "lbl" ) .
 
+Is this happening in formatSubjects/formatProperties?
+
 *) base issues
 
 do not have test failures for these
@@ -281,8 +283,17 @@ The label contains a list if
   label rdf:first foo
   label rdf:rest bar
 
-and ditto for bar until end up with rdf:nil, and no other use of
-label. Is this sufficient or in fact necessary?
+and ditto for bar until end up with rdf:nil.
+Is this sufficient or in fact necessary?
+
+Note: I originally checked that label did not have any other
+predicates associated with it, but then you can not have
+
+  (:a :b) = :c
+
+since this becomes
+
+ _:n1 rdf:first :a ; rdf:next _:n2 ; a :c .
 
 This is very inefficient.
 -}
@@ -299,10 +310,38 @@ findList subjList (xs,ys) lbl | lbl == Res rdf_nil = Just (reverse xs, ys)
   let preds = fromMaybe [] $ lookup lbl subjList
       pFirst = fromMaybe [] $ lookup (Res rdf_first) preds
       pNext = fromMaybe [] $ lookup (Res rdf_rest) preds
-  in if length pFirst == 1 && length pNext == 1 && length preds == 2
+  in if length pFirst == 1 && length pNext == 1 -- && length preds == 2
      then findList subjList (pFirst!!0 : xs, lbl : ys) (pNext !! 0)
      else Nothing
     
+{-
+pullOutList ::          
+  SubjTree RDFLabel
+  -- ^ subjects
+  -> ([RDFLabel], [RDFLabel])
+  -- ^ list of nodes found so far
+  -> RDFLabel
+  -- ^ the node we are interested in
+  -> Maybe (SubjTree RDFLabel, [RDFLabel], [RDFLabel])
+  -- ^ list of named nodes and blank nodes, all in the list
+  -- (named nodes are in order, blank nodes are reversed)
+findList subjList (xs,ys) lbl | lbl == Res rdf_nil = Just (subjList, reverse xs, ys)
+                              | otherwise =
+  case lookup lbl subjList of
+    Nothing -> Nothing
+    Just preds -> XXX
+needs to be written
+-}
+          
+{-
+TODO:
+
+I do not believe the deletion is correct here; it would have been okay
+when we ensured all list elements only had rdf:first/next predicates, but
+this has now been relaxed.
+
+Perhaps we should delete the nodes as we go along in findList?
+-}
 extractList :: RDFLabel -> Fgsm (Maybe [RDFLabel])
 extractList ln = Fgsm $ \fgs -> 
   let osubjs = subjs fgs
@@ -525,7 +564,7 @@ the list, in order, so just need to display them surrounded
 by ().
 -}
 insertList :: [RDFLabel] -> Fgsm String
-insertList [] = return "()" -- not convinced this can happen
+insertList [] = return $ "()" -- not convinced this can happen
 insertList xs = do
   ls <- mapM formatLabel xs
   return $ "( " ++ intercalate " " ls ++ " )"
@@ -646,38 +685,37 @@ formatLabel lab@(Blank (_:_)) = do
 -}
 
 formatLabel lab@(Blank (_:_)) = do
-  mfml <- extractFormula lab
-  case mfml of
-    Just gr -> insertFormula gr
+  mlst <- extractList lab
+  case mlst of
+    Just lst -> insertList lst
     Nothing -> do
-      mlst <- extractList lab
-      case mlst of
-        Just lst -> insertList lst
+      mfml <- extractFormula lab
+      case mfml of
+        Just fml -> insertFormula fml
         Nothing -> do
           -- gr <- extractBNode lab
           -- insertBNode gr
           formatNodeId lab
 
+-- hmmm, we may not need list handling here?
 formatLabel lab@(Res sn) = 
   case lookup sn specialTable of
     Just txt -> return txt
     Nothing -> do
-      {-
       mlst <- extractList lab
       case mlst of
         Just lst -> insertList lst
         Nothing -> do
-      -}
-      pr <- getPrefixes
-      let nsuri  = getScopeURI sn
-          local  = snLocal sn
-          premap = reverseLookupMap pr :: RevNamespaceMap
-          prefix = mapFindMaybe nsuri premap
-          name   = case prefix of
-            Just p -> p ++ ":" ++ local
-            _ -> "<"++nsuri++local++">"
-      queueFormula lab
-      return name
+          pr <- getPrefixes
+          let nsuri  = getScopeURI sn
+              local  = snLocal sn
+              premap = reverseLookupMap pr :: RevNamespaceMap
+              prefix = mapFindMaybe nsuri premap
+              name   = case prefix of
+                Just p -> p ++ ":" ++ local
+                _ -> "<"++nsuri++local++">"
+          queueFormula lab
+          return name
 
 {-
 formatLabel lab@(Lit str typ) =

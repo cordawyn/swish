@@ -749,28 +749,37 @@ adding the list contents to the graph
 
 TODO: could use Data.Foldable.foldrM but N3Parser is not
 an instance of Foldable, so just use Control.Monad.foldM
-and reverse the list.
-
-Although semantically the same as the original Swish parser,
-we do work 'backwards', so that the first blank node created
-is for the last element in the list, rather than being the
-list itself as with the old approach.
-
+and reverse the list. Except that we need to create the blank
+nodes in ascending order (first element of the list has the
+first blank node) for output. So we actually do want foldM
+(or Data.Foldable.foldlM I guess, but then back to needing
+a Foldable instance).
 -}
 pathList :: N3Parser RDFLabel
 pathList = do
   cts <- many (lexeme expression) <?> "pathlist"
   eNode <- operatorLabel rdf_nil
-  foldM addElem eNode (reverse cts)
-  where
-    addElem prevNode curElem = do
-      bNode <- newBlankNode
+  case cts of
+    [] -> return eNode
+      
+    (c:cs) -> do
+      sNode <- newBlankNode
       first <- operatorLabel rdf_first
+      addStatement sNode first c
+      lNode <- foldM addElem sNode cs
       rest <- operatorLabel rdf_rest
-      addStatement bNode first curElem
-      addStatement bNode rest prevNode
-      return bNode
-  
+      addStatement lNode rest eNode
+      return sNode
+
+    where      
+      addElem prevNode curElem = do
+        bNode <- newBlankNode
+        first <- operatorLabel rdf_first
+        rest <- operatorLabel rdf_rest
+        addStatement prevNode rest bNode
+        addStatement bNode first curElem
+        return bNode
+        
 {-
 formulacontent ::=		|	statementlist
 
