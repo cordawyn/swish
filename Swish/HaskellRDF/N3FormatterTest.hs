@@ -542,6 +542,24 @@ tx606 = arc b3 res_rdf_rest  b4
 tx607 = arc b4 res_rdf_first l1
 tx608 = arc b4 res_rdf_rest  res_rdf_nil
 
+{-
+I was aiming for
+
+:s1     =  (
+        :o1
+        b2:o2
+        b3:o3
+        "l1" ) .
+
+but really it's
+
+:s1 rdf:first ( b1:o1 b2:o2 b3:o3 "l1" ) .
+
+or something like that. different versions of
+cwm parse the triples differently, and it depends
+on the output format too (eg n3 vs ntriples).
+-}
+
 x6 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -868,16 +886,13 @@ simpleN3Graph_g1_10 =
     "    } .\n"
 -}
 
---  Simple troublesome case
--- DJB as can be seen, do not convert this correctly
+{-
+Simple troublesome case
+
+This is the original formatting of the graph
+
 simpleN3Graph_x13a =
     commonPrefixes ++
-    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
-    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( _:_2 _:_3 ) .\n"++
-    "_:_1 base1:p1 base1:o1 .\n"++
-    "_:_2 base1:p1 base2:o2 .\n"++
-    "_:_3 base1:p1 base3:o3 .\n"
-    {-
     "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
     "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_2 .\n"++
     "_:_1 base1:p1 base1:o1 .\n"++
@@ -887,8 +902,16 @@ simpleN3Graph_x13a =
     "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_5 .\n"++
     "_:_5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_4 ;\n"++
     "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n"
-    -}
+-}
     
+simpleN3Graph_x13a =
+    commonPrefixes ++
+    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
+    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( _:_2 _:_3 ) .\n"++
+    "_:_1 base1:p1 base1:o1 .\n"++
+    "_:_2 base1:p1 base2:o2 .\n"++
+    "_:_3 base1:p1 base3:o3 .\n"
+
 trivialTest01 = formatTest "trivialTest01" g1np simpleN3Graph_g1_01
 trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
 trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
@@ -899,10 +922,10 @@ trivialTest05 = formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
 trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
 trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
 trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
-trivialTest13 = formatTest "trivialTest13" x13a simpleN3Graph_x13a
+trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a
 
-trivialTestx4 = formatTest "trivialTestx3" x4 exoticN3Graph_x4
-trivialTestx5 = formatTest "trivialTestx3" x5 exoticN3Graph_x5
+trivialTestx4 = formatTest "trivialTestx4" x4 exoticN3Graph_x4
+trivialTestx5 = formatTest "trivialTestx5" x5 exoticN3Graph_x5
 trivialTestx7 = formatTest "trivialTestx7" x7 exoticN3Graph_x7
 
 diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
@@ -918,7 +941,7 @@ trivialTestSuite = TestList
   , trivialTest08
   , trivialTest09
   , trivialTest10
-  , trivialTest13
+  , trivialTest13a
   , trivialTestx4
   , trivialTestx5
   , trivialTestx7
@@ -1162,11 +1185,11 @@ exoticN3Graph_x3 =
 exoticN3Graph_x4 =
     commonPrefixes ++
     "base1:s1 = ( base1:o1 base2:o2 base3:o3 \"l1\" ) .\n"
-    -- " base1:s1 = (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
 
 exoticN3Graph_x5 =
     commonPrefixes ++
-    " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
+    "( base1:o1 base2:o2 base3:o3 \"l1\" ) \n" ++ 
+    "     = base1:s1 .\n"
 
 {-
 exoticN3Graph_x6 =
@@ -1235,6 +1258,19 @@ exoticN3Graph_x13 =
     "    [base1:p1 base3:o3] ) .\n"
 -}
 
+{-
+TODO
+Hmm, what does the input graph really mean?
+
+can we test the following somewhere (do we already?)
+exoticN3Graph_x13 =
+    commonPrefixes ++
+    " base1:s1 = \n" ++
+    "  ( [base1:p1 base1:o1] \n" ++
+    "    [base1:p1 base2:o2] \n" ++
+    "    [base1:p1 base3:o3] ) .\n"
+-}
+
 --  List of more complex bnodes
 {-
 exoticN3Graph_x14 =
@@ -1244,6 +1280,12 @@ exoticN3Graph_x14 =
     "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
     "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
 -}
+exoticN3Graph_x14 =
+    commonPrefixes ++
+    " base1:s1 = \n" ++
+    "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n" ++
+    "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
+    "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
 
 --  List with nested list
 {-
@@ -1307,8 +1349,7 @@ exoticParseTest07a = parseTest "exoticParseTest07a" exoticN3Graph_x7a x7 noError
 -- exoticParseTest09 = parseTest "exoticParseTest09" exoticN3Graph_x9 x9 noError
 exoticParseTest12 = parseTest "exoticParseTest12" exoticN3Graph_x12 x12 noError
 -- exoticParseTest13 = parseTest "exoticParseTest13" exoticN3Graph_x13 x13 noError
--- exoticParseTest13a = parseTest "exoticParseTest13a" exoticN3Graph_x13 x13a noError
--- exoticParseTest14 = parseTest "exoticParseTest14" exoticN3Graph_x14 x14 noError
+exoticParseTest14 = parseTest "exoticParseTest14" exoticN3Graph_x14 x14 noError
 -- exoticParseTest15 = parseTest "exoticParseTest15" exoticN3Graph_x15 x15 noError
 -- exoticParseTest16 = parseTest "exoticParseTest16" exoticN3Graph_x16 x16 noError
 -- exoticParseTest17 = parseTest "exoticParseTest17" exoticN3Graph_x17 x17 noError
@@ -1342,8 +1383,7 @@ exoticRoundTripTest07 = fullRoundTripTest "Exotic07" exoticN3Graph_x7
 -- exoticRoundTripTest08 = fullRoundTripTest "Exotic08" exoticN3Graph_x8
 -- exoticRoundTripTest09 = fullRoundTripTest "Exotic09" exoticN3Graph_x9
 exoticRoundTripTest12 = fullRoundTripTest "Exotic12" exoticN3Graph_x12
--- exoticRoundTripTest13 = fullRoundTripTest "Exotic13" exoticN3Graph_x13
--- exoticRoundTripTest14 = fullRoundTripTest "Exotic14" exoticN3Graph_x14
+exoticRoundTripTest14 = fullRoundTripTest "Exotic14" exoticN3Graph_x14
 -- exoticRoundTripTest15 = fullRoundTripTest "Exotic15" exoticN3Graph_x15
 -- exoticRoundTripTest16 = fullRoundTripTest "Exotic16" exoticN3Graph_x16
 -- exoticRoundTripTest17 = fullRoundTripTest "Exotic17" exoticN3Graph_x17
@@ -1361,9 +1401,9 @@ exoticTestSuite = TestList
 --  , exoticParseTest08
 --  , exoticParseTest09
   , exoticParseTest12
---  , exoticParseTest13
---  , exoticParseTest13a
---  , exoticParseTest14
+--  , exoticParseTest13   -- TODO: possibly re-instate (this test uses "a:b :- (...)" so do we already test "a:b = (...)"?)
+--  , exoticParseTest13a  -- we no longer try and round-trip x13a
+--  , exoticParseTest14   -- TODO: re-instate; issues with owl:sameAs getting inserted
 --  , exoticParseTest15
 --  , exoticParseTest16
 --  , exoticParseTest17
@@ -1395,8 +1435,8 @@ exoticTestSuite = TestList
 --  , exoticRoundTripTest08
 --  , exoticRoundTripTest09
   , exoticRoundTripTest12
---  , exoticRoundTripTest13
---  , exoticRoundTripTest14
+--  , exoticRoundTripTest13  -- TODO: re-instate
+  , exoticRoundTripTest14
 --  , exoticRoundTripTest15
 --  , exoticRoundTripTest16
 --  , exoticRoundTripTest17

@@ -80,6 +80,38 @@ to
 
 Is this happening in formatSubjects/formatProperties?
 
+I think so, because extractList requires that the label be
+in the SubjTree, but for the first element it isn't, as shown below
+where the osubjs list for 'extractList _:1' has no entry for _:1
+
+@prefix foo: <urn:foo#> .
+_:_1 rdf:first foo:a ;
+     rdf:rest ( foo:q ) ;
+     = foo:b .
+DEBUG:
+extractList _:1
+ -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
+ -> mlst= Nothing
+extractList rdf:first
+ -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
+ -> mlst= Nothing
+extractList foo:a
+ -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
+ -> mlst= Nothing
+extractList rdf:rest
+ -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
+ -> mlst= Nothing
+extractList _:2
+ -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
+ -> mlst= Just ([foo:q],[_:2])
+extractList foo:q
+ -> osubjs= []
+ -> mlst= Nothing
+extractList foo:b
+ -> osubjs= []
+ -> mlst= Nothing
+
+
 *) base issues
 
 do not have test failures for these
@@ -96,20 +128,22 @@ module Swish.HaskellRDF.N3Formatter
     )
 where
 
-import Swish.HaskellRDF.RDFGraph
-    ( RDFGraph, RDFLabel(..)
-    , NamespaceMap, RevNamespaceMap
-    , emptyNamespaceMap
-    , FormulaMap, emptyFormulaMap
-    , getArcs, labels
-    , setNamespaces, getNamespaces
-    , getFormulae
-    , emptyRDFGraph
-    )
+import Swish.HaskellRDF.RDFGraph (
+  RDFGraph, RDFLabel(..),
+  NamespaceMap, RevNamespaceMap,
+  emptyNamespaceMap,
+  FormulaMap, emptyFormulaMap,
+  getArcs, labels,
+  setNamespaces, getNamespaces,
+  getFormulae,
+  emptyRDFGraph,
+  isUri, isBlank,
+  res_rdf_first, res_rdf_rest, res_rdf_nil
+  )
 
 import Swish.HaskellRDF.Vocabulary (
   rdf_type,
-  rdf_first, rdf_rest, rdf_nil,
+  rdf_nil,
   owl_sameAs, log_implies
   )
 
@@ -242,6 +276,21 @@ setNgs ngs = Fgsm (\fgs -> (fgs { nodeGenSt = ngs },()) )
 getPrefixes :: Fgsm NamespaceMap
 getPrefixes = Fgsm (\fgs -> (fgs,prefixes (nodeGenSt fgs)) )
 
+getProps :: Fgsm (PredTree RDFLabel)
+getProps = Fgsm $ \fgs -> (fgs, props fgs)
+
+setProps :: PredTree RDFLabel -> Fgsm ()
+setProps ps = Fgsm $ \fgs -> (fgs { props = ps }, ())
+
+getObjs :: Fgsm ([RDFLabel])
+getObjs = Fgsm $ \fgs -> (fgs, objs fgs)
+
+setObjs :: [RDFLabel] -> Fgsm ()
+setObjs os = Fgsm $ \fgs -> (fgs { objs = os }, ())
+
+addTrace :: String -> Fgsm ()
+addTrace tr = Fgsm $ \fgs -> (fgs { traceBuf = tr : traceBuf fgs }, ())
+  
 queueFormula :: RDFLabel -> Fgsm ()
 queueFormula fn = Fgsm (\fgs ->
     let fa = formAvail fgs
@@ -296,6 +345,28 @@ since this becomes
  _:n1 rdf:first :a ; rdf:next _:n2 ; a :c .
 
 This is very inefficient.
+
+Trying to work out why ( ... ) = ... does not get round-tripped correctly.
+
+*Swish.HaskellRDF.N3Parser> parseN3 "@prefix b1: <urn:b1#>. () = b1:x." Nothing
+Right Graph, formulae: 
+arcs: 
+    (rdf:nil,owl:sameAs,b1:x)
+*Swish.HaskellRDF.N3Parser> parseN3 "@prefix b1: <urn:b1#>. ( b1:y ) = b1:x." Nothing
+Right Graph, formulae: 
+arcs: 
+    (_:1,owl:sameAs,b1:x)
+    (_:1,rdf:rest,rdf:nil)
+    (_:1,rdf:first,b1:y)
+*Swish.HaskellRDF.N3Parser> parseN3 "@prefix b1: <urn:b1#>. ( b1:y b1:z ) = b1:x." Nothing
+Right Graph, formulae: 
+arcs: 
+    (_:1,owl:sameAs,b1:x)
+    (_:2,rdf:rest,rdf:nil)
+    (_:2,rdf:first,b1:z)
+    (_:1,rdf:rest,_:2)
+    (_:1,rdf:first,b1:y)
+
 -}
 
 findList :: 
@@ -304,12 +375,14 @@ findList ::
   -> RDFLabel -- ^ the node we are interested in
   -> Maybe ([RDFLabel], [RDFLabel]) -- ^ list of named nodes and blank nodes, all in the list
                                     -- (named nodes are in order, blank nodes are reversed)
-findList subjList (xs,ys) lbl | lbl == Res rdf_nil = Just (reverse xs, ys)
+findList subjList (xs,ys) lbl | lbl == res_rdf_nil = Just (reverse xs, ys)
                               | otherwise =
   -- TODO: could be made much smarter
   let preds = fromMaybe [] $ lookup lbl subjList
-      pFirst = fromMaybe [] $ lookup (Res rdf_first) preds
-      pNext = fromMaybe [] $ lookup (Res rdf_rest) preds
+      pFirst = fromMaybe [] $ lookup res_rdf_first preds
+      pNext = fromMaybe [] $ lookup res_rdf_rest preds
+  -- TODO: could pFirst/pNext have more than one elem in for some reason? Doesn't look like it,
+  -- from graph above, but this isn't the same as SubjTree
   in if length pFirst == 1 && length pNext == 1 -- && length preds == 2
      then findList subjList (pFirst!!0 : xs, lbl : ys) (pNext !! 0)
      else Nothing
@@ -346,9 +419,11 @@ extractList :: RDFLabel -> Fgsm (Maybe [RDFLabel])
 extractList ln = Fgsm $ \fgs -> 
   let osubjs = subjs fgs
       mlst = findList osubjs ([],[]) ln
+      tr = "extractList " ++ show ln ++ "\n -> osubjs= " ++ show osubjs ++ "\n -> mlst= " ++ show mlst ++ "\n"
+      fgs' = fgs { traceBuf = tr : traceBuf fgs }
   in case mlst of
-    Just (ls,bs) -> (fgs { subjs = deleteItems osubjs bs }, Just ls)
-    Nothing      -> (fgs, Nothing)
+    Just (ls,bs) -> (fgs' { subjs = deleteItems osubjs bs }, Just ls)
+    Nothing      -> (fgs', Nothing)
   
 -- for safety I am assuming no ordering of the subject tree
 -- but really should be using one of the container types
@@ -361,10 +436,16 @@ deleteItems os (x:xs) =
     
 deleteItem :: (Eq a) => [(a,b)] -> a -> [(a,b)]
 deleteItem os x =
+  case removeItem os x of
+    Just (_, rest) -> rest
+    Nothing -> os
+
+removeItem :: (Eq a) => [(a,b)] -> a -> Maybe (b, [(a,b)])
+removeItem os x =
   let (as, bs) = break (\a -> fst a == x) os
   in case bs of
-    (_:bbs) -> as ++ bbs
-    [] -> as
+    ((_,b):bbs) -> Just (b, as ++ bbs)
+    [] -> Nothing
 
 {-
 Return the arcs associated with the label and delete them
@@ -411,10 +492,19 @@ formatGraphAsShowS = formatGraphIndent "\n" True
 -}
 
 formatGraphIndent :: String -> Bool -> RDFGraph -> ShowS
+{- working version
 formatGraphIndent ind dopref gr = out
     where
         (_,out) = formatGraphDiag1 ind dopref emptyLookupMap gr
-
+-}
+formatGraphIndent ind dopref gr = out
+    where
+        (fgs,out') = formatGraphDiag1 ind dopref emptyLookupMap gr
+        tbuff = traceBuf fgs
+        -- tr = if null tbuff then "" else "\nDEBUG:\n" ++ concat (reverse tbuff)
+        tr = ""
+        out = out' . (++ tr)
+        
 -- | Format graph and return additional information
 formatGraphDiag ::
     RDFGraph -> (ShowS,NodeGenLookupMap,Int,[String])
@@ -487,9 +577,38 @@ formatSubjects = do
       return $ puts (prstr ++ fmstr ++ " .") . fr
     else return $ puts $ prstr ++ fmstr
 
+{-
+We special case lists here, relying on the lexical ordering
+applied in the creation of the property list so we assume that
+rdf:first will be processed before rdf:next.
+
+Now, since we now do NOT want to convert
+
+  named-node rdf:first ...
+
+into 
+
+  named-node owl:sameAs (..)
+
+then is all this needed?
+-}
 formatProperties :: RDFLabel -> String -> Fgsm String
 formatProperties sb sbstr = do
-  pr    <- nextProperty sb
+  pr <- nextProperty sb
+  if isBlank sb && pr == res_rdf_first
+    then formatPropertiesl sb sbstr
+    else formatProperties1 sb sbstr pr
+         
+{-         
+TODO:
+Can we use RDFGraph.isMemberProp to check for list/anonymous node?
+
+This is RDF Containers (rdf:Seq rdf:Bag rdf:Alt) and not Collections
+(well, actually not 100% clear from the documentation).
+-}
+
+formatProperties1 :: RDFLabel -> String -> RDFLabel -> Fgsm String
+formatProperties1 sb sbstr pr = do
   prstr <- formatLabel pr
   obstr <- formatObjects sb pr (sbstr++" "++prstr)
   more  <- moreProperties
@@ -500,6 +619,45 @@ formatProperties sb sbstr = do
       nl <- nextLine $ obstr ++ " ;"
       return $ nl ++ fr
     else nextLine obstr
+
+formatPropertiesl :: RDFLabel -> String -> Fgsm String
+formatPropertiesl sb sbstr = do
+  pList <- getProps
+  let mnext = removeItem pList res_rdf_rest
+  case mnext of
+    Just ([nextObj], pList') -> do
+      -- if we get this far then there must be a res_rdf_first in here
+      headObjs <- getObjs
+      case headObjs of
+        [headObj] -> do
+          
+          -- addTrace $ "List head; subject node = " ++ show sb ++ " [" ++ sbstr ++ "] {" ++ hstr ++ "}\n"
+          
+          mlst <- extractList nextObj
+          obstr <- insertList $ headObj : fromMaybe [] mlst
+          setProps pList'
+          setObjs [] -- HMM, TODO check
+          more <- moreProperties
+          if more
+            then do
+              -- need to work out indenting if blank node vs named node
+              let sbindent = replicate (length sbstr) ' '
+              fr <- formatProperties sb sbindent
+              nl <- nextLine $ obstr ++ " "
+              return $ nl ++ fr
+            else nextLine $ obstr
+                 
+        -- I am not sure what we want to do if there are multiple
+        -- rdf:first items for this object
+        -- TODO: check this first
+        _ -> formatProperties1 sb sbstr res_rdf_first
+
+    -- I am not entirely sure whether we want to handle the case when
+    -- there are multiple rdf:rest objects!
+    --
+    Just _ -> formatProperties1 sb sbstr res_rdf_first
+    
+    Nothing -> formatProperties1 sb sbstr res_rdf_first
 
 formatObjects :: RDFLabel -> RDFLabel -> String -> Fgsm String
 formatObjects sb pr prstr = do
