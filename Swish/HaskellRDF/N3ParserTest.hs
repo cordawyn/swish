@@ -1227,6 +1227,27 @@ exoticTestSuite = TestList
   ]
 
 ------------------------------------------------------------
+--  Test parser failure
+------------------------------------------------------------
+--
+--  Very limited at the moment.
+--
+
+failTest lbl gr pe = parseTest lbl gr emptyRDFGraph pe
+
+failN3Graph_g1 =
+    commonPrefixes ++
+    " base1:s1 base2:p2 unknown3:o3 . "
+
+fail1 = "(line 4, column 20):\nunexpected Prefix 'unknown3:' not bound.\nexpecting pathitem"
+
+failTest01 = failTest "failTest01" failN3Graph_g1 fail1
+
+failTestSuite = TestList
+  [ failTest01
+  ]
+
+------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
@@ -1238,6 +1259,7 @@ allTests = TestList
   , uriRef2TestSuite
   , simpleTestSuite
   , exoticTestSuite
+  , failTestSuite
   ]
 
 main = runTestTT allTests

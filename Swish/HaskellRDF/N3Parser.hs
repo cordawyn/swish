@@ -34,13 +34,6 @@
 TODO:
 
  - this is significantly slower than the original parser
- - should error out if a namespace is unknown
-
-cwm gives
-
-swap.notation3.BadSyntax: at line 8 of <file:///Users/dburke/semweb/t1.ttl>:
-Bad syntax (Prefix "dc:" not bound) at ^ in:
-":bob ^dc:title "foo"@en ."
 
  - I think the default default namespace needs changing from
    Graham's namespace to <#>.
@@ -89,7 +82,7 @@ import Swish.HaskellRDF.GraphClass
 
 import Swish.HaskellUtils.LookupMap
     ( LookupMap(..)
-    , mapFind, mapReplace, mapReplaceOrAdd )
+    , mapFind, mapFindMaybe, mapReplace, mapReplaceOrAdd )
 
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
@@ -663,8 +656,25 @@ qname =
   -- <|> ScopedName <$> getDefaultPrefix <*> n3Name -- TODO: is this correct for a 'bare' qname with no preceeding ':'?
   <?> "QName"
 
-matchPrefix :: N3Parser Namespace
+{-
+We want to error out if the namespace is not known.
+
+The following replacement for this code does work
+
 matchPrefix = getPrefixNs <$> getState <*> n3Name
+
+but is it quite what we want? unexpected seems to give
+a slightly-better message than fail, but can we have
+something better?
+-}
+
+matchPrefix :: N3Parser Namespace
+matchPrefix = do
+  pre <- n3Name
+  st <- getState
+  case mapFindMaybe pre (prefixUris st) of
+    Just uri -> return $ Namespace pre uri
+    Nothing -> unexpected $ "Prefix '" ++ pre ++ ":' not bound."
 
 {-
 existential ::=		|	 "@forSome"  symbol_csl
