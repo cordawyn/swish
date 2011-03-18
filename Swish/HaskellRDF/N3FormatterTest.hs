@@ -337,12 +337,6 @@ g7 = NSGraph
 
 t801 = arc s1 res_rdf_type       o1
 t802 = arc s2 res_owl_sameAs     o2
-{-
-t803 = arc s3 res_operator_plus  o3
-t804 = arc s3 res_operator_minus o3
-t805 = arc s3 res_operator_star  o3
-t806 = arc s3 res_operator_slash o3
--}
 t807 = arc o1 p1 s1
 t808 = arc s2 p1 o2
 t809 = arc s1 p2 o1
@@ -352,7 +346,6 @@ g8 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t801,t802,t807,t808,t809,t810]
-        -- , statements = [t801,t802,t803,t804,t805,t806,t807,t808,t809,t810]
         }
 
 g81 = NSGraph
@@ -360,14 +353,6 @@ g81 = NSGraph
         , formulae   = emptyFormulaMap
         , statements = [t801,t802]
         }
-
-{-
-g82 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t803,t804,t805,t806]
-        }
--}
 
 g83 = NSGraph
         { namespaces = nslist
@@ -854,6 +839,7 @@ simpleN3Graph_g1_08 =
     "    base1:s1 base1:p1 base1:o1\n"++
     " }  .\n"
     {-
+TODO: is the above a correct interpretation of the following?
     "base1:s1 base1:p1 _:b2 .\n"++
     "_:b2 :-\n"++
     "    {\n"++
@@ -866,7 +852,7 @@ simpleN3Graph_g1_09 =
     commonPrefixes ++
     "_:b1 _:b2 _:b3 .\n"
 
---  Simple nested foprmula case
+--  Simple nested formula case
 simpleN3Graph_g1_10 =
     commonPrefixes ++
     "base1:s1 base1:p1  { \n"           ++
@@ -875,6 +861,7 @@ simpleN3Graph_g1_10 =
     "     } \n"                          ++
     " }  .\n"
 {-
+TODO: is the above a correct interpretation of the gollowing?
     "base1:s1 base1:p1 _:b3 .\n"           ++
     "_:b3 :-\n"                            ++
     "    {\n"                              ++
@@ -889,7 +876,8 @@ simpleN3Graph_g1_10 =
 {-
 Simple troublesome case
 
-This is the original formatting of the graph
+This is the original formatting of the graph; what do
+we actually want to convert this to?
 
 simpleN3Graph_x13a =
     commonPrefixes ++
@@ -917,12 +905,12 @@ trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
 trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
 trivialTest04 = formatTest "trivialTest04" g1a1 simpleN3Graph_g1_04
 trivialTest05 = formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
--- trivialTest06 = formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06
--- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07
-trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
+-- trivialTest06 = formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06 -- TODO: restore as a multiline literal test
+-- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07 -- uses :- syntax so not sure whether to restore
+trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08 -- TODO: work out whether this test is actually correct
 trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
-trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
-trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a
+trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10 -- TODO: work out whether this test is actually correct
+trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a -- TODO: work out whether this test is actually correct
 
 trivialTestx4 = formatTest "trivialTestx4" x4 exoticN3Graph_x4
 trivialTestx5 = formatTest "trivialTestx5" x5 exoticN3Graph_x5
@@ -970,9 +958,9 @@ parseTest02 = parseTest "02" simpleN3Graph_g1_02 g1   noError
 parseTest03 = parseTest "03" simpleN3Graph_g1_03 g1b1 noError
 parseTest04 = parseTest "04" simpleN3Graph_g1_04 g1a1 noError
 parseTest05 = parseTest "05" simpleN3Graph_g1_05 g1l1 noError
--- parseTest06 = parseTest "06" simpleN3Graph_g1_06 g1l2 noError
--- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError
-parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError
+-- parseTest06 = parseTest "06" simpleN3Graph_g1_06 g1l2 noError -- TODO: restore as multi-line litteral
+-- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError -- uses :- syntax so not sure whether to restore
+parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError -- TODO: work out whether this test is actually correct
 
 parseTestSuite = TestList
   [ parseTest01
@@ -1082,7 +1070,7 @@ simpleTest04 = simpleTest "04" g5
 -- simpleTest06 = simpleTest "06" g7 -- TODO: parsing quoted string
 simpleTest07 = simpleTest "07" g8
 simpleTest08 = simpleTest "08" g81
--- simpleTest09 = simpleTest "09" g82 -- removed the +*/- operators
+-- simpleTest09 was a test of +*/- operators which we no longer support
 simpleTest10 = simpleTest "10" g83
 simpleTest11 = simpleTest "11" g9
 simpleTest12 = simpleTest "12" g10
@@ -1097,7 +1085,6 @@ simpleTestSuite = TestList
 --  , simpleTest06
   , simpleTest07
   , simpleTest08
---  , simpleTest09
   , simpleTest10
   , simpleTest11
   , simpleTest12
