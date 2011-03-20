@@ -369,62 +369,66 @@ arcs:
 
 -}
 
-findList :: 
-  SubjTree RDFLabel -- ^ subjects
-  -> ([RDFLabel], [RDFLabel]) -- ^ list of nodes found so far
-  -> RDFLabel -- ^ the node we are interested in
-  -> Maybe ([RDFLabel], [RDFLabel]) -- ^ list of named nodes and blank nodes, all in the list
-                                    -- (named nodes are in order, blank nodes are reversed)
-findList subjList (xs,ys) lbl | lbl == res_rdf_nil = Just (reverse xs, ys)
-                              | otherwise =
-  -- TODO: could be made much smarter
-  let preds = fromMaybe [] $ lookup lbl subjList
-      pFirst = fromMaybe [] $ lookup res_rdf_first preds
-      pNext = fromMaybe [] $ lookup res_rdf_rest preds
-  -- TODO: could pFirst/pNext have more than one elem in for some reason? Doesn't look like it,
-  -- from graph above, but this isn't the same as SubjTree
-  in if length pFirst == 1 && length pNext == 1 -- && length preds == 2
-     then findList subjList (pFirst!!0 : xs, lbl : ys) (pNext !! 0)
-     else Nothing
-    
-{-
-pullOutList ::          
-  SubjTree RDFLabel
-  -- ^ subjects
-  -> ([RDFLabel], [RDFLabel])
-  -- ^ list of nodes found so far
-  -> RDFLabel
-  -- ^ the node we are interested in
+-- list has a length of 1
+len1 :: [a] -> Bool
+len1 (_:[]) = True
+len1 _ = False
+
+{-|
+Given a set of statements and a label, return the details of the
+RDF collection referred to by label, or Nothing.
+
+For label to be considered as representing a collection we require the
+following conditions to hold (this is only to support the
+serialisation using the '(..)' syntax and does not make any statement
+about semantics of the statements with regard to RDF Collections):
+
+  - there must be one rdf_first and one rdf_rest statement
+  - there must be no other predicates for the label
+
+-} 
+getCollection ::          
+  SubjTree RDFLabel -- ^ statements organized by subject
+  -> RDFLabel -- ^ does this label represent a list?
   -> Maybe (SubjTree RDFLabel, [RDFLabel], [RDFLabel])
-  -- ^ list of named nodes and blank nodes, all in the list
-  -- (named nodes are in order, blank nodes are reversed)
-findList subjList (xs,ys) lbl | lbl == Res rdf_nil = Just (subjList, reverse xs, ys)
-                              | otherwise =
-  case lookup lbl subjList of
-    Nothing -> Nothing
-    Just preds -> XXX
-needs to be written
--}
-          
+     -- ^ the statements with the elements removed; the
+     -- content elements of the collection (the objects of the rdf:first
+     -- predicate) and the nodes that represent the spine of the
+     -- collection (in reverse order, unlike the actual contents which are in
+     -- order).
+getCollection subjList lbl = go subjList lbl ([],[]) 
+    where
+      go sl l (cs,ss) | l == res_rdf_nil = Just (sl, reverse cs, ss)
+                      | otherwise = do
+        (pList1, sl') <- removeItem sl l
+        (pFirst, pList2) <- removeItem pList1 res_rdf_first
+        (pNext, pList3) <- removeItem pList2 res_rdf_rest
+
+        -- QUS: could I include these checks implicitly in the pattern matches above?
+        -- ie instrad of (pFirst, pos1) <- ..
+        -- have ([content], pos1) <- ...
+        -- ?
+        if and [len1 pFirst, len1 pNext, null pList3]
+          then go sl' (head pNext) (head pFirst : cs, l : ss)
+          else Nothing
+
 {-
 TODO:
 
-I do not believe the deletion is correct here; it would have been okay
-when we ensured all list elements only had rdf:first/next predicates, but
-this has now been relaxed.
+Should we change the preds/objs entries as well?
 
-Perhaps we should delete the nodes as we go along in findList?
 -}
 extractList :: RDFLabel -> Fgsm (Maybe [RDFLabel])
 extractList ln = Fgsm $ \fgs -> 
   let osubjs = subjs fgs
-      mlst = findList osubjs ([],[]) ln
+      mlst = getCollection osubjs ln
       tr = "extractList " ++ show ln ++ "\n -> osubjs= " ++ show osubjs ++ "\n -> mlst= " ++ show mlst ++ "\n"
       fgs' = fgs { traceBuf = tr : traceBuf fgs }
   in case mlst of
-    Just (ls,bs) -> (fgs' { subjs = deleteItems osubjs bs }, Just ls)
-    Nothing      -> (fgs', Nothing)
+    Just (sl,ls,_) -> (fgs' { subjs = sl }, Just ls)
+    Nothing        -> (fgs', Nothing)
   
+{-
 -- for safety I am assuming no ordering of the subject tree
 -- but really should be using one of the container types
 --    
@@ -439,7 +443,13 @@ deleteItem os x =
   case removeItem os x of
     Just (_, rest) -> rest
     Nothing -> os
+-}
 
+{-|
+Removes the first occurrence of the item from the
+association list, returning it's contents and the rest
+of the list, if it exists.
+-}
 removeItem :: (Eq a) => [(a,b)] -> a -> Maybe (b, [(a,b)])
 removeItem os x =
   let (as, bs) = break (\a -> fst a == x) os
@@ -591,12 +601,55 @@ into
   named-node owl:sameAs (..)
 
 then is all this needed?
+
+It also needs some clean up.
+
 -}
 formatProperties :: RDFLabel -> String -> Fgsm String
 formatProperties sb sbstr = do
   pr <- nextProperty sb
   if isBlank sb && pr == res_rdf_first
-    then formatPropertiesl sb sbstr
+    then do
+      -- addTrace $ "In formatProperties and have a blank node <" ++ show sb ++ "> rdf:first ...\n"
+      pList <- getProps
+      let mnext = removeItem pList res_rdf_rest
+      -- addTrace $ " -> pList=" ++ show pList ++ "\n"
+      -- addTrace $ " -> removeItem -> " ++ show mnext ++ "\n"
+      case mnext of
+        Just ([nextObj], pList') -> do
+          -- TODO: if sbstr is not empty then force pList' to be empty, I think
+          --
+          -- if we get this far then there must be a res_rdf_first in here
+          -- we want to make sure that there's only one object pointed to by rdf:first
+
+          headObjs <- getObjs
+          case headObjs of
+            [headObj] -> do
+          
+              -- addTrace $ "List head; subject node = " ++ show sb ++ " [" ++ sbstr ++ "]\n"
+
+              mlst <- extractList nextObj
+	      case mlst of
+	        Nothing -> formatProperties1 sb sbstr res_rdf_first
+                Just lst -> do
+                  obstr <- insertList $ headObj : lst
+                  setProps pList'
+                  setObjs [] -- HMM, TODO check since don't we want to combine with setProps properly...
+		  -- although it pList' is supposed to be [] then it is technically true...
+                  more <- moreProperties
+                  if more
+                    then do
+                      -- need to work out indenting if blank node vs named node
+                      let sbindent = replicate (length sbstr) ' '
+                      fr <- formatProperties sb sbindent
+                      nl <- nextLine $ obstr ++ " "
+                      return $ nl ++ fr
+                    else nextLine $ obstr
+                 
+            _ -> formatProperties1 sb sbstr res_rdf_first
+
+        _ -> formatProperties1 sb sbstr res_rdf_first
+    
     else formatProperties1 sb sbstr pr
          
 {-         
@@ -619,45 +672,6 @@ formatProperties1 sb sbstr pr = do
       nl <- nextLine $ obstr ++ " ;"
       return $ nl ++ fr
     else nextLine obstr
-
-formatPropertiesl :: RDFLabel -> String -> Fgsm String
-formatPropertiesl sb sbstr = do
-  pList <- getProps
-  let mnext = removeItem pList res_rdf_rest
-  case mnext of
-    Just ([nextObj], pList') -> do
-      -- if we get this far then there must be a res_rdf_first in here
-      headObjs <- getObjs
-      case headObjs of
-        [headObj] -> do
-          
-          -- addTrace $ "List head; subject node = " ++ show sb ++ " [" ++ sbstr ++ "] {" ++ hstr ++ "}\n"
-          
-          mlst <- extractList nextObj
-          obstr <- insertList $ headObj : fromMaybe [] mlst
-          setProps pList'
-          setObjs [] -- HMM, TODO check
-          more <- moreProperties
-          if more
-            then do
-              -- need to work out indenting if blank node vs named node
-              let sbindent = replicate (length sbstr) ' '
-              fr <- formatProperties sb sbindent
-              nl <- nextLine $ obstr ++ " "
-              return $ nl ++ fr
-            else nextLine $ obstr
-                 
-        -- I am not sure what we want to do if there are multiple
-        -- rdf:first items for this object
-        -- TODO: check this first
-        _ -> formatProperties1 sb sbstr res_rdf_first
-
-    -- I am not entirely sure whether we want to handle the case when
-    -- there are multiple rdf:rest objects!
-    --
-    Just _ -> formatProperties1 sb sbstr res_rdf_first
-    
-    Nothing -> formatProperties1 sb sbstr res_rdf_first
 
 formatObjects :: RDFLabel -> RDFLabel -> String -> Fgsm String
 formatObjects sb pr prstr = do
@@ -855,14 +869,21 @@ formatLabel lab@(Blank (_:_)) = do
           -- insertBNode gr
           formatNodeId lab
 
--- hmmm, we may not need list handling here?
+{-
+TODO:
+hmmm, we may not need list handling here? almost certainly don't so leave in the 'CC' version
+so that it's obvious if this code is ever executed.
+-}
 formatLabel lab@(Res sn) = 
   case lookup sn specialTable of
     Just txt -> return txt
     Nothing -> do
       mlst <- extractList lab
       case mlst of
-        Just lst -> insertList lst
+        -- Just lst -> insertList lst
+        Just lst -> do
+	  txt <- insertList lst
+          return $ "<CC>" ++ txt ++ "<CC>"
         Nothing -> do
           pr <- getPrefixes
           let nsuri  = getScopeURI sn
