@@ -755,6 +755,59 @@ x17    = NSGraph
                         tx1710,tx1711,tx1712,tx1713,tx1714]
         }
 
+-- collection graphs
+
+graph_c1 = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc s1 p1 res_rdf_nil]
+        }
+
+graph_c1rev = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc res_rdf_nil p1 o1]
+        }
+
+graph_c2 = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc s1 p1 b1,
+	                arc b1 res_rdf_first l1,
+                        arc b1 res_rdf_rest b2,
+	                arc b2 res_rdf_first o2,
+                        arc b2 res_rdf_rest b3,
+	                arc b3 res_rdf_first o3,
+                        arc b3 res_rdf_rest res_rdf_nil]
+        }
+
+graph_c2rev = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc b1 res_rdf_first l1,
+                        arc b1 res_rdf_rest b2,
+	                arc b2 res_rdf_first o2,
+                        arc b2 res_rdf_rest b3,
+	                arc b3 res_rdf_first o3,
+                        arc b3 res_rdf_rest res_rdf_nil,
+                        arc b1 p1 o1]
+        }
+
+
+graph_c3 = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc s1 p1 b1,
+	                arc b1 res_rdf_first l1,
+                        arc b1 res_rdf_rest b2,
+	                arc b2 res_rdf_first o2,
+                        arc b2 res_rdf_rest b3,
+	                arc b3 res_rdf_first o3,
+                        arc b3 res_rdf_rest res_rdf_nil,
+                        arc s1 p2 res_rdf_nil,
+                        arc s2 p2 o2]
+        }
+
 ------------------------------------------------------------
 --  Trivial formatter tests
 ------------------------------------------------------------
@@ -900,6 +953,33 @@ simpleN3Graph_x13a =
     "_:_2 base1:p1 base2:o2 .\n"++
     "_:_3 base1:p1 base3:o3 .\n"
 
+{-
+Simple collection tests; may replicate some of the
+previous tests.
+-}
+
+simpleN3Graph_c1 =
+    commonPrefixes ++
+    "base1:s1 base1:p1 () .\n"
+
+simpleN3Graph_c1rev =
+    commonPrefixes ++
+    "() base1:p1 base1:o1 .\n"
+
+simpleN3Graph_c2 =
+    commonPrefixes ++
+    "base1:s1 base1:p1 ( \"l1\" base2:o2 base3:o3 ) .\n"
+
+simpleN3Graph_c2rev =
+    commonPrefixes ++
+    "( \"l1\" base2:o2 base3:o3 ) base1:p1 base1:o1 .\n"
+
+simpleN3Graph_c3 =
+    commonPrefixes ++
+    "base1:s1 base1:p1 ( \"l1\" base2:o2 base3:o3 ) ;\n" ++
+    "         base2:p2 () .\n" ++
+    "base2:s2 base2:p2 base2:o2 .\n"
+
 trivialTest01 = formatTest "trivialTest01" g1np simpleN3Graph_g1_01
 trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
 trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
@@ -911,6 +991,12 @@ trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08 -- TODO: wor
 trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
 trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10 -- TODO: work out whether this test is actually correct
 trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a -- TODO: work out whether this test is actually correct
+
+trivialTestc1 = formatTest "trivialTestc1" graph_c1 simpleN3Graph_c1
+trivialTestc2 = formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
+trivialTestc3 = formatTest "trivialTestc3" graph_c3 simpleN3Graph_c3
+trivialTestc1rev = formatTest "trivialTestc1rev" graph_c1rev simpleN3Graph_c1rev
+trivialTestc2rev = formatTest "trivialTestc2rev" graph_c2rev simpleN3Graph_c2rev
 
 trivialTestx4 = formatTest "trivialTestx4" x4 exoticN3Graph_x4
 trivialTestx5 = formatTest "trivialTestx5" x5 exoticN3Graph_x5
@@ -930,6 +1016,11 @@ trivialTestSuite = TestList
   , trivialTest09
   , trivialTest10
   , trivialTest13a
+  , trivialTestc1
+  , trivialTestc2
+  , trivialTestc3
+  , trivialTestc1rev
+  , trivialTestc2rev
   , trivialTestx4
   , trivialTestx5
   , trivialTestx7
@@ -1175,8 +1266,7 @@ exoticN3Graph_x4 =
 
 exoticN3Graph_x5 =
     commonPrefixes ++
-    "( base1:o1 base2:o2 base3:o3 \"l1\" ) \n" ++ 
-    "     = base1:s1 .\n"
+    "( base1:o1 base2:o2 base3:o3 \"l1\" ) = base1:s1 .\n"
 
 {-
 exoticN3Graph_x6 =

@@ -45,73 +45,6 @@
 {-
 TODO:
 
-*) list syntax
-
-There are times when the first element of a list is not being
-recognized as such:
-
-exoticN3Graph_x5 =
-    commonPrefixes ++
-    " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
-
-which we output as
-
-  _:b1 rdf:first base1:o1 ;
-        rdf:rest ( base2:o2 base3:o3 "l1" ) ;
-        = base1:s1 .
-
-also
-
-@prefix : <urn:base#> .
-:xx rdf:first :a ;
-   rdf:rest _:_1 .
-_:_1 rdf:first :b ;
-     rdf:rest _:_2 .
-_:_2 rdf:first :c ;
-     rdf:rest _:_3 .
-_:_3 rdf:first "lbl" ;
-     rdf:rest rdf:nil .
-
-to
-
-@prefix : <urn:base#> .
-:xx rdf:first :a ;
-    rdf:rest ( :b :c "lbl" ) .
-
-Is this happening in formatSubjects/formatProperties?
-
-I think so, because extractList requires that the label be
-in the SubjTree, but for the first element it isn't, as shown below
-where the osubjs list for 'extractList _:1' has no entry for _:1
-
-@prefix foo: <urn:foo#> .
-_:_1 rdf:first foo:a ;
-     rdf:rest ( foo:q ) ;
-     = foo:b .
-DEBUG:
-extractList _:1
- -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
- -> mlst= Nothing
-extractList rdf:first
- -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
- -> mlst= Nothing
-extractList foo:a
- -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
- -> mlst= Nothing
-extractList rdf:rest
- -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
- -> mlst= Nothing
-extractList _:2
- -> osubjs= [(_:2,[(rdf:first,[foo:q]),(rdf:rest,[rdf:nil])])]
- -> mlst= Just ([foo:q],[_:2])
-extractList foo:q
- -> osubjs= []
- -> mlst= Nothing
-extractList foo:b
- -> osubjs= []
- -> mlst= Nothing
-
-
 *) base issues
 
 do not have test failures for these
@@ -168,6 +101,8 @@ import Data.Char (isDigit)
 import Data.List (groupBy, intercalate)
 
 import Data.Maybe (fromMaybe)
+
+import Control.Monad (when)
 
 ----------------------------------------------------------------------
 --  Ouptut string concatenation
@@ -237,6 +172,13 @@ emptyNgs = Ngs
     , nodeGen   = 0
     }
 
+-- simple context for label creation
+-- (may be a temporary solution to the problem
+--  of label creation)
+--
+data LabelContext = SubjContext | PredContext | ObjContext
+                    deriving (Eq, Show)
+
 --  monad definition adapted from Simon Thompson's book, p410
 --
 --  Fgsm a is a "state transformer" on a state of type "Fgs",
@@ -275,6 +217,12 @@ setNgs ngs = Fgsm (\fgs -> (fgs { nodeGenSt = ngs },()) )
 
 getPrefixes :: Fgsm NamespaceMap
 getPrefixes = Fgsm (\fgs -> (fgs,prefixes (nodeGenSt fgs)) )
+
+getSubjs :: Fgsm (SubjTree RDFLabel)
+getSubjs = Fgsm $ \fgs -> (fgs, subjs fgs)
+
+setSubjs :: SubjTree RDFLabel -> Fgsm ()
+setSubjs sl = Fgsm $ \fgs -> (fgs { subjs = sl }, ())
 
 getProps :: Fgsm (PredTree RDFLabel)
 getProps = Fgsm $ \fgs -> (fgs, props fgs)
@@ -326,49 +274,6 @@ nextFormula =  Fgsm (\fgs ->
     let (nf:fq) = (formQueue fgs) in (fgs {formQueue=fq},nf)
     )
 
-{-
-The label contains a list if
-
-  label rdf:first foo
-  label rdf:rest bar
-
-and ditto for bar until end up with rdf:nil.
-Is this sufficient or in fact necessary?
-
-Note: I originally checked that label did not have any other
-predicates associated with it, but then you can not have
-
-  (:a :b) = :c
-
-since this becomes
-
- _:n1 rdf:first :a ; rdf:next _:n2 ; a :c .
-
-This is very inefficient.
-
-Trying to work out why ( ... ) = ... does not get round-tripped correctly.
-
-*Swish.HaskellRDF.N3Parser> parseN3 "@prefix b1: <urn:b1#>. () = b1:x." Nothing
-Right Graph, formulae: 
-arcs: 
-    (rdf:nil,owl:sameAs,b1:x)
-*Swish.HaskellRDF.N3Parser> parseN3 "@prefix b1: <urn:b1#>. ( b1:y ) = b1:x." Nothing
-Right Graph, formulae: 
-arcs: 
-    (_:1,owl:sameAs,b1:x)
-    (_:1,rdf:rest,rdf:nil)
-    (_:1,rdf:first,b1:y)
-*Swish.HaskellRDF.N3Parser> parseN3 "@prefix b1: <urn:b1#>. ( b1:y b1:z ) = b1:x." Nothing
-Right Graph, formulae: 
-arcs: 
-    (_:1,owl:sameAs,b1:x)
-    (_:2,rdf:rest,rdf:nil)
-    (_:2,rdf:first,b1:z)
-    (_:1,rdf:rest,_:2)
-    (_:1,rdf:first,b1:y)
-
--}
-
 -- list has a length of 1
 len1 :: [a] -> Bool
 len1 (_:[]) = True
@@ -418,15 +323,30 @@ TODO:
 Should we change the preds/objs entries as well?
 
 -}
-extractList :: RDFLabel -> Fgsm (Maybe [RDFLabel])
-extractList ln = Fgsm $ \fgs -> 
-  let osubjs = subjs fgs
-      mlst = getCollection osubjs ln
-      tr = "extractList " ++ show ln ++ "\n -> osubjs= " ++ show osubjs ++ "\n -> mlst= " ++ show mlst ++ "\n"
-      fgs' = fgs { traceBuf = tr : traceBuf fgs }
-  in case mlst of
-    Just (sl,ls,_) -> (fgs' { subjs = sl }, Just ls)
-    Nothing        -> (fgs', Nothing)
+extractList :: LabelContext -> RDFLabel -> Fgsm (Maybe [RDFLabel])
+extractList lctxt ln = do
+  osubjs <- getSubjs
+  oprops <- getProps
+  let mlst = getCollection osubjs' ln
+
+      -- we only want to send in rdf:first/rdf:rest here
+      fprops = filter ((`elem` [res_rdf_first, res_rdf_rest]) . fst) oprops
+
+      osubjs' =
+          case lctxt of
+            SubjContext -> (ln, fprops) : osubjs
+            _ -> osubjs 
+
+      tr = "extractList " ++ show ln ++ " (" ++ show lctxt ++ ")\n -> osubjs= " ++ show osubjs ++ "\n -> opreds= " ++ show oprops ++ "\n -> mlst= " ++ show mlst ++ "\n"
+  addTrace tr
+  case mlst of
+    -- sl is guaranteed to be free of (ln,fprops) here if lctxt is SubjContext
+    Just (sl,ls,_) -> do
+              setSubjs sl
+              when (lctxt == SubjContext) $ setProps $ filter ((`notElem` [res_rdf_first, res_rdf_rest]) . fst) oprops
+              return (Just ls)
+
+    Nothing -> return Nothing
   
 {-
 -- for safety I am assuming no ordering of the subject tree
@@ -577,7 +497,7 @@ formatPrefixes pmap = do
 formatSubjects :: Fgsm ShowS
 formatSubjects = do
   sb    <- nextSubject
-  sbstr <- formatLabel sb
+  sbstr <- formatLabel SubjContext sb
   prstr <- formatProperties sb sbstr
   fmstr <- formatFormulae ""
   more  <- moreSubjects
@@ -587,82 +507,10 @@ formatSubjects = do
       return $ puts (prstr ++ fmstr ++ " .") . fr
     else return $ puts $ prstr ++ fmstr
 
-{-
-We special case lists here, relying on the lexical ordering
-applied in the creation of the property list so we assume that
-rdf:first will be processed before rdf:next.
-
-Now, since we now do NOT want to convert
-
-  named-node rdf:first ...
-
-into 
-
-  named-node owl:sameAs (..)
-
-then is all this needed?
-
-It also needs some clean up.
-
--}
 formatProperties :: RDFLabel -> String -> Fgsm String
 formatProperties sb sbstr = do
   pr <- nextProperty sb
-  if isBlank sb && pr == res_rdf_first
-    then do
-      -- addTrace $ "In formatProperties and have a blank node <" ++ show sb ++ "> rdf:first ...\n"
-      pList <- getProps
-      let mnext = removeItem pList res_rdf_rest
-      -- addTrace $ " -> pList=" ++ show pList ++ "\n"
-      -- addTrace $ " -> removeItem -> " ++ show mnext ++ "\n"
-      case mnext of
-        Just ([nextObj], pList') -> do
-          -- TODO: if sbstr is not empty then force pList' to be empty, I think
-          --
-          -- if we get this far then there must be a res_rdf_first in here
-          -- we want to make sure that there's only one object pointed to by rdf:first
-
-          headObjs <- getObjs
-          case headObjs of
-            [headObj] -> do
-          
-              -- addTrace $ "List head; subject node = " ++ show sb ++ " [" ++ sbstr ++ "]\n"
-
-              mlst <- extractList nextObj
-	      case mlst of
-	        Nothing -> formatProperties1 sb sbstr res_rdf_first
-                Just lst -> do
-                  obstr <- insertList $ headObj : lst
-                  setProps pList'
-                  setObjs [] -- HMM, TODO check since don't we want to combine with setProps properly...
-		  -- although it pList' is supposed to be [] then it is technically true...
-                  more <- moreProperties
-                  if more
-                    then do
-                      -- need to work out indenting if blank node vs named node
-                      let sbindent = replicate (length sbstr) ' '
-                      fr <- formatProperties sb sbindent
-                      nl <- nextLine $ obstr ++ " "
-                      return $ nl ++ fr
-                    else nextLine $ obstr
-                 
-            _ -> formatProperties1 sb sbstr res_rdf_first
-
-        _ -> formatProperties1 sb sbstr res_rdf_first
-    
-    else formatProperties1 sb sbstr pr
-         
-{-         
-TODO:
-Can we use RDFGraph.isMemberProp to check for list/anonymous node?
-
-This is RDF Containers (rdf:Seq rdf:Bag rdf:Alt) and not Collections
-(well, actually not 100% clear from the documentation).
--}
-
-formatProperties1 :: RDFLabel -> String -> RDFLabel -> Fgsm String
-formatProperties1 sb sbstr pr = do
-  prstr <- formatLabel pr
+  prstr <- formatLabel PredContext pr
   obstr <- formatObjects sb pr (sbstr++" "++prstr)
   more  <- moreProperties
   let sbindent = replicate (length sbstr) ' '
@@ -676,7 +524,7 @@ formatProperties1 sb sbstr pr = do
 formatObjects :: RDFLabel -> RDFLabel -> String -> Fgsm String
 formatObjects sb pr prstr = do
   ob    <- nextObject sb pr
-  obstr <- formatLabel ob
+  obstr <- formatLabel ObjContext ob
   more  <- moreObjects
   if more
     then do
@@ -706,7 +554,7 @@ if it is safe to inline this formula at the label location.
 
 formatFormula :: (RDFLabel,RDFGraph) -> Fgsm String
 formatFormula (fn,gr) = do
-  fnstr <- formatLabel fn
+  fnstr <- formatLabel SubjContext fn
   f1str <- nextLine $ fnstr ++ " :-"
   f2str <- nextLine "    {"
   ngs0  <- getNgs
@@ -738,7 +586,7 @@ by ().
 insertList :: [RDFLabel] -> Fgsm String
 insertList [] = return $ "()" -- not convinced this can happen
 insertList xs = do
-  ls <- mapM formatLabel xs
+  ls <- mapM (formatLabel ObjContext) xs
   return $ "( " ++ intercalate " " ls ++ " )"
   
   
@@ -848,7 +696,7 @@ specialTable =
   , (rdf_nil, "()")
   ]
   
-formatLabel :: RDFLabel -> Fgsm String
+formatLabel :: LabelContext -> RDFLabel -> Fgsm String
 {-
 formatLabel lab@(Blank (_:_)) = do
   name <- formatNodeId lab
@@ -856,8 +704,8 @@ formatLabel lab@(Blank (_:_)) = do
   return name
 -}
 
-formatLabel lab@(Blank (_:_)) = do
-  mlst <- extractList lab
+formatLabel lctxt lab@(Blank (_:_)) = do
+  mlst <- extractList lctxt lab
   case mlst of
     Just lst -> insertList lst
     Nothing -> do
@@ -869,32 +717,20 @@ formatLabel lab@(Blank (_:_)) = do
           -- insertBNode gr
           formatNodeId lab
 
-{-
-TODO:
-hmmm, we may not need list handling here? almost certainly don't so leave in the 'CC' version
-so that it's obvious if this code is ever executed.
--}
-formatLabel lab@(Res sn) = 
+formatLabel _ lab@(Res sn) = 
   case lookup sn specialTable of
     Just txt -> return txt
     Nothing -> do
-      mlst <- extractList lab
-      case mlst of
-        -- Just lst -> insertList lst
-        Just lst -> do
-	  txt <- insertList lst
-          return $ "<CC>" ++ txt ++ "<CC>"
-        Nothing -> do
-          pr <- getPrefixes
-          let nsuri  = getScopeURI sn
-              local  = snLocal sn
-              premap = reverseLookupMap pr :: RevNamespaceMap
-              prefix = mapFindMaybe nsuri premap
-              name   = case prefix of
-                Just p -> p ++ ":" ++ local
-                _ -> "<"++nsuri++local++">"
-          queueFormula lab
-          return name
+      pr <- getPrefixes
+      let nsuri  = getScopeURI sn
+          local  = snLocal sn
+          premap = reverseLookupMap pr :: RevNamespaceMap
+          prefix = mapFindMaybe nsuri premap
+          name   = case prefix of
+                     Just p -> p ++ ":" ++ local
+                     _ -> "<"++nsuri++local++">"
+      queueFormula lab
+      return name
 
 {-
 formatLabel lab@(Lit str typ) =
@@ -904,7 +740,7 @@ formatLabel lab@(Var vid) =
     do  { return $ show lab
         }
 -}
-formatLabel lab = return $ show lab
+formatLabel _ lab = return $ show lab
 
 formatNodeId :: RDFLabel -> Fgsm String
 formatNodeId lab@(Blank (lnc:_)) =
