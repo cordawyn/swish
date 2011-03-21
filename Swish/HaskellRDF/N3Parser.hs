@@ -122,6 +122,7 @@ import Data.Maybe (fromMaybe, fromJust)
 
 import Text.ParserCombinators.Parsec hiding (many, optional, (<|>))
 import Text.ParserCombinators.Parsec.Language (emptyDef)
+import Text.ParserCombinators.Parsec.Error (errorMessages, showErrorMessages)
 
 import qualified Text.ParserCombinators.Parsec.Token as P
 
@@ -285,7 +286,9 @@ parseN3 = flip (parseAnyfromString document)
 test :: String -> RDFGraph
 test = either error id . parseAnyfromString document Nothing
 
--- | Function to supply initial context and parse supplied term
+-- | Function to supply initial context and parse supplied term.
+--
+-- We augment the Parsec error with the context.
 --
 parseAnyfromString :: N3Parser a      -- ^ parser to apply
                       -> Maybe String -- ^ base URI of the input, or @Nothing@ to use default base value
@@ -308,8 +311,18 @@ parseAnyfromString parser base input =
             result = runParser parser pstate "" input
         in
             case result of
-                Left  err -> Left  (show err)
                 Right res -> Right res
+                Left  err -> 
+                    -- the following is based on the show instance of ParseError
+                    let ePos = errorPos err
+                        lNum = sourceLine ePos
+                        cNum = sourceColumn ePos
+                        lTxt = (lines input) !! (lNum - 1)
+                        indicator = replicate (cNum-1) ' ' ++ "^"
+                        eHdr = ["", lTxt, indicator, "(line " ++ show lNum ++ ", column " ++ show cNum ++ " indicated by the '^' sign above):"]
+                        eMsg = showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input"
+                               (errorMessages err)
+                    in Left $ unlines eHdr ++ eMsg
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do

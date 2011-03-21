@@ -87,6 +87,8 @@ import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
     , assertEqual, runTestTT, runTestText, putTextToHandle )
 
+import Data.List (intercalate)
+
 import System.IO
     ( Handle, IOMode(WriteMode)
     , openFile, hClose, hPutStr, hPutStrLn )
@@ -982,10 +984,16 @@ simpleTest013 = parseTest "simpleTest013" simpleN3Graph_g1_03 g1  noError
 simpleTest014 = parseTest "simpleTest014" simpleN3Graph_g1_04 g1  noError
 simpleTest015 = parseTest "simpleTest015" simpleN3Graph_g1_05 g1b noError
 simpleTest016 = parseTest "simpleTest016" simpleN3Graph_g1_06 emptyRDFGraph
-                ( "(line 1, column 103):\n"++
-                  "unexpected \"*\"\n"++
-                  "expecting declaration, pathitem or end of input") -- TODO this msg will change when parser is finished
---                  "expecting URI or blank node or end of input" )
+                $ intercalate "\n" [
+                       "",
+                       "@prefix base1 : <http://id.ninebynine.org/wip/2003/test/graph1/node/> . base1:s1 base1:p1 base1:o1 .  **** ",
+                       "                                                                                                      ^",
+                       "(line 1, column 103 indicated by the '^' sign above):",
+                       "",
+                       "unexpected \"*\"",
+                       "expecting declaration, pathitem or end of input"
+                      ]
+
 simpleTest03  = parseTest "simpleTest03"  simpleN3Graph_g2    g2  noError
 simpleTest04  = parseTest "simpleTest04"  simpleN3Graph_g3    g3  noError
 simpleTest05  = parseTest "simpleTest05"  simpleN3Graph_g4    g4  noError
@@ -1239,7 +1247,15 @@ failN3Graph_g1 =
     commonPrefixes ++
     " base1:s1 base2:p2 unknown3:o3 . "
 
-fail1 = "(line 4, column 20):\nunexpected Prefix 'unknown3:' not bound.\nexpecting pathitem"
+fail1 = intercalate "\n" [
+         "",
+         " base1:s1 base2:p2 unknown3:o3 . ",
+         "                   ^",
+         "(line 4, column 20 indicated by the '^' sign above):",
+         "",
+         "unexpected Prefix 'unknown3:' not bound.",
+         "expecting pathitem"
+        ]
 
 failTest01 = failTest "failTest01" failN3Graph_g1 fail1
 
