@@ -98,11 +98,11 @@ import Swish.HaskellRDF.Sort.QuickSort
 
 import Data.Char (isDigit)
 
-import Data.List (groupBy, intercalate)
+import Data.List (foldl', delete, groupBy, intercalate, partition)
 
 import Data.Maybe (fromMaybe)
 
-import Control.Monad (when)
+import Control.Monad (liftM, when)
 
 ----------------------------------------------------------------------
 --  Ouptut string concatenation
@@ -138,6 +138,7 @@ data Fgs = Fgs
     , formAvail :: FormulaMap RDFLabel
     , formQueue :: [(RDFLabel,RDFGraph)]
     , nodeGenSt :: NodeGenState
+    , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
     }
 
@@ -152,6 +153,7 @@ emptyFgs ngs = Fgs
     , formAvail = emptyFormulaMap
     , formQueue = []
     , nodeGenSt = ngs
+    , bNodesCheck   = []
     , traceBuf  = []
     }
 
@@ -197,6 +199,9 @@ instance Monad Fgsm where
 getFgs :: Fgsm Fgs
 getFgs = Fgsm (\fgs -> (fgs,fgs) )
 
+setFgs :: Fgs -> Fgsm ()
+setFgs nfgs = Fgsm (\_ -> (nfgs,()) )
+
 getIndent :: Fgsm String
 getIndent = Fgsm (\fgs -> (fgs,indent fgs) )
 
@@ -235,6 +240,9 @@ getObjs = Fgsm $ \fgs -> (fgs, objs fgs)
 
 setObjs :: [RDFLabel] -> Fgsm ()
 setObjs os = Fgsm $ \fgs -> (fgs { objs = os }, ())
+
+getBnodesCheck :: Fgsm ([RDFLabel])
+getBnodesCheck = Fgsm $ \fgs -> (fgs, bNodesCheck fgs)
 
 addTrace :: String -> Fgsm ()
 addTrace tr = Fgsm $ \fgs -> (fgs { traceBuf = tr : traceBuf fgs }, ())
@@ -337,8 +345,8 @@ extractList lctxt ln = do
             SubjContext -> (ln, fprops) : osubjs
             _ -> osubjs 
 
-      tr = "extractList " ++ show ln ++ " (" ++ show lctxt ++ ")\n -> osubjs= " ++ show osubjs ++ "\n -> opreds= " ++ show oprops ++ "\n -> mlst= " ++ show mlst ++ "\n"
-  addTrace tr
+      -- tr = "extractList " ++ show ln ++ " (" ++ show lctxt ++ ")\n -> osubjs= " ++ show osubjs ++ "\n -> opreds= " ++ show oprops ++ "\n -> mlst= " ++ show mlst ++ "\n"
+  -- addTrace tr
   case mlst of
     -- sl is guaranteed to be free of (ln,fprops) here if lctxt is SubjContext
     Just (sl,ls,_) -> do
@@ -376,32 +384,6 @@ removeItem os x =
   in case bs of
     ((_,b):bbs) -> Just (b, as ++ bbs)
     [] -> Nothing
-
-{-
-Return the arcs associated with the label and delete them
-from the store.
-
-Do we need to worry about any formulae?
--}
-
-{-
-extractBNode :: RDFLabel -> Fgsm RDFGraph
-extractBNode bn = Fgsm $ \fgs ->
-  let osubjs = subjs fgs
-      opreds = preds fgs
-      oobjs  = objs fgs
-      ongst  = nodeGenSt fgs
-XXXX what do we need to copy over to the new graph and what do we      
-need to return?
-
-Hmm, maybe having an extraction and a insertion step for BNode isn't
-ideal?
-
-  in
-   case mapFindMaybe fn fa of
-     Nothing -> (fgs, Nothing)
-     Just fv -> (newState,Just fv)
--}
 
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
@@ -498,15 +480,23 @@ formatSubjects :: Fgsm ShowS
 formatSubjects = do
   sb    <- nextSubject
   sbstr <- formatLabel SubjContext sb
-  prstr <- formatProperties sb sbstr
-  fmstr <- formatFormulae ""
-  more  <- moreSubjects
-  if more
+  
+  flagP <- moreProperties
+  if flagP
     then do
-      fr <- formatSubjects
-      return $ puts (prstr ++ fmstr ++ " .") . fr
-    else return $ puts $ prstr ++ fmstr
-
+      prstr <- formatProperties sb sbstr
+      fmstr <- formatFormulae ""
+      flagS <- moreSubjects
+      if flagS
+        then do
+          fr <- formatSubjects
+          return $ puts (prstr ++ fmstr ++ " .") . fr
+        else return $ puts $ prstr ++ fmstr
+           
+    else do
+         txt <- nextLine sbstr
+         return $ puts txt
+    
 formatProperties :: RDFLabel -> String -> Fgsm String
 formatProperties sb sbstr = do
   pr <- nextProperty sb
@@ -591,13 +581,61 @@ insertList xs = do
   
   
 {-
-Add a blank node inline, where the input is the
-graph (and how about formula) to display.
-
-insertBNode :: RDFGraph -> Fgsm String  
-insertBNode gr = do
-  undefined
+Add a blank node inline.
 -}
+
+insertBnode :: LabelContext -> RDFLabel -> Fgsm String  
+insertBnode SubjContext lbl = do
+  flag <- moreProperties
+  txt <- if flag
+         then liftM (++"\n") $ formatProperties lbl ""
+         else return ""
+
+  -- TODO: handle indentation?
+  return $ "[" ++ txt ++ "]"
+
+insertBnode _ lbl = do
+  ofgs <- getFgs
+  let osubjs = subjs ofgs
+      oprops = props ofgs
+      oobjs  = objs  ofgs
+
+      (bsubj, rsubjs) = partition ((== lbl) . fst) osubjs
+
+      rprops = case bsubj of
+                 [(_,rs)] -> rs
+                 _ -> []
+
+      -- we essentially want to create a new subgraph
+      -- for this node but it's not as simple as that since
+      -- we could have something like
+      --     :a :b [ :foo [ :bar "xx" ] ]
+      -- so we still need to carry around the whole graph
+      --
+      fgs' = ofgs { subjs = rsubjs,
+                    props = rprops,
+                    objs  = []
+                  }
+
+  setFgs fgs'
+  flag <- moreProperties
+  txt <- if flag
+         then liftM (++"\n") $ formatProperties lbl ""
+         else return ""
+
+  -- TODO: how do we restore the original set up?
+  --       I can't believe the following is sufficient
+  --
+  fgs'' <- getFgs 
+  let slist  = map fst $ subjs fgs''
+      nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
+  setFgs $ fgs'' { subjs = nsubjs,
+                   props = oprops, 
+                   objs  = oobjs
+               }
+
+  -- TODO: handle indentation?
+  return $ "[" ++ txt ++ "]"
   
 ----------------------------------------------------------------------
 --  Formatting helpers
@@ -609,12 +647,14 @@ setGraph gr =
         let ngs0 = (nodeGenSt fgs)
             pre' = mapMerge (prefixes ngs0) (getNamespaces gr)
             ngs' = ngs0 { prefixes=pre' }
+            arcs = sortArcs $ getArcs gr
             fgs' = fgs  { graph     = gr
-                        , subjs     = arcTree $ getArcs gr
+                        , subjs     = arcTree arcs
                         , props     = []
                         , objs      = []
                         , formAvail = getFormulae gr
                         , nodeGenSt = ngs'
+                        , bNodesCheck   = countBnodes arcs
                         }
         in (fgs',()) )
 
@@ -679,9 +719,7 @@ nextLine str = do
 --  (c) formula nodes (containing graphs).
 --
 --  [[[TODO:]]]
---  (d) blank nodes used just once, can be expanded inline using
---      [...] syntax.
---  (e) generate multi-line literals when appropriate
+--  (d) generate multi-line literals when appropriate
 --
 -- This is being updated to produce inline formula, lists and     
 -- blank nodes. The code is not efficient.
@@ -704,18 +742,22 @@ formatLabel lab@(Blank (_:_)) = do
   return name
 -}
 
+{-
+The "[..]" conversion is done last, after "()" and "{}" checks.
+-}
 formatLabel lctxt lab@(Blank (_:_)) = do
   mlst <- extractList lctxt lab
   case mlst of
     Just lst -> insertList lst
     Nothing -> do
-      mfml <- extractFormula lab
-      case mfml of
-        Just fml -> insertFormula fml
-        Nothing -> do
-          -- gr <- extractBNode lab
-          -- insertBNode gr
-          formatNodeId lab
+              mfml <- extractFormula lab
+              case mfml of
+                Just fml -> insertFormula fml
+                Nothing -> do
+                          nb1 <- getBnodesCheck
+                          if lctxt /= PredContext && lab `notElem` nb1
+                            then insertBnode lctxt lab
+                            else formatNodeId lab
 
 formatLabel _ lab@(Res sn) = 
   case lookup sn specialTable of
@@ -765,11 +807,17 @@ mapBlankNode lab = do
 --  Graph-related helper functions
 ----------------------------------------------------------------------
 
+newtype SortedArcs lb = SA [Arc lb]
+
+sortArcs :: (Ord lb) => [Arc lb] -> SortedArcs lb
+sortArcs = SA . stableQuickSort
+
 --  Rearrange a list of arcs into a tree of pairs which group together
---  all statements for a single subject, sind similarly for multiple
+--  all statements for a single subject, and similarly for multiple
 --  objects of a common predicate.
-arcTree :: (Ord lb) => [Arc lb] -> SubjTree lb
-arcTree as = commonFstEq (commonFstEq id) $ map spopair $ stableQuickSort as
+--
+arcTree :: (Eq lb) => SortedArcs lb -> SubjTree lb
+arcTree (SA as) = commonFstEq (commonFstEq id) $ map spopair as
     where
         spopair (Arc s p o) = (s,(p,o))
 
@@ -814,6 +862,42 @@ getAutoBnodeIndex (Blank ('_':lns)) = res where
             [x] -> x
             _   -> 0
 getAutoBnodeIndex _                   = 0
+
+{-
+Find all blank nodes that occur
+  - any number of times as a subject
+  - 0 or 1 times as an object
+
+Such nodes can be output using the "[..]" syntax. To make it simpler
+to check we actually store those nodes that can not be expanded.
+
+Note that we do not try and expand any bNode that is used in
+a predicate position.
+
+Should probably be using the SubjTree RDFLabel structure but this
+is easier for now.
+
+-}
+
+countBnodes :: SortedArcs RDFLabel -> [RDFLabel]
+countBnodes (SA as) = snd (foldl' ctr ([],[]) as)
+    where
+      -- first element of tuple are those blank nodes only seen once,
+      -- second element those blank nodes seen multiple times
+      --
+      inc b@(b1s,bms) l@(Blank _) | l `elem` bms = b
+                                  | l `elem` b1s = (delete l b1s, l:bms)
+                                  | otherwise    = (l:b1s, bms)
+      inc b _ = b
+
+      -- if the bNode appears as a predicate we instantly add it to the
+      -- list of nodes not to expand, even if only used once
+      incP b@(b1s,bms) l@(Blank _) | l `elem` bms = b
+                                   | l `elem` b1s = (delete l b1s, l:bms)
+           			   | otherwise    = (b1s, l:bms)
+      incP b _ = b
+
+      ctr orig (Arc _ p o) = inc (incP orig p) o
 
 --------------------------------------------------------------------------------
 --

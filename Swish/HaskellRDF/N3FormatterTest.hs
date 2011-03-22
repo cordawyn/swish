@@ -808,6 +808,47 @@ graph_c3 = NSGraph
                         arc s2 p2 o2]
         }
 
+-- bnode graphs
+
+graph_b1 = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc s1 p1 b1]
+        }
+
+graph_b1rev = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc b1 p1 o1]
+        }
+
+graph_b2 = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc s1 p1 b1,
+	                arc b1 p2 l1,
+	                arc b1 o2 o3]
+        }
+
+graph_b2rev = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc b1 p2 l1,
+                        arc b1 o2 o3,
+                        arc b1 p1 o1]
+        }
+
+
+graph_b3 = NSGraph
+        { namespaces = nslist
+        , formulae   = emptyFormulaMap
+        , statements = [arc s1 p1 b1,
+	                arc b1 p2 l1,
+	                arc b1 o2 o3,
+	                arc s1 p2 b2,
+	                arc s2 p2 o2]
+        }
+
 ------------------------------------------------------------
 --  Trivial formatter tests
 ------------------------------------------------------------
@@ -854,12 +895,14 @@ simpleN3Graph_g1_02 =
 --  Single blank node
 simpleN3Graph_g1_03 =
     commonPrefixes ++
-    "_:b1 base1:p1 base1:o1 .\n"
+    "[\n base1:p1 base1:o1\n] .\n"
+    -- "_:b1 base1:p1 base1:o1 .\n"
 
 --  Single auto-allocated blank node
 simpleN3Graph_g1_04 =
     commonPrefixes ++
-    "_:_1 base1:p1 base1:o1 .\n"
+    "[\n base1:p1 base1:o1\n] .\n"
+    -- "_:_1 base1:p1 base1:o1 .\n"
 
 --  Single literal object
 simpleN3Graph_g1_05 =
@@ -903,7 +946,8 @@ TODO: is the above a correct interpretation of the following?
 --  Three blank nodes (or is that blind mice?)
 simpleN3Graph_g1_09 =
     commonPrefixes ++
-    "_:b1 _:b2 _:b3 .\n"
+    "[\n _:b2 []\n] .\n"
+    -- "_:b1 _:b2 _:b3 .\n"
 
 --  Simple nested formula case
 simpleN3Graph_g1_10 =
@@ -943,15 +987,20 @@ simpleN3Graph_x13a =
     "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_5 .\n"++
     "_:_5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_4 ;\n"++
     "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n"
+
+Note that we do not convert named nodes into (..) format, which is why
+base1:s1 gets explicit rdf:first/rest statements.
+
 -}
     
 simpleN3Graph_x13a =
     commonPrefixes ++
-    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
-    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( _:_2 _:_3 ) .\n"++
-    "_:_1 base1:p1 base1:o1 .\n"++
-    "_:_2 base1:p1 base2:o2 .\n"++
-    "_:_3 base1:p1 base3:o3 .\n"
+    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> " ++ b1 ++ " ;\n"++
+    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2 ++ " " ++ b3 ++ " ) .\n"
+    where
+      b1 = "[\n base1:p1 base1:o1\n]"
+      b2 = "[\n base1:p1 base2:o2\n]"
+      b3 = "[\n base1:p1 base3:o3\n]"
 
 {-
 Simple collection tests; may replicate some of the
@@ -980,6 +1029,33 @@ simpleN3Graph_c3 =
     "         base2:p2 () .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
+{-
+Simple bnode tests; may replicate some of the
+previous tests.
+-}
+
+simpleN3Graph_b1 =
+    commonPrefixes ++
+    "base1:s1 base1:p1 [] .\n"
+
+simpleN3Graph_b1rev =
+    commonPrefixes ++
+    "[\n base1:p1 base1:o1\n] .\n"
+
+simpleN3Graph_b2 =
+    commonPrefixes ++
+    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+
+simpleN3Graph_b2rev =
+    commonPrefixes ++
+    "[\n base1:p1 base1:o1 ;\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+
+simpleN3Graph_b3 =
+    commonPrefixes ++
+    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] ;\n" ++
+    "         base2:p2 [] .\n" ++
+    "base2:s2 base2:p2 base2:o2 .\n"
+
 trivialTest01 = formatTest "trivialTest01" g1np simpleN3Graph_g1_01
 trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
 trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
@@ -997,6 +1073,12 @@ trivialTestc2 = formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
 trivialTestc3 = formatTest "trivialTestc3" graph_c3 simpleN3Graph_c3
 trivialTestc1rev = formatTest "trivialTestc1rev" graph_c1rev simpleN3Graph_c1rev
 trivialTestc2rev = formatTest "trivialTestc2rev" graph_c2rev simpleN3Graph_c2rev
+
+trivialTestb1 = formatTest "trivialTestb1" graph_b1 simpleN3Graph_b1
+trivialTestb2 = formatTest "trivialTestb2" graph_b2 simpleN3Graph_b2
+trivialTestb3 = formatTest "trivialTestb3" graph_b3 simpleN3Graph_b3
+trivialTestb1rev = formatTest "trivialTestb1rev" graph_b1rev simpleN3Graph_b1rev
+trivialTestb2rev = formatTest "trivialTestb2rev" graph_b2rev simpleN3Graph_b2rev
 
 trivialTestx4 = formatTest "trivialTestx4" x4 exoticN3Graph_x4
 trivialTestx5 = formatTest "trivialTestx5" x5 exoticN3Graph_x5
@@ -1021,6 +1103,11 @@ trivialTestSuite = TestList
   , trivialTestc3
   , trivialTestc1rev
   , trivialTestc2rev
+  , trivialTestb1
+  , trivialTestb2
+  , trivialTestb3
+  , trivialTestb1rev
+  , trivialTestb2rev
   , trivialTestx4
   , trivialTestx5
   , trivialTestx7
