@@ -70,7 +70,6 @@ import Swish.HaskellRDF.RDFGraph (
   setNamespaces, getNamespaces,
   getFormulae,
   emptyRDFGraph,
-  isUri, isBlank,
   res_rdf_first, res_rdf_rest, res_rdf_nil
   )
 
@@ -100,9 +99,8 @@ import Data.Char (isDigit)
 
 import Data.List (foldl', delete, groupBy, intercalate, partition)
 
-import Data.Maybe (fromMaybe)
-
 import Control.Monad (liftM, when)
+import Control.Monad.State
 
 ----------------------------------------------------------------------
 --  Ouptut string concatenation
@@ -128,7 +126,7 @@ puts = showString
 type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
 
-data Fgs = Fgs
+data N3FormatterState = N3FS
     { indent    :: String
     , lineBreak :: Bool
     , graph     :: RDFGraph
@@ -142,8 +140,10 @@ data Fgs = Fgs
     , traceBuf  :: [String]
     }
 
-emptyFgs :: NodeGenState -> Fgs
-emptyFgs ngs = Fgs
+type Formatter a = State N3FormatterState a
+
+emptyN3FS :: NodeGenState -> N3FormatterState
+emptyN3FS ngs = N3FS
     { indent    = "\n"
     , lineBreak = False
     , graph     = emptyRDFGraph
@@ -181,106 +181,102 @@ emptyNgs = Ngs
 data LabelContext = SubjContext | PredContext | ObjContext
                     deriving (Eq, Show)
 
---  monad definition adapted from Simon Thompson's book, p410
---
---  Fgsm a is a "state transformer" on a state of type "Fgs",
---  which additionally returns a value of type 'a'.
-data Fgsm a = Fgsm ( Fgs -> (Fgs,a) )
+getIndent :: Formatter String
+getIndent = indent `liftM` get
 
-instance Monad Fgsm where
-    return res      = Fgsm (\fgs -> (fgs,res))
-    (Fgsm st) >>= f = Fgsm (\fgs ->
-        let (newfgs,res) = st fgs
-            (Fgsm st')   = f res
-        in
-            st' newfgs
-        )
+setIndent :: String -> Formatter ()
+setIndent ind = do
+  st <- get
+  put $ st { indent = ind }
 
-getFgs :: Fgsm Fgs
-getFgs = Fgsm (\fgs -> (fgs,fgs) )
+getLineBreak :: Formatter Bool
+getLineBreak = lineBreak `liftM` get
 
-setFgs :: Fgs -> Fgsm ()
-setFgs nfgs = Fgsm (\_ -> (nfgs,()) )
+setLineBreak :: Bool -> Formatter ()
+setLineBreak brk = do
+  st <- get
+  put $ st {lineBreak = brk}
 
-getIndent :: Fgsm String
-getIndent = Fgsm (\fgs -> (fgs,indent fgs) )
+getNgs :: Formatter NodeGenState
+getNgs = nodeGenSt `liftM` get
 
-setIndent :: String -> Fgsm ()
-setIndent ind = Fgsm (\fgs -> (fgs {indent=ind},()) )
+setNgs :: NodeGenState -> Formatter ()
+setNgs ngs = do
+  st <- get
+  put $ st { nodeGenSt = ngs }
 
-getLineBreak :: Fgsm Bool
-getLineBreak = Fgsm (\fgs -> (fgs,lineBreak fgs) )
+getPrefixes :: Formatter NamespaceMap
+getPrefixes = prefixes `liftM` getNgs
 
-setLineBreak :: Bool -> Fgsm ()
-setLineBreak brk = Fgsm (\fgs -> (fgs {lineBreak=brk},()) )
+getSubjs :: Formatter (SubjTree RDFLabel)
+getSubjs = subjs `liftM` get
 
-getNgs :: Fgsm NodeGenState
-getNgs = Fgsm (\fgs -> (fgs,nodeGenSt fgs) )
+setSubjs :: SubjTree RDFLabel -> Formatter ()
+setSubjs sl = do
+  st <- get
+  put $ st { subjs = sl }
 
-setNgs :: NodeGenState -> Fgsm ()
-setNgs ngs = Fgsm (\fgs -> (fgs { nodeGenSt = ngs },()) )
+getProps :: Formatter (PredTree RDFLabel)
+getProps = props `liftM` get
 
-getPrefixes :: Fgsm NamespaceMap
-getPrefixes = Fgsm (\fgs -> (fgs,prefixes (nodeGenSt fgs)) )
+setProps :: PredTree RDFLabel -> Formatter ()
+setProps ps = do
+  st <- get
+  put $ st { props = ps }
 
-getSubjs :: Fgsm (SubjTree RDFLabel)
-getSubjs = Fgsm $ \fgs -> (fgs, subjs fgs)
+getObjs :: Formatter ([RDFLabel])
+getObjs = objs `liftM` get
 
-setSubjs :: SubjTree RDFLabel -> Fgsm ()
-setSubjs sl = Fgsm $ \fgs -> (fgs { subjs = sl }, ())
+setObjs :: [RDFLabel] -> Formatter ()
+setObjs os = do
+  st <- get
+  put $ st { objs = os }
 
-getProps :: Fgsm (PredTree RDFLabel)
-getProps = Fgsm $ \fgs -> (fgs, props fgs)
+getBnodesCheck :: Formatter ([RDFLabel])
+getBnodesCheck = bNodesCheck `liftM` get
 
-setProps :: PredTree RDFLabel -> Fgsm ()
-setProps ps = Fgsm $ \fgs -> (fgs { props = ps }, ())
-
-getObjs :: Fgsm ([RDFLabel])
-getObjs = Fgsm $ \fgs -> (fgs, objs fgs)
-
-setObjs :: [RDFLabel] -> Fgsm ()
-setObjs os = Fgsm $ \fgs -> (fgs { objs = os }, ())
-
-getBnodesCheck :: Fgsm ([RDFLabel])
-getBnodesCheck = Fgsm $ \fgs -> (fgs, bNodesCheck fgs)
-
-addTrace :: String -> Fgsm ()
-addTrace tr = Fgsm $ \fgs -> (fgs { traceBuf = tr : traceBuf fgs }, ())
+addTrace :: String -> Formatter ()
+addTrace tr = do
+  st <- get
+  put $ st { traceBuf = tr : traceBuf st }
   
-queueFormula :: RDFLabel -> Fgsm ()
-queueFormula fn = Fgsm (\fgs ->
-    let fa = formAvail fgs
-        newState fv =
-            fgs { formAvail=mapDelete fa fn
-                , formQueue=(fn,fv) : formQueue fgs
-                }
-    in
-        case mapFindMaybe fn fa of
-            Nothing -> (fgs,())
-            Just fv -> (newState fv,())
-    )
+queueFormula :: RDFLabel -> Formatter ()
+queueFormula fn = do
+  st <- get
+  let fa = formAvail st
+      newState fv = st {
+                      formAvail = mapDelete fa fn,
+                      formQueue = (fn,fv) : formQueue st
+                    }
+  case mapFindMaybe fn fa of
+    Nothing -> return ()
+    Just v -> put (newState v) >> return ()
 
 {-
 Return the graph associated with the label and delete it
 from the store, if there is an association, otherwise
 return Nothing.
 -}
-extractFormula :: RDFLabel -> Fgsm (Maybe RDFGraph)
-extractFormula fn = Fgsm $ \fgs ->
-  let fa = formAvail fgs
-      newState = fgs { formAvail=mapDelete fa fn }
-  in
-   case mapFindMaybe fn fa of
-     Nothing -> (fgs, Nothing)
-     Just fv -> (newState,Just fv)
-  
-moreFormulae :: Fgsm Bool
-moreFormulae =  Fgsm (\fgs -> (fgs,not $ null (formQueue fgs)) )
+extractFormula :: RDFLabel -> Formatter (Maybe RDFGraph)
+extractFormula fn = do
+  st <- get
+  let fa = formAvail st
+      newState = st { formAvail=mapDelete fa fn }
+  case mapFindMaybe fn fa of
+    Nothing -> return Nothing
+    Just fv -> put newState >> return (Just fv)
 
-nextFormula :: Fgsm (RDFLabel,RDFGraph)
-nextFormula =  Fgsm (\fgs ->
-    let (nf:fq) = (formQueue fgs) in (fgs {formQueue=fq},nf)
-    )
+moreFormulae :: Formatter Bool
+moreFormulae =  do
+  st <- get
+  return $ not $ null (formQueue st)
+
+nextFormula :: Formatter (RDFLabel,RDFGraph)
+nextFormula = do
+  st <- get
+  let (nf : fq) = formQueue st
+  put $ st { formQueue = fq }
+  return nf
 
 -- list has a length of 1
 len1 :: [a] -> Bool
@@ -331,7 +327,7 @@ TODO:
 Should we change the preds/objs entries as well?
 
 -}
-extractList :: LabelContext -> RDFLabel -> Fgsm (Maybe [RDFLabel])
+extractList :: LabelContext -> RDFLabel -> Formatter (Maybe [RDFLabel])
 extractList lctxt ln = do
   osubjs <- getSubjs
   oprops <- getProps
@@ -411,7 +407,7 @@ formatGraphIndent ind dopref gr = out
 -}
 formatGraphIndent ind dopref gr = out
     where
-        (fgs,out') = formatGraphDiag1 ind dopref emptyLookupMap gr
+        (out',fgs) = formatGraphDiag1 ind dopref emptyLookupMap gr
         tbuff = traceBuf fgs
         -- tr = if null tbuff then "" else "\nDEBUG:\n" ++ concat (reverse tbuff)
         tr = ""
@@ -422,20 +418,21 @@ formatGraphDiag ::
     RDFGraph -> (ShowS,NodeGenLookupMap,Int,[String])
 formatGraphDiag gr = (out,nodeMap ngs,nodeGen ngs,traceBuf fgs)
     where
-        (fgs,out) = formatGraphDiag1 "\n" True emptyLookupMap gr
+        (out,fgs) = formatGraphDiag1 "\n" True emptyLookupMap gr
         ngs       = nodeGenSt fgs
 
 --  Internal function starts with supplied prefix table and indent string,
 --  and returns final state and formatted string.
 --  This is provided for diagnostic access to the final state
-formatGraphDiag1 :: String -> Bool -> NamespaceMap -> RDFGraph -> (Fgs,ShowS)
-formatGraphDiag1 ind dopref pref gr = res where
-    Fgsm fg = formatGraph ind " ." False dopref gr  -- construct monad
-    ngs     = emptyNgs                  -- construct initial state
-                { prefixes=pref
-                , nodeGen=findMaxBnode gr
-                }
-    (_,res) = fg (emptyFgs ngs)         -- apply monad to state, pick result
+formatGraphDiag1 :: String -> Bool -> NamespaceMap -> RDFGraph -> (ShowS,N3FormatterState)
+formatGraphDiag1 ind dopref pref gr = 
+    let fg = formatGraph ind " ." False dopref gr
+        ngs = emptyNgs {
+                prefixes=pref,
+                nodeGen=findMaxBnode gr
+              }
+             
+    in runState fg (emptyN3FS ngs)
 
 ----------------------------------------------------------------------
 --  Formatting as a monad-based computation
@@ -446,7 +443,7 @@ formatGraphDiag1 ind dopref pref gr = res where
 -- dobreak  is True if a line break is to be inserted at the start
 -- dopref   is True if prefix strings are to be generated
 --
-formatGraph :: String -> String -> Bool -> Bool -> RDFGraph -> Fgsm (Fgs,ShowS)
+formatGraph :: String -> String -> Bool -> Bool -> RDFGraph -> Formatter ShowS
 formatGraph ind end dobreak dopref gr = do
   setIndent ind
   setLineBreak dobreak
@@ -460,10 +457,10 @@ formatGraph ind end dobreak dopref gr = do
             fr <- formatSubjects
             return $ fp . fr . puts end
           else return fp
-  fgs <- getFgs
-  return (fgs,res)
 
-formatPrefixes :: NamespaceMap -> Fgsm ShowS
+  return res
+
+formatPrefixes :: NamespaceMap -> Formatter ShowS
 formatPrefixes pmap = do
   let mls = map (pref . keyVal) (listLookupMap pmap)
   ls <- sequence mls
@@ -471,12 +468,7 @@ formatPrefixes pmap = do
     where
       pref (p,u) = nextLine $ "@prefix "++p++": <"++u++"> ."
 
---  The above function creates a list of 'Fgsm String' monads, then
---  uses 'sequence' to turn that to a single 'Fgsm [String]' and finally
---  concatenates them to a single string and uses 'puts' to return the
---  result as a 'Fgsm ShowS'.  Phew!
-
-formatSubjects :: Fgsm ShowS
+formatSubjects :: Formatter ShowS
 formatSubjects = do
   sb    <- nextSubject
   sbstr <- formatLabel SubjContext sb
@@ -497,7 +489,7 @@ formatSubjects = do
          txt <- nextLine sbstr
          return $ puts txt
     
-formatProperties :: RDFLabel -> String -> Fgsm String
+formatProperties :: RDFLabel -> String -> Formatter String
 formatProperties sb sbstr = do
   pr <- nextProperty sb
   prstr <- formatLabel PredContext pr
@@ -511,7 +503,7 @@ formatProperties sb sbstr = do
       return $ nl ++ fr
     else nextLine obstr
 
-formatObjects :: RDFLabel -> RDFLabel -> String -> Fgsm String
+formatObjects :: RDFLabel -> RDFLabel -> String -> Formatter String
 formatObjects sb pr prstr = do
   ob    <- nextObject sb pr
   obstr <- formatLabel ObjContext ob
@@ -524,7 +516,7 @@ formatObjects sb pr prstr = do
       return $ nl ++ fr
     else return $ prstr ++ " " ++ obstr
 
-formatFormulae :: String -> Fgsm String
+formatFormulae :: String -> Formatter String
 formatFormulae fp = do
   more  <- moreFormulae
   if more
@@ -534,36 +526,38 @@ formatFormulae fp = do
       formatFormulae $ fp ++ " ." ++ fnstr
     else return fp
 
--- [[[TODO: use above pattern for subject/property/object loops?]]]
-
 {-
 TODO: need to remove the use of :-. It's not clear to me whether
 we are guaranteed that fn is only used once in the graph - ie
 if it is safe to inline this formula at the label location.
 -}
 
-formatFormula :: (RDFLabel,RDFGraph) -> Fgsm String
+formatFormula :: (RDFLabel,RDFGraph) -> Formatter String
 formatFormula (fn,gr) = do
   fnstr <- formatLabel SubjContext fn
   f1str <- nextLine $ fnstr ++ " :-"
   f2str <- nextLine "    {"
   ngs0  <- getNgs
   ind   <- getIndent
-  let Fgsm grm = formatGraph (ind++"    ") "" True False
-                             (setNamespaces emptyNamespaceMap gr)
-  let (fgs',(_,f3str)) = grm (emptyFgs ngs0)
+  let grm = formatGraph (ind++"    ") "" True False
+            (setNamespaces emptyNamespaceMap gr)
+            
+      (f3str, fgs') = runState grm (emptyN3FS ngs0)
+
   setNgs (nodeGenSt fgs')
   f4str <- nextLine "    }"
   return $ f1str ++ f2str ++ f3str f4str
 
 --- DJB's version of formatFormula when it can be inserted inline
-insertFormula :: RDFGraph -> Fgsm String
+insertFormula :: RDFGraph -> Formatter String
 insertFormula gr = do
   ngs0  <- getNgs
   ind   <- getIndent
-  let Fgsm grm = formatGraph (ind++"    ") "" True False
-                 (setNamespaces emptyNamespaceMap gr)
-      (fgs',(_,f3str)) = grm (emptyFgs ngs0)
+  let grm = formatGraph (ind++"    ") "" True False
+            (setNamespaces emptyNamespaceMap gr)
+
+      (f3str, fgs') = runState grm (emptyN3FS ngs0)
+
   setNgs (nodeGenSt fgs')
   f4str <- nextLine " } "
   return $ " { " ++ f3str f4str
@@ -573,7 +567,7 @@ Add a list inline. We are given the labels that constitute
 the list, in order, so just need to display them surrounded
 by ().
 -}
-insertList :: [RDFLabel] -> Fgsm String
+insertList :: [RDFLabel] -> Formatter String
 insertList [] = return $ "()" -- not convinced this can happen
 insertList xs = do
   ls <- mapM (formatLabel ObjContext) xs
@@ -584,7 +578,7 @@ insertList xs = do
 Add a blank node inline.
 -}
 
-insertBnode :: LabelContext -> RDFLabel -> Fgsm String  
+insertBnode :: LabelContext -> RDFLabel -> Formatter String  
 insertBnode SubjContext lbl = do
   flag <- moreProperties
   txt <- if flag
@@ -595,10 +589,10 @@ insertBnode SubjContext lbl = do
   return $ "[" ++ txt ++ "]"
 
 insertBnode _ lbl = do
-  ofgs <- getFgs
-  let osubjs = subjs ofgs
-      oprops = props ofgs
-      oobjs  = objs  ofgs
+  ost <- get
+  let osubjs = subjs ost
+      oprops = props ost
+      oobjs  = objs  ost
 
       (bsubj, rsubjs) = partition ((== lbl) . fst) osubjs
 
@@ -612,12 +606,12 @@ insertBnode _ lbl = do
       --     :a :b [ :foo [ :bar "xx" ] ]
       -- so we still need to carry around the whole graph
       --
-      fgs' = ofgs { subjs = rsubjs,
-                    props = rprops,
-                    objs  = []
-                  }
+      nst = ost { subjs = rsubjs,
+                  props = rprops,
+                  objs  = []
+                }
 
-  setFgs fgs'
+  put nst
   flag <- moreProperties
   txt <- if flag
          then liftM (++"\n") $ formatProperties lbl ""
@@ -626,13 +620,14 @@ insertBnode _ lbl = do
   -- TODO: how do we restore the original set up?
   --       I can't believe the following is sufficient
   --
-  fgs'' <- getFgs 
-  let slist  = map fst $ subjs fgs''
+  nst' <- get
+  let slist  = map fst $ subjs nst'
       nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
-  setFgs $ fgs'' { subjs = nsubjs,
-                   props = oprops, 
-                   objs  = oobjs
-               }
+
+  put $ nst' { subjs = nsubjs,
+                       props = oprops, 
+                       objs  = oobjs
+             }
 
   -- TODO: handle indentation?
   return $ "[" ++ txt ++ "]"
@@ -641,61 +636,71 @@ insertBnode _ lbl = do
 --  Formatting helpers
 ----------------------------------------------------------------------
 
-setGraph        :: RDFGraph -> Fgsm ()
-setGraph gr =
-    Fgsm (\fgs ->
-        let ngs0 = (nodeGenSt fgs)
-            pre' = mapMerge (prefixes ngs0) (getNamespaces gr)
-            ngs' = ngs0 { prefixes=pre' }
-            arcs = sortArcs $ getArcs gr
-            fgs' = fgs  { graph     = gr
-                        , subjs     = arcTree arcs
-                        , props     = []
-                        , objs      = []
-                        , formAvail = getFormulae gr
-                        , nodeGenSt = ngs'
-                        , bNodesCheck   = countBnodes arcs
-                        }
-        in (fgs',()) )
+setGraph        :: RDFGraph -> Formatter ()
+setGraph gr = do
+  st <- get
 
-moreSubjects    :: Fgsm Bool
-moreSubjects    = Fgsm (\fgs -> (fgs,not $ null (subjs fgs)))
+  let ngs0 = nodeGenSt st
+      pre' = mapMerge (prefixes ngs0) (getNamespaces gr)
+      ngs' = ngs0 { prefixes = pre' }
+      arcs = sortArcs $ getArcs gr
+      nst  = st  { graph     = gr
+                 , subjs     = arcTree arcs
+                 , props     = []
+                 , objs      = []
+                 , formAvail = getFormulae gr
+                 , nodeGenSt = ngs'
+                 , bNodesCheck   = countBnodes arcs
+                 }
 
-nextSubject     :: Fgsm RDFLabel
-nextSubject     =
-    Fgsm (\fgs ->
-        let sb:sbs = subjs fgs
-            fgs' = fgs  { subjs = sbs
-                        , props = snd sb
-                        , objs  = []
-                        }
-        in (fgs',fst sb) )
+  put nst
+
+moreSubjects    :: Formatter Bool
+moreSubjects    = (not . null . subjs) `liftM` get
+
+nextSubject     :: Formatter RDFLabel
+nextSubject     = do
+  st <- get
+
+  let sb:sbs = subjs st
+      nst = st  { subjs = sbs
+                , props = snd sb
+                , objs  = []
+                }
+
+  put nst
+  return $ fst sb
+
+moreProperties  :: Formatter Bool
+moreProperties  = (not . null . props) `liftM` get
+
+nextProperty    :: RDFLabel -> Formatter RDFLabel
+nextProperty _ = do
+  st <- get
+
+  let pr:prs = props st
+      nst = st  { props = prs
+                 , objs  = snd pr
+                 }
+
+  put nst
+  return $ fst pr
 
 
-moreProperties  :: Fgsm Bool
-moreProperties  = Fgsm (\fgs -> (fgs,not $ null (props fgs)))
+moreObjects     :: Formatter Bool
+moreObjects     = (not . null . objs) `liftM` get
 
-nextProperty    :: RDFLabel -> Fgsm RDFLabel
-nextProperty _ =
-    Fgsm (\fgs ->
-        let pr:prs = props fgs
-            fgs' = fgs  { props = prs
-                        , objs  = snd pr
-                        }
-        in (fgs',fst pr) )
+nextObject      :: RDFLabel -> RDFLabel -> Formatter RDFLabel
+nextObject _ _ = do
+  st <- get
 
+  let ob:obs = objs st
+      nst = st { objs = obs }
 
-moreObjects     :: Fgsm Bool
-moreObjects     = Fgsm (\fgs -> (fgs,not $ null (objs fgs)))
+  put nst
+  return ob
 
-nextObject      :: RDFLabel -> RDFLabel -> Fgsm RDFLabel
-nextObject _ _ =
-    Fgsm (\fgs ->
-        let ob:obs = objs fgs
-            fgs'   = fgs { objs = obs }
-        in (fgs',ob) )
-
-nextLine        :: String -> Fgsm String
+nextLine        :: String -> Formatter String
 nextLine str = do
   ind <- getIndent
   brk <- getLineBreak
@@ -734,7 +739,7 @@ specialTable =
   , (rdf_nil, "()")
   ]
   
-formatLabel :: LabelContext -> RDFLabel -> Fgsm String
+formatLabel :: LabelContext -> RDFLabel -> Formatter String
 {-
 formatLabel lab@(Blank (_:_)) = do
   name <- formatNodeId lab
@@ -784,18 +789,18 @@ formatLabel lab@(Var vid) =
 -}
 formatLabel _ lab = return $ show lab
 
-formatNodeId :: RDFLabel -> Fgsm String
+formatNodeId :: RDFLabel -> Formatter String
 formatNodeId lab@(Blank (lnc:_)) =
     if isDigit lnc then mapBlankNode lab else return $ show lab
 formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to shut up -Wall
 
-mapBlankNode :: RDFLabel -> Fgsm String
+mapBlankNode :: RDFLabel -> Formatter String
 mapBlankNode lab = do
   ngs <- getNgs
   let nmap = nodeMap ngs
   nval <- case mapFind 0 lab nmap of
     0 -> do 
-      let nn = nodeGen ngs + 1
+      let nn = succ (nodeGen ngs)
           nm = mapAdd nmap (lab,nn)
       setNgs $ ngs { nodeGen=nn, nodeMap=nm }
       return nn
