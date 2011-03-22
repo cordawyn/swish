@@ -47,11 +47,11 @@ import Swish.HaskellRDF.GraphPartition
 import Swish.HaskellRDF.RDFGraph
     ( RDFGraph, merge )
 
-import Swish.HaskellRDF.N3Formatter
-    ( formatGraphAsShowS )
+import qualified Swish.HaskellRDF.N3Formatter as N3F
+import qualified Swish.HaskellRDF.NTFormatter as NTF
 
-import Swish.HaskellRDF.N3Parser
-    ( parseN3fromString )
+import Swish.HaskellRDF.N3Parser (parseN3fromString)
+import Swish.HaskellRDF.NTParser (parseNT)
 
 import Swish.HaskellRDF.GraphClass
     ( LDGraph(..)
@@ -264,13 +264,20 @@ swishOutputGraph fnam hnd =
     do  { fmt <- gets format
         ; case fmt of
             N3        -> swishFormatN3 fnam hnd
+            NT        -> swishFormatNT fnam hnd
             _         -> swishError
                          ("Unsupported file format: "++show fmt) 4
         }
 
 swishFormatN3 :: String -> Handle -> SwishStateIO ()
 swishFormatN3 _ hnd =
-    do  { out <- gets $ formatGraphAsShowS . graph
+    do  { out <- gets $ N3F.formatGraphAsShowS . graph
+        ; lift $ hPutStrLn hnd (out "")
+        }
+
+swishFormatNT :: String -> Handle -> SwishStateIO ()
+swishFormatNT _ hnd =
+    do  { out <- gets $ NTF.formatGraphAsShowS . graph
         ; lift $ hPutStrLn hnd (out "")
         }
 
@@ -324,18 +331,31 @@ swishParse fnam inp =
     do  { fmt <- gets format
         ; case fmt of
             N3        -> swishParseN3 fnam inp
+            NT        -> swishParseNT fnam inp
             _         ->
                 do  { swishError ("Unsupported file format: "++show fmt) 4
                     ; return Nothing
                     }
         }
 
+-- TODO: should send in the file name for default base?
 swishParseN3 :: String -> String -> SwishStateIO (Maybe RDFGraph)
 swishParseN3 fnam inp =
     do  { let pres = parseN3fromString inp
         ; case pres of
             Error err ->
                 do  { swishError ("N3 syntax error in file "++fnam++": "++err) 2
+                    ; return Nothing
+                    }
+            Result gr -> return $ Just gr
+        }
+
+swishParseNT :: String -> String -> SwishStateIO (Maybe RDFGraph)
+swishParseNT fnam inp =
+    do  { let pres = parseNT inp
+        ; case pres of
+            Error err ->
+                do  { swishError ("NTriples syntax error in file "++fnam++": "++err) 2
                     ; return Nothing
                     }
             Result gr -> return $ Just gr

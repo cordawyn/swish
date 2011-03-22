@@ -22,6 +22,11 @@ parser-update branch
 
     - the parser is *significantly* slower than the old version
 
+    - output using the "[..]" and "(..)" syntaxes is now supported,
+      but formatting is not ideal.
+
+  - Initial support for NTriples has been added
+
   - I plan to move to using Text rather than String, which will mean
     changing from Parsec to attoparsec-text (probably).
 

@@ -76,6 +76,8 @@ Library
       Swish.HaskellRDF.GraphMem
       Swish.HaskellRDF.GraphPartition
       Swish.HaskellRDF.MapXsdInteger
+      Swish.HaskellRDF.NTFormatter
+      Swish.HaskellRDF.NTParser
       Swish.HaskellRDF.N3Formatter
       Swish.HaskellRDF.N3Parser
       Swish.HaskellRDF.Proof
@@ -84,6 +86,7 @@ Library
       Swish.HaskellRDF.RDFDatatypeXsdString
       Swish.HaskellRDF.RDFGraph
       Swish.HaskellRDF.RDFGraphShowM
+      Swish.HaskellRDF.RDFParser
       Swish.HaskellRDF.RDFProof
       Swish.HaskellRDF.RDFProofContext
       Swish.HaskellRDF.RDFQuery
@@ -159,6 +162,7 @@ Executable         GraphTest
 Executable         N3ParserTest
    Main-Is:        Swish/HaskellRDF/N3ParserTest.hs
    Other-Modules:  Swish.HaskellRDF.N3Parser
+                   Swish.HaskellRDF.RDFParser
                    Swish.HaskellRDF.RDFGraph
                    Swish.HaskellUtils.QName
                    Swish.HaskellRDF.Vocabulary
@@ -169,6 +173,7 @@ Executable         N3FormatterTest
    Main-Is:        Swish/HaskellRDF/N3FormatterTest.hs
    Other-Modules:  Swish.HaskellRDF.N3Formatter
                    Swish.HaskellRDF.N3Parser
+                   Swish.HaskellRDF.RDFParser
                    Swish.HaskellRDF.RDFGraph
                    Swish.HaskellUtils.Namespace
                    Swish.HaskellRDF.Vocabulary
@@ -237,6 +242,7 @@ Executable         RDFQueryTest
                    Swish.HaskellUtils.Namespace
                    Swish.HaskellRDF.Vocabulary
                    Swish.HaskellRDF.N3Parser
+                   Swish.HaskellRDF.RDFParser
                    Swish.HaskellUtils.QName
                    Swish.HaskellUtils.ListHelpers
                    Swish.HaskellUtils.ErrorM

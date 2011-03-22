@@ -94,24 +94,28 @@ import Swish.HaskellUtils.Namespace
     )
 
 import Swish.HaskellRDF.Vocabulary
-    ( namespaceRDF
-    , namespaceRDFS
-    , namespaceRDFD
-    , namespaceOWL
-    , namespaceLOG
-    , langName
+    ( langName
     , rdf_type
     , rdf_first, rdf_rest, rdf_nil
     , owl_sameAs, log_implies
-    , default_base
     , xsd_boolean, xsd_integer, xsd_decimal, xsd_double
     )
 
 import Swish.HaskellUtils.ErrorM
     ( ErrorM(Error,Result) )
 
+import Swish.HaskellRDF.RDFParser
+    ( SpecialMap
+    , mapPrefix
+    , prefixTable, specialTable
+    , ParseResult, RDFParser
+    , n3Style, n3Lexer
+    , annotateParsecError
+    , mkTypedLit
+    )
+
 import Control.Applicative
-import Control.Monad (MonadPlus(..), forM_, ap, foldM)
+import Control.Monad (forM_, foldM)
 
 import Network.URI (URI, 
                     -- isURI, isURIReference, 
@@ -121,9 +125,6 @@ import Network.URI (URI,
 import Data.Maybe (fromMaybe, fromJust)
 
 import Text.ParserCombinators.Parsec hiding (many, optional, (<|>))
-import Text.ParserCombinators.Parsec.Language (emptyDef)
-import Text.ParserCombinators.Parsec.Error (errorMessages, showErrorMessages)
-
 import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Data.Char (isSpace, chr) 
@@ -133,22 +134,8 @@ import Data.Char (isSpace, chr)
 --  Set up token parsers
 ----------------------------------------------------------------------
 
-n3Style :: P.LanguageDef st
-n3Style =
-        emptyDef
-            { P.commentStart   = ""
-            , P.commentEnd     = ""
-            , P.commentLine    = "#"
-            , P.nestedComments = True
-            , P.identStart     = letter <|> char '_'      -- oneOf "_"
-            , P.identLetter    = alphaNum <|> char '_'
-            , P.reservedNames  = []
-            , P.reservedOpNames= []
-            , P.caseSensitive  = True
-            }
-
 lexer :: P.TokenParser N3State
-lexer = P.makeTokenParser n3Style
+lexer = n3Lexer
 
 whiteSpace :: N3Parser ()
 whiteSpace = P.whiteSpace lexer
@@ -176,9 +163,6 @@ data N3State = N3State
         , nodeGen    :: Int                 -- blank node id generator
         }
 
--- | Type for special name lookup table
-type SpecialMap = LookupMap (String,ScopedName)
-
 -- | Functions to update N3State vector (use with Parsec updateState)
 setPrefix :: String -> String -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
@@ -200,10 +184,6 @@ getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
 getSUri :: N3State -> String -> String
 getSUri st nam = getScopedNameURI $ getSName st nam
 
--- | Lookup prefix in table and return URI or 'prefix:'
-mapPrefix :: NamespaceMap -> String -> String
-mapPrefix ps pre = mapFind (pre++":") pre ps
-
 --  Functions to access state:
 --  Map prefix to namespace
 getPrefixNs :: N3State -> String -> Namespace
@@ -223,42 +203,12 @@ getPrefixScopedName st snam = ScopedName (getPrefixNs st pre) loc
 updateGraph :: ( RDFGraph -> RDFGraph ) -> ( N3State -> N3State )
 updateGraph f s = s { graphState = f (graphState s) }
 
---  Define default table of namespaces
-prefixTable :: [Namespace]
-prefixTable =   [ namespaceRDF
-                , namespaceRDFS
-                , namespaceRDFD     -- datatypes
-                , namespaceOWL
-                , namespaceLOG
-                ]
-
---  Define default special-URI table
-specialTable :: [(String,ScopedName)]
-specialTable =  [ ( "a",         rdf_type       ),
-                  ( "equals",    owl_sameAs     ),
-                  ( "implies",   log_implies    ),
-                  ( "listfirst", rdf_first      ),
-                  ( "listrest",  rdf_rest       ),
-                  ( "listnull",  rdf_nil        ),
-                  ( "base",      default_base   ) ]
-
 ----------------------------------------------------------------------
 --  Define top-level parser function:
 --  accepts a string and returns a graph or error
 ----------------------------------------------------------------------
 
-type N3Parser a = GenParser Char N3State a
-
--- Applicative/Alternative are defined for us in Parsec 3
-instance Applicative (GenParser a b) where
-  pure = return
-  (<*>) = ap
-  
-instance Alternative (GenParser a b) where
-  empty = mzero
-  (<|>) = mplus
-  
-type ParseResult = ErrorM RDFGraph -- PResult RDFGraph | PError String
+type N3Parser a = RDFParser N3State a
 
 -- | Parse a string with no base URI (so uses the system default).
 -- 
@@ -267,10 +217,14 @@ type ParseResult = ErrorM RDFGraph -- PResult RDFGraph | PError String
 parseN3fromString ::
   String -- ^ input in N3 format.
   -> ParseResult
-parseN3fromString input =
+parseN3fromString =
+    either Error Result . parseAnyfromString document Nothing 
+
+{-
         case parseAnyfromString document Nothing input of
             Left  err -> Error err
             Right gr  -> Result gr
+-}
 
 -- | Parse a string with an optional base URI.
 --            
@@ -312,22 +266,12 @@ parseAnyfromString parser base input =
         in
             case result of
                 Right res -> Right res
-                Left  err -> 
-                    -- the following is based on the show instance of ParseError
-                    let ePos = errorPos err
-                        lNum = sourceLine ePos
-                        cNum = sourceColumn ePos
-                        lTxt = (lines input) !! (lNum - 1)
-                        indicator = replicate (cNum-1) ' ' ++ "^"
-                        eHdr = ["", lTxt, indicator, "(line " ++ show lNum ++ ", column " ++ show cNum ++ " indicated by the '^' sign above):"]
-                        eMsg = showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input"
-                               (errorMessages err)
-                    in Left $ unlines eHdr ++ eMsg
+                Left  err -> Left $ annotateParsecError (lines input) err
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do
   s <- getState
-  let n = nodeGen s + 1
+  let n = succ (nodeGen s)
   setState $ s { nodeGen = n } 
   return $ Blank (show n)
   
@@ -404,12 +348,6 @@ showURI u = uriToString id u ""
 -- TODO: look at using URIs throughout
 getScopedNameURI' :: URI -> String
 getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
-
-mkTypedLit ::
-  ScopedName -- ^ the type
-  -> String -- ^ the value
-  -> RDFLabel
-mkTypedLit u v = Lit v (Just u)
 
 operatorLabel :: ScopedName -> N3Parser RDFLabel
 {-
