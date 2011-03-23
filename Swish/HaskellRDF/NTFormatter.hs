@@ -29,20 +29,24 @@ module Swish.HaskellRDF.NTFormatter
     )
 where
 
-import Swish.HaskellRDF.RDFGraph (
-  RDFGraph, RDFLabel(..),
-  getArcs, 
+import Swish.HaskellRDF.RDFGraph
+  ( RDFGraph, RDFLabel(..)
+  , getArcs
   )
 
 import Swish.HaskellRDF.GraphClass
     ( Arc(..) )
+
+import Swish.HaskellUtils.Namespace (ScopedName(..), nsURI)
+import Swish.HaskellRDF.Vocabulary (isLang, langTag)
 
 import Swish.HaskellUtils.LookupMap
     ( LookupMap, emptyLookupMap
     , mapFind, mapAdd
     )
 
-import Data.Char (isDigit)
+import Text.Printf (printf)
+import Data.Char (ord)
 
 -- import "mtl" Control.Monad.State
 import Control.Monad.State
@@ -92,27 +96,48 @@ formatGraphInternal gr =
 --  Formatting as a monad-based computation
 ----------------------------------------------------------------------
 
--- this must be a relatively standard idiom, that can be done
--- better than this
-applyShowS :: [String] -> ShowS
-applyShowS [] = id
-applyShowS (x:xs) = showString x . (applyShowS xs)
+-- Are there better ways to do this (could look at moving to a Builder
+-- style system)?
+-- 
+applyShowS :: [ShowS] -> ShowS
+applyShowS = foldr (.) id
 
 formatGraph :: RDFGraph -> Formatter ShowS
 formatGraph gr = do
   ls <- mapM formatArc (getArcs gr)
   return $ applyShowS ls
 
-formatArc :: Arc RDFLabel -> Formatter String
+formatArc :: Arc RDFLabel -> Formatter ShowS
 formatArc (Arc s p o) = do
   sl <- formatLabel s
   pl <- formatLabel p
   ol <- formatLabel o
-  return $ sl ++ " " ++ pl ++ " " ++ ol ++ " .\n"
+  return $ applyShowS $ map showString [sl, " ", pl, " ", ol, " .\n"]
+
+{-
+If we have a blank node then can
+
+  - use the label it contains
+  - generate a new one on output
+
+For now we create new labels whatever the input was since this
+simplifies things, but it may be changed.
 
 formatLabel :: RDFLabel -> Formatter String
 formatLabel lab@(Blank (lnc:_)) = 
   if isDigit lnc then mapBlankNode lab else return $ show lab
+formatLabel lab = return $ show lab
+-}
+
+formatLabel :: RDFLabel -> Formatter String
+formatLabel lab@(Blank _) = mapBlankNode lab
+formatLabel (Res sn) = return $ showScopedName sn
+formatLabel (Lit lit Nothing) = return $ quoteStr lit
+formatLabel (Lit lit (Just nam)) | isLang nam = return $ quoteStr lit ++ "@" ++ langTag nam
+                                 | otherwise  = return $ quoteStr lit ++ "^^" ++ show nam
+
+-- do not expect to get the following, but include
+-- just in case rather than failing
 formatLabel lab = return $ show lab
 
 mapBlankNode :: RDFLabel -> Formatter String
@@ -131,8 +156,42 @@ mapBlankNode lab = do
 
             n -> return n
 
-  return $ show $ Blank ('_':show nval)
+  return $ "_:swish" ++ show nval
 
+showScopedName :: ScopedName -> String
+showScopedName (ScopedName n l) = 
+  let uri = nsURI n ++ l
+  in "<" ++ quote uri ++ ">"
+
+{-
+Swish.HaskellUtils.MiscHelpers contains a quote routine
+which we expand upon here to match the NT syntax.
+-}
+
+quoteStr :: String -> String
+quoteStr  st = ['"'] ++ quote st ++ ['"']
+
+quote :: String -> String
+quote []           = ""
+quote ('\\':st)    = '\\':'\\': quote st
+quote ('"': st)    = '\\':'"': quote st
+quote ('\n':st)    = '\\':'n': quote st
+quote ('\r':st)    = '\\':'r': quote st
+quote ('\t':st)    = '\\':'t': quote st
+quote (c:st) = 
+  let nc = ord c
+      rst = quote st
+      
+      -- lazy way to convert to a string
+      hstr = printf "%08X" nc
+      ustr = hstr ++ rst
+
+  in if nc > 0xffff 
+     then '\\':'U': ustr
+     else if nc > 0x7e || nc < 0x20
+          then '\\':'u': drop 4 ustr
+          else c : rst
+                      
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
