@@ -36,7 +36,6 @@ module Swish.HaskellRDF.NTParser
     , character, name, triple
     , subject, predicate, object
     , uriref, urirefLbl
-    , absoluteURI
     , nodeID, literal, language
 
     )
@@ -67,15 +66,14 @@ import Swish.HaskellUtils.ErrorM
     ( ErrorM(Error,Result) )
 
 import Control.Applicative
+import Control.Monad (when)
 
 import Network.URI (parseURI)
 
-import Data.Maybe (fromMaybe)
+import Data.Char (chr) 
+import Data.Maybe (fromMaybe, isNothing)
 
 import Text.ParserCombinators.Parsec hiding (many, optional, (<|>))
-
-import Data.Char (chr) 
-
 
 ----------------------------------------------------------------------
 -- Define parser state and helper functions
@@ -89,7 +87,7 @@ data NTState = NTState
 --  Return function to update graph in NT parser state,
 --  using the supplied function of a graph
 --  (use returned function with Parsec updateState)
-updateGraph :: ( RDFGraph -> RDFGraph ) -> ( NTState -> NTState )
+updateGraph :: ( RDFGraph -> RDFGraph ) -> NTState -> NTState
 updateGraph f s = s { graphState = f (graphState s) }
 
 ----------------------------------------------------------------------
@@ -170,15 +168,22 @@ for now.
 
 {-
 ntripleDoc	::=	line*	
--}
+line	::=	ws* ( comment | triple )? eoln	
+
+We relax the rule that the input must be empty or end with a new line.
+
 ntripleDoc :: NTParser RDFGraph
 ntripleDoc = graphState <$> (many line *> eof *> getState)
 
-{-
-line	::=	ws* ( comment | triple )? eoln	
--}
 line :: NTParser ()
 line = skipMany ws *> optional (comment <|> triple) *> eoln
+-}
+
+ntripleDoc :: NTParser RDFGraph
+ntripleDoc = graphState <$> (sepBy line eoln *> optional eoln *> skipMany ws *> eof *> getState)
+
+line :: NTParser ()
+line = skipMany ws *> ignore (optional (comment <|> triple))
 
 {-
 ws	::=	space | tab	
@@ -205,21 +210,6 @@ eoln :: NTParser ()
 eoln = ignore (try (string "\r\n") <|> string "\r" <|> string "\n")
        <?> "new line"
        
-{-
-character	::=	[#x20-#x7E] /* US-ASCII space to decimal 126 */	
-
--}
-
-asciiChars, asciiCharsNoGT, asciiCharsNoQuote :: String
-asciiChars = map chr [0x20..0x7e]
-asciiCharsNoGT = filter (/= '>') asciiChars
-asciiCharsNoQuote = filter (/= '"') asciiChars
-
-character, characterNoGT, characterNoQuote :: NTParser Char
-character = oneOf asciiChars
-characterNoGT = oneOf asciiCharsNoGT
-characterNoQuote = oneOf asciiCharsNoQuote
-
 {-
 name	::=	[A-Za-z][A-Za-z0-9]*	
 -}
@@ -265,30 +255,19 @@ object = urirefLbl <|> nodeID <|> literal
 
 {-
 uriref	::=	'<' absoluteURI '>'	
+absoluteURI	::=	character+ with escapes as defined in section URI References	
+
 -}
 
 uriref :: NTParser ScopedName
-uriref = makeUriScopedName <$> 
-         between (char '<') (char '>') absoluteURI
-         <?> "<absolute URI>"
+uriref = do
+  ustr <- char '<' *> manyTill character (char '>')
+  when (isNothing (parseURI ustr)) $
+    fail ("Invalid URI: <" ++ ustr ++ ">")
+  return $ makeUriScopedName ustr
 
 urirefLbl :: NTParser RDFLabel
 urirefLbl = Res <$> uriref
-
-{-
-absoluteURI	::=	character+ with escapes as defined in section URI References	
-
-TODO: 
-  - should we expand out the escapes?
-  - should we return a URI rather than a string?
--}
-
-absoluteURI :: NTParser String
-absoluteURI = do
-  ustr <- many1 characterNoGT
-  case parseURI ustr of
-    Just _ -> return ustr
-    _ -> fail ("Invalid URI: <" ++ ustr ++ ">")
 
 {-
 nodeID	::=	'_:' name	
@@ -305,11 +284,10 @@ language	::=	[a-z]+ ('-' [a-z0-9]+ )*
 encoding a language tag.	
 string	::=	character* with escapes as defined in section Strings	
 
-We follow the N3 Parser production rules here:
 -}
 
 literal :: NTParser RDFLabel
-literal = Lit <$> between (char '"') (char '"') (many characterNoQuote) <*> optionMaybe dtlang
+literal = Lit <$> between (char '"') (char '"') (many character) <*> optionMaybe dtlang
 
 dtlang :: NTParser ScopedName
 dtlang = 
@@ -322,6 +300,83 @@ language = do
   mt <- optionMaybe ( (:) <$> char '-' <*> many1 (oneOf (['a'..'z'] ++ ['0'..'9'])) )
   return $ langName $ h ++ fromMaybe "" mt
 
+{-
+String handling: 
+
+EBNF has:
+
+character	::=	[#x20-#x7E] /* US-ASCII space to decimal 126 */	
+
+Additional information from:
+
+  http://www.w3.org/TR/rdf-testcases/#ntrip_strings
+
+N-Triples strings are sequences of US-ASCII character productions encoding [UNICODE] character strings. The characters outside the US-ASCII range and some other specific characters are made available by \-escape sequences as follows:
+
+ Unicode character
+ (with code point u)	N-Triples encoding
+ [#x0-#x8]	\uHHHH
+ 4 required hexadecimal digits HHHH encoding Unicode character u
+ #x9	\t
+ #xA	\n
+ [#xB-#xC]	\uHHHH
+ 4 required hexadecimal digits HHHH encoding Unicode character u
+ #xD	\r
+ [#xE-#x1F]	\uHHHH
+ 4 required hexadecimal digits HHHH encoding Unicode character u
+ [#x20-#x21]	the character u
+ #x22	\"
+ [#x23-#x5B]	the character u
+ #x5C	\\
+ [#x5D-#x7E]	the character u
+ [#x7F-#xFFFF]	\uHHHH
+ 4 required hexadecimal digits HHHH encoding Unicode character u
+ [#10000-#x10FFFF]	\UHHHHHHHH
+ 8 required hexadecimal digits HHHHHHHH encoding Unicode character u
+ where H is a hexadecimal digit: [#x30-#x39],[#x41-#x46] (0-9, uppercase A-F).
+
+This escaping satisfies the [CHARMOD] section Reference Processing Model on making the full Unicode character range U+0 to U+10FFFF available to applications and providing only one way to escape any character.
+
+-}
+
+asciiChars :: String
+asciiChars = map chr [0x20..0x7e]
+
+asciiCharsNT :: String
+asciiCharsNT = filter (`notElem` "\\\"") asciiChars
+
+ntHexDigit :: NTParser Char
+ntHexDigit = oneOf $ ['0'..'9'] ++ ['A'..'F']
+
+hex4 :: NTParser Char
+hex4 = do
+  digs <- count 4 ntHexDigit
+  let dstr = "0x" ++ digs
+      dchar = read dstr :: Int
+  return $ chr dchar
+        
+hex8 :: NTParser Char
+hex8 = do
+  digs <- count 8 ntHexDigit
+  let dstr = "0x" ++ digs
+      dchar = read dstr :: Int
+  if dchar <= 0x10FFFF
+    then return $ chr dchar
+    else unexpected "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
+
+protectedChar :: NTParser Char
+protectedChar =
+  (char 't' *> return '\t')
+  <|> (char 'n' *> return '\n')
+  <|> (char 'r' *> return '\r')
+  <|> (char '"' *> return '"')
+  <|> (char '\\' *> return '\\')
+  <|> (char 'u' *> hex4)
+  <|> (char 'U' *> hex8)
+
+character :: NTParser Char
+character = (char '\\' *> protectedChar)
+      <|> (oneOf asciiCharsNT <?> "ASCII character")
 
 --------------------------------------------------------------------------------
 --
