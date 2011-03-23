@@ -143,8 +143,8 @@ Executable         GraphPartitionTest
 Executable         GraphTest
    Main-Is:        Swish/HaskellRDF/GraphTest.hs
 
-Executable         NTParserTest
-   Main-Is:        Swish/HaskellRDF/NTParserTest.hs
+Executable         NTTest
+   Main-Is:        tests/NTTest.hs
 
 Executable         N3ParserTest
    Main-Is:        Swish/HaskellRDF/N3ParserTest.hs

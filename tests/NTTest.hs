@@ -2,7 +2,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  NTParserTest
+--  Module      :  NTTest
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
@@ -10,13 +10,15 @@
 --  Stability   :  provisional
 --  Portability :  H98
 --
---  This Module contains test cases for module NTParser.
+--  This Module contains test cases for the NTriples modules: 
+--  "NTParser" and "NTFormatter".
 --
 --------------------------------------------------------------------------------
 
 module Main where
 
 import Swish.HaskellRDF.NTParser (parseNT)
+import Swish.HaskellRDF.NTFormatter (formatGraphAsString)
 
 import Swish.HaskellRDF.RDFGraph
   ( RDFGraph, RDFLabel(..)
@@ -41,16 +43,27 @@ import Test.HUnit
 --  Parser test
 ------------------------------------------------------------
 
-parseTest :: String -> String -> RDFGraph -> String -> Test
-parseTest lab inp gr er =
+parseTest :: String -> String -> RDFGraph -> Test
+parseTest lab inp gr =
     TestList
-      [ TestCase ( assertEqual ("parseTestError:"++lab) er pe )
-      , TestCase ( assertEqual ("parseTestGraph:"++lab) gr pg )
+      [ TestCase ( assertEqual ("parse-failed:"++lab) noError pe )
+      , TestCase ( assertEqual ("parse-result:"++lab) gr pg )
+      , TestCase ( assertEqual ("parse-output-failed:"++lab) noError pe2 )
+      , TestCase ( assertEqual ("parse-roundtrip:"++lab) gr pg2 )
       ]
     where
-        (pe,pg) = case parseNT inp of
-            Result g -> (noError, g)
-            Error  s -> (s, emptyRDFGraph)
+      -- initial parse
+      (pe,pg) = case parseNT inp of
+        Result g -> (noError, g)
+        Error  s -> (s, emptyRDFGraph)
+            
+      -- convert back to NTriples
+      inp2 = formatGraphAsString pg
+      
+      -- parse the converted output
+      (pe2, pg2) = case parseNT inp2 of
+        Result g -> (noError, g)
+        Error  s -> (s, emptyRDFGraph)
 
 noError :: String
 noError = ""
@@ -150,11 +163,11 @@ empty5 = "\n   # a comment\n "
 eTests :: Test
 eTests = TestList 
          [
-           parseTest "empty1" empty1 g0 noError
-         , parseTest "empty2" empty2 g0 noError
-         , parseTest "empty3" empty3 g0 noError
-         , parseTest "empty4" empty4 g0 noError
-         , parseTest "empty5" empty5 g0 noError
+           parseTest "empty1" empty1 g0
+         , parseTest "empty2" empty2 g0
+         , parseTest "empty3" empty3 g0
+         , parseTest "empty4" empty4 g0
+         , parseTest "empty5" empty5 g0
          ]
          
 graph1, graph2, graph3, graph4, graph5, graph6, graph7, graph8,
@@ -180,19 +193,19 @@ graphm1r = "_:genid23 <http://example.com/pred2> _:x1.\n_:genid23  <urn:b#p1> <u
 gTests :: Test
 gTests = TestList 
          [
-           parseTest "graph1" graph1 g1 noError
-         , parseTest "graph2" graph2 g2 noError
-         , parseTest "graph3" graph3 g3 noError
-         , parseTest "graph4" graph4 g4 noError
-         , parseTest "graph5" graph5 g5 noError
-         , parseTest "graph6" graph6 g6 noError
-         , parseTest "graph7" graph7 g7 noError
-         , parseTest "graph8" graph8 g8 noError
-         , parseTest "graph9" graph9 g9 noError
-         , parseTest "graph10" graph10 g10 noError
-         , parseTest "graph11" graph11 g11 noError
-         , parseTest "graphm1" graphm1 gm1 noError
-         , parseTest "graphm1r" graphm1r gm1 noError
+           parseTest "graph1" graph1 g1
+         , parseTest "graph2" graph2 g2
+         , parseTest "graph3" graph3 g3
+         , parseTest "graph4" graph4 g4
+         , parseTest "graph5" graph5 g5
+         , parseTest "graph6" graph6 g6
+         , parseTest "graph7" graph7 g7
+         , parseTest "graph8" graph8 g8
+         , parseTest "graph9" graph9 g9
+         , parseTest "graph10" graph10 g10
+         , parseTest "graph11" graph11 g11
+         , parseTest "graphm1" graphm1 gm1
+         , parseTest "graphm1r" graphm1r gm1
          ]
 
 allTests :: Test              
