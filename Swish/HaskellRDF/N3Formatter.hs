@@ -476,7 +476,7 @@ formatPrefixes pmap = do
   ls <- sequence mls
   return $ puts $ concat ls
     where
-      pref (p,u) = nextLine $ "@prefix "++p++": <"++ quote u ++"> ."
+      pref (p,u) = nextLine $ "@prefix "++p++": <"++ quote True u ++"> ."
 
 formatSubjects :: Formatter ShowS
 formatSubjects = do
@@ -776,7 +776,7 @@ formatLabel lctxt lab@(Blank (_:_)) = do
 
 formatLabel _ lab@(Res sn) = 
   case lookup sn specialTable of
-    Just txt -> return $ quote txt -- TODO: do we need to quote?
+    Just txt -> return $ quote True txt -- TODO: do we need to quote?
     Nothing -> do
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
@@ -784,8 +784,8 @@ formatLabel _ lab@(Res sn) =
           premap = reverseLookupMap pr :: RevNamespaceMap
           prefix = mapFindMaybe nsuri premap
           name   = case prefix of
-                     Just p -> quote (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> "<"++ quote (nsuri++local) ++">"
+                     Just p -> quote True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
+                     _ -> "<"++ quote True (nsuri++local) ++">"
       queueFormula lab
       return name
 
@@ -813,21 +813,24 @@ can also leave Unicode as is (or at least convert to UTF-8).
 
 quoteStr :: String -> String
 quoteStr st = 
-  let qst = quote st
-      n = if '\n' `elem` qst then 3 else 1
+  let qst = quote (n==1) st
+      n = if '\n' `elem` st || '"' `elem` st then 3 else 1
       qch = replicate n '"'                              
   in qch ++ qst ++ qch
 
-quote :: String -> String
-quote []           = ""
-quote ('\\':st)    = '\\':'\\': quote st
-quote ('"': st)    = '\\':'"': quote st
-quote ('\n':st)    = '\\':'n': quote st
-quote ('\r':st)    = '\\':'r': quote st
-quote ('\t':st)    = '\\':'t': quote st
-quote (c:st) = 
+-- if the first element is True then we need to 
+-- quote " and new lines.
+--
+quote :: Bool -> String -> String
+quote True ('"': st)    = '\\':'"': quote True st
+quote True ('\n':st)    = '\\':'n': quote True st
+quote _ []           = ""
+quote f ('\\':st)    = '\\':'\\': quote f st
+quote f ('\r':st)    = '\\':'r': quote f st
+quote f ('\t':st)    = '\\':'t': quote f st
+quote f (c:st) = 
   let nc = ord c
-      rst = quote st
+      rst = quote f st
       
       -- lazy way to convert to a string
       hstr = printf "%08X" nc
@@ -870,7 +873,7 @@ showScopedName (ScopedName n l) =
   let uri = nsURI n ++ l
   in quote uri
 -}
-showScopedName = quote . show
+showScopedName = quote True . show
 
 ----------------------------------------------------------------------
 --  Graph-related helper functions
