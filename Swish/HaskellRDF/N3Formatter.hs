@@ -74,6 +74,7 @@ import Swish.HaskellRDF.RDFGraph (
   )
 
 import Swish.HaskellRDF.Vocabulary (
+  isLang, langTag, 
   rdf_type,
   rdf_nil,
   owl_sameAs, log_implies
@@ -95,12 +96,14 @@ import Swish.HaskellUtils.Namespace
 import Swish.HaskellRDF.Sort.QuickSort
     ( stableQuickSort )
 
-import Data.Char (isDigit)
+import Data.Char (ord, isDigit)
 
 import Data.List (foldl', delete, groupBy, intercalate, partition)
 
+import Text.Printf (printf)
+
 import Control.Monad (liftM, when)
-import Control.Monad.State
+import Control.Monad.State (State, get, put, runState)
 
 ----------------------------------------------------------------------
 --  Ouptut string concatenation
@@ -224,6 +227,7 @@ setProps ps = do
   st <- get
   put $ st { props = ps }
 
+{-
 getObjs :: Formatter ([RDFLabel])
 getObjs = objs `liftM` get
 
@@ -231,14 +235,17 @@ setObjs :: [RDFLabel] -> Formatter ()
 setObjs os = do
   st <- get
   put $ st { objs = os }
+-}
 
 getBnodesCheck :: Formatter ([RDFLabel])
 getBnodesCheck = bNodesCheck `liftM` get
 
+{-
 addTrace :: String -> Formatter ()
 addTrace tr = do
   st <- get
   put $ st { traceBuf = tr : traceBuf st }
+-}
   
 queueFormula :: RDFLabel -> Formatter ()
 queueFormula fn = do
@@ -405,6 +412,8 @@ formatGraphIndent ind dopref gr = out
     where
         (_,out) = formatGraphDiag1 ind dopref emptyLookupMap gr
 -}
+formatGraphIndent ind dopref = fst . formatGraphDiag1 ind dopref emptyLookupMap
+{-      
 formatGraphIndent ind dopref gr = out
     where
         (out',fgs) = formatGraphDiag1 ind dopref emptyLookupMap gr
@@ -412,6 +421,7 @@ formatGraphIndent ind dopref gr = out
         -- tr = if null tbuff then "" else "\nDEBUG:\n" ++ concat (reverse tbuff)
         tr = ""
         out = out' . (++ tr)
+-}
         
 -- | Format graph and return additional information
 formatGraphDiag ::
@@ -466,7 +476,7 @@ formatPrefixes pmap = do
   ls <- sequence mls
   return $ puts $ concat ls
     where
-      pref (p,u) = nextLine $ "@prefix "++p++": <"++u++"> ."
+      pref (p,u) = nextLine $ "@prefix "++p++": <"++ quote u ++"> ."
 
 formatSubjects :: Formatter ShowS
 formatSubjects = do
@@ -766,7 +776,7 @@ formatLabel lctxt lab@(Blank (_:_)) = do
 
 formatLabel _ lab@(Res sn) = 
   case lookup sn specialTable of
-    Just txt -> return txt
+    Just txt -> return $ quote txt -- TODO: do we need to quote?
     Nothing -> do
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
@@ -774,21 +784,61 @@ formatLabel _ lab@(Res sn) =
           premap = reverseLookupMap pr :: RevNamespaceMap
           prefix = mapFindMaybe nsuri premap
           name   = case prefix of
-                     Just p -> p ++ ":" ++ local
-                     _ -> "<"++nsuri++local++">"
+                     Just p -> quote (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
+                     _ -> "<"++ quote (nsuri++local) ++">"
       queueFormula lab
       return name
 
-{-
-formatLabel lab@(Lit str typ) =
-    do  { return $ show lab
-        }
-formatLabel lab@(Var vid) =
-    do  { return $ show lab
-        }
--}
+formatLabel _ (Lit lit mlit) = return $ quoteStr lit ++ formatAnnotation mlit
+
 formatLabel _ lab = return $ show lab
 
+-- the annotation for a literal (ie type or language)
+formatAnnotation :: Maybe ScopedName -> String
+formatAnnotation Nothing = ""
+formatAnnotation (Just a)  | isLang a  = '@' : langTag a
+                           | otherwise = '^':'^': showScopedName a
+
+{-
+Swish.HaskellUtils.MiscHelpers contains a quote routine
+which we expand upon here to match the N3 syntax.
+
+We have to decide whether to use " or """ to quote
+the string.
+
+There is also no need to restrict the string to the
+ASCII character set; this could be an option but we
+can also leave Unicode as is (or at least convert to UTF-8).
+-}
+
+quoteStr :: String -> String
+quoteStr st = 
+  let qst = quote st
+      n = if '\n' `elem` qst then 3 else 1
+      qch = replicate n '"'                              
+  in qch ++ qst ++ qch
+
+quote :: String -> String
+quote []           = ""
+quote ('\\':st)    = '\\':'\\': quote st
+quote ('"': st)    = '\\':'"': quote st
+quote ('\n':st)    = '\\':'n': quote st
+quote ('\r':st)    = '\\':'r': quote st
+quote ('\t':st)    = '\\':'t': quote st
+quote (c:st) = 
+  let nc = ord c
+      rst = quote st
+      
+      -- lazy way to convert to a string
+      hstr = printf "%08X" nc
+      ustr = hstr ++ rst
+
+  in if nc > 0xffff 
+     then '\\':'U': ustr
+     else if nc > 0x7e || nc < 0x20
+          then '\\':'u': drop 4 ustr
+          else c : rst
+                      
 formatNodeId :: RDFLabel -> Formatter String
 formatNodeId lab@(Blank (lnc:_)) =
     if isDigit lnc then mapBlankNode lab else return $ show lab
@@ -797,16 +847,30 @@ formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to
 mapBlankNode :: RDFLabel -> Formatter String
 mapBlankNode lab = do
   ngs <- getNgs
-  let nmap = nodeMap ngs
-  nval <- case mapFind 0 lab nmap of
+  let cmap = nodeMap ngs
+      cval = nodeGen ngs
+  nv <- case mapFind 0 lab cmap of
     0 -> do 
-      let nn = succ (nodeGen ngs)
-          nm = mapAdd nmap (lab,nn)
-      setNgs $ ngs { nodeGen=nn, nodeMap=nm }
-      return nn
+      let nval = succ cval
+          nmap = mapAdd cmap (lab, nval)
+      setNgs $ ngs { nodeGen = nval, nodeMap = nmap }
+      return nval
+      
     n -> return n
   
-  return $ show $ Blank ('_':show nval)
+  -- TODO: is this what we want?
+  return $ "_:_" ++ show nv
+
+-- TODO: need to be a bit more clever with this than we did in NTriples
+--       not sure the following counts as clever enough ...
+--  
+showScopedName :: ScopedName -> String
+{-
+showScopedName (ScopedName n l) = 
+  let uri = nsURI n ++ l
+  in quote uri
+-}
+showScopedName = quote . show
 
 ----------------------------------------------------------------------
 --  Graph-related helper functions
