@@ -40,46 +40,44 @@ import Test.HUnit
     , assertEqual, runTestTT )
 
 ------------------------------------------------------------
---  Parser test
+--  Parser tests
 ------------------------------------------------------------
 
-parseTest :: String -> String -> RDFGraph -> Test
-parseTest lab inp gr =
+-- check that parsing the input creates the expected graph
+
+checkGraph :: String -> String -> RDFGraph -> Test
+checkGraph lab inp gr =
     TestList
       [ TestCase ( assertEqual ("parse-failed:"++lab) noError pe )
       , TestCase ( assertEqual ("parse-result:"++lab) gr pg )
-      , TestCase ( assertEqual ("parse-output-failed:"++lab) noError pe2 )
-      , TestCase ( assertEqual ("parse-roundtrip:"++lab) gr pg2 )
       ]
     where
-      -- initial parse
       (pe,pg) = case parseNT inp of
         Result g -> (noError, g)
         Error  s -> (s, emptyRDFGraph)
             
-      -- convert back to NTriples
-      inp2 = formatGraphAsString pg
-      
-      -- parse the converted output
-      (pe2, pg2) = case parseNT inp2 of
-        Result g -> (noError, g)
-        Error  s -> (s, emptyRDFGraph)
-
 noError :: String
 noError = ""
 
--- validate that the given text can be parsed
--- (but we do not check that it's contents match)
+-- check that the 
+--    parseNT input == parseNT (formatGraph (parse NT input))
 --
-validateInput :: String -> String -> Test
-validateInput lbl inp = 
-  let pErr = case parseNT inp of
-        Result _ -> noError
-        Error s -> s
+roundTrip :: String -> String -> Test
+roundTrip lbl inp = 
+  let (pErr1, pGr1) = case parseNT inp of
+        Result g -> (noError, g)
+        Error  s -> (s, emptyRDFGraph)
+        
+      inp2 = formatGraphAsString pGr1
+      
+      (pErr2, pGr2) = case parseNT inp2 of
+        Result g -> (noError, g)
+        Error  s -> (s, emptyRDFGraph)
         
   in TestList
-    [
-      TestCase (assertEqual ("validateInput:"++lbl) noError pErr)
+    [ TestCase (assertEqual ("roundTrip-parsing1:"++lbl) noError pErr1)
+    , TestCase (assertEqual ("roundTrip-parsing2:"++lbl) noError pErr2)
+    , TestCase (assertEqual ("roundTrip-graph:"++lbl)    pGr1    pGr2)
     ]
 
 
@@ -149,27 +147,21 @@ gm1 :: RDFGraph
 gm1 = toRDFGraph [arc b2 p2 b1, arc b2 p1 o1]
 
 ------------------------------------------------------------
---  Parser tests
+--  Input documents
 ------------------------------------------------------------
 
 empty1, empty2, empty3, empty4, empty5 :: String
 
+{-
+empty3 and empty4 are not valid NTriple documents since they do
+not end with a \n, but we support this for now.
+-}
 empty1 = ""
 empty2 = "\n"
 empty3 = "  \n  "
 empty4 = "# a comment"
 empty5 = "\n   # a comment\n "
 
-eTests :: Test
-eTests = TestList 
-         [
-           parseTest "empty1" empty1 g0
-         , parseTest "empty2" empty2 g0
-         , parseTest "empty3" empty3 g0
-         , parseTest "empty4" empty4 g0
-         , parseTest "empty5" empty5 g0
-         ]
-         
 graph1, graph2, graph3, graph4, graph5, graph6, graph7, graph8,
   graph9, graph10, graph11 :: String
 
@@ -190,31 +182,65 @@ graphm1, graphm1r :: String
 graphm1 = "_:genid23 <urn:b#p1> <urn:b#o1> .\n\n # test \n_:genid23  <http://example.com/pred2>  _:x1 .\n\n"
 graphm1r = "_:genid23 <http://example.com/pred2> _:x1.\n_:genid23  <urn:b#p1> <urn:b#o1>.\n"
 
+------------------------------------------------------------
+--  Parser tests
+------------------------------------------------------------
+
+rTests :: Test
+rTests = TestList 
+         [ roundTrip "empty1" empty1
+         , roundTrip "empty2" empty2
+         , roundTrip "empty3" empty3
+         , roundTrip "empty4" empty4
+         , roundTrip "empty5" empty5
+         , roundTrip "graph1" graph1 
+         , roundTrip "graph2" graph2 
+         , roundTrip "graph3" graph3 
+         , roundTrip "graph4" graph4 
+         , roundTrip "graph5" graph5 
+         , roundTrip "graph6" graph6 
+         , roundTrip "graph7" graph7 
+         , roundTrip "graph8" graph8 
+         , roundTrip "graph9" graph9 
+         , roundTrip "graph10" graph10 
+         , roundTrip "graph11" graph11 
+         , roundTrip "graphm1" graphm1 
+         , roundTrip "graphm1r" graphm1r 
+         , roundTrip "W3C test" w3cTest
+         ]
+
+eTests :: Test
+eTests = TestList 
+         [ checkGraph "empty1" empty1 g0
+         , checkGraph "empty2" empty2 g0
+         , checkGraph "empty3" empty3 g0
+         , checkGraph "empty4" empty4 g0
+         , checkGraph "empty5" empty5 g0
+         ]
+         
 gTests :: Test
 gTests = TestList 
-         [
-           parseTest "graph1" graph1 g1
-         , parseTest "graph2" graph2 g2
-         , parseTest "graph3" graph3 g3
-         , parseTest "graph4" graph4 g4
-         , parseTest "graph5" graph5 g5
-         , parseTest "graph6" graph6 g6
-         , parseTest "graph7" graph7 g7
-         , parseTest "graph8" graph8 g8
-         , parseTest "graph9" graph9 g9
-         , parseTest "graph10" graph10 g10
-         , parseTest "graph11" graph11 g11
-         , parseTest "graphm1" graphm1 gm1
-         , parseTest "graphm1r" graphm1r gm1
+         [ checkGraph "graph1" graph1 g1
+         , checkGraph "graph2" graph2 g2
+         , checkGraph "graph3" graph3 g3
+         , checkGraph "graph4" graph4 g4
+         , checkGraph "graph5" graph5 g5
+         , checkGraph "graph6" graph6 g6
+         , checkGraph "graph7" graph7 g7
+         , checkGraph "graph8" graph8 g8
+         , checkGraph "graph9" graph9 g9
+         , checkGraph "graph10" graph10 g10
+         , checkGraph "graph11" graph11 g11
+         , checkGraph "graphm1" graphm1 gm1
+         , checkGraph "graphm1r" graphm1r gm1
          ]
 
 allTests :: Test              
 allTests = 
   TestList
-  [
-    eTests
+  [ rTests
+  , eTests
   , gTests
-  , validateInput "W3C test" w3cTest
   ]
   
 main :: IO ()  

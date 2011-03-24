@@ -134,7 +134,7 @@ formatLabel lab@(Blank _) = mapBlankNode lab
 formatLabel (Res sn) = return $ showScopedName sn
 formatLabel (Lit lit Nothing) = return $ quoteStr lit
 formatLabel (Lit lit (Just nam)) | isLang nam = return $ quoteStr lit ++ "@" ++ langTag nam
-                                 | otherwise  = return $ quoteStr lit ++ "^^" ++ show nam
+                                 | otherwise  = return $ quoteStr lit ++ "^^" ++ showScopedName nam
 
 -- do not expect to get the following, but include
 -- just in case rather than failing
@@ -146,7 +146,7 @@ mapBlankNode lab = do
   let cmap = ntfsNodeMap st
       cval = ntfsNodeGen st
 
-  nval <- case mapFind 0 lab cmap of
+  nv <- case mapFind 0 lab cmap of
             0 -> do
               let nval = succ cval
                   nmap = mapAdd cmap (lab, nval)
@@ -156,7 +156,7 @@ mapBlankNode lab = do
 
             n -> return n
 
-  return $ "_:swish" ++ show nval
+  return $ "_:swish" ++ show nv
 
 showScopedName :: ScopedName -> String
 showScopedName (ScopedName n l) = 
