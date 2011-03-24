@@ -148,7 +148,10 @@ annotateParsecError ls err =
     let ePos = errorPos err
         lNum = sourceLine ePos
         cNum = sourceColumn ePos
-        lTxt = ls !! (lNum - 1)
+        -- it is possible to be at the end of the input so need
+        -- to check; should produce better output than this in this
+        -- case
+        lTxt = if lNum > length ls then "" else ls !! (lNum - 1)
         indicator = replicate (cNum-1) ' ' ++ "^"
         eHdr = ["", lTxt, indicator, "(line " ++ show lNum ++ ", column " ++ show cNum ++ " indicated by the '^' sign above):"]
         eMsg = showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input"

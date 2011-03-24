@@ -225,16 +225,18 @@ uriRef2TestSuite = TestList
 --  Define some common values
 ------------------------------------------------------------
 
-base1, base2, base3, base4 :: Namespace
+base1, base2, base3, base4, basea :: Namespace
 base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
 base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
 base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basea = Namespace "a" "http://example.org/basea#"
 
-s1, s2, s3 :: RDFLabel
+s1, s2, s3, sa :: RDFLabel
 s1 = Res $ ScopedName base1 "s1"
 s2 = Res $ ScopedName base2 "s2"
 s3 = Res $ ScopedName base3 "s3"
+sa = Res $ ScopedName basea "a"
 
 b1, b2, b3, b4, b5, b6, b7, b8 :: RDFLabel
 b1 = Blank "b1"
@@ -254,15 +256,17 @@ c4 = Blank "c4"
 c5 = Blank "c5"
 c6 = Blank "c6"
 
-p1, p2, p3 :: RDFLabel
+p1, p2, p3, pa :: RDFLabel
 p1 = Res $ ScopedName base1 "p1" 
 p2 = Res $ ScopedName base2 "p2" 
 p3 = Res $ ScopedName base3 "p3" 
+pa = Res $ ScopedName basea "b" 
 
-o1, o2, o3 :: RDFLabel
+o1, o2, o3, oa :: RDFLabel
 o1 = Res $ ScopedName base1 "o1"
 o2 = Res $ ScopedName base2 "o2"
 o3 = Res $ ScopedName base3 "o3"
+oa = Res $ ScopedName basea "c"
 
 l1, l2, l3 :: RDFLabel
 l1 = Lit "l1"  Nothing
@@ -316,12 +320,11 @@ g1 = NSGraph
         , statements = [t01]
         }
 
+g1a :: RDFGraph
+g1a = g1 { statements = [arc sa pa oa] }
+
 g1b :: RDFGraph
-g1b = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01b]
-        }
+g1b = g1 { statements = [t01b] }
 
 g2 :: RDFGraph
 g2 = NSGraph
@@ -835,6 +838,15 @@ simpleN3Graph_g1_02 =
     "@prefix base1 : <" ++ nsURI base1 ++ "> ." ++
     " base1:s1 base1:p1 base1:o1 . "
 
+--  Single statement using prefix:name form
+--  (this was added to check that the parser did not
+--   think we meant 'a:a a :b .' here)
+--
+simpleN3Graph_g1_02a :: String
+simpleN3Graph_g1_02a =
+    "@prefix a: <" ++ nsURI basea ++ "> ." ++
+    "a:a a:b a:c ."
+
 --  Single statement using :name form
 simpleN3Graph_g1_03 :: String
 simpleN3Graph_g1_03 =
@@ -1023,6 +1035,7 @@ simpleTestSuite :: Test
 simpleTestSuite = TestList
   [ parseTest "simpleTest011" simpleN3Graph_g1_01 g1  noError
   , parseTest "simpleTest012" simpleN3Graph_g1_02 g1  noError
+  , parseTest "simpleTest012a" simpleN3Graph_g1_02a g1a  noError
   , parseTest "simpleTest013" simpleN3Graph_g1_03 g1  noError
   , parseTest "simpleTest014" simpleN3Graph_g1_04 g1  noError
   , parseTest "simpleTest015" simpleN3Graph_g1_05 g1b noError

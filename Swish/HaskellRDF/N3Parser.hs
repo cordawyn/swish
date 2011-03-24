@@ -947,6 +947,17 @@ verb =
   <|> ((,) True) <$> verbForward
   <?> "verb"
 
+{-
+I am using 'lookAhead space' to ensure there's white space after certain symbols
+(e.g. a) so that 'a:a a:b a:c.' is parsed correctly, rather than being
+thought of as 'a:a a :b a:c.'. Not sure this is entirely sensible.
+
+note that atWord is already a lexeme parser so no need to assert
+additional whitespace (although it does not require it), so
+may need to think about this more.
+
+-}
+
 -- those verbs for which subject is on the right and object on the left
 verbReverse :: N3Parser RDFLabel
 verbReverse =
@@ -958,7 +969,8 @@ verbForward :: N3Parser RDFLabel
 verbForward =  
   (try (string "=>") *> operatorLabel log_implies)
   <|> (string "=" *> operatorLabel owl_sameAs)
-  <|> (try (string "a") *> operatorLabel rdf_type)
+  -- <|> (try (lexeme (string "a")) *> operatorLabel rdf_type)
+  <|> (try (string "a" *> lookAhead space) *> operatorLabel rdf_type)
   <|> (atWord "has" *> lexeme expression)
   <|> lexeme expression
 
