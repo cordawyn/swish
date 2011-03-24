@@ -28,17 +28,23 @@
 -- 3 <http://www.w3.org/2000/10/swap/Primer.html>
 --     Notation 3 Primer by Sean Palmer
 --
+-- NOTES:
+--
+--  UTF-8 handling is not really tested.
+--
+--  The Turtle specification allows ":" as a QName but this does not seem
+--  to be allowed by the N3 grammar at [1]. The parser supports ":" as a QName.
+--
+--  No performance testing has been applied.
+--
+--  The default namespace (when none is given) needs changing.
+--
+--  Not all N3 grammar elements are supported, including:
+--    @keywords
+--    use of true/false with no leading @
+--    @forSome, @forAll
+--
 --------------------------------------------------------------------------------
-
-{-
-TODO:
-
- - this is significantly slower than the original parser
-
- - I think the default default namespace needs changing from
-   Graham's namespace to <#>.
-
--}
 
 module Swish.HaskellRDF.N3Parser
     ( ParseResult
@@ -622,6 +628,10 @@ qname ::=	(([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#
 TODO: - what does a qname of foo mean (is it the same as :foo)?
 For now we do not support this part of the production rule
 
+Turtle appears to support ':' as a valid qname, which is not
+supported by the above production. Let's support and see
+what happens.
+
 TODO:
   Note that, for now, we explicitly handle blank nodes
   (of the form _:name) direcly in pathItem'.
@@ -632,7 +642,8 @@ TODO:
 qname :: N3Parser ScopedName
 qname =
   try (ScopedName <$> matchPrefix <*> (colon *> n3Name))
-  <|> (colon *> (ScopedName <$> getDefaultPrefix <*> n3Name))
+  -- <|> (ScopedName <$> getDefaultPrefix <*> (colon *> n3Name)) -- this is the spec
+  <|> (ScopedName <$> getDefaultPrefix <*> (colon *> (n3Name <|> return ""))) -- this allows for a bare ':' 
   -- <|> ScopedName <$> getDefaultPrefix <*> n3Name -- TODO: is this correct for a 'bare' qname with no preceeding ':'?
   <?> "QName"
 
