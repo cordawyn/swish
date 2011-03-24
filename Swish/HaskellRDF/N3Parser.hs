@@ -53,11 +53,6 @@ module Swish.HaskellRDF.N3Parser
     , N3Parser, N3State(..), SpecialMap
     , whiteSpace, symbol, lexeme, eof, identStart, identLetter
     --                                                
-    -- TODO: should we export some of these symbols (or rather, their    
-    --       equivalents in the new parser)                                                   
-    --                                                   
-    -- , defaultPrefix, namedPrefix
-    -- , document, subgraph, uriRef2, varid, lexUriRef -- TODO: possibly re-export some of these
     , getPrefix -- a combination of the old defaultPrefix and namedPrefix productions
     , n3symbol -- replacement for uriRef2 -- TODO: check this is semantically correct      
     , quickVariable -- was varid      
@@ -118,7 +113,6 @@ import Control.Applicative
 import Control.Monad (forM_, foldM)
 
 import Network.URI (URI, 
-                    -- isURI, isURIReference, 
                     relativeTo,
                     parseURI, parseURIReference, uriToString)
 
@@ -408,41 +402,76 @@ or
 
 string ::= tripleQuoted | singleQUoted
 
-TODO: need to fix this
 -}
 
 n3string :: N3Parser String
-n3string = try tripleQuoted <|> singleQuoted <?> "string"
+n3string = tripleQuoted <|> singleQuoted <?> "string"
 
 {-
 singleQuoted ::=  "[^"\\]*(?:\\.[^"\\]*)*"
 
-TODO: we do NOT match this at present (I don't think).
+-}
 
-single quoted strings can not contain a " or an end-of-line character;
-are there any others we should exclude?
+asciiChars :: String
+asciiChars = map chr [0x20..0x7e]
 
-eol' :: N3Parser String
-eol =   
-  try (string "\r\n")
-  <|> string "\n"
-  <|> string "\r"
+asciiCharsN3 :: String
+asciiCharsN3 = filter (`notElem` "\\\"") asciiChars
+
+ntHexDigit :: N3Parser Char
+ntHexDigit = oneOf $ ['0'..'9'] ++ ['A'..'F']
+
+hex4 :: N3Parser Char
+hex4 = do
+  digs <- count 4 ntHexDigit
+  let dstr = "0x" ++ digs
+      dchar = read dstr :: Int
+  return $ chr dchar
+        
+hex8 :: N3Parser Char
+hex8 = do
+  digs <- count 8 ntHexDigit
+  let dstr = "0x" ++ digs
+      dchar = read dstr :: Int
+  if dchar <= 0x10FFFF
+    then return $ chr dchar
+    else unexpected "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
+
+{-
+This is very similar to NTriples accept that also allow the escaping of '
+even though it is not required.
+
+The Python rules allow \N{name}, where name is the Unicode name. It's
+not clear whether we need to support this too, so for now we do not.
 
 -}
+protectedChar :: N3Parser Char
+protectedChar =
+  (char 't' *> return '\t')
+  <|> (char 'n' *> return '\n')
+  <|> (char 'r' *> return '\r')
+  <|> (char '"' *> return '"')
+  <|> (char '\'' *> return '\'')
+  <|> (char '\\' *> return '\\')
+  <|> (char 'u' *> hex4)
+  <|> (char 'U' *> hex8)
+
+n3Character :: N3Parser Char
+n3Character = (char '\\' *> protectedChar)
+      <|> (oneOf asciiCharsN3 <?> "ASCII character")
+
 
 sQuot :: N3Parser Char
 sQuot = char '"'
 
 singleQuoted :: N3Parser String
-singleQuoted = between sQuot (try sQuot) $ many (noneOf "\"\n")
+singleQuoted = between sQuot sQuot $ many n3Character
     
 {-
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
-
-TODO: we do NOT match this at present
 -}
 tripleQuoted :: N3Parser String
-tripleQuoted = tQuot *> manyTill anyChar tQuot
+tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n') tQuot
   where
     tQuot = try (count 3 sQuot)
 
@@ -707,14 +736,6 @@ pathItem =
 {-  
 we create a blank node for the list and return it, whilst
 adding the list contents to the graph
-
-TODO: could use Data.Foldable.foldrM but N3Parser is not
-an instance of Foldable, so just use Control.Monad.foldM
-and reverse the list. Except that we need to create the blank
-nodes in ascending order (first element of the list has the
-first blank node) for output. So we actually do want foldM
-(or Data.Foldable.foldlM I guess, but then back to needing
-a Foldable instance).
 -}
 pathList :: N3Parser RDFLabel
 pathList = do

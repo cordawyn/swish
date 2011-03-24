@@ -147,10 +147,10 @@ Executable         NTTest
    Main-Is:        tests/NTTest.hs
 
 Executable         N3ParserTest
-   Main-Is:        Swish/HaskellRDF/N3ParserTest.hs
+   Main-Is:        tests/N3ParserTest.hs
 
 Executable         N3FormatterTest
-   Main-Is:        Swish/HaskellRDF/N3FormatterTest.hs
+   Main-Is:        tests/N3FormatterTest.hs
 
 Executable         RDFDatatypeXsdIntegerTest
    Main-Is:        Swish/HaskellRDF/RDFDatatypeXsdIntegerTest.hs
