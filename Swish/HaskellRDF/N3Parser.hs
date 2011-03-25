@@ -477,7 +477,7 @@ singleQuoted = between sQuot sQuot $ many n3Character
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
 -}
 tripleQuoted :: N3Parser String
-tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n') tQuot
+tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n' <|> char '\t') tQuot
   where
     tQuot = try (count 3 sQuot)
 

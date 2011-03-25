@@ -822,12 +822,15 @@ quoteStr st =
 -- quote " and new lines.
 --
 quote :: Bool -> String -> String
-quote True ('"': st)    = '\\':'"': quote True st
-quote True ('\n':st)    = '\\':'n': quote True st
-quote _ []           = ""
-quote f ('\\':st)    = '\\':'\\': quote f st
+quote _     []           = ""
+quote True  ('"': st)    = '\\':'"': quote True  st
+quote True  ('\n':st)    = '\\':'n': quote True  st
+quote True  ('\t':st)    = '\\':'t': quote True  st
+quote False ('"': st)    =      '"': quote False st
+quote False ('\n':st)    =     '\n': quote False st
+quote False ('\t':st)    =     '\t': quote False st
 quote f ('\r':st)    = '\\':'r': quote f st
-quote f ('\t':st)    = '\\':'t': quote f st
+quote f ('\\':st)    = '\\':'\\': quote f st
 quote f (c:st) = 
   let nc = ord c
       rst = quote f st
