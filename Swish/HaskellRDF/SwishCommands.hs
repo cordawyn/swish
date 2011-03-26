@@ -50,7 +50,7 @@ import Swish.HaskellRDF.RDFGraph
 import qualified Swish.HaskellRDF.N3Formatter as N3F
 import qualified Swish.HaskellRDF.NTFormatter as NTF
 
-import Swish.HaskellRDF.N3Parser (parseN3fromString)
+import Swish.HaskellRDF.N3Parser (parseN3) -- (parseN3fromString)
 import Swish.HaskellRDF.NTParser (parseNT)
 
 import Swish.HaskellRDF.GraphClass
@@ -58,6 +58,7 @@ import Swish.HaskellRDF.GraphClass
     , Label(..)
     )
 
+import Swish.HaskellUtils.QName (QName, qnameFromFilePath)
 import Swish.HaskellUtils.ErrorM( ErrorM(..) )
 
 import System.IO
@@ -208,8 +209,8 @@ swishReadScript :: String -> SwishStateIO [SwishStateIO ()]
 swishReadScript fnam =
     do  { maybefile <- swishOpenFile fnam
         ; case maybefile of
-            Just (h,i) ->
-                do  { res <- swishParseScript fnam i
+            Just (h,i,mbase) ->
+                do  { res <- swishParseScript (mbase,fnam) i
                     ; lift $ hClose h
                     ; return res
                     }
@@ -217,17 +218,16 @@ swishReadScript fnam =
         }
 
 swishParseScript ::
-    String -> String -> SwishStateIO [SwishStateIO ()]
-swishParseScript fnam inp =
-    do  { let base = if null fnam then Nothing else Just fnam
-        ; let sres = parseScriptFromString base inp
-        ; case sres of
-            Error err ->
-                do  { swishError ("Script syntax error in file "++fnam++": "++err) 2
-                    ; return []
-                    }
-            Result scs -> return scs
-        }
+    (Maybe QName, String) -- file name as QName, file name (may be "")
+    -> String  -- script contents
+    -> SwishStateIO [SwishStateIO ()]
+swishParseScript (mbase,fnam) inp = 
+    case parseScriptFromString mbase inp of
+      Error err -> do
+        swishError ("Script syntax error in file "++fnam++": "++err) 2
+        return []
+              
+      Result scs -> return scs
 
 swishCheckResult :: SwishStateIO () -> SwishStateIO ()
 swishCheckResult swishcommand =
@@ -289,77 +289,78 @@ swishFormatNT _ hnd =
 --  parsing it to an RDF graph value.
 
 swishReadGraph :: String -> SwishStateIO (Maybe RDFGraph)
-swishReadGraph fnam =
-    do  { maybefile <- swishOpenFile fnam
-        ; case maybefile of
-            Just (h,i) ->
-                do  { res <- swishParse fnam i
-                    ; lift $ hClose h
-                    ; return res
-                    }
-            _          -> return Nothing
-        }
+swishReadGraph fnam = do
+  maybefile <- swishOpenFile fnam
+  case maybefile of
+    Just (h,i,mbase) -> do
+      res <- swishParse (mbase,fnam) i
+      lift $ hClose h
+      return res
+    
+    _  -> return Nothing
 
 -- Open and read file, returning its handle and content, or Nothing
 -- WARNING:  the handle must not be closed until input is fully evaluated
-swishOpenFile :: String -> SwishStateIO (Maybe (Handle,String))
-swishOpenFile fnam =
-    do  { (hnd,hop) <- lift $
-            if null fnam then
-                return (stdin,True)
-            else
-            do  { o <- try (openFile fnam ReadMode)
-                ; case o of
-                    Left  _ -> return (stdin,False)
-                    Right h -> return (h,True)
-                }
-        ; hrd <- lift $ hIsReadable hnd
-        ; if hop && hrd then
-            do  {
-                ; fc <- lift $ hGetContents hnd
-                ; return $ Just (hnd,fc)
-                }
-            else
-            do  { lift $ hClose hnd
-                ; swishError ("Cannot read file: "++fnam) 3
-                ; return Nothing
-                }
-        }
+--
+-- A QName for the filename is also returned (or None if stdin is being
+-- used).
+--
+swishOpenFile :: String -> SwishStateIO (Maybe (Handle,String,Maybe QName))
+swishOpenFile fnam = do
+  (hnd,hop,qn) <- lift $ if null fnam
+                      then return (stdin,True,Nothing)
+                      else do
+                        qpath <- qnameFromFilePath fnam   
+                        o <- try (openFile fnam ReadMode)
+                        case o of
+                          Left  _ -> return (stdin,False,Nothing)
+                          Right h -> return (h,True,Just qpath)
 
-swishParse :: String -> String -> SwishStateIO (Maybe RDFGraph)
-swishParse fnam inp =
-    do  { fmt <- gets format
-        ; case fmt of
-            N3        -> swishParseN3 fnam inp
-            NT        -> swishParseNT fnam inp
-            _         ->
-                do  { swishError ("Unsupported file format: "++show fmt) 4
-                    ; return Nothing
-                    }
-        }
+  hrd <- lift $ hIsReadable hnd
+  if hop && hrd
+    then do
+      fc <- lift $ hGetContents hnd
+      return $ Just (hnd,fc,qn)
+  
+    else do
+      lift $ hClose hnd
+      swishError ("Cannot read file: "++fnam) 3
+      return Nothing
 
--- TODO: should send in the file name for default base?
-swishParseN3 :: String -> String -> SwishStateIO (Maybe RDFGraph)
-swishParseN3 fnam inp =
-    do  { let pres = parseN3fromString inp
-        ; case pres of
-            Error err ->
-                do  { swishError ("N3 syntax error in file "++fnam++": "++err) 2
-                    ; return Nothing
-                    }
-            Result gr -> return $ Just gr
-        }
 
-swishParseNT :: String -> String -> SwishStateIO (Maybe RDFGraph)
-swishParseNT fnam inp =
-    do  { let pres = parseNT inp
-        ; case pres of
-            Error err ->
-                do  { swishError ("NTriples syntax error in file "++fnam++": "++err) 2
-                    ; return Nothing
-                    }
-            Result gr -> return $ Just gr
-        }
+swishParse :: 
+  (Maybe QName, String) -- ^ base of file, file name (may be "")
+  -> String  -- ^ contents of file
+  -> SwishStateIO (Maybe RDFGraph)
+swishParse farg inp = do
+  fmt <- gets format
+  case fmt of
+    N3 -> swishParseN3 farg inp
+    NT -> swishParseNT farg inp
+    _  -> swishError ("Unsupported file format: "++show fmt) 4 >>
+          return Nothing
+
+swishParseN3 :: 
+  (Maybe QName, String) -- ^ base, file name
+  -> String  -- ^ file contents
+  -> SwishStateIO (Maybe RDFGraph)
+swishParseN3 (mbase,fnam) inp = 
+  case parseN3 inp mbase of
+    Left err -> swishError ("N3 syntax error in file "++fnam++": "++err) 2 >>
+                return Nothing
+            
+    Right gr -> return $ Just gr
+
+swishParseNT :: 
+  (Maybe QName, String) -- ^ base, file name
+  -> String  -- ^ file contents
+  -> SwishStateIO (Maybe RDFGraph)
+swishParseNT (_,fnam) inp =
+  case parseNT inp of
+    Error err -> swishError ("NTriples syntax error in file "++fnam++": "++err) 2 >>
+                 return Nothing
+            
+    Result gr -> return $ Just gr
 
 --  Open file for writing, returning its handle, or Nothing
 --  Also returned is a flag indicating whether or not the

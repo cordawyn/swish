@@ -21,8 +21,7 @@
 --------------------------------------------------------------------------------
 
 module Swish.HaskellRDF.SwishScript
-    ( parseScriptFromString
-    )
+    ( parseScriptFromString )
 where
 
 import Swish.HaskellRDF.SwishMonad
@@ -96,6 +95,8 @@ import Swish.HaskellRDF.VarBinding
 import Swish.HaskellUtils.Namespace
     ( ScopedName(..) )
 
+import Swish.HaskellUtils.QName (QName, qnameFromURI)
+
 import Swish.HaskellUtils.LookupMap
     ( mapReplaceOrAdd )
 
@@ -151,7 +152,7 @@ import System.Exit
 --
 -- NOTE: during the parser re-write we strip out some of this functionality
 -- 
-parseScriptFromString :: Maybe String -> String -> ErrorM [SwishStateIO ()]
+parseScriptFromString :: Maybe QName -> String -> ErrorM [SwishStateIO ()]
 parseScriptFromString base inp =
     case parseAnyfromString script base inp of
         Left  err -> Error  err
@@ -162,12 +163,11 @@ parseScriptFromString base inp =
 ----------------------------------------------------------------------
 
 script :: N3Parser [SwishStateIO ()]
-script =
-        do  { whiteSpace
-            ; scs <- many command
-            ; eof
-            ; return scs
-            }
+script = do
+  whiteSpace
+  scs <- many command
+  eof
+  return scs
 
 isymbol :: String -> N3Parser ()
 isymbol s = symbol s >> return ()
@@ -535,14 +535,12 @@ ssRead :: ScopedName -> Maybe String -> SwishStateIO ()
 ssRead nam muri = ssAddGraph nam [ssReadGraph muri]
 
 ssReadGraph :: Maybe String -> SwishStateIO (Either String RDFGraph)
-ssReadGraph muri =
-        do  { inp <- getResourceData muri
-            ; return $ gf inp
-            }
-        where
-            gf inp = case inp of
-                Left  es -> Left es
-                Right is -> parseN3 is muri
+ssReadGraph muri = 
+  let gf inp = case inp of
+        Left  es -> Left es
+        Right is -> parseN3 is (fmap qnameFromURI muri) 
+        
+  in gf `liftM` getResourceData muri
 
 ssWriteList ::
     Maybe String -> SwishStateIO (Either String [RDFGraph]) -> String

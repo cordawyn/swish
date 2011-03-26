@@ -83,7 +83,7 @@ import Swish.HaskellRDF.GraphClass
 
 import Swish.HaskellUtils.LookupMap
     ( LookupMap(..)
-    , mapFind, mapFindMaybe, mapReplace, mapReplaceOrAdd )
+    , mapFind, mapFindMaybe, mapReplaceOrAdd )
 
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
@@ -91,8 +91,11 @@ import Swish.HaskellUtils.Namespace
     , getScopePrefix 
     , getScopedNameURI
     , makeScopedName, makeUriScopedName
+    , makeQNameScopedName
     , nullScopedName
     )
+
+import Swish.HaskellUtils.QName (QName, getQNameURI)
 
 import Swish.HaskellRDF.Vocabulary
     ( langName
@@ -210,7 +213,7 @@ updateGraph f s = s { graphState = f (graphState s) }
 
 type N3Parser a = RDFParser N3State a
 
--- | Parse a string with no base URI (so uses the system default).
+-- | Parse a string as N3 (with no real base URI).
 -- 
 -- See 'parseN3' if you need to provide a base URI.
 --
@@ -220,19 +223,13 @@ parseN3fromString ::
 parseN3fromString =
     either Error Result . parseAnyfromString document Nothing 
 
-{-
-        case parseAnyfromString document Nothing input of
-            Left  err -> Error err
-            Right gr  -> Result gr
--}
-
 -- | Parse a string with an optional base URI.
 --            
 -- See also 'parseN3fromString'.            
 --
 parseN3 ::
   String -- ^ input in N3 format.
-  -> Maybe String -- ^ optional base URI
+  -> Maybe QName -- ^ optional base URI
   -> Either String RDFGraph
 parseN3 = flip (parseAnyfromString document)
 
@@ -245,28 +242,32 @@ test = either error id . parseAnyfromString document Nothing
 -- We augment the Parsec error with the context.
 --
 parseAnyfromString :: N3Parser a      -- ^ parser to apply
-                      -> Maybe String -- ^ base URI of the input, or @Nothing@ to use default base value
+                      -> Maybe QName  -- ^ base URI of the input, or @Nothing@ to use default base value
                       -> String       -- ^ input to be parsed
                       -> Either String a
-parseAnyfromString parser base input =
-        let
-            pmap   = LookupMap prefixTable
-            smap   = LookupMap specialTable
-            bmap   = case base of
-                Nothing -> smap
-                Just bs -> mapReplace smap ("base",makeUriScopedName bs)
-            pstate = N3State
-                    { graphState = emptyRDFGraph
-                    , thisNode   = NoNode
-                    , prefixUris = pmap
-                    , syntaxUris = bmap
-                    , nodeGen    = 0
-                    }
-            result = runParser parser pstate "" input
-        in
-            case result of
-                Right res -> Right res
-                Left  err -> Left $ annotateParsecError (lines input) err
+parseAnyfromString parser mbase input =
+  let pmap   = LookupMap prefixTable
+      muri   = fmap makeQNameScopedName mbase
+      smap   = LookupMap $ specialTable muri
+      pstate = N3State
+              { graphState = emptyRDFGraph
+              , thisNode   = NoNode
+              , prefixUris = pmap
+              , syntaxUris = smap
+              , nodeGen    = 0
+              }
+  
+      puri = case mbase of
+        Just base -> fmap showURI $ appendUris (getQNameURI base) "#"
+        _ -> Right "#"
+
+      -- this is getting a bit ugly
+        
+  in case puri of
+    Left emsg -> Left $ "Invalid base: " ++ emsg
+    Right p -> case runParser parser (setPrefix "" p pstate) "" input of
+      Right res -> Right res
+      Left  err -> Left $ annotateParsecError (lines input) err
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do
@@ -347,7 +348,8 @@ showURI u = uriToString id u ""
 
 -- TODO: look at using URIs throughout
 getScopedNameURI' :: URI -> String
-getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
+getScopedNameURI' = showURI
+-- getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
 
 operatorLabel :: ScopedName -> N3Parser RDFLabel
 {-
@@ -466,7 +468,6 @@ n3Character :: N3Parser Char
 n3Character = (char '\\' *> protectedChar)
       <|> (oneOf asciiCharsN3 <?> "ASCII character")
 
-
 sQuot :: N3Parser Char
 sQuot = char '"'
 
@@ -562,19 +563,26 @@ explicitURI = do
   
   ustr <- between lb (rb <?> "end of URI '>'") $ many (satisfy (/= '>'))
   let uclean = filter (not . isSpace) ustr
-  case parseURI uclean of
-    Just absuri -> return absuri
-    
-    _ -> case parseURIReference uclean of
-      Just reluri -> do
-        s <- getState
-        let base = getSUri s "base"
-            baseuri = fromJust $ parseURI base
-        case relativeTo reluri baseuri of
-          Just resuri -> return resuri
-          _ -> fail ("Unable to append <" ++ uclean ++ "> to base=<" ++ base ++ ">")
+      
+  s <- getState
+  let base = getSUri s "base"
+      
+  case appendUris base uclean of 
+    Right uri -> return uri
+    Left emsg -> fail emsg
+      
+appendUris :: String -> String -> Either String URI
+appendUris base uri =
+  case parseURI uri of
+    Just absuri -> Right absuri
+    _ -> case parseURIReference uri of
+      Just reluri -> 
+        let baseuri = fromJust $ parseURI base
+        in case relativeTo reluri baseuri of
+          Just resuri -> Right resuri
+          _ -> Left $ "Unable to append <" ++ uri ++ "> to base=<" ++ base ++ ">"
           
-      _ -> fail ("Invalid URI: <" ++ uclean ++ ">")
+      _ -> Left $ "Invalid URI: <" ++ uri ++ ">"
       
 -- production from the old parser
 lexUriRef :: N3Parser String

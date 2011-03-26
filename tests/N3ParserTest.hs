@@ -17,7 +17,7 @@
 module Main where
 
 import Swish.HaskellRDF.N3Parser
-    ( parseN3fromString
+    ( parseN3fromString, parseN3
     , parseTextFromString, parseAltFromString
     , parseNameFromString, parsePrefixFromString
     , parseAbsURIrefFromString, parseLexURIrefFromString
@@ -29,7 +29,7 @@ import Swish.HaskellRDF.RDFGraph
     -- LookupNamespace(..), Namespace
     , emptyNamespaceMap
     , LookupFormula(..), emptyFormulaMap
-    , emptyRDFGraph
+    , emptyRDFGraph, toRDFGraph
       -- Export selected RDFLabel values
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
     , res_owl_sameAs, res_log_implies
@@ -41,6 +41,7 @@ import Swish.HaskellUtils.Namespace
     , ScopedName(..)
     , makeScopedName
     , nullScopedName
+    , makeUriScopedName
     )
 
 import Swish.HaskellRDF.Vocabulary
@@ -49,6 +50,7 @@ import Swish.HaskellRDF.Vocabulary
     , rdf_XMLLiteral
     )
 
+import Swish.HaskellUtils.QName (QName, qnameFromURI)
 import Swish.HaskellUtils.LookupMap (LookupMap(..))
 
 import Swish.HaskellRDF.GraphClass (Arc, arc) 
@@ -104,6 +106,17 @@ parseTest lab inp gr er =
         (pe,pg) = case parseN3fromString inp of
             Result g -> ("",g)
             Error  s -> (s,emptyRDFGraph)
+
+parseTestB :: QName -> String -> String -> RDFGraph -> String -> Test
+parseTestB base lab inp gr er =
+    TestList
+      [ TestCase ( assertEqual ("parseTestError<base>:"++lab) er pe )
+      , TestCase ( assertEqual ("parseTestGraph<base>:"++lab) gr pg )
+      ]
+    where
+        (pe,pg) = case parseN3 inp (Just base) of
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 ------------------------------------------------------------
 --  Test simple character parsing
@@ -225,12 +238,34 @@ uriRef2TestSuite = TestList
 --  Define some common values
 ------------------------------------------------------------
 
-base1, base2, base3, base4, basea :: Namespace
+baseFile :: String
+baseFile = "file:///dev/null"
+
+dqn :: QName
+dqn = qnameFromURI baseFile
+
+dbase, base1, base2, base3, base4, basea :: Namespace
+dbase = Namespace ""      (baseFile ++ "#")
 base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
 base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
 base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 basea = Namespace "a" "http://example.org/basea#"
+
+ds1, ds2, ds3 :: RDFLabel
+ds1 = Res $ ScopedName dbase "s1"
+ds2 = Res $ ScopedName dbase "s2"
+ds3 = Res $ ScopedName dbase "s3"
+
+dp1, dp2, dp3 :: RDFLabel
+dp1 = Res $ ScopedName dbase "p1"
+dp2 = Res $ ScopedName dbase "p2"
+dp3 = Res $ ScopedName dbase "p3"
+
+do1, do2, do3 :: RDFLabel
+do1 = Res $ ScopedName dbase "o1"
+do2 = Res $ ScopedName dbase "o2"
+do3 = Res $ ScopedName dbase "o3"
 
 s1, s2, s3, sa :: RDFLabel
 s1 = Res $ ScopedName base1 "s1"
@@ -304,6 +339,40 @@ t07  = arc s3 p2 l3
 
 makeNewPrefixNamespace :: (String,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = Namespace pre (nsURI ns)
+
+dg1 :: RDFGraph
+dg1 = toRDFGraph [arc ds1 dp1 do1]
+
+dg2 :: RDFGraph
+dg2 = toRDFGraph
+      [ arc a1 b1 c1
+      , arc a2 b2 c2
+      , arc a3 b3 c3
+      , arc a4 b4 c4
+      , arc a5 b5 c5
+      ]
+  where
+    -- the document base is set to file:///dev/null to begin with
+    mU = Res . makeUriScopedName 
+    a1 = mU "file:///dev/a1"
+    b1 = mU "file:///dev/b1"
+    c1 = mU "file:///dev/c1"
+    a2 = mU "http://example.org/ns/a2"
+    b2 = mU "http://example.org/ns/b2"
+    c2 = mU "http://example.org/ns/c2"
+    a3 = mU "http://example.org/ns/foo/a3"
+    b3 = mU "http://example.org/ns/foo/b3"
+    c3 = mU "http://example.org/ns/foo/c3"
+    
+    ns4 = Namespace "" "http://example.org/ns/foo/bar#"
+    ns5 = Namespace "" "http://example.org/ns2#"
+    mUN a b = Res (ScopedName a b)
+    a4 = mUN ns4 "a4"
+    b4 = mUN ns4 "b4"
+    c4 = mUN ns4 "c4"
+    a5 = mUN ns5 "a5"
+    b5 = mUN ns5 "b5"
+    c5 = mUN ns5 "c5"
 
 nslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace
@@ -819,6 +888,28 @@ x16    = NSGraph
 --  Simple parser tests
 ------------------------------------------------------------
 
+-- check default base
+simpleN3Graph_dg_01 :: String
+simpleN3Graph_dg_01 =
+    ":s1 :p1 :o1 ."
+
+-- from the turtle documentation
+simpleN3Graph_dg_02 :: String
+simpleN3Graph_dg_02 =
+  "# this is a complete turtle document\n" ++
+  "# In-scope base URI is the document URI at this point\n" ++
+  "<a1> <b1> <c1> .\n" ++
+  "@base <http://example.org/ns/> .\n" ++
+  "# In-scope base URI is http://example.org/ns/ at this point\n" ++
+  "<a2> <http://example.org/ns/b2> <c2> .\n" ++
+  "@base <foo/> .\n" ++
+  "# In-scope base URI is http://example.org/ns/foo/ at this point\n" ++
+  "<a3> <b3> <c3> .\n" ++
+  "@prefix : <bar#> .\n" ++
+  ":a4 :b4 :c4 .\n" ++
+  "@prefix : <http://example.org/ns2#> .\n" ++
+  ":a5 :b5 :c5 .\n"
+
 commonPrefixes :: String
 commonPrefixes =
     "@prefix base1 : <" ++ nsURI base1 ++ "> . \n" ++
@@ -1033,7 +1124,9 @@ emsg16 = intercalate "\n" [
 
 simpleTestSuite :: Test
 simpleTestSuite = TestList
-  [ parseTest "simpleTest011" simpleN3Graph_g1_01 g1  noError
+  [ parseTestB dqn "simpleTestd01" simpleN3Graph_dg_01 dg1  noError
+  , parseTestB dqn "simpleTestd02" simpleN3Graph_dg_02 dg2  noError
+  , parseTest "simpleTest011" simpleN3Graph_g1_01 g1  noError
   , parseTest "simpleTest012" simpleN3Graph_g1_02 g1  noError
   , parseTest "simpleTest012a" simpleN3Graph_g1_02a g1a  noError
   , parseTest "simpleTest013" simpleN3Graph_g1_03 g1  noError

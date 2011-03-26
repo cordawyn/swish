@@ -66,6 +66,8 @@ import Text.ParserCombinators.Parsec.Error (errorMessages, showErrorMessages)
 import Text.ParserCombinators.Parsec.Language (emptyDef)
 import qualified Text.ParserCombinators.Parsec.Token as P
 
+import Data.Maybe (fromMaybe)
+
 -- Code
 
 {-|
@@ -99,24 +101,30 @@ type SpecialMap = LookupMap (String,ScopedName)
 mapPrefix :: NamespaceMap -> String -> String
 mapPrefix ps pre = mapFind (pre++":") pre ps
 
---  Define default table of namespaces
+-- | Define default table of namespaces
 prefixTable :: [Namespace]
 prefixTable =   [ namespaceRDF
                 , namespaceRDFS
                 , namespaceRDFD     -- datatypes
                 , namespaceOWL
                 , namespaceLOG
+                , Namespace "" "#" -- is this correct?
                 ]
 
---  Define default special-URI table
-specialTable :: [(String,ScopedName)]
-specialTable =  [ ( "a",         rdf_type       ),
-                  ( "equals",    owl_sameAs     ),
-                  ( "implies",   log_implies    ),
-                  ( "listfirst", rdf_first      ),
-                  ( "listrest",  rdf_rest       ),
-                  ( "listnull",  rdf_nil        ),
-                  ( "base",      default_base   ) ]
+{-|
+Define default special-URI table.
+The optional argument defines the initial base URI.
+-}
+specialTable :: Maybe ScopedName -> [(String,ScopedName)]
+specialTable mbase =
+  [ ("a",         rdf_type    ),
+    ("equals",    owl_sameAs  ),
+    ("implies",   log_implies ),
+    ("listfirst", rdf_first   ),
+    ("listrest",  rdf_rest    ),
+    ("listnull",  rdf_nil     ),
+    ("base",      fromMaybe default_base mbase ) 
+  ]
 
 ----------------------------------------------------------------------
 --  Define top-level parser function:

@@ -740,7 +740,6 @@ nextLine str = do
 -- blank nodes. The code is not efficient.
 --
 
--- modified from the version in N3Parser
 specialTable :: [(ScopedName, String)]
 specialTable = 
   [ (rdf_type, "a")

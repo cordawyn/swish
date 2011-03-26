@@ -101,6 +101,7 @@ namespaceDAML   =
 
 namespaceDefault :: Namespace
 namespaceDefault
+    -- = Namespace "default" "#"
     = Namespace "default" "http://id.ninebynine.org/default/"
 
 namespaceSwish :: Namespace
