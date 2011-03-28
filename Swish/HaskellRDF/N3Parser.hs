@@ -37,10 +37,7 @@
 --
 --  No performance testing has been applied.
 --
---  The default namespace (when none is given) needs changing.
---
 --  Not all N3 grammar elements are supported, including:
---    @keywords
 --    use of true/false with no leading @
 --    @forSome, @forAll
 --
@@ -113,13 +110,13 @@ import Swish.HaskellRDF.RDFParser
     , mapPrefix
     , prefixTable, specialTable
     , ParseResult, RDFParser
-    , n3Style, n3Lexer
+    , n3Style, n3Lexer, ignore
     , annotateParsecError
     , mkTypedLit
     )
 
 import Control.Applicative
-import Control.Monad (forM_, foldM)
+import Control.Monad (unless, forM_, foldM)
 
 import Network.URI (URI, 
                     relativeTo,
@@ -128,6 +125,7 @@ import Network.URI (URI,
 import Data.Maybe (fromMaybe, fromJust)
 
 import Text.ParserCombinators.Parsec hiding (many, optional, (<|>))
+import qualified Text.ParserCombinators.Parsec as PC
 import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Data.Char (isSpace, chr) 
@@ -164,6 +162,8 @@ data N3State = N3State
         , prefixUris :: NamespaceMap        -- namespace prefix mapping table
         , syntaxUris :: SpecialMap          -- special name mapping table
         , nodeGen    :: Int                 -- blank node id generator
+        , keywordsList :: [String]          -- contents of the @keywords statement
+        , allowLocalNames :: Bool           -- True if @keywords used so that bare names are QNames in default namespace
         }
 
 -- | Functions to update N3State vector (use with Parsec updateState)
@@ -180,6 +180,12 @@ setSName nam snam st =  st { syntaxUris=s' }
 setSUri :: String -> String -> N3State -> N3State
 setSUri nam suri = setSName nam (makeScopedName "" suri "")
 
+-- | The list of tokens that can be used without an @ sign
+setKeywordsList :: [String] -> N3State -> N3State
+setKeywordsList ks st = st { keywordsList = ks, allowLocalNames = True }
+
+--  Functions to access state:
+
 -- | Get name for special syntax element, default null
 getSName :: N3State -> String -> ScopedName
 getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
@@ -187,7 +193,6 @@ getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
 getSUri :: N3State -> String -> String
 getSUri st nam = getScopedNameURI $ getSName st nam
 
---  Functions to access state:
 --  Map prefix to namespace
 getPrefixNs :: N3State -> String -> Namespace
 getPrefixNs st pre = Namespace pre (mapPrefix (prefixUris st) pre)
@@ -199,6 +204,12 @@ getPrefixScopedName st snam = ScopedName (getPrefixNs st pre) loc
     where
         pre = getScopePrefix snam
         loc = snLocal snam
+
+getKeywordsList :: N3State -> [String]
+getKeywordsList = keywordsList
+
+getAllowLocalNames :: N3State -> Bool
+getAllowLocalNames = allowLocalNames
 
 --  Return function to update graph in N3 parser state,
 --  using the supplied function of a graph
@@ -255,6 +266,8 @@ parseAnyfromString parser mbase input =
               , prefixUris = pmap
               , syntaxUris = smap
               , nodeGen    = 0
+              , keywordsList = ["a", "is", "of"]
+              , allowLocalNames = False
               }
   
       puri = case mbase of
@@ -328,20 +341,28 @@ parseURIref2FromString =
 -- helper routines
 
 comma, colon , semiColon , fullStop :: N3Parser ()
-comma = symbol "," *> return ()
-colon = symbol ":" *> return ()
-semiColon = symbol ";" *> return ()
-fullStop = symbol "." *> return ()
+comma = ignore $ symbol ","
+colon = ignore $ symbol ":"
+semiColon = ignore $ symbol ";"
+fullStop = ignore $ symbol "."
 
 -- a specialization of bracket/between 
 br :: String -> String -> N3Parser a -> N3Parser a
 br lsym rsym = between (symbol lsym) (symbol rsym)
 
--- TODO: need to check the keywords list to see whether a
--- '@' is needed here
---
+atSign :: N3Parser ()
+atSign = ignore $ char '@'
+
 atWord :: String -> N3Parser String
-atWord s = (lexeme $ string $ '@' : s) *> return s
+atWord s = do
+  st <- getState
+  -- look at optional in Control.Applicative
+  if (s `elem` getKeywordsList st) then PC.optional atSign else atSign
+  
+  -- since keywords can be used as prefixes, need to check
+  -- not in a prefix
+  lexeme $ string s *> notFollowedBy (char ':')
+  return s
 
 showURI :: URI -> String
 showURI u = uriToString id u ""
@@ -493,6 +514,13 @@ addBase = updateState . setSUri "base" . getScopedNameURI'
 addPrefix :: Maybe String -> URI -> N3Parser ()
 addPrefix p = updateState . setPrefix (fromMaybe "" p) . getScopedNameURI'
 
+{-|
+Update the set of keywords that can be given without
+an @ sign.
+-}
+updateKeywordsList :: [String] -> N3Parser ()
+updateKeywordsList = updateState . setKeywordsList
+
 {-
 document ::=		|	statements_optional EOF
 -}
@@ -509,7 +537,7 @@ statements_optional ::=		|	statement  "."  statements_optional
 -}
 
 statementsOptional :: N3Parser ()
-statementsOptional = endBy (lexeme statement) fullStop >> return ()
+statementsOptional = ignore $ endBy (lexeme statement) fullStop
     
 {-
 statement ::=		|	declaration
@@ -542,7 +570,7 @@ declaration :: N3Parser ()
 declaration = do
   (try (atWord "base") >> explicitURI >>= addBase)
   <|>
-  (try (atWord "keywords") >> bareNameCsl >>= const undefined) -- fail "NEED TO HANDLE keywords") -- TODO support
+  (try (atWord "keywords") >> bareNameCsl >>= updateKeywordsList)
   <|>
   (try (atWord "prefix") *> getPrefix)
   <?> "declaration"
@@ -561,6 +589,7 @@ explicitURI = do
   let lb = char '<'
       rb = char '>'
   
+  -- TODO: do the whitespace definitions match?
   ustr <- between lb (rb <?> "end of URI '>'") $ many (satisfy (/= '>'))
   let uclean = filter (not . isSpace) ustr
       
@@ -597,7 +626,7 @@ barename_csl_tail ::=		|	 ","  barename barename_csl_tail
 -}
 
 bareNameCsl :: N3Parser [String]
-bareNameCsl = sepBy bareName comma
+bareNameCsl = sepBy (lexeme bareName) comma
 
 bareName :: N3Parser String
 bareName = n3Name <?> "barename"
@@ -628,17 +657,17 @@ n3symbol =
   <?> "symbol"
 
 symbolCsl :: N3Parser [ScopedName]
-symbolCsl = sepBy n3symbol comma
+symbolCsl = sepBy (lexeme n3symbol) comma
 
 {-
 qname ::=	(([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*)?:)?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
 
-TODO: - what does a qname of foo mean (is it the same as :foo)?
-For now we do not support this part of the production rule
-
 Turtle appears to support ':' as a valid qname, which is not
 supported by the above production. Let's support and see
-what happens.
+what happens. This support may be removed since, if we allow
+white space between : and prefix or local name then statements like
+   : a : b : c .
+are not parseable.
 
 TODO:
   Note that, for now, we explicitly handle blank nodes
@@ -649,11 +678,18 @@ TODO:
 
 qname :: N3Parser ScopedName
 qname =
-  try (ScopedName <$> matchPrefix <*> (colon *> n3Name))
+  try (ScopedName <$> matchPrefix <*> n3Name)
   -- <|> (ScopedName <$> getDefaultPrefix <*> (colon *> n3Name)) -- this is the spec
-  <|> (ScopedName <$> getDefaultPrefix <*> (colon *> (n3Name <|> return ""))) -- this allows for a bare ':' 
-  -- <|> ScopedName <$> getDefaultPrefix <*> n3Name -- TODO: is this correct for a 'bare' qname with no preceeding ':'?
+  <|> (ScopedName <$> getDefaultPrefix <*> (colon *> (n3Name <|> return ""))) -- this allows for a bare ':'  (well, it did, not sure about with the keyword-handling changes)
+  <|> localQName
   <?> "QName"
+
+localQName :: N3Parser ScopedName
+localQName = do
+  st <- getState
+  if getAllowLocalNames st
+    then ScopedName <$> getDefaultPrefix <*> n3Name
+    else fail "Invalid 'bare' word" -- TODO: not ideal error message; can we handle this case differently?
 
 {-
 We want to error out if the namespace is not known.
@@ -670,6 +706,7 @@ something better?
 matchPrefix :: N3Parser Namespace
 matchPrefix = do
   pre <- n3Name
+  colon
   st <- getState
   case mapFindMaybe pre (prefixUris st) of
     Just uri -> return $ Namespace pre uri
@@ -828,7 +865,7 @@ subgraph this = do
 -}
 
 statementList :: N3Parser ()
-statementList = sepEndBy (lexeme statement) fullStop *> return ()
+statementList = ignore $ sepEndBy (lexeme statement) fullStop
 
 {-
 boolean ::=		|	 "@false" 
@@ -918,7 +955,7 @@ propertyListBNode = do
 
 propertyListWith :: RDFLabel -> N3Parser ()
 propertyListWith subj = 
-  sepBy (lexeme verb >>= objectListWith subj) semiColon *> return ()
+  ignore $ sepBy (lexeme verb >>= objectListWith subj) semiColon
   
 {-
 object ::=		|	expression
@@ -942,7 +979,7 @@ objectWith subj (flag,vrb) = object >>= addFunc subj vrb
 
 objectListWith :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
 objectListWith subj vrb =
-  sepBy1 (objectWith subj vrb) comma *> return ()
+  ignore $ sepBy1 (objectWith subj vrb) comma
 
 {-
 objectList1 :: N3Parser [RDFLabel]
@@ -988,8 +1025,7 @@ verbForward :: N3Parser RDFLabel
 verbForward =  
   (try (string "=>") *> operatorLabel log_implies)
   <|> (string "=" *> operatorLabel owl_sameAs)
-  -- <|> (try (lexeme (string "a")) *> operatorLabel rdf_type)
-  <|> (try (string "a" *> lookAhead space) *> operatorLabel rdf_type)
+  <|> (try (atWord "a") *> operatorLabel rdf_type)
   <|> (atWord "has" *> lexeme expression)
   <|> lexeme expression
 

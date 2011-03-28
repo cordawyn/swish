@@ -884,6 +884,17 @@ x16    = NSGraph
                         tx1627,tx1628,tx1629,tx1630,tx1631,tx1632]
         }
 
+kg1 :: RDFGraph
+kg1 = toRDFGraph
+      [ arc b a c ]
+  where
+    -- the document base is set to file:///dev/null to begin with
+    ns = Namespace "" (baseFile ++ "#")
+    mUN = Res . ScopedName ns
+    a = mUN "a"
+    b = mUN "b"
+    c = mUN "c"
+
 ------------------------------------------------------------
 --  Simple parser tests
 ------------------------------------------------------------
@@ -1017,14 +1028,18 @@ simpleN3Graph_g8 =
     commonPrefixes ++
     " base1:s1 a base1:o1 . \n" ++
     " base2:s2 = base2:o2 . \n" ++
-    -- " base3:s3 + base3:o3 . \n" ++
-    -- " base3:s3 - base3:o3 . \n" ++
-    -- " base3:s3 * base3:o3 . \n" ++
-    -- " base3:s3 / base3:o3 . \n" ++
     " base1:s1 @is  base1:p1 @of base1:o1 . \n" ++
     " base2:s2 @has base1:p1 base2:o2 . \n" ++
-    -- " base1:s1 >-  base2:p2 -> base1:o1 . \n" ++
-    -- " base2:s2 <-  base2:p2 <- base2:o2 . \n"
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
+
+simpleN3Graph_g8b :: String
+simpleN3Graph_g8b =
+    commonPrefixes ++
+    " base1:s1 a base1:o1 . \n" ++
+    " base2:s2 = base2:o2 . \n" ++
+    " base1:s1 is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 @has base1:p1 base2:o2 . \n" ++
     " base1:s1 => base1:o1 . \n" ++
     " base2:s2 <= base2:o2 . \n"
 
@@ -1048,8 +1063,14 @@ simpleN3Graph_g83 =
     commonPrefixes ++
     " base1:s1 @is  base1:p1 @of base1:o1 . \n" ++
     " base2:s2 @has base1:p1 base2:o2 . \n" ++
-    -- " base1:s1 >-  base2:p2 -> base1:o1 . \n" ++
-    -- " base2:s2 <-  base2:p2 <- base2:o2 . \n"
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
+
+simpleN3Graph_g83b :: String
+simpleN3Graph_g83b =
+    commonPrefixes ++
+    " base1:s1 is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 @has base1:p1 base2:o2 . \n" ++
     " base1:s1 => base1:o1 . \n" ++
     " base2:s2 <= base2:o2 . \n"
 
@@ -1118,7 +1139,8 @@ emsg16 = intercalate "\n" [
   "(line 1, column 103 indicated by the '^' sign above):",
   "",
   "unexpected \"*\"",
-  "expecting declaration, pathitem or end of input"
+  "expecting declaration, pathitem or end of input",
+  "Invalid 'bare' word"
   ]
 
 
@@ -1140,9 +1162,11 @@ simpleTestSuite = TestList
   , parseTest "simpleTest07"  simpleN3Graph_g6    g6  noError
   , parseTest "simpleTest08"  simpleN3Graph_g7    g7  noError
   , parseTest "simpleTest09"  simpleN3Graph_g8    g8  noError
+  , parseTest "simpleTest09b" simpleN3Graph_g8b   g8  noError
   , parseTest "simpleTest10"  simpleN3Graph_g81   g81 noError
     -- , simpleTest11  = parseTest "simpleTest11"  simpleN3Graph_g82   g82 noError
   , parseTest "simpleTest12"  simpleN3Graph_g83   g83 noError
+  , parseTest "simpleTest12b" simpleN3Graph_g83b  g83 noError
   , parseTest "simpleTest13"  simpleN3Graph_g9    g9  noError
   , parseTest "simpleTest14"  simpleN3Graph_g10   g10 noError
   , parseTest "simpleTest15"  simpleN3Graph_g11   g11 noError
@@ -1349,6 +1373,40 @@ exoticTestSuite = TestList
     
   ]
 
+keywordN3Graph_01 :: String
+keywordN3Graph_01 = 
+  "@keywords .\n" ++
+  "b a c . "
+
+-- a modification of simpleN3Graph_g8
+keywordN3Graph_02 :: String
+keywordN3Graph_02 = 
+    commonPrefixes ++
+    "@keywords a , is, of ,has.\n" ++
+    " base1:s1 a base1:o1 . \n" ++
+    " base2:s2 = base2:o2 . \n" ++
+    " base1:s1 is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 has base1:p1 base2:o2 . \n" ++
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
+
+-- a modification of simpleN3Graph_g83
+keywordN3Graph_03 :: String
+keywordN3Graph_03 = 
+    commonPrefixes ++
+    "@keywords of.\n" ++
+    " base1:s1 @is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 @has base1:p1 base2:o2 . \n" ++
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
+
+keywordTestSuite :: Test
+keywordTestSuite = TestList
+  [ parseTestB dqn "keywordTest01" keywordN3Graph_01  kg1  noError
+  , parseTest "keywordTest02"      keywordN3Graph_02  g8  noError
+  , parseTest "keywordTest03"      keywordN3Graph_03  g83 noError
+  ]
+    
 ------------------------------------------------------------
 --  Test parser failure
 ------------------------------------------------------------
@@ -1372,7 +1430,8 @@ fail1 = intercalate "\n" [
          "(line 4, column 20 indicated by the '^' sign above):",
          "",
          "unexpected Prefix 'unknown3:' not bound.",
-         "expecting pathitem"
+         "expecting pathitem",
+         "Invalid 'bare' word"
         ]
 
 failTestSuite :: Test
@@ -1393,6 +1452,7 @@ allTests = TestList
   , uriRef2TestSuite
   , simpleTestSuite
   , exoticTestSuite
+  , keywordTestSuite
   , failTestSuite
   ]
 
