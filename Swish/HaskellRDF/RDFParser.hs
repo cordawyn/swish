@@ -24,6 +24,7 @@ module Swish.HaskellRDF.RDFParser
     -- parser
     , ParseResult, RDFParser
     , n3Style, n3Lexer
+    , ignore
     , annotateParsecError
     , mkTypedLit
     )
@@ -143,6 +144,9 @@ instance Alternative (GenParser a b) where
   (<|>) = mplus
   
 type ParseResult = ErrorM RDFGraph
+
+ignore :: (Monad m) => m a -> m ()
+ignore p = p >> return ()
 
 -- | Annotate a Parsec error with the local context (i.e. the actual text
 -- that caused the error.

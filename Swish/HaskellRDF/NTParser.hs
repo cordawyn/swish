@@ -59,6 +59,7 @@ import Swish.HaskellRDF.Vocabulary (langName)
 
 import Swish.HaskellRDF.RDFParser
     ( ParseResult, RDFParser
+    , ignore
     , annotateParsecError
     )
 
@@ -128,9 +129,6 @@ parsefromString parser input =
                 Left  err -> Left $ annotateParsecError (lines input) err
 
 -- helper routines
-
-ignore :: NTParser a -> NTParser ()
-ignore p = p *> return ()
 
 fullStop :: NTParser ()
 fullStop = ignore (char '.')
