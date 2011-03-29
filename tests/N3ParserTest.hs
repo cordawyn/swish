@@ -252,6 +252,9 @@ base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 basea = Namespace "a" "http://example.org/basea#"
 
+u1 :: RDFLabel
+u1 = Res $ ScopedName base1 ""
+
 ds1, ds2, ds3 :: RDFLabel
 ds1 = Res $ ScopedName dbase "s1"
 ds2 = Res $ ScopedName dbase "s2"
@@ -391,6 +394,9 @@ g1 = NSGraph
 
 g1a :: RDFGraph
 g1a = g1 { statements = [arc sa pa oa] }
+
+g1_31 :: RDFGraph
+g1_31 = g1 { statements = [arc u1 u1 u1] }
 
 g1b :: RDFGraph
 g1b = g1 { statements = [t01b] }
@@ -955,6 +961,19 @@ simpleN3Graph_g1_03 =
     "@prefix : <" ++ nsURI base1 ++ "> .\n" ++
     " :s1 :p1 :o1 . "
 
+--  Turtle supports ':' but (apparently) not N3, but try
+--  and support it.
+--
+simpleN3Graph_g1_03_1 :: String
+simpleN3Graph_g1_03_1 =
+    "@prefix : <" ++ nsURI base1 ++ "> .\n" ++
+    " : : :."
+
+simpleN3Graph_g1_03_2 :: String
+simpleN3Graph_g1_03_2 =
+    "@prefix b: <" ++ nsURI base1 ++ "> .\n" ++
+    "b: b: b:. "
+
 --  Single statement using relative URI form
 simpleN3Graph_g1_04 :: String
 simpleN3Graph_g1_04 =
@@ -1139,8 +1158,7 @@ emsg16 = intercalate "\n" [
   "(line 1, column 103 indicated by the '^' sign above):",
   "",
   "unexpected \"*\"",
-  "expecting declaration, pathitem or end of input",
-  "Invalid 'bare' word"
+  "expecting declaration, pathitem or end of input"
   ]
 
 
@@ -1152,6 +1170,8 @@ simpleTestSuite = TestList
   , parseTest "simpleTest012" simpleN3Graph_g1_02 g1  noError
   , parseTest "simpleTest012a" simpleN3Graph_g1_02a g1a  noError
   , parseTest "simpleTest013" simpleN3Graph_g1_03 g1  noError
+  , parseTest "simpleTest013_1" simpleN3Graph_g1_03_1 g1_31  noError
+  , parseTest "simpleTest013_2" simpleN3Graph_g1_03_2 g1_31  noError
   , parseTest "simpleTest014" simpleN3Graph_g1_04 g1  noError
   , parseTest "simpleTest015" simpleN3Graph_g1_05 g1b noError
   , parseTest "simpleTest016" simpleN3Graph_g1_06 emptyRDFGraph emsg16
@@ -1426,12 +1446,10 @@ fail1 :: String
 fail1 = intercalate "\n" [
          "",
          " base1:s1 base2:p2 unknown3:o3 . ",
-         "                   ^",
-         "(line 4, column 20 indicated by the '^' sign above):",
+         "                            ^",
+         "(line 4, column 29 indicated by the '^' sign above):",
          "",
-         "unexpected Prefix 'unknown3:' not bound.",
-         "expecting pathitem",
-         "Invalid 'bare' word"
+         "unexpected Prefix 'unknown3:' not bound."
         ]
 
 failTestSuite :: Test

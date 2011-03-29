@@ -116,7 +116,7 @@ import Swish.HaskellRDF.RDFParser
     )
 
 import Control.Applicative
-import Control.Monad (unless, forM_, foldM)
+import Control.Monad (forM_, foldM)
 
 import Network.URI (URI, 
                     relativeTo,
@@ -356,11 +356,16 @@ atSign = ignore $ char '@'
 atWord :: String -> N3Parser String
 atWord s = do
   st <- getState
-  -- look at optional in Control.Applicative
-  if (s `elem` getKeywordsList st) then PC.optional atSign else atSign
   
-  -- since keywords can be used as prefixes, need to check
-  -- not in a prefix
+  -- does it really make sense to add the not-followed-by-a-colon rule here?
+  -- apply to both cases even though should only really be necessary
+  -- when the at sign is not given
+  --
+  let atParser = if s `elem` getKeywordsList st
+                 then PC.optional atSign
+                 else atSign
+         
+  atParser
   lexeme $ string s *> notFollowedBy (char ':')
   return s
 
@@ -422,7 +427,7 @@ quickvariable ::=	\?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d
 
 -- TODO: is mapping to Var correct?
 quickVariable :: N3Parser RDFLabel
-quickVariable = Var <$> (char '?' *> n3Name) <?> "quickvariable"
+quickVariable = char '?' *> (Var <$> n3Name) <?> "quickvariable"
 
 {-
 string ::=	("""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*""")|("[^"\\]*(?:\\.[^"\\]*)*")
@@ -562,10 +567,9 @@ declaration ::=		|	 "@base"  explicituri
 		|	 "@prefix"  prefix explicituri
 -}
 
--- TODO: keywords needs to be able to change the parser?
---       in other words, need actions based on these results
---       not just production rules
-
+-- TODO: do we need the try statements here? atWord would need to have a try on '@'
+-- (if applicable) which should mean being able to get rid of try
+--
 declaration :: N3Parser ()
 declaration = do
   (try (atWord "base") >> explicitURI >>= addBase)
@@ -576,7 +580,10 @@ declaration = do
   <?> "declaration"
   
 getPrefix :: N3Parser ()  
-getPrefix = lexeme prefix >>= \p -> explicitURI >>= \u -> addPrefix p u
+getPrefix = do
+  p <- lexeme prefix
+  u <- explicitURI
+  addPrefix p u
 
 {-
 explicituri ::=	<[^>]*>
@@ -636,8 +643,7 @@ prefix ::=	([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#
 -}
 
 prefix :: N3Parser (Maybe String)
-prefix = (char ':' *> return Nothing)
-         <|> (Just <$> lexeme n3Name <* char ':') -- colon may be okay here; can you have whitespace between prefix and :?
+prefix = optional (lexeme n3Name) <* char ':'
          <?> "prefix name"
 
 {-
@@ -678,39 +684,52 @@ TODO:
 
 qname :: N3Parser ScopedName
 qname =
-  try (ScopedName <$> matchPrefix <*> n3Name)
-  -- <|> (ScopedName <$> getDefaultPrefix <*> (colon *> n3Name)) -- this is the spec
-  <|> (ScopedName <$> getDefaultPrefix <*> (colon *> (n3Name <|> return ""))) -- this allows for a bare ':'  (well, it did, not sure about with the keyword-handling changes)
-  <|> localQName
+  (char ':' *> toSN getDefaultPrefix)
+  <|> (n3Name >>= fullOrLocalQName)
   <?> "QName"
-
-localQName :: N3Parser ScopedName
-localQName = do
+    where
+      toSN p = ScopedName <$> p <*> (n3Name <|> return "")
+          
+fullOrLocalQName :: String -> N3Parser ScopedName
+fullOrLocalQName name = 
+  (char ':' *> fullQName name)
+  <|> localQName name
+  
+fullQName :: String -> N3Parser ScopedName
+fullQName name = do
+  pre <- findPrefix name
+  lname <- n3Name <|> return ""
+  return $ ScopedName pre lname
+  
+findPrefix :: String -> N3Parser Namespace
+findPrefix pre = do
+  st <- getState
+  case mapFindMaybe pre (prefixUris st) of
+    Just uri -> return $ Namespace pre uri
+    Nothing  -> unexpected $ "Prefix '" ++ pre ++ ":' not bound."
+  
+localQName :: String -> N3Parser ScopedName
+localQName name = do
   st <- getState
   if getAllowLocalNames st
-    then ScopedName <$> getDefaultPrefix <*> n3Name
+    then do
+      pre <- getDefaultPrefix
+      return $ ScopedName pre name
+    
     else fail "Invalid 'bare' word" -- TODO: not ideal error message; can we handle this case differently?
-
-{-
-We want to error out if the namespace is not known.
-
-The following replacement for this code does work
-
-matchPrefix = getPrefixNs <$> getState <*> n3Name
-
-but is it quite what we want? unexpected seems to give
-a slightly-better message than fail, but can we have
-something better?
--}
 
 matchPrefix :: N3Parser Namespace
 matchPrefix = do
   pre <- n3Name
-  colon
+      
+  -- do we want a lexeme here or not? apparently not
+  -- colon
+  ignore $ char ':'
+  
   st <- getState
   case mapFindMaybe pre (prefixUris st) of
     Just uri -> return $ Namespace pre uri
-    Nothing -> unexpected $ "Prefix '" ++ pre ++ ":' not bound."
+    Nothing  -> unexpected $ "Prefix '" ++ pre ++ ":' not bound."
 
 {-
 existential ::=		|	 "@forSome"  symbol_csl
@@ -744,13 +763,16 @@ pathtail ::=		|	 "!"  expression
 expression :: N3Parser RDFLabel
 expression = do
   i <- pathItem
-  mpt <- optionMaybe $
-        ( (,) <$> lexeme (char '!' <|> char '^') <*> lexeme expression )
+  
+  let backwardExpr = char '!' *> return addStatementRev 
+      forwardExpr  = char '^' *> return addStatement
+  
+  mpt <- optional $
+        ( (,) <$> lexeme (forwardExpr <|> backwardExpr) <*> lexeme expression )
   case mpt of
     Nothing -> return i 
-    Just (c, pt) -> do
+    Just (addFunc, pt) -> do
       bNode <- newBlankNode
-      let addFunc = if c == '!' then addStatementRev else addStatement
       addFunc bNode pt i
       return bNode
   
@@ -785,7 +807,7 @@ pathItem =
   <|> literal
   <|> numericLiteral
   <|> quickVariable
-  <|> Blank <$> (char '_' *> colon *> n3Name) -- TODO a hack that needs fixing
+  <|> Blank <$> (string "_:" *> n3Name) -- TODO a hack that needs fixing
   <|> Res <$> n3symbol
   <?> "pathitem"
   
@@ -1002,17 +1024,6 @@ verb =
   ((,) False) <$> verbReverse
   <|> ((,) True) <$> verbForward
   <?> "verb"
-
-{-
-I am using 'lookAhead space' to ensure there's white space after certain symbols
-(e.g. a) so that 'a:a a:b a:c.' is parsed correctly, rather than being
-thought of as 'a:a a :b a:c.'. Not sure this is entirely sensible.
-
-note that atWord is already a lexeme parser so no need to assert
-additional whitespace (although it does not require it), so
-may need to think about this more.
-
--}
 
 -- those verbs for which subject is on the right and object on the left
 verbReverse :: N3Parser RDFLabel
