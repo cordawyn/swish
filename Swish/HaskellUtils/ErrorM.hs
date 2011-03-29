@@ -18,7 +18,7 @@
 --------------------------------------------------------------------------------
 
 module Swish.HaskellUtils.ErrorM
-    ( ErrorM(Error,Result) )
+    ( ErrorM(Error,Result), errorToEither )
 where
 
 import Control.Monad
@@ -44,6 +44,11 @@ instance MonadPlus ErrorM where
     mzero             = Error "No result"
     mplus (Error _) r = r
     mplus r         _ = r
+
+-- |Convert to an Either
+errorToEither :: ErrorM a -> Either String a
+errorToEither (Error  e) = Left e
+errorToEither (Result r) = Right r
 
 --------------------------------------------------------------------------------
 --

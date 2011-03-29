@@ -59,7 +59,7 @@ import Swish.HaskellRDF.GraphClass
     )
 
 import Swish.HaskellUtils.QName (QName, qnameFromFilePath)
-import Swish.HaskellUtils.ErrorM( ErrorM(..) )
+import Swish.HaskellUtils.ErrorM (ErrorM(..))
 
 import System.IO
     ( Handle, openFile, IOMode(..)
@@ -68,20 +68,11 @@ import System.IO
     , stdin, stdout, stderr
     )
 
-import Control.Monad.Trans( MonadTrans(..) )
+import Control.Monad.Trans (MonadTrans(..))
+import Control.Monad.State (modify, gets)
+import Control.Monad (when)
 
-import Control.Monad.State
-    ( modify, gets
-    )
-
-import Data.Maybe
-    ( isJust, fromJust )
-
-import Control.Monad
-    ( when )
-
-import System.Exit
-    ( ExitCode(..) )
+import System.Exit (ExitCode(..))
 
 import System.IO.Error
 
@@ -98,24 +89,16 @@ swishFormat fmt = modify $ setFormat fmt
 
 swishInput :: String -> SwishStateIO ()
 swishInput fnam =
-    do  { maybegraph <- swishReadGraph fnam
-        ; case maybegraph of
-            Just g    -> modify $ setGraph g
-            _         -> return ()
-        }
-
+  swishReadGraph fnam >>= maybe (return ()) (modify . setGraph)
+  
 ------------------------------------------------------------
 --  Merge graph from named file
 ------------------------------------------------------------
 
 swishMerge :: String -> SwishStateIO ()
 swishMerge fnam =
-    do  { maybegraph <- swishReadGraph fnam
-        ; case maybegraph of
-            Just g    -> modify $ mergeGraph g
-            _         -> return ()
-        }
-
+  swishReadGraph fnam >>= maybe (return ()) (modify . mergeGraph)
+    
 mergeGraph :: RDFGraph -> SwishState -> SwishState
 mergeGraph gr state = state { graph = newgr }
     where
@@ -127,76 +110,60 @@ mergeGraph gr state = state { graph = newgr }
 
 swishCompare :: String -> SwishStateIO ()
 swishCompare fnam =
-    do  { maybegraph <- swishReadGraph fnam
-        ; case maybegraph of
-            Just g    -> compareGraph g
-            _         -> return ()
-        }
-
+  swishReadGraph fnam >>= maybe (return ()) compareGraph
+    
 compareGraph :: RDFGraph -> SwishStateIO ()
-compareGraph gr =
-    do  { oldgr <- gets graph
-        ; let exitCode = if gr == oldgr then ExitSuccess
-                                        else ExitFailure 1
-        ; modify $ setExitcode exitCode
-        }
-
+compareGraph gr = do
+  oldGr <- gets graph
+  let exitCode = if gr == oldGr then ExitSuccess else ExitFailure 1
+  modify $ setExitcode exitCode
+  
 ------------------------------------------------------------
 --  Display graph differences from named file
 ------------------------------------------------------------
 
 swishGraphDiff :: String -> SwishStateIO ()
 swishGraphDiff fnam =
-    do  { maybegraph <- swishReadGraph fnam
-        ; case maybegraph of
-            Just g    -> diffGraph g
-            _         -> return ()
-        }
+  swishReadGraph fnam >>= maybe (return ()) diffGraph
 
 diffGraph :: RDFGraph -> SwishStateIO ()
-diffGraph gr =
-    do  { oldgr <- gets graph
-        ; let p1 = partitionGraph (getArcs oldgr)
-        ; let p2 = partitionGraph (getArcs gr)
-        ; let diffs = comparePartitions p1 p2
-        ; maybehandleclose <- swishWriteFile "" -- null filename -> stdout
-        ; case maybehandleclose of
-            Just (h,c) ->
-                do  { swishOutputDiffs "" h diffs
-                    ; when c (lift $ hClose h)
-                    }
-            _          -> return ()
-        }
-
+diffGraph gr = do
+  oldGr <- gets graph
+  let p1 = partitionGraph (getArcs oldGr)
+      p2 = partitionGraph (getArcs gr)
+      diffs = comparePartitions p1 p2
+  maybehandleclose <- swishWriteFile "" -- null filename -> stdout
+  case maybehandleclose of
+    Just (h,c) -> do
+      swishOutputDiffs "" h diffs
+      when c (lift $ hClose h)
+   
+    _  -> return ()
+  
 swishOutputDiffs :: (Label lb) =>
     String -> Handle
     -> [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
     -> SwishStateIO ()
-swishOutputDiffs fnam hnd diffs =
-    do  { lift $ hPutStrLn hnd ("Graph differences: "++show (length diffs))
-        ; mapM_ (swishOutputDiff fnam hnd) (zip [1..] diffs)
-        }
+swishOutputDiffs fnam hnd diffs = do
+  lift $ hPutStrLn hnd ("Graph differences: "++show (length diffs))
+  mapM_ (swishOutputDiff fnam hnd) (zip [1..] diffs)
 
 swishOutputDiff :: (Label lb) =>
     String -> Handle
     -> (Int,(Maybe (GraphPartition lb),Maybe (GraphPartition lb)))
     -> SwishStateIO ()
-swishOutputDiff fnam hnd (diffnum,(part1,part2)) =
-    do  { lift $ hPutStrLn hnd ("---- Difference "++show diffnum++" ----")
-        ; lift $ hPutStr hnd "Graph 1:"
-        ; swishOutputPart fnam hnd part1
-        ; lift $ hPutStr hnd "Graph 2:"
-        ; swishOutputPart fnam hnd part2
-        }
+swishOutputDiff fnam hnd (diffnum,(part1,part2)) = do
+  lift $ hPutStrLn hnd ("---- Difference "++show diffnum++" ----")
+  lift $ hPutStr hnd "Graph 1:"
+  swishOutputPart fnam hnd part1
+  lift $ hPutStr hnd "Graph 2:"
+  swishOutputPart fnam hnd part2
 
 swishOutputPart :: (Label lb) =>
     String -> Handle -> Maybe (GraphPartition lb) -> SwishStateIO ()
-swishOutputPart _ hnd part =
-    do  { let out = case part of
-                Just p  -> partitionShowP "\n" p
-                Nothing -> "\n(No arcs)"
-        ; lift $ hPutStrLn hnd out
-        }
+swishOutputPart _ hnd part = 
+  let out = maybe "\n(No arcs)" (partitionShowP "\n") part
+  in lift $ hPutStrLn hnd out
 
 ------------------------------------------------------------
 --  Execute script from named file
@@ -207,15 +174,12 @@ swishScript fnam = swishReadScript fnam >>= mapM_ swishCheckResult
 
 swishReadScript :: String -> SwishStateIO [SwishStateIO ()]
 swishReadScript fnam =
-    do  { maybefile <- swishOpenFile fnam
-        ; case maybefile of
-            Just (h,i,mbase) ->
-                do  { res <- swishParseScript (mbase,fnam) i
-                    ; lift $ hClose h
-                    ; return res
-                    }
-            _          -> return []
-        }
+  let hdlr (h,i,mbase) = do
+        res <- swishParseScript (mbase,fnam) i
+        lift $ hClose h
+        return res
+  
+  in swishOpenFile fnam >>= maybe (return []) hdlr
 
 swishParseScript ::
     (Maybe QName, String) -- file name as QName, file name (may be "")
@@ -230,56 +194,39 @@ swishParseScript (mbase,fnam) inp =
       Result scs -> return scs
 
 swishCheckResult :: SwishStateIO () -> SwishStateIO ()
-swishCheckResult swishcommand =
-    do  { swishcommand
-        ; er <- gets errormsg
-        ; when (isJust er) $
-            do  { swishError (fromJust er) 5
-                ; modify resetError
-                }
-        ; ms <- gets infomsg
-        ; when (isJust ms) $
-            do  { reportLine (fromJust ms)
-                ; modify resetInfo
-                }
-        }
+swishCheckResult swishcommand = do
+  swishcommand
+  er <- gets errormsg
+  case er of  
+    Just x -> swishError x 5 >> modify resetError
+    _      -> return ()
+    
+  ms <- gets infomsg
+  case ms of
+    Just x -> reportLine x >> modify resetInfo
+    _      -> return ()
 
 ------------------------------------------------------------
 --  Output graph to named file
 ------------------------------------------------------------
 
 swishOutput :: String -> SwishStateIO ()
-swishOutput fnam =
-    do  { maybehandleclose <- swishWriteFile fnam
-        ; case maybehandleclose of
-            Just (h,c) ->
-                do  { swishOutputGraph fnam h
-                    ; when c (lift $ hClose h)
-                    }
-            _          -> return ()
-        }
-
+swishOutput fnam = 
+  let hdlr (h,c) = swishOutputGraph fnam h >> when c (lift $ hClose h)
+  in swishWriteFile fnam >>= maybe (return ()) hdlr
+     
 swishOutputGraph :: String -> Handle -> SwishStateIO ()
-swishOutputGraph fnam hnd =
-    do  { fmt <- gets format
-        ; case fmt of
-            N3        -> swishFormatN3 fnam hnd
-            NT        -> swishFormatNT fnam hnd
-            _         -> swishError
-                         ("Unsupported file format: "++show fmt) 4
-        }
-
-swishFormatN3 :: String -> Handle -> SwishStateIO ()
-swishFormatN3 _ hnd =
-    do  { out <- gets $ N3F.formatGraphAsShowS . graph
-        ; lift $ hPutStrLn hnd (out "")
-        }
-
-swishFormatNT :: String -> Handle -> SwishStateIO ()
-swishFormatNT _ hnd =
-    do  { out <- gets $ NTF.formatGraphAsShowS . graph
-        ; lift $ hPutStrLn hnd (out "")
-        }
+swishOutputGraph _ hnd = do
+  fmt <- gets format
+  
+  let writeOut formatter = do
+        out <- gets $ formatter . graph
+        lift $ hPutStrLn hnd (out "")
+        
+  case fmt of
+    N3 -> writeOut N3F.formatGraphAsShowS
+    NT -> writeOut NTF.formatGraphAsShowS
+    _  -> swishError ("Unsupported file format: "++show fmt) 4
 
 ------------------------------------------------------------
 --  Common input functions
@@ -289,15 +236,13 @@ swishFormatNT _ hnd =
 --  parsing it to an RDF graph value.
 
 swishReadGraph :: String -> SwishStateIO (Maybe RDFGraph)
-swishReadGraph fnam = do
-  maybefile <- swishOpenFile fnam
-  case maybefile of
-    Just (h,i,mbase) -> do
-      res <- swishParse (mbase,fnam) i
-      lift $ hClose h
-      return res
-    
-    _  -> return Nothing
+swishReadGraph fnam =
+  let reader (h,i,mbase) = do
+        res <- swishParse (mbase,fnam) i
+        lift $ hClose h
+        return res
+  
+  in swishOpenFile fnam >>= maybe (return Nothing) reader
 
 -- Open and read file, returning its handle and content, or Nothing
 -- WARNING:  the handle must not be closed until input is fully evaluated
@@ -332,35 +277,22 @@ swishParse ::
   (Maybe QName, String) -- ^ base of file, file name (may be "")
   -> String  -- ^ contents of file
   -> SwishStateIO (Maybe RDFGraph)
-swishParse farg inp = do
+swishParse (mbase,fnam) inp = do
   fmt <- gets format
+  
+  let toError eMsg =
+        swishError (show fmt ++ " syntax error in file " ++ fnam ++ ": " ++ eMsg) 2 
+        >> return Nothing
+        
+      readIn reader = case reader inp of
+        Result res -> return $ Just res
+        Error eMsg -> toError eMsg
+             
   case fmt of
-    N3 -> swishParseN3 farg inp
-    NT -> swishParseNT farg inp
+    N3 -> readIn (flip parseN3 mbase)
+    NT -> readIn parseNT
     _  -> swishError ("Unsupported file format: "++show fmt) 4 >>
           return Nothing
-
-swishParseN3 :: 
-  (Maybe QName, String) -- ^ base, file name
-  -> String  -- ^ file contents
-  -> SwishStateIO (Maybe RDFGraph)
-swishParseN3 (mbase,fnam) inp = 
-  case parseN3 inp mbase of
-    Left err -> swishError ("N3 syntax error in file "++fnam++": "++err) 2 >>
-                return Nothing
-            
-    Right gr -> return $ Just gr
-
-swishParseNT :: 
-  (Maybe QName, String) -- ^ base, file name
-  -> String  -- ^ file contents
-  -> SwishStateIO (Maybe RDFGraph)
-swishParseNT (_,fnam) inp =
-  case parseNT inp of
-    Error err -> swishError ("NTriples syntax error in file "++fnam++": "++err) 2 >>
-                 return Nothing
-            
-    Result gr -> return $ Just gr
 
 --  Open file for writing, returning its handle, or Nothing
 --  Also returned is a flag indicating whether or not the

@@ -104,7 +104,7 @@ import Swish.HaskellUtils.ListHelpers
     ( equiv, flist )
 
 import Swish.HaskellUtils.ErrorM
-    ( ErrorM(..) )
+    ( ErrorM(..), errorToEither )
 
 import Text.ParserCombinators.Parsec
     ( (<?>), (<|>)
@@ -538,7 +538,7 @@ ssReadGraph :: Maybe String -> SwishStateIO (Either String RDFGraph)
 ssReadGraph muri = 
   let gf inp = case inp of
         Left  es -> Left es
-        Right is -> parseN3 is (fmap qnameFromURI muri) 
+        Right is -> errorToEither (parseN3 is (fmap qnameFromURI muri))
         
   in gf `liftM` getResourceData muri
 

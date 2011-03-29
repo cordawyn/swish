@@ -245,8 +245,8 @@ parseN3fromString =
 parseN3 ::
   String -- ^ input in N3 format.
   -> Maybe QName -- ^ optional base URI
-  -> Either String RDFGraph
-parseN3 = flip (parseAnyfromString document)
+  -> ParseResult
+parseN3 inp mbase = either Error Result $ parseAnyfromString document mbase inp
 
 -- useful for testing
 test :: String -> RDFGraph

@@ -115,8 +115,8 @@ parseTestB base lab inp gr er =
       ]
     where
         (pe,pg) = case parseN3 inp (Just base) of
-            Right g -> ("",g)
-            Left  s -> (s,emptyRDFGraph)
+            Result g -> ("",g)
+            Error  s -> (s,emptyRDFGraph)
 
 ------------------------------------------------------------
 --  Test simple character parsing
