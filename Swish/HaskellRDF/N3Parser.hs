@@ -32,13 +32,18 @@
 --
 --  UTF-8 handling is not really tested.
 --
---  The Turtle specification allows ":" as a QName but this does not seem
---  to be allowed by the N3 grammar at [1]. The parser supports ":" as a QName.
+--  Several items seem to be allowed (from looking at N3 test suites and files
+--  'in the wild') that are not given supported by the N3 grammar [1]. We try
+--  to support these, including
+--    a) ":" and "base:" as valid QNames (ie a blank local component)
+--    b) true and false as well as @true/@false
+--    c) use of lower-case characters for \u and \U escape codes
 --
 --  No performance testing has been applied.
 --
 --  Not all N3 grammar elements are supported, including:
---    @forSome, @forAll
+--    @forSome
+--    @forAll
 --
 --------------------------------------------------------------------------------
 
@@ -456,8 +461,11 @@ asciiChars = map chr [0x20..0x7e]
 asciiCharsN3 :: String
 asciiCharsN3 = filter (`notElem` "\\\"") asciiChars
 
+-- the grammer has only upper-case A-F but some lower case values
+-- seen in the wild, so support them
+--
 ntHexDigit :: N3Parser Char
-ntHexDigit = oneOf $ ['0'..'9'] ++ ['A'..'F']
+ntHexDigit = oneOf $ ['0'..'9'] ++ ['A'..'F'] ++ ['a'..'f']
 
 hex4 :: N3Parser Char
 hex4 = do
@@ -494,9 +502,20 @@ protectedChar =
   <|> (char 'u' *> hex4)
   <|> (char 'U' *> hex8)
 
+-- Accept an escape character or any character as long as it isn't
+-- a new-line or quote. Unrecognized escape sequences should therefore
+-- be left alone by this. 
+--
 n3Character :: N3Parser Char
-n3Character = (char '\\' *> protectedChar)
+n3Character = 
+  (char '\\' *> (protectedChar <|> return '\\'))
+  <|> noneOf "\"\n"
+      
+{-
       <|> (oneOf asciiCharsN3 <?> "ASCII character")
+              -- TODO: bodyChar and asciiCharsN3 overlap
+      <|> (oneOf bodyChar <?> "Unicode character")
+-}              
 
 sQuot :: N3Parser Char
 sQuot = char '"'
@@ -508,7 +527,7 @@ singleQuoted = between sQuot sQuot $ many n3Character
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
 -}
 tripleQuoted :: N3Parser String
-tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n' <|> char '\t') tQuot
+tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n') tQuot
   where
     tQuot = try (count 3 sQuot)
 
