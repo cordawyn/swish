@@ -38,7 +38,6 @@
 --  No performance testing has been applied.
 --
 --  Not all N3 grammar elements are supported, including:
---    use of true/false with no leading @
 --    @forSome, @forAll
 --
 --------------------------------------------------------------------------------
@@ -266,7 +265,7 @@ parseAnyfromString parser mbase input =
               , prefixUris = pmap
               , syntaxUris = smap
               , nodeGen    = 0
-              , keywordsList = ["a", "is", "of"]
+              , keywordsList = ["a", "is", "of", "true", "false"] -- not 100% sure about true/false here
               , allowLocalNames = False
               }
   
@@ -350,22 +349,27 @@ fullStop = ignore $ symbol "."
 br :: String -> String -> N3Parser a -> N3Parser a
 br lsym rsym = between (symbol lsym) (symbol rsym)
 
-atSign :: N3Parser ()
-atSign = ignore $ char '@'
-
-atWord :: String -> N3Parser String
-atWord s = do
+-- The @ character is optional if the keyword is in the
+-- keyword list
+--
+atSign :: String -> N3Parser ()
+atSign s = do
   st <- getState
   
-  -- does it really make sense to add the not-followed-by-a-colon rule here?
+  let p = ignore $ char '@'
+  
+  if s `elem` getKeywordsList st
+    then PC.optional p
+    else p
+         
+atWord :: String -> N3Parser String
+atWord s = do
+  atSign s
+  
+  -- TODO: does it really make sense to add the not-followed-by-a-colon rule here?
   -- apply to both cases even though should only really be necessary
   -- when the at sign is not given
   --
-  let atParser = if s `elem` getKeywordsList st
-                 then PC.optional atSign
-                 else atSign
-         
-  atParser
   lexeme $ string s *> notFollowedBy (char ':')
   return s
 
@@ -896,7 +900,7 @@ boolean ::=		|	 "@false"
 
 boolean :: N3Parser RDFLabel
 boolean = mkTypedLit xsd_boolean <$> 
-          (atWord "false" <|> atWord "true")
+          (try (atWord "false") <|> atWord "true")
            
 {-
 dtlang ::=		|	 "@"  langcode

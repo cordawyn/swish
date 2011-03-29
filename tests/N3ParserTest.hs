@@ -316,6 +316,10 @@ lfr    = Lit "chat"          (Just $ langName "fr")
 lxml   = Lit "<br/>"         (Just rdf_XMLLiteral )
 lfrxml = Lit "<em>chat</em>" (Just rdf_XMLLiteral )
 
+bTrue, bFalse :: RDFLabel
+bTrue  = Lit "true"  $ Just $ ScopedName (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") "boolean"
+bFalse = Lit "false" $ Just $ ScopedName (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") "boolean"
+
 f1, f2 :: RDFLabel
 f1 = Res $ ScopedName base1 "f1"
 f2 = Res $ ScopedName base2 "f2" 
@@ -385,35 +389,29 @@ nslist = LookupMap $ map makeNewPrefixNamespace
     , ("base4",base4)
     ]
 
+toGraph :: [Arc RDFLabel] -> RDFGraph
+toGraph stmts = NSGraph { namespaces = nslist
+                        , formulae   = emptyFormulaMap
+                        , statements = stmts
+                        }
+
 g1 :: RDFGraph
-g1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01]
-        }
+g1 = toGraph [t01]
 
 g1a :: RDFGraph
-g1a = g1 { statements = [arc sa pa oa] }
+g1a = toGraph [arc sa pa oa] 
 
 g1_31 :: RDFGraph
-g1_31 = g1 { statements = [arc u1 u1 u1] }
+g1_31 = toGraph [arc u1 u1 u1]
 
 g1b :: RDFGraph
-g1b = g1 { statements = [t01b] }
+g1b = toGraph [t01b]
 
 g2 :: RDFGraph
-g2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t02,t03]
-        }
+g2 = toGraph [t01,t02,t03]
 
 g3 :: RDFGraph
-g3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t04]
-        }
+g3 = toGraph [t01,t04]
 
 g4 :: RDFGraph
 g4 = NSGraph
@@ -1195,6 +1193,39 @@ simpleTestSuite = TestList
   ]
 
 ------------------------------------------------------------
+--  Literal parser tests
+------------------------------------------------------------
+--
+--  Expand upon the literal testing done above
+--
+
+litN3Graph_g1 :: String
+litN3Graph_g1 =
+    commonPrefixes ++
+    " base1:s1 base1:p1 \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>.\n" ++
+    " base2:s2 base2:p2 \"false\"^^<http://www.w3.org/2001/XMLSchema#boolean>.\n" ++
+    " base3:s3 base3:p3 \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>.\n"
+    
+litN3Graph_g2 :: String
+litN3Graph_g2 =
+    commonPrefixes ++
+    " base1:s1 base1:p1 @true.\n" ++
+    " base2:s2 base2:p2 @false.\n" ++
+    " base3:s3 base3:p3 true.\n"
+    
+lit_g1 :: RDFGraph
+lit_g1 = toGraph [ arc s1 p1 bTrue
+                 , arc s2 p2 bFalse
+                 , arc s3 p3 bTrue
+                 ]
+
+litTestSuite :: Test
+litTestSuite = TestList
+  [ parseTest "litTest01" litN3Graph_g1 lit_g1  noError
+  , parseTest "litTest02" litN3Graph_g2 lit_g1  noError
+  ]
+
+------------------------------------------------------------
 --  Exotic parser tests
 ------------------------------------------------------------
 --
@@ -1469,6 +1500,7 @@ allTests = TestList
   , absUriRefTestSuite
   , uriRef2TestSuite
   , simpleTestSuite
+  , litTestSuite
   , exoticTestSuite
   , keywordTestSuite
   , failTestSuite
