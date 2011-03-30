@@ -1476,6 +1476,7 @@ failN3Graph_g1 =
 fail1 :: String
 fail1 = intercalate "\n" [
          "",
+         "@prefix base3 : <http://id.ninebynine.org/wip/2003/test/graph3/node> . ",
          " base1:s1 base2:p2 unknown3:o3 . ",
          "                            ^",
          "(line 4, column 29 indicated by the '^' sign above):",
