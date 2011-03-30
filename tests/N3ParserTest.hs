@@ -1108,6 +1108,23 @@ simpleN3Graph_g9 =
     "                   base3:o3 , \n" ++
     "                   \"l1\"   . \n"
 
+-- ensure you can end a property list with a semicolon
+simpleN3Graph_g9b :: String
+simpleN3Graph_g9b =
+    commonPrefixes ++
+    " base1:s1 base1:p1 base1:o1 ; \n" ++
+    "          base1:p1 base2:o2 ; \n" ++
+    "          base2:p2 base2:o2 ; \n" ++
+    "          base2:p2 base3:o3;. \n" ++
+    " base2:s2 base1:p1 base1:o1 , \n" ++
+    "                   base2:o2 , \n" ++
+    "                   base3:o3 , \n" ++
+    "                   \"l1\"   ; \n" ++
+    "          base2:p2 base1:o1 , \n" ++
+    "                   base2:o2 , \n" ++
+    "                   base3:o3 , \n" ++
+    "                   \"l1\"   ;. \n"
+
 --  'is ... of' and semicolons and commas
 simpleN3Graph_g10 :: String
 simpleN3Graph_g10 =
@@ -1186,6 +1203,7 @@ simpleTestSuite = TestList
   , parseTest "simpleTest12"  simpleN3Graph_g83   g83 noError
   , parseTest "simpleTest12b" simpleN3Graph_g83b  g83 noError
   , parseTest "simpleTest13"  simpleN3Graph_g9    g9  noError
+  , parseTest "simpleTest13b" simpleN3Graph_g9b   g9  noError
   , parseTest "simpleTest14"  simpleN3Graph_g10   g10 noError
   , parseTest "simpleTest15"  simpleN3Graph_g11   g11 noError
   , parseTest "simpleTest16"  simpleN3Graph_g12   g12 noError
@@ -1250,6 +1268,24 @@ exoticN3Graph_x1 =
     "            base2:o2 , \n" ++
     "            base3:o3 , \n" ++
     "            \"l1\"   ] . \n"
+
+-- check semi-colons at end of property list
+exoticN3Graph_x1b :: String
+exoticN3Graph_x1b =
+    commonPrefixes ++
+    " [ base1:p1 base1:o1 ; \n" ++
+    "   base1:p1 base2:o2 ; \n" ++
+    "   base2:p2 base2:o2 ; \n" ++
+    "   base2:p2 base3:o3; ] = base1:s1 . \n" ++
+    " base2:s2 = \n" ++
+    " [ base1:p1 base1:o1 , \n" ++
+    "   base2:o2 , \n" ++
+    "   base3:o3 , \n" ++
+    "   \"l1\"   ; \n" ++
+    "   base2:p2 base1:o1 , \n" ++
+    "            base2:o2 , \n" ++
+    "            base3:o3 , \n" ++
+    "            \"l1\" ;  ] ;. \n"
 
 --  Simple anon nodes, with 'is ... of' and semicolons and commas
 exoticN3Graph_x2 :: String
@@ -1402,26 +1438,27 @@ exoticN3Graph_x16 =
 -}
 
 exoticTestSuite :: Test
-exoticTestSuite = TestList
-  [ parseTest "exoticTest01" exoticN3Graph_x1  x1  noError
-    , parseTest "exoticTest02" exoticN3Graph_x2  x2  noError
-      -- , parseTest "exoticTest03" exoticN3Graph_x3  x3  noError
-    , parseTest "exoticTest04" exoticN3Graph_x4  x4  noError
-    , parseTest "exoticTest05" exoticN3Graph_x5  x5  noError
-      -- , parseTest "exoticTest06" exoticN3Graph_x6  x6  noError
-    , parseTest "exoticTest07" exoticN3Graph_x7  x7  noError
-      -- , parseTest "exoticTest08" exoticN3Graph_x8  x8  noError
-      -- , parseTest "exoticTest09" exoticN3Graph_x9  x9  noError
-      -- , parseTest "exoticTest10" exoticN3Graph_x8a x8  noError
-      -- , parseTest "exoticTest11" exoticN3Graph_x9a x9  noError
-    , parseTest "exoticTest12" exoticN3Graph_x12 x12 noError
-      -- , parseTest "exoticTest13" exoticN3Graph_x13 x13 noError
-      -- , parseTest "exoticTest14" exoticN3Graph_x14 x14 noError
-      -- , parseTest "exoticTest15" exoticN3Graph_x15 x15 noError
-      -- , parseTest "exoticTest16" exoticN3Graph_x16 x16 noError
-    , testGraphEq "exoticTest20" False x7 x8
-    , testGraphEq "exoticTest21" False x8 x9
-    
+exoticTestSuite = 
+  TestList
+  [ parseTest "exoticTest01"  exoticN3Graph_x1   x1  noError
+  , parseTest "exoticTest01b" exoticN3Graph_x1b  x1  noError
+  , parseTest "exoticTest02"  exoticN3Graph_x2   x2  noError
+    -- , parseTest "exoticTest03" exoticN3Graph_x3  x3  noError
+  , parseTest "exoticTest04" exoticN3Graph_x4  x4  noError
+  , parseTest "exoticTest05" exoticN3Graph_x5  x5  noError
+    -- , parseTest "exoticTest06" exoticN3Graph_x6  x6  noError
+  , parseTest "exoticTest07" exoticN3Graph_x7  x7  noError
+    -- , parseTest "exoticTest08" exoticN3Graph_x8  x8  noError
+    -- , parseTest "exoticTest09" exoticN3Graph_x9  x9  noError
+    -- , parseTest "exoticTest10" exoticN3Graph_x8a x8  noError
+    -- , parseTest "exoticTest11" exoticN3Graph_x9a x9  noError
+  , parseTest "exoticTest12" exoticN3Graph_x12 x12 noError
+    -- , parseTest "exoticTest13" exoticN3Graph_x13 x13 noError
+    -- , parseTest "exoticTest14" exoticN3Graph_x14 x14 noError
+    -- , parseTest "exoticTest15" exoticN3Graph_x15 x15 noError
+    -- , parseTest "exoticTest16" exoticN3Graph_x16 x16 noError
+  , testGraphEq "exoticTest20" False x7 x8
+  , testGraphEq "exoticTest21" False x8 x9
   ]
 
 keywordN3Graph_01 :: String

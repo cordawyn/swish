@@ -989,7 +989,7 @@ propertylisttail ::=		|	 ";"  propertylist
 
 propertyListBNode :: N3Parser RDFLabel
 propertyListBNode = do
-  plist <- sepBy ((,) <$> lexeme verb <*> objectList) semiColon
+  plist <- sepEndBy ((,) <$> lexeme verb <*> objectList) semiColon
   bNode <- newBlankNode
   let addList (vrb,items) = mapM_ (addItem vrb) items
       addItem (True,vrb) obj  = addStatement bNode vrb obj
@@ -1000,7 +1000,7 @@ propertyListBNode = do
 
 propertyListWith :: RDFLabel -> N3Parser ()
 propertyListWith subj = 
-  ignore $ sepBy (lexeme verb >>= objectListWith subj) semiColon
+  ignore $ sepEndBy (lexeme verb >>= objectListWith subj) semiColon
   
 {-
 object ::=		|	expression
