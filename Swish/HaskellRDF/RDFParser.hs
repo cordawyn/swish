@@ -148,14 +148,15 @@ type ParseResult = ErrorM RDFGraph
 ignore :: (Monad m) => m a -> m ()
 ignore p = p >> return ()
 
--- | Annotate a Parsec error with the local context (i.e. the actual text
--- that caused the error.
+-- | Annotate a Parsec error with the local context - i.e. the actual text
+-- that caused the error and preceeding/succeeding lines (if available)
 --
 annotateParsecError :: 
-    [String] -- ^ text being parsed
+    Int -- ^ the number of extra lines to include in the context (<=0 is ignored)
+    -> [String] -- ^ text being parsed
     -> ParseError -- ^ the parse error
     -> String -- ^ Parsec error with additional context
-annotateParsecError ls err = 
+annotateParsecError extraLines ls err = 
     -- the following is based on the show instance of ParseError
     let ePos = errorPos err
         lNum = sourceLine ePos
@@ -163,9 +164,21 @@ annotateParsecError ls err =
         -- it is possible to be at the end of the input so need
         -- to check; should produce better output than this in this
         -- case
-        lTxt = if lNum > length ls then "" else ls !! (lNum - 1)
-        indicator = replicate (cNum-1) ' ' ++ "^"
-        eHdr = ["", lTxt, indicator, "(line " ++ show lNum ++ ", column " ++ show cNum ++ " indicated by the '^' sign above):"]
+        nLines = length ls
+        ln1 = lNum - 1
+        eln = max 0 extraLines
+        lNums = [max 0 (ln1 - eln) .. min (nLines-1) (ln1 + eln)]
+        
+        beforeLines = map (ls !!) $ filter (< ln1) lNums
+        afterLines  = map (ls !!) $ filter (> ln1) lNums
+        
+        -- in testing was able to get a line number after the text so catch this
+        -- case; is it still necessary?
+        errorLine = if ln1 >= nLines then "" else ls !! ln1
+        arrowLine = replicate (cNum-1) ' ' ++ "^"
+        finalLine = "(line " ++ show lNum ++ ", column " ++ show cNum ++ " indicated by the '^' sign above):"
+        
+        eHdr = "" : beforeLines ++ errorLine : arrowLine : afterLines ++ [finalLine]
         eMsg = showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input"
                (errorMessages err)
 

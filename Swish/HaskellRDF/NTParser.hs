@@ -126,7 +126,7 @@ parsefromString parser input =
         in
             case result of
                 Right res -> Right res
-                Left  err -> Left $ annotateParsecError (lines input) err
+                Left  err -> Left $ annotateParsecError 1 (lines input) err
 
 -- helper routines
 

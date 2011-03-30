@@ -284,7 +284,7 @@ parseAnyfromString parser mbase input =
     Left emsg -> Left $ "Invalid base: " ++ emsg
     Right p -> case runParser parser (setPrefix "" p pstate) "" input of
       Right res -> Right res
-      Left  err -> Left $ annotateParsecError (lines input) err
+      Left  err -> Left $ annotateParsecError 1 (lines input) err
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do
