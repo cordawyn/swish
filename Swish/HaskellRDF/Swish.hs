@@ -21,10 +21,8 @@ import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitSuccess,ExitFailure), exitWith)
 
 import System.IO (stderr, hPutStrLn)
-import Control.Monad (unless)
 
 import Swish.HaskellRDF.SwishMain
-
 
 ------------------------------------------------------------
 --  Swish main program
@@ -41,11 +39,10 @@ main = do
   putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n"
   args <- getArgs
   code <- runSwishArgs args
-  unless (code == ExitSuccess) $ 
-    if code == ExitFailure 1
-      then hPutStrLn stderr "Swish: graphs compare different"
-      else hPutStrLn stderr $ "Swish: "++show code
-  exitWith code
+  case code of
+    SwishSuccess -> exitWith ExitSuccess
+    _ -> hPutStrLn stderr ("Swish: "++show code) >> 
+         exitWith (ExitFailure (fromEnum code))
   
 --------------------------------------------------------------------------------
 --

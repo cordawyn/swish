@@ -25,12 +25,12 @@ module Swish.HaskellRDF.SwishScript
 where
 
 import Swish.HaskellRDF.SwishMonad
-    ( SwishStateIO 
+    ( SwishStateIO, SwishStatus(..) 
     , modGraphs, findGraph, findFormula
     , modRules, findRule
     , modRulesets, findRuleset
     , findOpenVarModify, findDatatype
-    , setInfo, setError, setExitcode
+    , setInfo, setError, setStatus
     , NamedGraph(..)
     )
 
@@ -118,29 +118,9 @@ import Control.Monad.State
     -- , StateT(..), execStateT
     )
 
-import Control.Monad
-    ( unless, when, liftM )
-
-{- WNH
-import System.IO
-    ( IOMode(..), hPutStr
-    , IOError, try, ioeGetErrorString
-    )
-
-import qualified System.IO
-    ( IOMode(..), hPutStr
-    , IOError, try, ioeGetErrorString
-    )
-
-import Directory
-    ( doesFileExist )
--}
-
+import Control.Monad (unless, when, liftM)
 
 import qualified System.IO.Error as IO
-
-import System.Exit
-    ( ExitCode(ExitFailure) )
 
 ------------------------------------------------------------
 --  Parser for Swish script processor
@@ -618,7 +598,7 @@ ssCompare :: ScopedName -> ScopedName -> SwishStateIO ()
 ssCompare n1 n2 =
         do  { g1 <- ssGetGraph n1
             ; g2 <- ssGetGraph n2
-            ; when (g1 /= g2) (modify $ setExitcode (ExitFailure 1))
+            ; when (g1 /= g2) (modify $ setStatus SwishGraphCompareError)
             }
 
 ssAssertEq :: ScopedName -> ScopedName -> String -> SwishStateIO ()

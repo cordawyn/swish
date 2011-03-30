@@ -191,4 +191,6 @@ Executable         Swish
    Other-Modules:  Swish.HaskellRDF.SwishMain
                    Paths_swish
 
+   ghc-options:
+      -Wall -fexcess-precision -funbox-strict-fields -auto-all
 

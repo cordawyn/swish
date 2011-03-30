@@ -48,12 +48,17 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.HaskellRDF.SwishMain(runSwish,runSwishArgs) where
+module Swish.HaskellRDF.SwishMain (
+  SwishStatus(..),
+  runSwish,
+  runSwishArgs
+  ) where
 
 import Paths_swish (version)
 
 import Swish.HaskellRDF.SwishCommands
     ( swishFormat
+    , swishBase
     , swishInput
     , swishOutput
     , swishMerge
@@ -63,29 +68,25 @@ import Swish.HaskellRDF.SwishCommands
     )
 
 import Swish.HaskellRDF.SwishMonad
-    ( SwishStateIO, SwishState(..)
+    ( SwishStateIO, SwishState(..), SwishStatus(..)
     , emptyState
     , SwishFormat(..)
     , swishError
     , reportLines 
     )
 
-import Swish.HaskellUtils.ListHelpers
-    ( breakAll )
+import Swish.HaskellUtils.QName (qnameFromURI)
+import Swish.HaskellUtils.ListHelpers (breakAll)
 
-import Control.Monad.State
-    ( execStateT )
+import Control.Monad.State (execStateT)
+import Control.Monad (liftM)
 
-import Data.Char
-    ( isSpace )
+import Network.URI (parseURI)
 
+import Data.Char (isSpace)
 import Data.Version (showVersion)
 
-import Control.Monad
-    ( when )
-
-import System.Exit
-    ( ExitCode(ExitSuccess) )
+import System.Exit (ExitCode(ExitSuccess, ExitFailure))
 
 ------------------------------------------------------------
 --  Command line description
@@ -113,6 +114,8 @@ usageText =
     , "          to the standard output stream."
     , "-o[=file] write the graph workspace to a file in the selected format."
     , "-s[=file] read and execute Swish script commands from the named file."
+    , "-b[=base] set or clear the base URI. The semantics of this are not"
+    , "          fully defined yet."
     , ""
     , "    If an optional filename value is omitted, the standard input"
     , "    or output stream is used, as appropriate."
@@ -169,29 +172,36 @@ swishCommand cmd =
             "-c"    -> swishCompare arg
             "-d"    -> swishGraphDiff arg
             "-o"    -> swishOutput arg
+            "-b"    -> setBase arg
             "-s"    -> swishScript arg
-            _       -> swishError ("Invalid command line element: "++cmd) 4
+            _       -> swishError ("Invalid command line element: "++cmd) SwishArgumentError
 
 swishHelp :: SwishStateIO ()
 swishHelp = reportLines usageText
 
+setBase :: String -> SwishStateIO ()
+setBase "" = swishBase Nothing
+setBase bname = do
+  case parseURI bname of 
+    Just _ -> swishBase $ Just $ qnameFromURI bname
+    _ -> swishError ("Skipping invalid base URI <" ++ bname ++ ">") SwishArgumentError
+    
 ------------------------------------------------------------
 --  Interactive test function (e.g. for use in Hugs)
 ------------------------------------------------------------
 
 runSwish :: String -> IO ExitCode
-runSwish cmdline =
-    do  { let args = breakAll isSpace cmdline
-        ; ec <- runSwishArgs args
-        ; when (ec /= ExitSuccess) (putStrLn $ "Swish exit: "++show ec)
-        ; return ec
-        }
+runSwish cmdline = do
+  let args = breakAll isSpace cmdline
+  ec <- runSwishArgs args
+  if ec == SwishSuccess
+    then return ExitSuccess
+    else do
+      putStrLn $ "Swish exit: "++show ec
+      return $ ExitFailure (fromEnum ec)
 
-runSwishArgs :: [String] -> IO ExitCode
-runSwishArgs args =
-    do  { state <- execStateT (swishCommands args) emptyState
-        ; return $ exitcode state
-        }
+runSwishArgs :: [String] -> IO SwishStatus
+runSwishArgs args = exitcode `liftM` execStateT (swishCommands args) emptyState
 
 --------------------------------------------------------------------------------
 --
