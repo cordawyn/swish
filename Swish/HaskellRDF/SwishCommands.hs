@@ -17,6 +17,7 @@
 module Swish.HaskellRDF.SwishCommands
     ( swishFormat
     , swishBase
+    -- , swishVerbose
     , swishInput
     , swishOutput
     , swishMerge
@@ -30,6 +31,7 @@ import Swish.HaskellRDF.SwishMonad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
     , setFormat, setBase, setGraph
     , resetInfo, resetError, setStatus
+    -- , setVerbose
     , SwishFormat(..)
     , swishError
     , reportLine
@@ -84,14 +86,24 @@ import System.IO.Error
 ------------------------------------------------------------
 
 swishFormat :: SwishFormat -> SwishStateIO ()
-swishFormat fmt = modify $ setFormat fmt
+swishFormat = modify . setFormat
 
 ------------------------------------------------------------
 --  Set base URI to supplied value
 ------------------------------------------------------------
 
 swishBase :: Maybe QName -> SwishStateIO ()
-swishBase mbase = modify $ setBase mbase
+swishBase = modify . setBase
+
+{-
+
+------------------------------------------------------------
+--  Display the banner or not
+------------------------------------------------------------
+
+swishVerbose :: Bool -> SwishStateIO ()
+swishVerbose = modify . setVerbose
+-}
 
 ------------------------------------------------------------
 --  Read graph from named file

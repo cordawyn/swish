@@ -20,6 +20,8 @@ import Data.Version (showVersion)
 import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitSuccess,ExitFailure), exitWith)
 
+import Control.Monad (unless)
+
 import System.IO (stderr, hPutStrLn)
 
 import Swish.HaskellRDF.SwishMain
@@ -36,13 +38,16 @@ import Swish.HaskellRDF.SwishMain
 
 main :: IO ()
 main = do
-  putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n"
   args <- getArgs
+  unless ("-q" `elem` args) $ reportVersion
   code <- runSwishArgs args
   case code of
     SwishSuccess -> exitWith ExitSuccess
     _ -> hPutStrLn stderr ("Swish: "++show code) >> 
          exitWith (ExitFailure (fromEnum code))
+  
+reportVersion :: IO ()
+reportVersion = putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n" 
   
 --------------------------------------------------------------------------------
 --

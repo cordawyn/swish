@@ -103,6 +103,7 @@ usageText =
     , "any of the following:"
     , "-h        display this message."
     , "-?        display this message."
+    , "-q        do not display Swish version on start up."
     , "-nt       use Ntriples format for subsequent input and output."
     , "-n3       use Notation3 format for subsequent input and output (default)"
     , "-i[=file] read file in selected format into the graph workspace,"
@@ -165,6 +166,7 @@ swishCommand cmd =
             ""      -> return ()    -- do nothing
             "-?"    -> swishHelp
             "-h"    -> swishHelp
+            "-q"    -> return ()    -- swishVerbose False
             "-nt"   -> swishFormat NT
             "-n3"   -> swishFormat N3
             "-i"    -> swishInput arg

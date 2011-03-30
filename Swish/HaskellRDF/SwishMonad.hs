@@ -22,7 +22,9 @@ module Swish.HaskellRDF.SwishMonad
     , modRules, findRule
     , modRulesets, findRuleset
     , findOpenVarModify, findDatatype
-    , setInfo, resetInfo, setError, resetError, setStatus
+    , setInfo, resetInfo, setError, resetError
+    , setStatus
+    -- , setVerbose
     , emptyState
     , SwishFormat(..)
     , NamedGraph(..), NamedGraphMap
@@ -98,7 +100,8 @@ data SwishState = SwishState
     , rulesets  :: RDFRulesetMap    -- script processor rulesets
     , infomsg   :: Maybe String     -- information message, or Nothing
     , errormsg  :: Maybe String     -- error message, or Nothing
-    , exitcode  :: SwishStatus
+    , exitcode  :: SwishStatus      -- current status message
+    -- , banner    :: Bool             -- display banner
     }
 
 -- | Status of the processor
@@ -133,6 +136,7 @@ emptyState = SwishState
     , infomsg   = Nothing
     , errormsg  = Nothing
     , exitcode  = SwishSuccess
+    -- , banner = True
     }
 
 setFormat :: SwishFormat -> SwishState -> SwishState
@@ -200,6 +204,10 @@ resetError state = state { errormsg = Nothing }
 setStatus :: SwishStatus -> SwishState -> SwishState
 setStatus ec state = state { exitcode = ec }
 
+{-
+setVerbose :: Bool -> SwishState -> SwishState
+setVerbose f state = state { banner = f }
+-}
 
 ------------------------------------------------------------
 --  Data types for Swish script dictionaries
