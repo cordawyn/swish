@@ -52,6 +52,10 @@ Data-Files:          README
 
 Cabal-Version:       >= 1.6
 
+Flag  tests
+  Description: Build the test programs.
+  Default:     False
+
 Library
    Build-Depends:
       base >=3 && < 5,
@@ -128,48 +132,78 @@ Library
 
 Executable         BuiltInMapTest
    Main-Is:        tests/BuiltInMapTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         GraphPartitionTest
    Main-Is:        tests/GraphPartitionTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         GraphTest
    Main-Is:        tests/GraphTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         NTTest
    Main-Is:        tests/NTTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         N3ParserTest
    Main-Is:        tests/N3ParserTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         N3FormatterTest
    Main-Is:        tests/N3FormatterTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         RDFDatatypeXsdIntegerTest
    Main-Is:        tests/RDFDatatypeXsdIntegerTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         RDFGraphTest
    Main-Is:        tests/RDFGraphTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         RDFProofContextTest
    Main-Is:        tests/RDFProofContextTest.hs
+   if !flag(tests)
+      buildable: False
                     
 Executable         RDFProofText
    Main-Is:        tests/RDFProofTest.hs
+   if !flag(tests)
+      buildable: False
                      
 Executable         RDFQueryTest
    Main-Is:        tests/RDFQueryTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         RDFRulesetTest
    Main-Is:        tests/RDFRulesetTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         VarBindingTest
    Main-Is:        tests/VarBindingTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         LookupMapTest
    Main-Is:        tests/LookupMapTest.hs
+   if !flag(tests)
+      buildable: False
 
 Executable         QNameTest
    Main-Is:        tests/QNameTest.hs
+   if !flag(tests)
+      buildable: False
 
  -- we do not have the data files to run this test
  Executable         SwishTest
