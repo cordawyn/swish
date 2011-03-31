@@ -26,7 +26,8 @@ module Swish.HaskellUtils.ListHelpers
       , flist, ffold, allf, anyf, allp, anyp )
 where
 
-import Data.List( union, intersect, sortBy, groupBy )
+import Data.Ord (comparing)  
+import Data.List (union, intersect, sortBy, groupBy)
 
 ------------------------------------------------------------
 --  Generic helpers
@@ -124,15 +125,15 @@ pairsUngroup :: [(a,[b])] -> [(a,b)]
 pairsUngroup ps = [ (a,b) | (a,bs) <- ps, b <- bs ]
 
 pairSort :: (Ord a) => [(a,b)] -> [(a,b)]
-pairSort ps = sortBy compareFirst ps
-    where
-        compareFirst (a1,_) (a2,_) = compare a1 a2
+pairSort = sortBy (comparing fst)
 
 pairGroup :: (Ord a) => [(a,b)] -> [(a,[b])]
-pairGroup ps = map (factor . unzip) $ groupBy eqFirst $ pairSort ps
+pairGroup = map (factor . unzip) . groupBy eqFirst . pairSort 
     where
-      factor (a:_, bs)      = (a,bs)
-      eqFirst (a1,_) (a2,_) = a1 == a2
+      -- as is not [] by construction, but would be nice to have
+      -- this enforced by the types
+      factor (as, bs) = (head as,bs)
+      eqFirst a b     = fst a == fst b
 
 ------------------------------------------------------------
 --  Separate list into sublists

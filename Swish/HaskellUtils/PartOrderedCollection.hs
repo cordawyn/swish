@@ -31,11 +31,6 @@ module Swish.HaskellUtils.PartOrderedCollection
     )
 where
 
-{- in Prelude????
-import Maybe
-    ( Maybe(..) )
--}
-
 ------------------------------------------------------------
 --  Type of partial compare function
 ------------------------------------------------------------
@@ -109,22 +104,22 @@ partComparePair cmpa cmpb (a1,b1) (a2,b2) = case (cmpa a1 a2,cmpb b1 b2) of
 --    
 --  [otherwise] as and bs are unrelated
 --
+--  The comparison is restricted to the common elements in the two lists.
+--
 partCompareListPartOrd :: PartCompare a -> [a] -> [a] -> Maybe Ordering
 partCompareListPartOrd cmp a1s b1s = pcomp a1s b1s EQ
     where
-        pcomp []     []     ordp = Just ordp
         pcomp (a:as) (b:bs) ordp = case cmp a b of
             Just rel  -> pcomp1 as bs rel ordp
             _         -> Nothing
+        pcomp _      _      ordp = Just ordp
+        -- pcomp []     []     ordp = Just ordp
+        
         pcomp1 as bs ordn EQ   = pcomp as bs ordn
         pcomp1 as bs EQ   ordp = pcomp as bs ordp
         pcomp1 as bs ordn ordp =
             if ordn == ordp then pcomp as bs ordp else Nothing
                                                        
-        -- missing patterns from ghc
-        --    [] (_ : _) _
-        --    (_ : _) [] _
-
 -- |Part-ordering comparison on lists of Ord values, where:
 --
 --  [@as==bs@]  if members of as are all equal to corresponding members of bs

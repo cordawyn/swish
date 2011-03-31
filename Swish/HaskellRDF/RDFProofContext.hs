@@ -31,7 +31,7 @@ import Swish.HaskellRDF.RDFProof
     , makeRdfSimpleEntailmentRule )
 
 import Swish.HaskellRDF.RDFRuleset 
-    ( RDFFormula 
+    ( RDFFormula, RDFRule, RDFRuleset 
     , makeRDFFormula
     , makeN3ClosureRule
     , makeN3ClosureSimpleRule
@@ -63,8 +63,7 @@ import Swish.HaskellRDF.VarBinding
     , varFilterDisjunction
     )
 
-import Swish.HaskellRDF.Ruleset
-    ( makeRuleset )
+import Swish.HaskellRDF.Ruleset (makeRuleset)
 
 import Swish.HaskellRDF.Datatype
     ( typeMkCanonicalForm )
@@ -82,11 +81,9 @@ import Swish.HaskellRDF.Vocabulary
     , scopeRDFD
     )
 
-import Data.Maybe
-    ( isJust, fromJust )
+import Data.Maybe (isJust, fromJust)
 
-import Control.Monad
-    ( liftM )
+import Control.Monad (liftM)
 
 ------------------------------------------------------------
 --  Define query binding filter auxiliaries
@@ -99,39 +96,34 @@ makeFormula scope local gr =
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter
 requireAny = varFilterDisjunction
 
-isLiteralV            :: String -> RDFVarBindingFilter
-isLiteralV    ('?':l) = rdfVarBindingLiteral        (Var l)
+isLiteralV :: String -> RDFVarBindingFilter
+isLiteralV = rdfVarBindingLiteral . Var
 
-isUntypedLitV         :: String -> RDFVarBindingFilter
-isUntypedLitV ('?':l) = rdfVarBindingUntypedLiteral (Var l)
+isUntypedLitV :: String -> RDFVarBindingFilter
+isUntypedLitV = rdfVarBindingUntypedLiteral . Var
 
-isXMLLitV             :: String -> RDFVarBindingFilter
-isXMLLitV     ('?':x) = rdfVarBindingXMLLiteral     (Var x)
+isXMLLitV :: String -> RDFVarBindingFilter
+isXMLLitV = rdfVarBindingXMLLiteral . Var
 
-isUriRefV             :: String -> RDFVarBindingFilter
-isUriRefV     ('?':u) = rdfVarBindingUriRef         (Var u)
+isUriRefV :: String -> RDFVarBindingFilter
+isUriRefV = rdfVarBindingUriRef . Var
 
-isBlankV              :: String -> RDFVarBindingFilter
-isBlankV      ('?':b) = rdfVarBindingBlank          (Var b)
+isBlankV :: String -> RDFVarBindingFilter
+isBlankV = rdfVarBindingBlank . Var
 
-isDatatypedV                  :: String -> String -> RDFVarBindingFilter
-isDatatypedV  ('?':d) ('?':l) = rdfVarBindingDatatyped (Var d) (Var l)
+isDatatypedV :: String -> String -> RDFVarBindingFilter
+isDatatypedV d l = rdfVarBindingDatatyped (Var d) (Var l)
 
-isMemberPropV         :: String -> RDFVarBindingFilter
-isMemberPropV ('?':l) = rdfVarBindingMemberProp     (Var l)
-
+isMemberPropV :: String -> RDFVarBindingFilter
+isMemberPropV = rdfVarBindingMemberProp . Var
 
 allocateTo :: String -> String -> [RDFLabel] -> RDFVarBindingModify
-allocateTo bv av = makeNodeAllocTo (vn bv) (vn av)
-    where
-        vn ('?':n) = Var n
+allocateTo bv av = makeNodeAllocTo (Var bv) (Var av)
 
 --  Create new binding for datatype
 valueSame :: String -> String -> String -> String -> RDFVarBindingModify
 valueSame val1 typ1 val2 typ2 =
-    sameDatatypedValue (vn val1) (vn typ1) (vn val2) (vn typ2)
-    where
-            vn ('?':n) = Var n
+    sameDatatypedValue (Var val1) (Var typ1) (Var val2) (Var typ2)
 
 --  Variable binding modifier to create new binding to a canonical
 --  form of a datatyped literal.
@@ -182,11 +174,14 @@ getCanonical v1 t1 t2 =
     else
         Nothing
     where
-        dqn1  = case t1 of { (Res dqnam) -> dqnam }
-        dqn2  = case t2 of { (Res dqnam) -> dqnam }
+        dqn1  = getRes t1
+        dqn2  = getRes t2
         mdt1  = findRDFDatatype dqn1
         dt1   = fromJust mdt1
         mkLit st = Lit st (Just dqn2)
+
+        getRes (Res dqnam) = dqnam
+        getRes x = error $ "Expected a Resource, sent " ++ show x -- for -Wall
 
 {- -- Test data
 qnamint = ScopedName namespaceXSD "integer"
@@ -209,13 +204,13 @@ vb1  = makeVarBinding [(vara,lab010),(varb,xsdint),(vard,xsdint)]
 vb2  = sameDatatypedValueApply vara varb varc vard vb1
 vb3  = vbmApply (sameDatatypedValue vara varb varc vard) [vb1]
 vb3t = vb3 == vb2
-vb4  = vbmApply (valueSame "?a" "?b" "?c" "?d") [vb1]
+vb4  = vbmApply (valueSame "a" "b" "c" "d") [vb1]
 vb4t = vb4 == vb2
-vb5  = vbmApply (valueSame "?a" "?b" "?c" "?b") [vb1]
+vb5  = vbmApply (valueSame "a" "b" "c" "b") [vb1]
 vb5t = vb5 == vb2
 
 vb6  = makeVarBinding [(vars,lab010),(varp,resexp),(vara,resexs),(vard,xsdint)]
-vb7  = vbmApply (valueSame "?s" "?d" "?t" "?d") [vb6]
+vb7  = vbmApply (valueSame "s" "d" "t" "d") [vb6]
 vb8  = makeVarBinding [(vars,lab010),(varp,resexp),(vara,resexs),(vard,xsdint)
                       ,(vart,fromJust can010)]
 vb8t = vb7 == [vb8]
@@ -278,25 +273,28 @@ axiomsRDF =
 
 --  RDF subgraph entailment (from RDF semantics document section 2)
 --
--- rdfsub :: Swish.HaskellRDF.RDFRuleset.RDFRule 
+rdfsub :: RDFRule 
 rdfsub = makeRdfSubgraphEntailmentRule (ScopedName scopeRDF "sub")
 
 --  RDF simple entailment (from RDF semantics document section 7.1)
 --  (Note: rules se1 and se2 are combined here, because the scope of
 --  the "allocatedTo" modifier is the application of a single rule.)
 --
+rdfse :: RDFRule
 rdfse = makeRdfSimpleEntailmentRule (ScopedName scopeRDF "se")
 
 --  RDF bnode-for-literal assignments (from RDF semantics document section 7.1)
 --
+rdflg :: RDFRule
 rdflg = makeN3ClosureAllocatorRule scopeRDF "lg"
             "?x  ?a ?l . "
             "?x  ?a ?b . ?b rdf:_allocatedTo ?l ."
-            (makeVarFilterModify $ isLiteralV "?l")
-            (allocateTo "?b" "?l")
+            (makeVarFilterModify $ isLiteralV "l")
+            (allocateTo "b" "l")
 
 --  RDF bnode-for-literal back-tracking (from RDF semantics document section 7.1)
 --
+rdfgl :: RDFRule
 rdfgl = makeN3ClosureSimpleRule scopeRDF "gl"
             "?x  ?a ?l . ?b rdf:_allocatedTo ?l . "
             "?x  ?a ?b ."
@@ -306,14 +304,16 @@ rdfgl = makeN3ClosureSimpleRule scopeRDF "gl"
 --  (Note, statements with property rdf:_allocatedTo are introduced to
 --  track bnodes introduced according to rule rdflf.)
 --
+rdfr1 :: RDFRule
 rdfr1 = makeN3ClosureSimpleRule scopeRDF "r1"
             "?x ?a ?y ."
             "?a rdf:type rdf:Property ."
 
+rdfr2 :: RDFRule
 rdfr2 = makeN3ClosureRule scopeRDF "r2"
             "?x  ?a ?b . ?b rdf:_allocatedTo ?l . "
             "?b rdf:type rdf:XMLLiteral ."
-            (makeVarFilterModify $ isXMLLitV "?l")
+            (makeVarFilterModify $ isXMLLitV "l")
 
 --  Container property axioms (from RDF semantics document section 3.1)
 --
@@ -328,23 +328,27 @@ rdfr2 = makeN3ClosureRule scopeRDF "r2"
 --  container membership properties can be optimized.  This may call for a
 --  custom inference rule.)
 --
+rdfcp1 :: RDFRule
 rdfcp1 = makeN3ClosureRule scopeRDF "cp1"
             "?x  ?c ?y . "
             "?c rdf:type rdf:Property ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfcp2 :: RDFRule
 rdfcp2 = makeN3ClosureRule scopeRDF "cp2"
             "?c  ?p ?y . "
             "?c rdf:type rdf:Property ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfcp3 :: RDFRule
 rdfcp3 = makeN3ClosureRule scopeRDF "cp3"
             "?x  ?p ?c . "
             "?c rdf:type rdf:Property ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
 --  Collect RDF rules
 --
+rulesRDF :: [RDFRule]
 rulesRDF =
     [ rdfsub,     rdfse
     , rdflg,      rdfgl
@@ -354,6 +358,7 @@ rulesRDF =
 
 --  Define ruleset for RDF inference
 
+rulesetRDF :: RDFRuleset
 rulesetRDF = makeRuleset scopeRDF axiomsRDF rulesRDF
 
 ------------------------------------------------------------
@@ -556,61 +561,75 @@ rdfr2 = makeN3ClosureRule scopeRDF "r2"
 --  (Note, statements with property rdf:_allocatedTo are introduced to
 --  track bnodes introduced according to rule rdflf.)
 --
+rdfsr1 :: RDFRule
 rdfsr1 = makeN3ClosureRule scopeRDFS "r1"
             "?x  ?a ?b . ?b rdf:_allocatedTo ?l . "
             "?b rdf:type rdfs:Literal ."
-            (makeVarFilterModify $ isUntypedLitV "?l" )
+            (makeVarFilterModify $ isUntypedLitV "l" )
 
+rdfsr2 :: RDFRule
 rdfsr2 = makeN3ClosureSimpleRule scopeRDFS "r2"
             "?x ?a ?y . ?a rdfs:domain ?z ."
             "?x rdf:type ?z ."
 
+rdfsr3 :: RDFRule
 rdfsr3 = makeN3ClosureRule scopeRDFS "r3"
             "?u ?a ?v . ?a rdfs:range ?z ."
             "?v rdf:type ?z ."
-            (makeVarFilterModify $ requireAny [isUriRefV "?v",isBlankV "?v"])
+            (makeVarFilterModify $ requireAny [isUriRefV "v",isBlankV "v"])
 
+rdfsr4a :: RDFRule
 rdfsr4a = makeN3ClosureSimpleRule scopeRDFS "r4a"
             "?x ?a ?y ."
             "?x rdf:type rdfs:Resource ."
 
+rdfsr4b :: RDFRule
 rdfsr4b = makeN3ClosureRule scopeRDFS "r4b"
             "?x ?a ?u ."
             "?u rdf:type rdfs:Resource ."
-            (makeVarFilterModify $ requireAny [isUriRefV "?u",isBlankV "?u"])
+            (makeVarFilterModify $ requireAny [isUriRefV "u",isBlankV "u"])
 
+rdfsr5 :: RDFRule
 rdfsr5  = makeN3ClosureSimpleRule scopeRDFS "r5"
             "?a rdfs:subPropertyOf ?b . ?b rdfs:subPropertyOf ?c ."
             "?a rdfs:subPropertyOf ?c ."
 
+rdfsr6 :: RDFRule
 rdfsr6  = makeN3ClosureSimpleRule scopeRDFS "r6"
             "?x rdf:type rdf:Property ."
             "?x rdfs:subPropertyOf ?x ."
 
+rdfsr7 :: RDFRule
 rdfsr7  = makeN3ClosureSimpleRule scopeRDFS "r7"
             "?x ?a ?y . ?a rdfs:subPropertyOf ?b ."
             "?x ?b ?y ."
 
+rdfsr8 :: RDFRule
 rdfsr8  = makeN3ClosureSimpleRule scopeRDFS "r8"
             "?x rdf:type rdfs:Class ."
             "?x rdfs:subClassOf rdfs:Resource ."
 
+rdfsr9 :: RDFRule
 rdfsr9  = makeN3ClosureSimpleRule scopeRDFS "r9"
             "?x rdfs:subClassOf ?y . ?a rdf:type ?x ."
             "?a rdf:type ?y ."
 
+rdfsr10 :: RDFRule
 rdfsr10 = makeN3ClosureSimpleRule scopeRDFS "r10"
             "?x rdf:type rdfs:Class ."
             "?x rdfs:subClassOf ?x ."
 
+rdfsr11 :: RDFRule
 rdfsr11 = makeN3ClosureSimpleRule scopeRDFS "r11"
             "?x rdfs:subClassOf ?y . ?y rdfs:subClassOf ?z ."
             "?x rdfs:subClassOf ?z ."
 
+rdfsr12 :: RDFRule
 rdfsr12 = makeN3ClosureSimpleRule scopeRDFS "r12"
             "?x rdf:type rdfs:ContainerMembershipProperty ."
             "?x rdfs:subPropertyOf rdfs:member ."
 
+rdfsr13 :: RDFRule
 rdfsr13 = makeN3ClosureSimpleRule scopeRDFS "r13"
             "?x rdf:type rdfs:Datatype ."
             "?x rdfs:subClassOf rdfs:Literal ."
@@ -618,42 +637,53 @@ rdfsr13 = makeN3ClosureSimpleRule scopeRDFS "r13"
 --  These are valid only under an extensional strengthening of RDFS,
 --  discussed in section 7.3.1 of the RDF semantics specification:
 
+{-
+rdfsrext1 :: RDFRule
 rdfsrext1 = makeN3ClosureSimpleRule scopeRDFS "ext1"
             "?x rdfs:domain ?y . ?y rdfs:subClassOf ?z ."
             "?x rdfs:domain ?z ."
 
+rdfsrext2 :: RDFRule
 rdfsrext2 = makeN3ClosureSimpleRule scopeRDFS "ext2"
             "?x rdfs:range ?y . ?y rdfs:subClassOf ?z ."
             "?x rdfs:range ?z ."
 
+rdfsrext3 :: RDFRule
 rdfsrext3 = makeN3ClosureSimpleRule scopeRDFS "ext3"
             "?x rdfs:domain ?y . ?z rdfs:subPropertyOf ?x ."
             "?z rdfs:domain ?y ."
 
+rdfsrext4 :: RDFRule
 rdfsrext4 = makeN3ClosureSimpleRule scopeRDFS "ext4"
             "?x rdfs:range ?y . ?z rdfs:subPropertyOf ?x ."
             "?z rdfs:range ?y ."
 
+rdfsrext5 :: RDFRule
 rdfsrext5 = makeN3ClosureSimpleRule scopeRDFS "ext5"
             "rdf:type rdfs:subPropertyOf ?z . ?z rdfs:domain ?y ."
             "rdfs:Resource rdfs:subClassOf ?y ."
 
+rdfsrext6 :: RDFRule
 rdfsrext6 = makeN3ClosureSimpleRule scopeRDFS "rext6"
             "rdfs:subClassOf rdfs:subPropertyOf ?z . ?z rdfs:domain ?y ."
             "rdfs:Class rdfs:subClassOf ?y ."
 
+rdfsrext7 :: RDFRule
 rdfsrext7 = makeN3ClosureSimpleRule scopeRDFS "rext7"
             "rdfs:subPropertyOf rdfs:subPropertyOf ?z . ?z rdfs:domain ?y ."
             "rdfs:Property rdfs:subClassOf ?y ."
 
+rdfsrext8 :: RDFRule
 rdfsrext8 = makeN3ClosureSimpleRule scopeRDFS "rext8"
             "rdfs:subClassOf rdfs:subPropertyOf ?z . ?z rdfs:range ?y ."
             "rdfs:Class rdfs:subClassOf ?y ."
 
+rdfsrext9 :: RDFRule
 rdfsrext9 = makeN3ClosureSimpleRule scopeRDFS "rext9"
             "rdfs:subPropertyOf rdfs:subPropertyOf ?z . ?z rdfs:range ?y ."
             "rdfs:Property rdfs:subClassOf ?y ."
 
+-}
 
 --  Container property axioms (from RDF semantics document section 4.1)
 --
@@ -668,53 +698,63 @@ rdfsrext9 = makeN3ClosureSimpleRule scopeRDFS "rext9"
 --  container membership properties can be optimized.  This may call for a
 --  custom inference rule.)
 --
+rdfscp11 :: RDFRule
 rdfscp11 = makeN3ClosureRule scopeRDFS "cp1"
             "?x  ?c ?y . "
             "?c rdf:type rdfs:ContainerMembershipProperty ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp12 :: RDFRule
 rdfscp12 = makeN3ClosureRule scopeRDFS "cp1"
             "?c  ?p ?y . "
             "?c rdf:type rdfs:ContainerMembershipProperty ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp13 :: RDFRule
 rdfscp13 = makeN3ClosureRule scopeRDFS "cp1"
             "?x  ?p ?c . "
             "?c rdf:type rdfs:ContainerMembershipProperty ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp21 :: RDFRule
 rdfscp21 = makeN3ClosureRule scopeRDFS "cp1"
             "?x  ?c ?y . "
             "?c rdfs:domain rdfs:Resource ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp22 :: RDFRule
 rdfscp22 = makeN3ClosureRule scopeRDFS "cp1"
             "?c  ?p ?y . "
             "?c rdfs:domain rdfs:Resource ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp23 :: RDFRule
 rdfscp23 = makeN3ClosureRule scopeRDFS "cp1"
             "?x  ?p ?c . "
             "?c rdfs:domain rdfs:Resource ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp31 :: RDFRule
 rdfscp31 = makeN3ClosureRule scopeRDFS "cp1"
             "?x  ?c ?y . "
             "?c rdfs:range rdfs:Resource ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp32 :: RDFRule
 rdfscp32 = makeN3ClosureRule scopeRDFS "cp1"
             "?c  ?p ?y . "
             "?c rdfs:range rdfs:Resource ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
+rdfscp33 :: RDFRule
 rdfscp33 = makeN3ClosureRule scopeRDFS "cp1"
             "?x  ?p ?c . "
             "?c rdfs:range rdfs:Resource ."
-            (makeVarFilterModify $ isMemberPropV "?c")
+            (makeVarFilterModify $ isMemberPropV "c")
 
 --  Collect RDFS rules
 --
+rulesRDFS :: [RDFRule]
 rulesRDFS =
     [ rdfsr1,    rdfsr2,    rdfsr3,    rdfsr4a,   rdfsr4b
     , rdfsr5,    rdfsr6,    rdfsr7,    rdfsr8,    rdfsr9
@@ -726,6 +766,7 @@ rulesRDFS =
 
 --  Define ruleset for RDFS inference
 
+rulesetRDFS :: RDFRuleset
 rulesetRDFS = makeRuleset scopeRDFS axiomsRDFS rulesRDFS
 
 ------------------------------------------------------------
@@ -734,6 +775,7 @@ rulesetRDFS = makeRuleset scopeRDFS axiomsRDFS rulesRDFS
 
 -- scopeRDFD = Namespace "rdfd" "http://id.ninebynine.org/2003/Ruleset/rdfd#"
 
+axiomsRDFD :: [RDFFormula]
 axiomsRDFD =
     [
     ]
@@ -746,45 +788,50 @@ axiomsRDFD =
 
 --  Infer type of datatyped literal
 --
+rdfdr1 :: RDFRule
 rdfdr1 = makeN3ClosureRule scopeRDFD "r1"
             "?d rdf:type rdfs:Datatype . ?a ?p ?l . ?b rdf:_allocatedTo ?l . "
             "?b rdf:type ?d ."
-            (makeVarFilterModify $ isDatatypedV "?d" "?l")
+            (makeVarFilterModify $ isDatatypedV "d" "l")
 
 --  Equivalent literals with same datatype:
 --  (generate canonical form, or operate in proof mode only)
 --
+rdfdr2 :: RDFRule
 rdfdr2 = makeN3ClosureRule scopeRDFD "r2"
             "?d rdf:type rdfs:Datatype . ?a ?p ?s ."
             "?a ?p ?t ."
-            (valueSame "?s" "?d" "?t" "?d")
+            (valueSame "s" "d" "t" "d")
 
 {- Note that valueSame does datatype check.  Otherwise use:
 rdfdr2 = makeN3ClosureModifyRule scopeRDFD "r2"
             "?d rdf:type rdfs:Datatype . ?a ?p ?s ."
             "?a ?p ?t ."
-            (makeVarFilterModify $ isDatatypedV "?d" "?s")
-            (valueSame "?s" "?d" "?t" "?d")
+            (makeVarFilterModify $ isDatatypedV "d" "s")
+            (valueSame "s" "d" "t" "d")
 -}
 
 --  Equivalent literals with different datatypes:
 --  (generate canonical form, or operate in proof mode only)
 --
+rdfdr3 :: RDFRule
 rdfdr3 = makeN3ClosureModifyRule scopeRDFD "r3"
             ( "?d rdf:type rdfs:Datatype . ?e rdf:type rdfs:Datatype . " ++
               "?a ?p ?s ." )
             "?a ?p ?t ."
-            (makeVarFilterModify $ isDatatypedV "?s" "?d")
-            (valueSame "?s" "?d" "?t" "?e")
+            (makeVarFilterModify $ isDatatypedV "s" "d")
+            (valueSame "s" "d" "t" "e")
 
 --  Collect RDFD rules
 --
+rulesRDFD :: [RDFRule]
 rulesRDFD =
     [ rdfdr1, rdfdr2, rdfdr3
     ]
 
 --  Define ruleset for RDFD inference
 --
+rulesetRDFD :: RDFRuleset
 rulesetRDFD = makeRuleset scopeRDFD axiomsRDFD rulesRDFD
 
 --------------------------------------------------------------------------------

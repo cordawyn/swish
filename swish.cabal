@@ -123,7 +123,7 @@ Library
       -- Paths_swish
 
    ghc-options:
-      -Wall
+      -Wall -fno-warn-orphans
 
 Executable         BuiltInMapTest
    Main-Is:        tests/BuiltInMapTest.hs
@@ -211,5 +211,5 @@ Executable         Swish
                    Paths_swish
 
    ghc-options:
-      -Wall
+      -Wall -fno-warn-orphans
 

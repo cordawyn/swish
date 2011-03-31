@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98
+--  Portability :  Uses MultiParamTypeClasses LANGUAGE pragma
 --
 --  This module implements an inference rule based on a restruction on class
 --  membership of one or more values.
@@ -94,8 +94,7 @@ import Swish.HaskellUtils.LookupMap
 import Swish.HaskellUtils.ListHelpers
     ( powerSet )
 
-import Data.Maybe
-    ( isJust, fromJust, fromMaybe, mapMaybe )
+import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 
 import Data.List
     ( delete, nub, (\\) )
@@ -429,9 +428,16 @@ applyRestriction restriction ci props cs gr =
         --    Just ts  (alternative tuples derived from given values)
         rts :: [Maybe [[RDFLabel]]]
         rts = map (crFunc restriction) pts
+        
         --  Extract list of consistent tuples of given values
         cts :: [([Maybe RDFLabel],[[RDFLabel]])]
-        cts = map sndFromJust $ filter (isJust . snd) (zip pts rts)
+        cts = mapMaybe tupleConv (zip pts rts)
+        
+        --  TODO: be more idiomatic?
+        tupleConv :: (a, Maybe b) -> Maybe (a,b)
+        tupleConv (a, Just b)  = Just (a,b)
+        tupleConv _            = Nothing
+        
         --  Build list of consistent tuples with maximum information
         --  based on that supplied and available
         -- mts = concatMap mostValues cts
@@ -445,10 +451,7 @@ applyRestriction restriction ci props cs gr =
         sts = maxima partCompareListMaybe mts
         --  Check the cardinality constraint
         cardinalityOK = null cs || length sts <= minimum cs
-        --  Remove Maybe wrapper from second component of a pair
-        sndFromJust :: (a,Maybe b) -> (a,b)
-        sndFromJust (a,Just b) = (a,b)
-
+        
 --  Map a non-empty list of values to a list of Just values,
 --  preceding each with a Nothing element.
 --

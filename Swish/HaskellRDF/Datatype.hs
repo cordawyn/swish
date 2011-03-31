@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98 + existential types + rank 2 polymorphism
+--  Portability :  ExistentialQuantification, MultiParamTypeClasses
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate datatypes.  It is designed as a basis for handling datatyped
@@ -261,8 +261,9 @@ getDTMod nam dtv =
 tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> String -> Maybe String
 tvalMkCanonicalForm dtv str = can
     where
-        val  = mapL2V (tvalMap dtv) str
-        can = join $ liftM (mapV2L (tvalMap dtv)) val
+      dtmap = tvalMap dtv
+      val   = mapL2V dtmap str
+      can   = join $ liftM (mapV2L dtmap) val
 
 -- |DatatypeMap consists of methods that perform lexical-to-value
 --  and value-to-canonical-lexical mappings for a datatype.
@@ -679,6 +680,8 @@ makeVmod_N_1 nam [f0,f1] lbs@(~(lb1:_)) = VarBindingModify
             where
                 isJustvs = all isJust vs
                 jvs      = catMaybes vs
+        app2 _ _ = error "app2 sent empty list" -- -Wall
+
 makeVmod_N_1 _ _ _ =
     error "makeVmod_N_1: requires 2 functions and at 1 or more labels"
 
@@ -984,6 +987,8 @@ listFnApp p (f,z,g,n) (a0:args)
         app Nothing      = Nothing
         app r@(Just [a]) = if p a then r else Nothing
         app _            = Just []
+
+listFnApp _ _ [] = error "listFnApp called with an empty list" -- -Wall
 
 --------------------------------------------------------
 --  Datatype sub/supertype description

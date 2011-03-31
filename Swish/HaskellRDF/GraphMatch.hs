@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98
+--  Portability :  Uses FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses pragmas
 --
 --  This module contains graph-matching logic.
 --
@@ -258,7 +258,10 @@ graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
         (secs,mecs) = partition uniqueEc ecpairs
         uniqueEc ( (_,[_])  , (_,[_])  ) = True
         uniqueEc (  _       ,  _       ) = False
+        
         doMatch  ( (_,[l1]) , (_,[l2]) ) = labelMatch matchable lmap l1 l2
+        doMatch  x = error $ "doMatch failue: " ++ show x -- keep -Wall happy
+
         ecEqSize ( (_,ls1)  , (_,ls2)  ) = length ls1 == length ls2
         eSize    ( (_,ls1)  , _        ) = length ls1
         ecCompareSize = comparing eSize
@@ -278,15 +281,24 @@ graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
         else
         --  if size mismatch in equivalence classes, fail
         -- trace ("graphMatch1\nall ecEqSize mecs: "++show (all ecEqSize mecs)) $
-        if not $ all ecEqSize mecs then (False,lmap)
+        
+          --  invoke reclassification, and deal with result
+          if not (all ecEqSize mecs) || not matchEc
+            then (False, lmap)
+            else if newEc
+                   then graphMatch1 guessed matchable gs1 gs2 lmap' mecs'
+                        --  if guess does not result in a match, return supplied label map
+                   else if fst match2 then match2 else (False, lmap)
+
+{-
+          if not $ all ecEqSize mecs then (False,lmap)
         else
-        --  invoke reclassification, and deal with result
         if not matchEc then (False,lmap)
         else
         if newEc then graphMatch1 guessed matchable gs1 gs2 lmap' mecs'
         else
-        --  if guess does not result in a match, return supplied label map
         if fst match2 then match2 else (False,lmap)
+-}
 
 --  Auxiliary graph matching function
 --  This function is called when deterministic decomposition of node
@@ -308,6 +320,7 @@ graphMatch2 :: (Label lb) => (lb -> lb -> Bool)
     -> [Arc lb] -> [Arc lb]
     -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
     -> (Bool,LabelMap lb)
+graphMatch2 _         _   _   _    [] = error "graphMatch2 sent an empty list" -- To keep -Wall happy
 graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
     let
         v1 = snd ev1
@@ -608,7 +621,7 @@ arcSignatures lmap gs =
 --    if ( graphMap nodeMap gs1 ) `equiv` ( graphMap nodeMap gs2 ) then (same)
 
 graphMap :: (Label lb) => LabelMap lb -> [Arc lb] -> [Arc LabelIndex]
-graphMap lmap = map $ fmap (mapLabelIndex lmap) -- graphMapStmt
+graphMap = map . fmap . mapLabelIndex  -- graphMapStmt
 
 --------------
 --  graphMapEq

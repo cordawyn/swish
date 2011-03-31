@@ -9,7 +9,7 @@
 > import Control.Monad.Identity
 > import Control.Monad.Reader
 > import Control.Monad.State
-> import qualified Data.List as L
+> -- import qualified Data.List as L
 > import qualified Data.Map as M
 > import qualified Data.Array as A
 
@@ -514,6 +514,7 @@ actually show regular expression states.
 > class (ReVars m t, MonadIO m, Show t) => ReVarsIO m t where { }
 > instance (ReVars m t, MonadIO m, Show t) => ReVarsIO m t where { }
 
+> {-
 > remDump :: (ReVarsIO m t) => ReM m t ()
 > remDump
 >   = do states <- gets (M.toList . resFwdMap)
@@ -558,6 +559,7 @@ actually show regular expression states.
 >       = do    s <- remBuild re
 >               remMakeDfa s
 >               remDumpDfa s
+>-}
 
 Wrapper
 
@@ -587,6 +589,7 @@ Wrapper
 
 Test cases
 
+> {-
 > re1 :: Re Char
 > re1 = ReOr [ReStar (ReCat [re0, re01]), ReStar (ReCat [re01, re0])]
 >     where
@@ -606,4 +609,4 @@ Test cases
 >       digits1 = RePlus digit
 >       digit = alt "0123456789"
 >       dot = ReTerm "."
-
+> -}

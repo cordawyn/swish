@@ -251,9 +251,11 @@ parseN3 ::
   -> ParseResult
 parseN3 inp mbase = either Error Result $ parseAnyfromString document mbase inp
 
+{-
 -- useful for testing
 test :: String -> RDFGraph
 test = either error id . parseAnyfromString document Nothing
+-}
 
 -- | Function to supply initial context and parse supplied term.
 --
@@ -594,7 +596,7 @@ declaration ::=		|	 "@base"  explicituri
 -- (if applicable) which should mean being able to get rid of try
 --
 declaration :: N3Parser ()
-declaration = do
+declaration = 
   (try (atWord "base") >> explicitURI >>= addBase)
   <|>
   (try (atWord "keywords") >> bareNameCsl >>= updateKeywordsList)
@@ -783,7 +785,7 @@ expression = do
   let backwardExpr = char '!' *> return addStatementRev 
       forwardExpr  = char '^' *> return addStatement
   
-  mpt <- optional $
+  mpt <- optional
         ( (,) <$> lexeme (forwardExpr <|> backwardExpr) <*> lexeme expression )
   case mpt of
     Nothing -> return i 
@@ -935,7 +937,7 @@ dtlang =
 
 langcode :: N3Parser ScopedName
 langcode = do
-  h <- (many1 $ oneOf ['a'..'z']) <?> "start of langcode (a to z)"
+  h <- many1 (oneOf ['a'..'z']) <?> "start of langcode (a to z)"
   mt <- optionMaybe ( (:) <$> char '-' <*> many1 (oneOf (['a'..'z'] ++ ['0'..'9']))) <?> "a to z or 0 to 9 (langcode after the hyphen)"
   return $ langName $ h ++ fromMaybe "" mt
     
@@ -1037,8 +1039,8 @@ verb ::=		|	 "<="
 verb :: N3Parser (Bool, RDFLabel)
 verb = 
   -- we check reverse first so that <= is tried before looking for a URI via expression rule
-  ((,) False) <$> verbReverse
-  <|> ((,) True) <$> verbForward
+  (,) False <$> verbReverse
+  <|> (,) True <$> verbForward
   <?> "verb"
 
 -- those verbs for which subject is on the right and object on the left

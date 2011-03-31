@@ -105,9 +105,11 @@ parseNT ::
   -> ParseResult
 parseNT = either Error Result . parsefromString ntripleDoc
 
+{-
 -- useful for testing
 test :: String -> RDFGraph
 test = either error id . parsefromString ntripleDoc
+-}
 
 -- | Function to supply initial context and parse supplied term.
 --

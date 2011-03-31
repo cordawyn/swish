@@ -93,13 +93,15 @@ partitionEq  _               _              = False
 
 partitionShow :: (Label lb) => GraphPartition lb -> String
 partitionShow (PartObj ob)          = show ob
+partitionShow (PartSub sb [])       = "(" ++ show sb ++ ")" -- just to make -Wall happy, is this sensible?
 partitionShow (PartSub sb (pr:prs)) =
     "("++ show sb ++ " " ++ showpr pr ++ concatMap ((" ; "++).showpr) prs ++ ")"
     where
         showpr (a,b) = show a ++ " " ++ show b
-
+  
 partitionShowP :: (Label lb) => String -> GraphPartition lb -> String
 partitionShowP _    (PartObj ob)          = show ob
+partitionShowP pref (PartSub sb [])       = pref ++ "(" ++ show sb ++ ")" -- just to make -Wall happy, is this sensible?
 partitionShowP pref (PartSub sb (pr:prs)) =
     pref++"("++ show sb ++ " " ++ showpr pr ++ concatMap (((pref++"  ; ")++).showpr) prs ++ ")"
     where
@@ -372,7 +374,7 @@ collectBy1 cmp sel sofar (a:as) =
     collectBy1 cmp sel (collectBy2 cmp sel a sofar) as
 
 collectBy2 :: (b->b->Bool) -> (a->b) -> a -> [(b,[a])] -> [(b,[a])]
-collectBy2 cmp sel a [] = [(sel a,[a])]
+collectBy2 _   sel a [] = [(sel a,[a])]
 collectBy2 cmp sel a (col@(k,as):cols)
     | cmp ka k  = (k,a:as):cols
     | otherwise = col:collectBy2 cmp sel a cols
@@ -382,13 +384,18 @@ collectBy2 cmp sel a (col@(k,as):cols)
 reverseCollection :: (b,[a]) -> (b,[a])
 reverseCollection (k,as) = (k,reverse as)
 
+{-
 -- Example/test:
+testCollect1 :: [(Int, [(Int, Char)])]
 testCollect1 = collect fst [(1,'a'),(2,'b'),(1,'c'),(1,'d'),(2,'d'),(3,'d')]
+
+testCollect2 :: Bool
 testCollect2 = testCollect1
                 == [ (1,[(1,'a'),(1,'c'),(1,'d')])
                    , (2,[(2,'b'),(2,'d')])
                    , (3,[(3,'d')])
                    ]
+-}
 
 -- |Add new values to an existing list of collections.
 --  The list of collections is not extended, but each collection is
@@ -423,14 +430,18 @@ collectMoreBy2 cmp sel a (col@(k,(b,as)):cols)
 reverseMoreCollection :: (b,(c,[a])) -> (b,(c,[a]))
 reverseMoreCollection (k,(c,as)) = (k,(c,reverse as))
 
+{-
 -- Example/test:
 testCollectMore1 =
     collectMore snd [(111,1),(112,1),(211,2),(311,3),(411,4)] testCollect1
+
+testCollectMore2 :: Bool
 testCollectMore2 = testCollectMore1
                 == [ (1,([(1,'a'),(1,'c'),(1,'d')],[(111,1),(112,1)]))
                    , (2,([(2,'b'),(2,'d')],[(211,2)]))
                    , (3,([(3,'d')],[(311,3)]))
                    ]
+-}
 
 -- |Remove supplied element from a list using the supplied test
 --  function, and return Just the element remoived and the
@@ -474,6 +485,7 @@ removeEach :: [a] -> [(a,[a])]
 removeEach [] = []
 removeEach (a:as) = (a,as):[ (a1,a:a1s) | (a1,a1s) <- removeEach as ]
 
+{-
 testRemoveEach1 = removeEach [1,2,3,4,5]
 testRemoveEach2 = testRemoveEach1 ==
     [ (1,[2,3,4,5])
@@ -482,6 +494,7 @@ testRemoveEach2 = testRemoveEach1 ==
     , (4,[1,2,3,5])
     , (5,[1,2,3,4])
     ]
+-}
 
 -- |List differences between the members of two lists, where corresponding
 --  elements may appear at arbitrary locations in the corresponding lists.
@@ -522,6 +535,7 @@ listDifferences cmp (a1:a1t) a2s =
         choose1 d []            = Just d
         choose1 d (_:ds)        = choose1 d ds
 
+{-
 testcmp (l1,h1) (l2,h2)
     | (l1 >= h2) || (l2 >= h1) = Nothing
     | (l1 == l2) && (h1 == h2) = Just []
@@ -531,6 +545,7 @@ testdiff1 = listDifferences testcmp
                 [(12,15),(1,2),(3,4),(5,8),(10,11)]
                 [(10,11),(0,1),(3,4),(6,9),(13,15)]
 testdiff2 = testdiff1 == ([((12,15),(13,15)),((5,8),(6,9))],[(1,2)],[(0,1)])
+-}
 
 --------------------------------------------------------------------------------
 --

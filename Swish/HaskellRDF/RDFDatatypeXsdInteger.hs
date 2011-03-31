@@ -25,7 +25,7 @@ module Swish.HaskellRDF.RDFDatatypeXsdInteger
 where
 
 import Swish.HaskellRDF.RDFRuleset
-    ( RDFFormula 
+    ( RDFFormula, RDFRule, RDFRuleset 
     , makeRDFGraphFromN3String
     , makeRDFFormula
     )
@@ -60,9 +60,7 @@ import Swish.HaskellRDF.Datatype
     , makeVmod_2_2
     )
 
-import Swish.HaskellRDF.Ruleset
-    ( makeRuleset
-    )
+import Swish.HaskellRDF.Ruleset (makeRuleset)
 
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
@@ -77,11 +75,9 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceXsdType
     )
 
-import Data.Maybe
-    ( maybeToList )
+import Data.Maybe (maybeToList)
 
-import Control.Monad
-    ( liftM )
+import Control.Monad (liftM)
 
 ------------------------------------------------------------
 --  Misc values
@@ -437,7 +433,7 @@ modXsdIntegerCompare nam rel = DatatypeMod
 --
 --  makeRuleset :: Namespace -> [Formula ex] -> [Rule ex] -> Ruleset ex
 --
--- rdfRulesetXsdInteger :: RuleSet RDFGraph
+rdfRulesetXsdInteger :: RDFRuleset
 rdfRulesetXsdInteger =
     makeRuleset namespaceXsdInteger axiomsXsdInteger rulesXsdInteger
 
@@ -463,7 +459,7 @@ axiomsXsdInteger =
     [ mkAxiom "dt"      "xsd:integer rdf:type rdfs:Datatype ."
     ]
 
--- rulesXsdInteger :: [Rule RDFGraph]
+rulesXsdInteger :: [RDFRule]
 rulesXsdInteger = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdInteger gr
     where
         gr = makeRDFGraphFromN3String rulesXsdIntegerStr

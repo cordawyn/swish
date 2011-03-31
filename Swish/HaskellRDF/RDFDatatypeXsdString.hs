@@ -25,7 +25,7 @@ module Swish.HaskellRDF.RDFDatatypeXsdString
 where
 
 import Swish.HaskellRDF.RDFRuleset
-    ( RDFFormula
+    ( RDFFormula, RDFRule, RDFRuleset
     , makeRDFGraphFromN3String
     , makeRDFFormula
     , makeN3ClosureRule
@@ -82,14 +82,6 @@ import Swish.HaskellRDF.VarBinding
     , addVarBinding
     , VarBindingModify(..)
     )
-
-{- in Prelude???
-import Maybe
-    ( Maybe (..), maybeToList )
-
-import Monad
-    ( liftM )
--}
 
 ------------------------------------------------------------
 --  Misc values
@@ -233,6 +225,7 @@ modXsdStringCompare nam rel = DatatypeMod
 --
 --  makeRuleset :: Namespace -> [Formula ex] -> [Rule ex] -> Ruleset ex
 --
+rdfRulesetXsdString :: RDFRuleset
 rdfRulesetXsdString =
     makeRuleset namespaceXsdString axiomsXsdString rulesXsdString
 
@@ -258,8 +251,10 @@ axiomsXsdString =
     [ mkAxiom "dt"      "xsd:string rdf:type rdfs:Datatype ."
     ]
 
+rulesXsdString :: [RDFRule]
 rulesXsdString = rulesXsdStringClosure ++ rulesXsdStringRestriction
 
+rulesXsdStringRestriction :: [RDFRule]
 rulesXsdStringRestriction =
     makeRDFDatatypeRestrictionRules rdfDatatypeValXsdString gr
     where
@@ -276,29 +271,29 @@ rulesXsdStringStr = prefixXsdString
     +++ "  rdfd:constraint xsd_string:ne ; "
     +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
 
+rulesXsdStringClosure :: [RDFRule]
 rulesXsdStringClosure =
     [ xsdstrls
     , xsdstrsl
     ]
 
 --  Infer string from plain literal
+xsdstrls :: RDFRule
 xsdstrls = makeN3ClosureRule namespaceXsdString "ls"
             "?a ?p ?l ."
             "?a ?p ?s ."
-            (stringPlain "?s" "?l")
+            (stringPlain "s" "l")
 
 --  Infer plain literal from string
+xsdstrsl :: RDFRule
 xsdstrsl = makeN3ClosureRule namespaceXsdString "sl"
             "?a ?p ?s ."
             "?a ?p ?l ."
-            (stringPlain "?s" "?l")
+            (stringPlain "s" "l")
 
 --  Map between string and plain literal values
 stringPlain :: String -> String -> RDFVarBindingModify
-stringPlain svar lvar =
-    stringPlainValue (vn svar) (vn lvar)
-    where
-            vn ('?':n) = Var n
+stringPlain svar lvar = stringPlainValue (Var svar) (Var lvar)
 
 --  Variable binding modifier to create new binding to a canonical
 --  form of a datatyped literal.

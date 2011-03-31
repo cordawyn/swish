@@ -155,7 +155,11 @@ testDatatyped vb dvar lvar = and
         where
             dtype = applyVarBinding vb dvar
             -- NOTE: dqnam is not evaluated unless (isUri dtype)
-            dqnam = case dtype of { (Res x) -> x }
+            --       but add in a _ handler to appease -Wall
+            -- dqnam = case dtype of { (Res x) -> x }
+            dqnam = case dtype of
+              Res x -> x
+              _ -> error $ "dqnam should not be evaluated with " ++ show dtype
 
 --------------------------------------------------------------------------------
 --
