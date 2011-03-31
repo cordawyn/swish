@@ -268,7 +268,7 @@ g1l2 = NSGraph
     where
         l02 = arc s1 p1 l2
 
-
+{-
 g1f1 = NSGraph
         { namespaces = nslist
         , formulae   = formo1g1
@@ -277,7 +277,7 @@ g1f1 = NSGraph
     where
         f01      = arc s1 p1 o1
         formo1g1 = LookupMap [Formula o1 g1]
-
+-}
 
 g1f2 = NSGraph
         { namespaces = nslist
@@ -426,7 +426,7 @@ tx124 = arc b2 p1 l1
 tx125 = arc b2 p2 o1
 tx126 = arc b2 p2 o2
 tx127 = arc b2 p2 o3
-tx128 = arc b2 p2 l1
+tx128 = arc b2 p2 l2
 
 x1 = NSGraph
         { namespaces = nslist
@@ -775,8 +775,10 @@ graph_c2 = NSGraph
                         arc b1 res_rdf_rest b2,
 	                arc b2 res_rdf_first o2,
                         arc b2 res_rdf_rest b3,
-	                arc b3 res_rdf_first o3,
-                        arc b3 res_rdf_rest res_rdf_nil]
+	                arc b3 res_rdf_first l2,
+                        arc b3 res_rdf_rest b4,
+	                arc b4 res_rdf_first o3,
+                        arc b4 res_rdf_rest res_rdf_nil]
         }
 
 graph_c2rev = NSGraph
@@ -786,8 +788,10 @@ graph_c2rev = NSGraph
                         arc b1 res_rdf_rest b2,
 	                arc b2 res_rdf_first o2,
                         arc b2 res_rdf_rest b3,
-	                arc b3 res_rdf_first o3,
-                        arc b3 res_rdf_rest res_rdf_nil,
+	                arc b3 res_rdf_first l2,
+                        arc b3 res_rdf_rest b4,
+	                arc b4 res_rdf_first o3,
+                        arc b4 res_rdf_rest res_rdf_nil,
                         arc b1 p1 o1]
         }
 
@@ -800,8 +804,10 @@ graph_c3 = NSGraph
                         arc b1 res_rdf_rest b2,
 	                arc b2 res_rdf_first o2,
                         arc b2 res_rdf_rest b3,
-	                arc b3 res_rdf_first o3,
-                        arc b3 res_rdf_rest res_rdf_nil,
+	                arc b3 res_rdf_first l2,
+                        arc b3 res_rdf_rest b4,
+	                arc b4 res_rdf_first o3,
+                        arc b4 res_rdf_rest res_rdf_nil,
                         arc s1 p2 res_rdf_nil,
                         arc s2 p2 o2]
         }
@@ -841,7 +847,7 @@ graph_b3 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [arc s1 p1 b1,
-	                arc b1 p2 l1,
+	                arc b1 p2 l2,
 	                arc b1 o2 o3,
 	                arc s1 p2 b2,
 	                arc s2 p2 o2]
@@ -907,16 +913,18 @@ simpleN3Graph_g1_05 =
     commonPrefixes ++
     "base1:s1 base1:p1 \"l1\" .\n"
 
-{-
-TODO: check what cwm does with this - convert it to a triple-quoted string?
 --  Single multiline literal object
 simpleN3Graph_g1_06 =
     commonPrefixes ++
     "base1:s1 base1:p1 \"l2-'\\\"line1\\\"'\\n\\nl2-'\\\"\\\"line2\\\"\\\"'\" .\n"
--}
 
---  Single statement with formula node
+-- this 'round trips' into a triple-quoted string
+simpleN3Graph_g1_06_rt =
+    commonPrefixes ++
+    "base1:s1 base1:p1 \"\"\"l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'\"\"\" .\n"
+
 {-
+--  Single statement with formula node
 simpleN3Graph_g1_07 =
     commonPrefixes ++
     "base1:s1 base1:p1 base1:o1 .\n"++
@@ -924,6 +932,7 @@ simpleN3Graph_g1_07 =
     "    {\n"++
     "    base1:s1 base1:p1 base1:o1\n"++
     "    } .\n"
+
 -}
 
 --  Single statement with formula blank node
@@ -932,14 +941,6 @@ simpleN3Graph_g1_08 =
     "base1:s1 base1:p1  { \n"++
     "    base1:s1 base1:p1 base1:o1\n"++
     " }  .\n"
-    {-
-TODO: is the above a correct interpretation of the following?
-    "base1:s1 base1:p1 _:b2 .\n"++
-    "_:b2 :-\n"++
-    "    {\n"++
-    "    base1:s1 base1:p1 base1:o1\n"++
-    "    } .\n"
-    -}
     
 --  Three blank nodes (or is that blind mice?)
 simpleN3Graph_g1_09 =
@@ -955,40 +956,9 @@ simpleN3Graph_g1_10 =
     "        base1:s1 base1:p1 base1:o1\n" ++
     "     } \n"                          ++
     " }  .\n"
-{-
-TODO: is the above a correct interpretation of the gollowing?
-    "base1:s1 base1:p1 _:b3 .\n"           ++
-    "_:b3 :-\n"                            ++
-    "    {\n"                              ++
-    "    base1:s1 base1:p1 _:b2 .\n"       ++
-    "    _:b2 :-\n"                        ++
-    "        {\n"                          ++
-    "        base1:s1 base1:p1 base1:o1\n" ++
-    "        }\n"                          ++
-    "    } .\n"
--}
 
 {-
 Simple troublesome case
-
-This is the original formatting of the graph; what do
-we actually want to convert this to?
-
-simpleN3Graph_x13a =
-    commonPrefixes ++
-    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_1 ;\n"++
-    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_2 .\n"++
-    "_:_1 base1:p1 base1:o1 .\n"++
-    "_:_3 base1:p1 base2:o2 .\n"++
-    "_:_4 base1:p1 base3:o3 .\n"++
-    "_:_2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_3 ;\n"++
-    "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:_5 .\n"++
-    "_:_5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:_4 ;\n"++
-    "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n"
-
-Note that we do not convert named nodes into (..) format, which is why
-base1:s1 gets explicit rdf:first/rest statements.
-
 -}
     
 simpleN3Graph_x13a =
@@ -1013,17 +983,20 @@ simpleN3Graph_c1rev =
     commonPrefixes ++
     "() base1:p1 base1:o1 .\n"
 
+collItems :: String
+collItems = "( \"l1\" base2:o2 \"\"\"" ++ l2txt ++ "\"\"\" base3:o3 )"
+
 simpleN3Graph_c2 =
     commonPrefixes ++
-    "base1:s1 base1:p1 ( \"l1\" base2:o2 base3:o3 ) .\n"
+    "base1:s1 base1:p1 " ++ collItems ++ " .\n"
 
 simpleN3Graph_c2rev =
     commonPrefixes ++
-    "( \"l1\" base2:o2 base3:o3 ) base1:p1 base1:o1 .\n"
+    collItems ++ " base1:p1 base1:o1 .\n"
 
 simpleN3Graph_c3 =
     commonPrefixes ++
-    "base1:s1 base1:p1 ( \"l1\" base2:o2 base3:o3 ) ;\n" ++
+    "base1:s1 base1:p1 " ++ collItems ++ " ;\n" ++
     "         base2:p2 () .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
@@ -1050,7 +1023,7 @@ simpleN3Graph_b2rev =
 
 simpleN3Graph_b3 =
     commonPrefixes ++
-    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] ;\n" ++
+    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
     "         base2:p2 [] .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
@@ -1059,12 +1032,12 @@ trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
 trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
 trivialTest04 = formatTest "trivialTest04" g1a1 simpleN3Graph_g1_04
 trivialTest05 = formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
--- trivialTest06 = formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06 -- TODO: restore as a multiline literal test
--- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07 -- uses :- syntax so not sure whether to restore
-trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08 -- TODO: work out whether this test is actually correct
+trivialTest06 = formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06_rt
+-- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07 -- formula is a named node
+trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
 trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
-trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10 -- TODO: work out whether this test is actually correct
-trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a -- TODO: work out whether this test is actually correct
+trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
+trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a
 
 trivialTestc1 = formatTest "trivialTestc1" graph_c1 simpleN3Graph_c1
 trivialTestc2 = formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
@@ -1090,7 +1063,7 @@ trivialTestSuite = TestList
   , trivialTest03
   , trivialTest04
   , trivialTest05
---  , trivialTest06
+  , trivialTest06
 --  , trivialTest07
   , trivialTest08
   , trivialTest09
@@ -1134,9 +1107,10 @@ parseTest02 = parseTest "02" simpleN3Graph_g1_02 g1   noError
 parseTest03 = parseTest "03" simpleN3Graph_g1_03 g1b1 noError
 parseTest04 = parseTest "04" simpleN3Graph_g1_04 g1a1 noError
 parseTest05 = parseTest "05" simpleN3Graph_g1_05 g1l1 noError
--- parseTest06 = parseTest "06" simpleN3Graph_g1_06 g1l2 noError -- TODO: restore as multi-line litteral
--- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError -- uses :- syntax so not sure whether to restore
-parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError -- TODO: work out whether this test is actually correct
+parseTest06 = parseTest "06" simpleN3Graph_g1_06 g1l2 noError
+parseTest06rt = parseTest "06rt" simpleN3Graph_g1_06_rt g1l2 noError
+-- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError -- formula is a named node
+parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError
 
 parseTestSuite = TestList
   [ parseTest01
@@ -1144,7 +1118,8 @@ parseTestSuite = TestList
   , parseTest03
   , parseTest04
   , parseTest05
---  , parseTest06
+  , parseTest06
+  , parseTest06rt
 --  , parseTest07
   , parseTest08
   ]
@@ -1195,15 +1170,15 @@ roundTripTest02 = roundTripTest "02" g1
 roundTripTest03 = roundTripTest "03" g1b1
 roundTripTest04 = roundTripTest "04" g1a1
 roundTripTest05 = roundTripTest "05" g1l1
--- roundTripTest06 = roundTripTest "06" g1l2 -- TODO: at present we do not round-trip this correctly (string quoting)
--- roundTripTest07 = roundTripTest "07" g1f1 -- TODO: serialisation uses :- with a named node
+roundTripTest06 = roundTripTest "06" g1l2
+-- roundTripTest07 = roundTripTest "07" g1f1 -- formula is a named node
 roundTripTest08 = roundTripTest "08" g1f2
 roundTripTest11 = fullRoundTripTest "11" simpleN3Graph_g1_01
 roundTripTest12 = fullRoundTripTest "12" simpleN3Graph_g1_02
 roundTripTest13 = fullRoundTripTest "13" simpleN3Graph_g1_03
 roundTripTest14 = fullRoundTripTest "14" simpleN3Graph_g1_04
 roundTripTest15 = fullRoundTripTest "15" simpleN3Graph_g1_05
--- roundTripTest16 = fullRoundTripTest "16" simpleN3Graph_g1_06 -- TODO: string parsing
+roundTripTest16 = fullRoundTripTest "16rt" simpleN3Graph_g1_06_rt
 -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
 roundTripTest18 = fullRoundTripTest "18" simpleN3Graph_g1_08
 
@@ -1213,7 +1188,7 @@ roundTripTestSuite = TestList
   , roundTripTest03
   , roundTripTest04
   , roundTripTest05
---  , roundTripTest06
+  , roundTripTest06
 --  , roundTripTest07
   , roundTripTest08
   , roundTripTest11
@@ -1221,7 +1196,7 @@ roundTripTestSuite = TestList
   , roundTripTest13
   , roundTripTest14
   , roundTripTest15
---  , roundTripTest16
+  , roundTripTest16
 --  , roundTripTest17
   , roundTripTest18
   ]
@@ -1242,11 +1217,10 @@ simpleTest01 = simpleTest "01" g2
 simpleTest02 = simpleTest "02" g3
 simpleTest03 = simpleTest "03" g4
 simpleTest04 = simpleTest "04" g5
--- simpleTest05 = simpleTest "05" g6 -- TODO: parsing quoted string
--- simpleTest06 = simpleTest "06" g7 -- TODO: parsing quoted string
+simpleTest05 = simpleTest "05" g6 -- TODO: parsing quoted string
+simpleTest06 = simpleTest "06" g7 -- TODO: parsing quoted string
 simpleTest07 = simpleTest "07" g8
 simpleTest08 = simpleTest "08" g81
--- simpleTest09 was a test of +*/- operators which we no longer support
 simpleTest10 = simpleTest "10" g83
 simpleTest11 = simpleTest "11" g9
 simpleTest12 = simpleTest "12" g10
@@ -1257,8 +1231,8 @@ simpleTestSuite = TestList
   , simpleTest02
   , simpleTest03
   , simpleTest04
---  , simpleTest05
---  , simpleTest06
+  , simpleTest05
+  , simpleTest06
   , simpleTest07
   , simpleTest08
   , simpleTest10
@@ -1272,7 +1246,7 @@ simpleTestSuite = TestList
 ------------------------------------------------------------
 --
 --  These tests cover various forms of anonymous nodes
---  [...], lists and formulae. together with uses of ':-'
+--  [...], lists and formulae.
 --
 
 -- does a round-trip test starting with the
@@ -1304,7 +1278,7 @@ exoticN3Graph_x1 =
     "   base2:p2 base1:o1 , \n" ++
     "            base2:o2 , \n" ++
     "            base3:o3 , \n" ++
-    "            \"l1\"   ] . \n"
+    "            \"\"\"" ++ l2txt ++ "\"\"\"   ] . \n"
 
 --  Simple anon nodes, with 'is ... of' and semicolons and commas
 exoticN3Graph_x2 =
@@ -1359,7 +1333,7 @@ exoticN3Graph_x6 =
     " base1:s1 :- (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
 -}
 
---  Formula nodes, with and without :-
+--  Formula nodes
 
 exoticN3Graph_x7 =
     commonPrefixes ++
@@ -1368,14 +1342,8 @@ exoticN3Graph_x7 =
     "    base2:s2 base1:p1 base2:o2 .\n" ++
     "    base3:s3 base1:p1 base3:o3\n" ++
     " }  base2:p2 base2:f2 .\n"
-    {-
-    " { base1:s1 base1:p1 base1:o1 .   \n" ++
-    "   base2:s2 base1:p1 base2:o2 .   \n" ++
-    "   base3:s3 base1:p1 base3:o3 . } \n" ++
-    " base2:p2 base2:f2 . "
-    -}
 
--- as above with without the trailing . in the formula
+-- as above with the trailing . in the formula
 exoticN3Graph_x7a =
     commonPrefixes ++
     " { \n" ++
