@@ -444,14 +444,8 @@ g7 = NSGraph
 t801, t802, t807, t808, t811, t812 :: Arc RDFLabel
 t801 = arc s1 res_rdf_type       o1
 t802 = arc s2 res_owl_sameAs     o2
--- t803 = arc s3 res_operator_plus  o3
--- t804 = arc s3 res_operator_minus o3
--- t805 = arc s3 res_operator_star  o3
--- t806 = arc s3 res_operator_slash o3
 t807 = arc o1 p1 s1
 t808 = arc s2 p1 o2
--- t809 = arc s1 p2 o1
--- t810 = arc o2 p2 s2
 t811 = arc s1 res_log_implies o1
 t812 = arc o2 res_log_implies s2
 
@@ -459,7 +453,6 @@ g8 :: RDFGraph
 g8 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
-        -- , statements = [t801,t802,t803,t804,t805,t806,t807,t808,t809,t810]
         , statements = [t801,t802,t807,t808,t811,t812]
         }
 
@@ -470,19 +463,10 @@ g81 = NSGraph
         , statements = [t801,t802]
         }
 
-{-
-g82 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t803,t804,t805,t806]
-        }
--}
-
 g83 :: RDFGraph
 g83 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
-        -- , statements = [t807,t808,t809,t810]
         , statements = [t807,t808,t811,t812]
         }
 
@@ -1066,15 +1050,6 @@ simpleN3Graph_g81 =
     " base1:s1 a base1:o1 . \n" ++
     " base2:s2 = base2:o2 . \n"
 
-{-
-simpleN3Graph_g82 =
-    commonPrefixes ++
-    " base3:s3 + base3:o3 . \n" ++
-    " base3:s3 - base3:o3 . \n" ++
-    " base3:s3 * base3:o3 . \n" ++
-    " base3:s3 / base3:o3 . \n"
--}
-
 simpleN3Graph_g83 :: String
 simpleN3Graph_g83 =
     commonPrefixes ++
@@ -1199,7 +1174,6 @@ simpleTestSuite = TestList
   , parseTest "simpleTest09"  simpleN3Graph_g8    g8  noError
   , parseTest "simpleTest09b" simpleN3Graph_g8b   g8  noError
   , parseTest "simpleTest10"  simpleN3Graph_g81   g81 noError
-    -- , simpleTest11  = parseTest "simpleTest11"  simpleN3Graph_g82   g82 noError
   , parseTest "simpleTest12"  simpleN3Graph_g83   g83 noError
   , parseTest "simpleTest12b" simpleN3Graph_g83b  g83 noError
   , parseTest "simpleTest13"  simpleN3Graph_g9    g9  noError
@@ -1306,28 +1280,7 @@ exoticN3Graph_x2 =
     "                     \"l1\"   ] . \n"
 
 
-{-
---  Simple anon nodes, attached to identified node
-exoticN3Graph_x3 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    " [ has base1:p1 of base1:o1 ; \n" ++
-    "   is  base1:p1 of base2:o2 ; \n" ++
-    "   has base2:p2 of base2:o2 ; \n" ++
-    "   is  base2:p2 of base3:o3 ] . \n" ++
-    " base2:s2 :- \n" ++
-    " [ has base1:p1 of base1:o1 , \n" ++
-    "                   base2:o2 , \n" ++
-    "                   base3:o3 , \n" ++
-    "                   \"l1\"   ; \n" ++
-    "   is  base2:p2 of base1:o1 , \n" ++
-    "                   base2:o2 , \n" ++
-    "                   base3:o3 , \n" ++
-    "                   \"l1\"   ] . \n"
-
--}
-
---  List nodes, with and without :-
+--  List nodes
 
 exoticN3Graph_x4 :: String
 exoticN3Graph_x4 =
@@ -1339,12 +1292,6 @@ exoticN3Graph_x5 =
     commonPrefixes ++
     " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
 
-{-
-exoticN3Graph_x6 =
-    commonPrefixes ++
-    " base1:s1 :- (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
--}
-
 --  Formula nodes, with and without :-
 
 exoticN3Graph_x7 :: String
@@ -1355,37 +1302,6 @@ exoticN3Graph_x7 =
     "   base3:s3 base1:p1 base3:o3 . } \n" ++
     " base2:p2 base2:f2 . "
 
-{-
-exoticN3Graph_x8 =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    " { base1:s1 base1:p1 base1:o1 .     \n" ++
-    "   base2:s2 base1:p1 base2:o2 .     \n" ++
-    "   base3:s3 base1:p1 base3:o3 . } ; \n" ++
-    " base2:p2 base2:f2 . "
-
-exoticN3Graph_x9 =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    "   { base1:s1 base1:p1 base1:o1 } ; \n" ++
-    "   base2:p2 base2:f2 "
-    -- (also omits final periods)
-
-exoticN3Graph_x8a =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    " { base1:s1 base1:p1 base1:o1 .     \n" ++
-    "   base2:s2 base1:p1 base2:o2 .     \n" ++
-    "   base3:s3 base1:p1 base3:o3 . } . \n" ++
-    " base1:f1 base2:p2 base2:f2 . "
-
-exoticN3Graph_x9a =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    " { base1:s1 base1:p1 base1:o1 . } . \n" ++
-    " base1:f1 base2:p2 base2:f2 . "
--}
-
 --  Test allocation of bnodes carries over a nested formula
 exoticN3Graph_x12 :: String
 exoticN3Graph_x12 =
@@ -1395,68 +1311,16 @@ exoticN3Graph_x12 =
     "            base2:p2 base2:f2 .                \n" ++
     " base3:s3 base3:p3 [ base3:p3 base3:o3 ] ."
 
-{-
---  List of bnodes
-exoticN3Graph_x13 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1] \n" ++
-    "    [base1:p1 base2:o2] \n" ++
-    "    [base1:p1 base3:o3] ) .\n"
-
---  List of more complex bnodes
-exoticN3Graph_x14 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n" ++
-    "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
-    "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
-
---  List with nested list
-exoticN3Graph_x15 :: String
-exoticN3Graph_x15 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1] \n"++
-    "    [base2:p2 \n" ++
-    "       ( [base1:p1 base1:o1] \n" ++
-    "         [base1:p1 base2:o2] \n" ++
-    "         [base1:p1 base3:o3] ) ] \n"++
-    "    [base1:p1 base3:o3] ) .\n"
-
---  More complex list with nested list
-exoticN3Graph_x16 :: String
-exoticN3Graph_x16 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n"++
-    "    [base2:p2 \n" ++
-    "       ( [base1:p1 base1:o1; base2:p2 base1:o1] \n" ++
-    "         [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
-    "         [base1:p1 base3:o3; base2:p2 base3:o3] ) ] \n"++
-    "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
--}
-
 exoticTestSuite :: Test
 exoticTestSuite = 
   TestList
   [ parseTest "exoticTest01"  exoticN3Graph_x1   x1  noError
   , parseTest "exoticTest01b" exoticN3Graph_x1b  x1  noError
   , parseTest "exoticTest02"  exoticN3Graph_x2   x2  noError
-    -- , parseTest "exoticTest03" exoticN3Graph_x3  x3  noError
   , parseTest "exoticTest04" exoticN3Graph_x4  x4  noError
   , parseTest "exoticTest05" exoticN3Graph_x5  x5  noError
-    -- , parseTest "exoticTest06" exoticN3Graph_x6  x6  noError
   , parseTest "exoticTest07" exoticN3Graph_x7  x7  noError
-    -- , parseTest "exoticTest08" exoticN3Graph_x8  x8  noError
-    -- , parseTest "exoticTest09" exoticN3Graph_x9  x9  noError
-    -- , parseTest "exoticTest10" exoticN3Graph_x8a x8  noError
-    -- , parseTest "exoticTest11" exoticN3Graph_x9a x9  noError
   , parseTest "exoticTest12" exoticN3Graph_x12 x12 noError
-    -- , parseTest "exoticTest13" exoticN3Graph_x13 x13 noError
-    -- , parseTest "exoticTest14" exoticN3Graph_x14 x14 noError
-    -- , parseTest "exoticTest15" exoticN3Graph_x15 x15 noError
-    -- , parseTest "exoticTest16" exoticN3Graph_x16 x16 noError
   , testGraphEq "exoticTest20" False x7 x8
   , testGraphEq "exoticTest21" False x8 x9
   ]

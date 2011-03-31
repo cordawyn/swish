@@ -42,9 +42,11 @@
 --  No performance testing has been applied.
 --
 --  Not all N3 grammar elements are supported, including:
---    @forSome (we read it in but ignore the arguments)
---    @forAll  (this causes a parse error)
---    formulae are lightly tested
+--    - @forSome (we read it in but ignore the arguments)
+--    - @forAll  (this causes a parse error)
+--    - formulae are lightly tested
+--    - string support is incomplete (e.g. unrecognized escape characters
+--      such as \q are probably handled incorrectly)
 --
 --------------------------------------------------------------------------------
 
