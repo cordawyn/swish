@@ -3,7 +3,9 @@ Version:             0.3.0.0
 License:             LGPL
 License-file:        LICENSE 
 Author:              Graham Klyne - GK@ninebynine.org
-Maintainer:          Vasili I Galchin (William Halchin) - vigalchin@gmail.com 
+Maintainer:          dburke@cfa.harvard.edu
+Homepage:            https://bitbucket.org/doug_burke/swish
+Bug-reports:         https://bitbucket.org/doug_burke/swish/issues
 
 Category:            Semantic Web
 Synopsis:            A semantic web toolkit. 
