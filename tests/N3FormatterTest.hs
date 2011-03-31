@@ -14,7 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
--- WNH module Swish.HaskellRDF.N3FormatterTest where
+module Main where
 
 import Swish.HaskellRDF.N3Formatter
     ( formatGraphAsStringNl

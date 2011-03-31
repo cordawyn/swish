@@ -17,7 +17,7 @@
 --
 {--------+---------+---------+---------+---------+---------+---------+---------}
 
---   WNH RIP OUTmodule Swish.HaskellRDF.RDFRulesetTest where
+module Main where
 
 import Swish.HaskellRDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset

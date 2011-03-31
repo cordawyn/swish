@@ -14,8 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
-
--- WNH module Swish.HaskellRDF.GraphTest where
+module Main where
 
 import System.IO
       ( Handle, IOMode(WriteMode),

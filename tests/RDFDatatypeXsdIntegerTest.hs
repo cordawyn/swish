@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
--- WNH RIP OUT module Swish.HaskellRDF.RDFDatatypeXsdIntegerTest where
+module Main where
 
 import Swish.HaskellRDF.RDFDatatypeXsdInteger
     ( rdfDatatypeXsdInteger

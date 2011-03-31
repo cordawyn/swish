@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
---  WNH RIP OUTmodule Swish.HaskellRDF.RDFProofTest where
+module Main where
 
 import Swish.HaskellRDF.RDFProof
     ( RDFProof, RDFProofStep

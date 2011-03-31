@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
---    WNH RIP OUT   module Swish.HaskellRDF.BuiltInMapTest where
+module Main where
 
 import Swish.HaskellRDF.BuiltInMap
     ( findRDFOpenVarBindingModifier

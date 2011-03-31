@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
--- WNH RIP OUTmodule Swish.HaskellRDF.RDFProofContextTest where
+module Main where
 
 import Swish.HaskellRDF.BuiltInMap
     ( rdfRulesetMap, allRulesets )

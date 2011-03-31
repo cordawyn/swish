@@ -18,7 +18,7 @@
 --
 --------------------------------------------------------------------------------
 
---  WNH RIP OUT module Swish.HaskellRDF.RDFQueryTest where
+module Main where
 
 import Swish.HaskellRDF.RDFQuery
     ( rdfQueryFind, rdfQueryFilter

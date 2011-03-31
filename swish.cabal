@@ -127,25 +127,13 @@ Library
 
 
 Executable         BuiltInMapTest
-   Main-Is:        Swish/HaskellRDF/BuiltInMapTest.hs
-
---   YOH ADRIAN QNAME ISSUES Executable         ClassRestrictionRuleTest
---   YOH ADRIAN QNAME ISSUES    Main-Is:        Swish/HaskellRDF/ClassRestrictionRuleTest.hs
---   YOH ADRIAN QNAME ISSUES    Other_Modules:  Swish.HaskellRDF.ClassRestrictionRule
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.RDFGraph
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.RDFRuleset
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.Ruleset
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.Rule
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.RDFDatatype
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.Datatype
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellUtils.Namespace
---   YOH ADRIAN QNAME ISSUES                    Swish.HaskellRDF.Dfa
+   Main-Is:        tests/BuiltInMapTest.hs
 
 Executable         GraphPartitionTest
-   Main-Is:        Swish/HaskellRDF/GraphPartitionTest.hs
+   Main-Is:        tests/GraphPartitionTest.hs
 
 Executable         GraphTest
-   Main-Is:        Swish/HaskellRDF/GraphTest.hs
+   Main-Is:        tests/GraphTest.hs
 
 Executable         NTTest
    Main-Is:        tests/NTTest.hs
@@ -157,35 +145,35 @@ Executable         N3FormatterTest
    Main-Is:        tests/N3FormatterTest.hs
 
 Executable         RDFDatatypeXsdIntegerTest
-   Main-Is:        Swish/HaskellRDF/RDFDatatypeXsdIntegerTest.hs
+   Main-Is:        tests/RDFDatatypeXsdIntegerTest.hs
 
 Executable         RDFGraphTest
-   Main-Is:        Swish/HaskellRDF/RDFGraphTest.hs
+   Main-Is:        tests/RDFGraphTest.hs
 
 Executable         RDFProofContextTest
-   Main-Is:        Swish/HaskellRDF/RDFProofContextTest.hs
+   Main-Is:        tests/RDFProofContextTest.hs
                     
 Executable         RDFProofText
-   Main-Is:        Swish/HaskellRDF/RDFProofTest.hs
+   Main-Is:        tests/RDFProofTest.hs
                      
 Executable         RDFQueryTest
-   Main-Is:        Swish/HaskellRDF/RDFQueryTest.hs
+   Main-Is:        tests/RDFQueryTest.hs
 
 Executable         RDFRulesetTest
-   Main-Is:        Swish/HaskellRDF/RDFRulesetTest.hs
+   Main-Is:        tests/RDFRulesetTest.hs
 
 Executable         VarBindingTest
-   Main-Is:        Swish/HaskellRDF/VarBindingTest.hs
+   Main-Is:        tests/VarBindingTest.hs
 
 Executable         LookupMapTest
-   Main-Is:        Swish/HaskellUtils/LookupMapTest.hs
+   Main-Is:        tests/LookupMapTest.hs
 
 Executable         QNameTest
-   Main-Is:        Swish/HaskellUtils/QNameTest.hs
+   Main-Is:        tests/QNameTest.hs
 
  -- we do not have the data files to run this test
  Executable         SwishTest
-   Main-Is:        Swish/HaskellRDF/SwishTest.hs
+   Main-Is:        tests/SwishTest.hs
    Other-Modules:  Swish.HaskellRDF.SwishMain
 
 Executable         Swish

@@ -14,9 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
--- WNH module Swish.HaskellUtils.QNameTest where
-
--- module Main where
+module Main where
 
 import System.IO
     ( Handle, IOMode(WriteMode)

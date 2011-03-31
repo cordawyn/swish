@@ -14,7 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
---  WNH RIP OUT module Swish.HaskellRDF.RDFGraphTest where
+module Main where
 
 import Swish.HaskellUtils.LookupMap
     ( LookupMap(..)

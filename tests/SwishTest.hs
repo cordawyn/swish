@@ -14,7 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
---  WNH RIP OUT   module Swish.HaskellRDF.SwishTest where
+module Main where
 
 import System.Exit
 

@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
--- WNH RIP OUT module Swish.HaskellRDF.VarBindingTest where
+module Main where
 
 import Swish.HaskellRDF.VarBinding
     ( VarBinding(..)

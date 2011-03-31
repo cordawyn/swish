@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
---   WNH RIP OUT module Swish.HaskellUtils.LookupMapTest where
+module Main where
 
 import Swish.HaskellUtils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)

@@ -14,9 +14,7 @@
 --
 --------------------------------------------------------------------------------
 
---module Swish.HaskellRDF.GraphPartitionTest where
--- module Main(main) where -- WNH
-
+module Main where
 
 import Swish.HaskellRDF.GraphPartition
     ( PartitionedGraph(..), getArcs
