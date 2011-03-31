@@ -127,8 +127,7 @@ Library
       Swish.HaskellRDF.Sort.QuickSort
 
    ghc-options:
-      -Wall -fexcess-precision -funbox-strict-fields -auto-all
-
+      -Wall
 
 Executable         BuiltInMapTest
    Main-Is:        tests/BuiltInMapTest.hs
@@ -216,5 +215,5 @@ Executable         Swish
                    Paths_swish
 
    ghc-options:
-      -Wall -fexcess-precision -funbox-strict-fields -auto-all
+      -Wall
 
