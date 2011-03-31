@@ -28,37 +28,46 @@
 -- 3 <http://www.w3.org/2000/10/swap/Primer.html>
 --     Notation 3 Primer by Sean Palmer
 --
+-- NOTES:
+--
+--  UTF-8 handling is not really tested.
+--
+--  Several items seem to be allowed (from looking at N3 test suites and files
+--  'in the wild') that are not given supported by the N3 grammar [1]. We try
+--  to support these, including
+--    a) ":" and "base:" as valid QNames (ie a blank local component)
+--    b) true and false as well as @true/@false
+--    c) use of lower-case characters for \u and \U escape codes
+--
+--  No performance testing has been applied.
+--
+--  Not all N3 grammar elements are supported, including:
+--    - @forSome (we read it in but ignore the arguments)
+--    - @forAll  (this causes a parse error)
+--    - formulae are lightly tested
+--    - string support is incomplete (e.g. unrecognized escape characters
+--      such as \q are probably handled incorrectly)
+--
 --------------------------------------------------------------------------------
-
-{-
-TODO:
-
- - should error out if a namespace is unknown
-
-cwm gives
-
-swap.notation3.BadSyntax: at line 8 of <file:///Users/dburke/semweb/t1.ttl>:
-Bad syntax (Prefix "dc:" not bound) at ^ in:
-":bob ^dc:title "foo"@en ."
-
- - I think the default default namespace needs changing from
-   Graham's namespace to <#>.
-
--}
 
 module Swish.HaskellRDF.N3Parser
     ( ParseResult
+    , parseN3      
     , parseN3fromString
-    , parseN3fromString'
     , parseAnyfromString
     , parseTextFromString, parseAltFromString
     , parseNameFromString, parsePrefixFromString
     , parseAbsURIrefFromString, parseLexURIrefFromString, parseURIref2FromString
+    
     -- * Exports for parsers that embed Notation3 in a bigger syntax
     , N3Parser, N3State(..), SpecialMap
     , whiteSpace, symbol, lexeme, eof, identStart, identLetter
-    , defaultPrefix, namedPrefix
-    , document, subgraph, uriRef2, varid, lexUriRef
+    --                                                
+    , getPrefix -- a combination of the old defaultPrefix and namedPrefix productions
+    , n3symbol -- replacement for uriRef2 -- TODO: check this is semantically correct      
+    , quickVariable -- was varid      
+    , lexUriRef       
+    , document, subgraph                                                   
     , newBlankNode
     )
 where
@@ -78,7 +87,7 @@ import Swish.HaskellRDF.GraphClass
 
 import Swish.HaskellUtils.LookupMap
     ( LookupMap(..)
-    , mapFind, mapReplace, mapReplaceOrAdd )
+    , mapFind, mapFindMaybe, mapReplaceOrAdd )
 
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
@@ -86,63 +95,55 @@ import Swish.HaskellUtils.Namespace
     , getScopePrefix 
     , getScopedNameURI
     , makeScopedName, makeUriScopedName
+    , makeQNameScopedName
     , nullScopedName
     )
 
+import Swish.HaskellUtils.QName (QName, getQNameURI)
+
 import Swish.HaskellRDF.Vocabulary
-    ( namespaceRDF
-    , namespaceRDFS
-    , namespaceRDFD
-    , namespaceRDFO
-    , namespaceOWL
-    , langName
+    ( langName
     , rdf_type
     , rdf_first, rdf_rest, rdf_nil
-    , owl_sameAs
-    , operator_plus, operator_minus, operator_slash, operator_star
-    , default_base
+    , owl_sameAs, log_implies
     , xsd_boolean, xsd_integer, xsd_decimal, xsd_double
     )
 
 import Swish.HaskellUtils.ErrorM
     ( ErrorM(Error,Result) )
 
-import Control.Applicative
-import Control.Monad (MonadPlus(..), forM_, ap, liftM2, foldM)
+import Swish.HaskellRDF.RDFParser
+    ( SpecialMap
+    , mapPrefix
+    , prefixTable, specialTable
+    , ParseResult, RDFParser
+    , n3Style, n3Lexer, ignore
+    , annotateParsecError
+    , mkTypedLit
+    )
 
-import Network.URI (URI, isURI, isURIReference, relativeTo,
+import Control.Applicative
+import Control.Monad (forM_, foldM)
+
+import Network.URI (URI, 
+                    relativeTo,
                     parseURI, parseURIReference, uriToString)
 
 import Data.Maybe (fromMaybe, fromJust)
 
 import Text.ParserCombinators.Parsec hiding (many, optional, (<|>))
-import Text.ParserCombinators.Parsec.Language (emptyDef)
-
+import qualified Text.ParserCombinators.Parsec as PC
 import qualified Text.ParserCombinators.Parsec.Token as P
 
-import Data.Char (isSpace, chr, digitToInt)
+import Data.Char (isSpace, chr) 
 
 
 ----------------------------------------------------------------------
 --  Set up token parsers
 ----------------------------------------------------------------------
 
-n3Style :: P.LanguageDef st
-n3Style =
-        emptyDef
-            { P.commentStart   = ""
-            , P.commentEnd     = ""
-            , P.commentLine    = "#"
-            , P.nestedComments = True
-            , P.identStart     = letter <|> char '_'      -- oneOf "_"
-            , P.identLetter    = alphaNum <|> char '_'
-            , P.reservedNames  = []
-            , P.reservedOpNames= []
-            , P.caseSensitive  = True
-            }
-
 lexer :: P.TokenParser N3State
-lexer = P.makeTokenParser n3Style
+lexer = n3Lexer
 
 whiteSpace :: N3Parser ()
 whiteSpace = P.whiteSpace lexer
@@ -157,17 +158,6 @@ identStart , identLetter :: CharParser st Char
 identStart  = P.identStart  n3Style
 identLetter = P.identLetter n3Style
 
--- helper routines
-
-istring :: String -> CharParser st ()
-istring s = string s >> return ()
-
-isymbol :: String -> N3Parser ()
-isymbol s = symbol s >> return ()
-
-colon :: CharParser st ()
-colon = istring ":"
-
 ----------------------------------------------------------------------
 -- Define parser state and helper functions
 ----------------------------------------------------------------------
@@ -179,10 +169,9 @@ data N3State = N3State
         , prefixUris :: NamespaceMap        -- namespace prefix mapping table
         , syntaxUris :: SpecialMap          -- special name mapping table
         , nodeGen    :: Int                 -- blank node id generator
+        , keywordsList :: [String]          -- contents of the @keywords statement
+        , allowLocalNames :: Bool           -- True if @keywords used so that bare names are QNames in default namespace
         }
-
--- | Type for special name lookup table
-type SpecialMap = LookupMap (String,ScopedName)
 
 -- | Functions to update N3State vector (use with Parsec updateState)
 setPrefix :: String -> String -> N3State -> N3State
@@ -198,6 +187,12 @@ setSName nam snam st =  st { syntaxUris=s' }
 setSUri :: String -> String -> N3State -> N3State
 setSUri nam suri = setSName nam (makeScopedName "" suri "")
 
+-- | The list of tokens that can be used without an @ sign
+setKeywordsList :: [String] -> N3State -> N3State
+setKeywordsList ks st = st { keywordsList = ks, allowLocalNames = True }
+
+--  Functions to access state:
+
 -- | Get name for special syntax element, default null
 getSName :: N3State -> String -> ScopedName
 getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
@@ -205,11 +200,6 @@ getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
 getSUri :: N3State -> String -> String
 getSUri st nam = getScopedNameURI $ getSName st nam
 
--- | Lookup prefix in table and return URI or 'prefix:'
-mapPrefix :: NamespaceMap -> String -> String
-mapPrefix ps pre = mapFind (pre++":") pre ps
-
---  Functions to access state:
 --  Map prefix to namespace
 getPrefixNs :: N3State -> String -> Namespace
 getPrefixNs st pre = Namespace pre (mapPrefix (prefixUris st) pre)
@@ -222,101 +212,87 @@ getPrefixScopedName st snam = ScopedName (getPrefixNs st pre) loc
         pre = getScopePrefix snam
         loc = snLocal snam
 
+getKeywordsList :: N3State -> [String]
+getKeywordsList = keywordsList
+
+getAllowLocalNames :: N3State -> Bool
+getAllowLocalNames = allowLocalNames
+
 --  Return function to update graph in N3 parser state,
 --  using the supplied function of a graph
 --  (use returned function with Parsec updateState)
 updateGraph :: ( RDFGraph -> RDFGraph ) -> ( N3State -> N3State )
 updateGraph f s = s { graphState = f (graphState s) }
 
---  Define default table of namespaces
-prefixTable :: [Namespace]
-prefixTable =   [ namespaceRDF
-                , namespaceRDFS
-                , namespaceRDFD     -- datatypes
-                , namespaceRDFO     -- operators
-                , namespaceOWL
-                ]
-
---  Define default special-URI table
-specialTable :: [(String,ScopedName)]
-specialTable =  [ ( "a",         rdf_type       ),
-                  ( "equals",    owl_sameAs     ),
-                  ( "listfirst", rdf_first      ),
-                  ( "listrest",  rdf_rest       ),
-                  ( "listnull",  rdf_nil        ),
-                  ( "plus",      operator_plus  ),
-                  ( "minus",     operator_minus ),
-                  ( "slash",     operator_slash ),
-                  ( "star",      operator_star  ),
-                  ( "base",      default_base   ) ]
-
-logImplies :: ScopedName
-logImplies = ScopedName (Namespace "log" "http://www.w3.org/2000/10/swap/log#") "implies"
-
 ----------------------------------------------------------------------
 --  Define top-level parser function:
 --  accepts a string and returns a graph or error
 ----------------------------------------------------------------------
 
-type N3Parser a = GenParser Char N3State a
+type N3Parser a = RDFParser N3State a
 
--- Applicative/Alternative are defined for us in Parsec 3
-instance Applicative (GenParser a b) where
-  pure = return
-  (<*>) = ap
-  
-instance Alternative (GenParser a b) where
-  empty = mzero
-  (<|>) = mplus
-  
-type ParseResult = ErrorM RDFGraph -- PResult RDFGraph | PError String
+-- | Parse a string as N3 (with no real base URI).
+-- 
+-- See 'parseN3' if you need to provide a base URI.
+--
+parseN3fromString ::
+  String -- ^ input in N3 format.
+  -> ParseResult
+parseN3fromString =
+    either Error Result . parseAnyfromString document Nothing 
 
-parseN3fromString :: String -> ParseResult
-parseN3fromString input =
-        case parseAnyfromString document Nothing input of
-            Left  err -> Error err
-            Right gr  -> Result gr
-
-parseN3fromString' :: String -> Either String RDFGraph
-parseN3fromString' = parseAnyfromString document' Nothing 
+-- | Parse a string with an optional base URI.
+--            
+-- See also 'parseN3fromString'.            
+--
+parseN3 ::
+  String -- ^ input in N3 format.
+  -> Maybe QName -- ^ optional base URI
+  -> ParseResult
+parseN3 inp mbase = either Error Result $ parseAnyfromString document mbase inp
 
 -- useful for testing
-test' :: String -> RDFGraph
-test' = either error id . parseN3fromString'
-
 test :: String -> RDFGraph
 test = either error id . parseAnyfromString document Nothing
 
--- | Function to supply initial context and parse supplied term
+-- | Function to supply initial context and parse supplied term.
+--
+-- We augment the Parsec error with the context.
 --
 parseAnyfromString :: N3Parser a      -- ^ parser to apply
-                      -> Maybe String -- ^ base URI of the input, or @Nothing@ to use default base value
+                      -> Maybe QName  -- ^ base URI of the input, or @Nothing@ to use default base value
                       -> String       -- ^ input to be parsed
                       -> Either String a
-parseAnyfromString parser base input =
-        let
-            pmap   = LookupMap prefixTable
-            smap   = LookupMap specialTable
-            bmap   = case base of
-                Nothing -> smap
-                Just bs -> mapReplace smap ("base",makeUriScopedName bs)
-            pstate = N3State
-                    { graphState = emptyRDFGraph
-                    , thisNode   = NoNode
-                    , prefixUris = pmap
-                    , syntaxUris = bmap
-                    , nodeGen    = 0
-                    }
-            result = runParser parser pstate "" input
-        in
-            case result of
-                Left  err -> Left  (show err)
-                Right res -> Right res
+parseAnyfromString parser mbase input =
+  let pmap   = LookupMap prefixTable
+      muri   = fmap makeQNameScopedName mbase
+      smap   = LookupMap $ specialTable muri
+      pstate = N3State
+              { graphState = emptyRDFGraph
+              , thisNode   = NoNode
+              , prefixUris = pmap
+              , syntaxUris = smap
+              , nodeGen    = 0
+              , keywordsList = ["a", "is", "of", "true", "false"] -- not 100% sure about true/false here
+              , allowLocalNames = False
+              }
+  
+      puri = case mbase of
+        Just base -> fmap showURI $ appendUris (getQNameURI base) "#"
+        _ -> Right "#"
+
+      -- this is getting a bit ugly
+        
+  in case puri of
+    Left emsg -> Left $ "Invalid base: " ++ emsg
+    Right p -> case runParser parser (setPrefix "" p pstate) "" input of
+      Right res -> Right res
+      Left  err -> Left $ annotateParsecError 1 (lines input) err
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do
   s <- getState
-  let n = nodeGen s + 1
+  let n = succ (nodeGen s)
   setState $ s { nodeGen = n } 
   return $ Blank (show n)
   
@@ -332,15 +308,21 @@ parseAltFromString s1 s2 =
 
 parseNameFromString :: String -> Either String String
 parseNameFromString =
-    parseAnyfromString name Nothing
+    parseAnyfromString n3Name Nothing
 
 parsePrefixFromString :: String -> Either String Namespace
 parsePrefixFromString =
-    parseAnyfromString prefix Nothing
+    parseAnyfromString p Nothing
+      where
+        p = do
+          pref <- n3Name
+          st   <- getState
+          return (getPrefixNs st pref)   -- map prefix to namespace
 
 parseAbsURIrefFromString :: String -> Either String String
 parseAbsURIrefFromString =
-    parseAnyfromString absUriRef Nothing
+    parseAnyfromString (fmap showURI explicitURI) Nothing
+    -- parseAnyfromString absUriRef Nothing
 
 parseLexURIrefFromString :: String -> Either String String
 parseLexURIrefFromString =
@@ -348,7 +330,8 @@ parseLexURIrefFromString =
 
 parseURIref2FromString :: String -> Either String ScopedName
 parseURIref2FromString =
-    parseAnyfromString uriRef2 Nothing
+    parseAnyfromString n3symbol Nothing
+    -- parseAnyfromString uriRef2 Nothing
 
 ----------------------------------------------------------------------
 --  Syntax productions
@@ -356,47 +339,68 @@ parseURIref2FromString =
 
 {-
  TODO:
-  - update to latest specification
-  - deal with whitespace which is ignored in the grammar
-    => use lexeme style combinators
-
-At present introducing new productions by appending ' to the rule name,
-if possible, and changing to camel case.
-
-The latest syntax is
-
-
+    - this parser is a *lot* slower than the original one
+  
 -}
 
--- new helper routines
+-- helper routines
 
-comma', colon' , semiColon' , fullStop' :: N3Parser ()
-comma' = symbol "," >> return ()
-colon' = symbol ":" >> return ()
-semiColon' = symbol ";" >> return ()
-fullStop' = symbol "." >> return ()
+comma, semiColon , fullStop :: N3Parser ()
+comma = ignore $ symbol ","
+semiColon = ignore $ symbol ";"
+fullStop = ignore $ symbol "."
 
--- TODO: need to check the keywords list to see whether a
--- '@' is needed here
+-- a specialization of bracket/between 
+br :: String -> String -> N3Parser a -> N3Parser a
+br lsym rsym = between (symbol lsym) (symbol rsym)
+
+-- The @ character is optional if the keyword is in the
+-- keyword list
 --
-atWord' :: String -> N3Parser String
-atWord' s = (lexeme $ string $ '@' : s) >> return s
+atSign :: String -> N3Parser ()
+atSign s = do
+  st <- getState
+  
+  let p = ignore $ char '@'
+  
+  if s `elem` getKeywordsList st
+    then PC.optional p
+    else p
+         
+atWord :: String -> N3Parser String
+atWord s = do
+  atSign s
+  
+  -- TODO: does it really make sense to add the not-followed-by-a-colon rule here?
+  -- apply to both cases even though should only really be necessary
+  -- when the at sign is not given
+  --
+  lexeme $ string s *> notFollowedBy (char ':')
+  return s
 
-{-
--- Do we need symbol here, or can we use char/string where appropriate?
-br' :: String -> String -> N3Parser a -> N3Parser a
-br' lsym rsym = between (symbol lsym) (symbol rsym)
--}
+showURI :: URI -> String
+showURI u = uriToString id u ""
 
 -- TODO: look at using URIs throughout
 getScopedNameURI' :: URI -> String
-getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
+getScopedNameURI' = showURI
+-- getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
 
-mkTypedLit ::
-  ScopedName -- ^ the type
-  -> String -- ^ the value
-  -> RDFLabel
-mkTypedLit u v = Lit v (Just u)
+operatorLabel :: ScopedName -> N3Parser RDFLabel
+{-
+operatorLabel snam = do
+  s <- getState
+  return $ Res $ getPrefixScopedName s snam
+-}
+operatorLabel snam = (Res . flip getPrefixScopedName snam) <$> getState
+
+-- Add statement to graph in N3 parser state
+
+addStatement :: RDFLabel -> RDFLabel -> RDFLabel -> N3Parser ()
+addStatement s p o = updateState (updateGraph (addArc (arc s p o) ))
+
+addStatementRev :: RDFLabel -> RDFLabel -> RDFLabel -> N3Parser ()
+addStatementRev o p s = addStatement s p o
 
 {-
 A number of productions require a name, which starts with
@@ -407,31 +411,32 @@ and then has
 
 [\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
 
-we encode this as the n3Name' production
+we encode this as the n3Name production
 -}
 
-initChar' , bodyChar' :: String
-initChar' =
+initChar , bodyChar :: String
+initChar =
   ['A'..'Z'] ++ "_" ++ ['a'..'z'] ++
   map chr 
   ([0x00c0..0x00d6] ++ [0x00d8..0x00f6] ++ [0x00f8..0x02ff] ++ [0x0370..0x037d] ++ [0x037f..0x1fff] ++ [0x200c..0x200d] ++ [0x2070..0x218f] ++ [0x2c00..0x2fef] ++ [0x3001..0xd7ff] ++ [0xf900..0xfdcf] ++ [0xfdf0..0xfffd] ++ [0x00010000..0x000effff])
-bodyChar' = 
+bodyChar = 
   '-' : ['0'..'9'] ++ ['A'..'Z'] ++ "_" ++ ['a'..'z'] ++
   map chr
   (0x00b7 : [0x00c0..0x00d6] ++ [0x00d8..0x00f6] ++ [0x00f8..0x037d] ++ [0x037f..0x1fff] ++ [0x200c..0x200d] ++ [0x203f..0x2040] ++ [0x2070..0x218f] ++ [0x2c00..0x2fef] ++ [0x3001..0xd7ff] ++ [0xf900..0xfdcf] ++ [0xfdf0..0xfffd] ++ [0x00010000..0x000effff])
 
-n3Name' :: N3Parser String
-n3Name' = (:) <$> n3Init' <*> n3Body'
+n3Name :: N3Parser String
+n3Name = (:) <$> n3Init <*> n3Body
   where
-    n3Init' = oneOf initChar' <?> "Initial character"
-    n3Body' = many (oneOf bodyChar') <?> "Body of name"
+    n3Init = oneOf initChar <?> "Initial character of a name"
+    n3Body = many (oneOf bodyChar) <?> "Body of the name"
 
 {-
 quickvariable ::=	\?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
 -}
 
-quickVariable' :: N3Parser RDFLabel
-quickVariable' = Var <$> (char '?' *> n3Name') <?> "quickvariable"
+-- TODO: is mapping to Var correct?
+quickVariable :: N3Parser RDFLabel
+quickVariable = char '?' *> (Var <$> n3Name) <?> "quickvariable"
 
 {-
 string ::=	("""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*""")|("[^"\\]*(?:\\.[^"\\]*)*")
@@ -442,48 +447,114 @@ string ::= tripleQuoted | singleQUoted
 
 -}
 
-string' :: N3Parser String
-string' = try tripleQuoted' <|> singleQuoted' <?> "string"
+n3string :: N3Parser String
+n3string = tripleQuoted <|> singleQuoted <?> "string"
 
 {-
 singleQuoted ::=  "[^"\\]*(?:\\.[^"\\]*)*"
 
-single quoted strings can not contain a " or a new-line character;
-are there any others we should exclude?
+asciiChars :: String
+asciiChars = map chr [0x20..0x7e]
+
+asciiCharsN3 :: String
+asciiCharsN3 = filter (`notElem` "\\\"") asciiChars
 
 -}
-singleQuoted' :: N3Parser String
-singleQuoted' = between sQuot sQuot $ many (noneOf "\"\n")
-  where
-    sQuot = char '"'
+
+-- the grammer has only upper-case A-F but some lower case values
+-- seen in the wild, so support them
+--
+ntHexDigit :: N3Parser Char
+ntHexDigit = oneOf $ ['0'..'9'] ++ ['A'..'F'] ++ ['a'..'f']
+
+hex4 :: N3Parser Char
+hex4 = do
+  digs <- count 4 ntHexDigit
+  let dstr = "0x" ++ digs
+      dchar = read dstr :: Int
+  return $ chr dchar
+        
+hex8 :: N3Parser Char
+hex8 = do
+  digs <- count 8 ntHexDigit
+  let dstr = "0x" ++ digs
+      dchar = read dstr :: Int
+  if dchar <= 0x10FFFF
+    then return $ chr dchar
+    else unexpected "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
+
+{-
+This is very similar to NTriples accept that also allow the escaping of '
+even though it is not required.
+
+The Python rules allow \N{name}, where name is the Unicode name. It's
+not clear whether we need to support this too, so for now we do not.
+
+-}
+protectedChar :: N3Parser Char
+protectedChar =
+  (char 't' *> return '\t')
+  <|> (char 'n' *> return '\n')
+  <|> (char 'r' *> return '\r')
+  <|> (char '"' *> return '"')
+  <|> (char '\'' *> return '\'')
+  <|> (char '\\' *> return '\\')
+  <|> (char 'u' *> hex4)
+  <|> (char 'U' *> hex8)
+
+-- Accept an escape character or any character as long as it isn't
+-- a new-line or quote. Unrecognized escape sequences should therefore
+-- be left alone by this. 
+--
+n3Character :: N3Parser Char
+n3Character = 
+  (char '\\' *> (protectedChar <|> return '\\'))
+  <|> noneOf "\"\n"
+      
+{-
+      <|> (oneOf asciiCharsN3 <?> "ASCII character")
+              -- TODO: bodyChar and asciiCharsN3 overlap
+      <|> (oneOf bodyChar <?> "Unicode character")
+-}              
+
+sQuot :: N3Parser Char
+sQuot = char '"'
+
+singleQuoted :: N3Parser String
+singleQuoted = between sQuot sQuot $ many n3Character
     
 {-
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
-
-TODO: we do NOT match this at present
 -}
-tripleQuoted' :: N3Parser String
-tripleQuoted' = between tQuot tQuot $ many (noneOf "\"")
+tripleQuoted :: N3Parser String
+tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n') tQuot
   where
-    tQuot = char '"' *> char '"' *> char '"'
+    tQuot = try (count 3 sQuot)
 
-getDefaultPrefix' :: N3Parser Namespace
-getDefaultPrefix' = do
+getDefaultPrefix :: N3Parser Namespace
+getDefaultPrefix = do
   s <- getState
   return (getPrefixNs s "")
 
-addBase' :: URI -> N3Parser ()
-addBase' = updateState . setSUri "base" . getScopedNameURI'
+addBase :: URI -> N3Parser ()
+addBase = updateState . setSUri "base" . getScopedNameURI'
 
-addPrefix' :: Maybe String -> URI -> N3Parser ()
-addPrefix' p = updateState . setPrefix (fromMaybe "" p) . getScopedNameURI'
+addPrefix :: Maybe String -> URI -> N3Parser ()
+addPrefix p = updateState . setPrefix (fromMaybe "" p) . getScopedNameURI'
+
+{-|
+Update the set of keywords that can be given without
+an @ sign.
+-}
+updateKeywordsList :: [String] -> N3Parser ()
+updateKeywordsList = updateState . setKeywordsList
 
 {-
 document ::=		|	statements_optional EOF
 -}
 
-document' :: N3Parser RDFGraph
-document' = mkGr <$> (whiteSpace *> statementsOptional' *> eof *> getState)
+document :: N3Parser RDFGraph
+document = mkGr <$> (whiteSpace *> statementsOptional *> eof *> getState)
   where
     mkGr s = setNamespaces (prefixUris s) (graphState s)
 
@@ -493,8 +564,8 @@ statements_optional ::=		|	statement  "."  statements_optional
 
 -}
 
-statementsOptional' :: N3Parser ()
-statementsOptional' = endBy (lexeme statement') fullStop' >> return ()
+statementsOptional :: N3Parser ()
+statementsOptional = ignore $ endBy (lexeme statement) fullStop
     
 {-
 statement ::=		|	declaration
@@ -504,12 +575,14 @@ statement ::=		|	declaration
 
 -}
 
-statement' :: N3Parser ()
-statement' =
-  try declaration'
-  -- <|> try existential'      TODO: put back in
-  -- <|> try universal'        TODO: put back in
-  <|> simpleStatement'
+statement :: N3Parser ()
+statement =
+  declaration
+  <|> existential
+  <|> universal
+  <|> simpleStatement
+  -- having an error here leads to less informative errors in general, it seems
+  -- <?> "statement (existential or universal quantification or a simple statement)"
   
 {-
 declaration ::=		|	 "@base"  explicituri
@@ -517,46 +590,63 @@ declaration ::=		|	 "@base"  explicituri
 		|	 "@prefix"  prefix explicituri
 -}
 
--- TODO: keywords needs to be able to change the parser?
---       in other words, need actions based on these results
---       not just production rules
-
-declaration' :: N3Parser ()
-declaration' = do
-  (try (atWord' "base") >> explicitURI' >>= addBase')
+-- TODO: do we need the try statements here? atWord would need to have a try on '@'
+-- (if applicable) which should mean being able to get rid of try
+--
+declaration :: N3Parser ()
+declaration = do
+  (try (atWord "base") >> explicitURI >>= addBase)
   <|>
-  (try (atWord' "keywords") >> barenameCsl' >>= const undefined) -- fail "NEED TO HANDLE keywords") -- TODO support
+  (try (atWord "keywords") >> bareNameCsl >>= updateKeywordsList)
   <|>
-  (try (atWord' "prefix") >> lexeme prefix' >>= \p -> explicitURI' >>= \u -> addPrefix' p u)
+  (try (atWord "prefix") *> getPrefix)
   <?> "declaration"
   
+getPrefix :: N3Parser ()  
+getPrefix = do
+  p <- lexeme prefix
+  u <- explicitURI
+  addPrefix p u
+
 {-
 explicituri ::=	<[^>]*>
 
 Note: white space is to be ignored within <>
 -}
 
-explicitURI' :: N3Parser URI
-explicitURI' = do
+explicitURI :: N3Parser URI
+explicitURI = do
   let lb = char '<'
       rb = char '>'
   
+  -- TODO: do the whitespace definitions match?
   ustr <- between lb (rb <?> "end of URI '>'") $ many (satisfy (/= '>'))
   let uclean = filter (not . isSpace) ustr
-  case parseURI uclean of
-    Just absuri -> return absuri
-    
-    _ -> case parseURIReference uclean of
-      Just reluri -> do
-        s <- getState
-        let base = getSUri s "base"
-            baseuri = fromJust $ parseURI base
-        case relativeTo reluri baseuri of
-          Just resuri -> return resuri
-          _ -> fail ("Unable to append <" ++ uclean ++ "> to base=<" ++ base ++ ">")
-          
-      _ -> fail ("Invalid URI: <" ++ uclean ++ ">")
       
+  s <- getState
+  let base = getSUri s "base"
+      
+  case appendUris base uclean of 
+    Right uri -> return uri
+    Left emsg -> fail emsg
+      
+appendUris :: String -> String -> Either String URI
+appendUris base uri =
+  case parseURI uri of
+    Just absuri -> Right absuri
+    _ -> case parseURIReference uri of
+      Just reluri -> 
+        let baseuri = fromJust $ parseURI base
+        in case relativeTo reluri baseuri of
+          Just resuri -> Right resuri
+          _ -> Left $ "Unable to append <" ++ uri ++ "> to base=<" ++ base ++ ">"
+          
+      _ -> Left $ "Invalid URI: <" ++ uri ++ ">"
+      
+-- production from the old parser
+lexUriRef :: N3Parser String
+lexUriRef = fmap showURI $ lexeme explicitURI
+
 {-
 barename ::=	[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
 barename_csl ::=		|	barename barename_csl_tail
@@ -565,20 +655,19 @@ barename_csl_tail ::=		|	 ","  barename barename_csl_tail
 		|	void
 -}
 
-barenameCsl' :: N3Parser [String]
-barenameCsl' = sepBy barename' comma'
+bareNameCsl :: N3Parser [String]
+bareNameCsl = sepBy (lexeme bareName) comma
 
-barename' :: N3Parser String
-barename' = n3Name' <?> "barename"
+bareName :: N3Parser String
+bareName = n3Name <?> "barename"
 
 {-
 prefix ::=	([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*)?:
 -}
 
-prefix' :: N3Parser (Maybe String)
-prefix' = (char ':' *> return Nothing)
-          <|> (Just <$> lexeme n3Name' <* char ':')
-          <?> "prefix name"
+prefix :: N3Parser (Maybe String)
+prefix = optional (lexeme n3Name) <* char ':'
+         <?> "prefix name"
 
 {-
 symbol ::=		|	explicituri
@@ -590,19 +679,24 @@ symbol_csl_tail ::=		|	 ","  symbol symbol_csl_tail
 
 -}
 
-symbol' :: N3Parser ScopedName
-symbol' = 
-  ((makeUriScopedName . showURI) <$> explicitURI')
-  <|> qname'
+n3symbol :: N3Parser ScopedName
+n3symbol = 
+  ((makeUriScopedName . showURI) <$> explicitURI)
+  <|> qname
+  <?> "symbol"
 
-symbolCsl' :: N3Parser [ScopedName]
-symbolCsl' = sepBy symbol' comma'
+symbolCsl :: N3Parser [ScopedName]
+symbolCsl = sepBy (lexeme n3symbol) comma
 
 {-
 qname ::=	(([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*)?:)?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
 
-TODO: - what does a qname of foo mean (is it the same as :foo)?
-For now we do not support this part of the production rule
+Turtle appears to support ':' as a valid qname, which is not
+supported by the above production. Let's support and see
+what happens. This support may be removed since, if we allow
+white space between : and prefix or local name then statements like
+   : a : b : c .
+are not parseable.
 
 TODO:
   Note that, for now, we explicitly handle blank nodes
@@ -611,36 +705,68 @@ TODO:
   and so shouldn't we do the same thing there too?
 -}
 
-qname' :: N3Parser ScopedName
-qname' =
-  try (ScopedName <$> matchPrefix' <*> (colon' *> n3Name'))
-  <|> (colon' *> (ScopedName <$> getDefaultPrefix' <*> n3Name'))
-  -- <|> ScopedName <$> getDefaultPrefix' <*> n3Name' -- TODO: is this correct for a 'bare' qname with no preceeding ':'?
+qname :: N3Parser ScopedName
+qname =
+  (char ':' *> toSN getDefaultPrefix)
+  <|> (n3Name >>= fullOrLocalQName)
   <?> "QName"
-
-matchPrefix' :: N3Parser Namespace
-matchPrefix' = getPrefixNs <$> getState <*> n3Name'
+    where
+      toSN p = ScopedName <$> p <*> (n3Name <|> return "")
+          
+fullOrLocalQName :: String -> N3Parser ScopedName
+fullOrLocalQName name = 
+  (char ':' *> fullQName name)
+  <|> localQName name
+  
+fullQName :: String -> N3Parser ScopedName
+fullQName name = do
+  pre <- findPrefix name
+  lname <- n3Name <|> return ""
+  return $ ScopedName pre lname
+  
+findPrefix :: String -> N3Parser Namespace
+findPrefix pre = do
+  st <- getState
+  case mapFindMaybe pre (prefixUris st) of
+    Just uri -> return $ Namespace pre uri
+    Nothing  -> unexpected $ "Prefix '" ++ pre ++ ":' not bound."
+  
+localQName :: String -> N3Parser ScopedName
+localQName name = do
+  st <- getState
+  if getAllowLocalNames st
+    then do
+      pre <- getDefaultPrefix
+      return $ ScopedName pre name
+    
+    else fail "Invalid 'bare' word" -- TODO: not ideal error message; can we handle this case differently?
 
 {-
 existential ::=		|	 "@forSome"  symbol_csl
+
+For now we just read in the symbols and ignore them,
+since we do not mark blank nodes as existentially quantified
+(we assume this is the case).
+
+TODO: fix this?
 -}
 
-existential' :: N3Parser ()
-existential' = atWord' "forSome" *> symbolCsl' >>= undefined -- TODO support
+existential :: N3Parser ()
+existential = try (atWord "forSome") *> symbolCsl >> return ()
 
 {-
 simpleStatement ::=		|	subject propertylist
 -}
 
-simpleStatement' :: N3Parser ()
-simpleStatement' = subject' >>= propertyListWith'
+simpleStatement :: N3Parser ()
+simpleStatement = subject >>= propertyListWith
   
 {-
 subject ::=		|	expression
 -}
 
-subject' :: N3Parser RDFLabel
-subject' = lexeme expression'
+subject :: N3Parser RDFLabel
+subject = lexeme expression
 
 {-
 expression ::=		|	pathitem pathtail
@@ -650,16 +776,19 @@ pathtail ::=		|	 "!"  expression
 
 -}
 
-expression' :: N3Parser RDFLabel
-expression' = do
-  i <- pathItem'
-  mpt <- optionMaybe $
-        ( (,) <$> lexeme (char '!' <|> char '^') <*> lexeme expression' )
+expression :: N3Parser RDFLabel
+expression = do
+  i <- pathItem
+  
+  let backwardExpr = char '!' *> return addStatementRev 
+      forwardExpr  = char '^' *> return addStatement
+  
+  mpt <- optional $
+        ( (,) <$> lexeme (forwardExpr <|> backwardExpr) <*> lexeme expression )
   case mpt of
     Nothing -> return i 
-    Just (c, pt) -> do
+    Just (addFunc, pt) -> do
       bNode <- newBlankNode
-      let addFunc = if c == '!' then addStatementRev else addStatement
       addFunc bNode pt i
       return bNode
   
@@ -681,89 +810,52 @@ of the call to know where to add them.
 
 TOOD: may include direct support for blank nodes here,
 namely convert _:stringval -> Blank stringval since although
-this should be done by symbol' the types don't seem to easily match
+this should be done by symbol the types don't seem to easily match
 up (at first blush anyway)
 -}
 
-pathItem' :: N3Parser RDFLabel
-pathItem' = 
-  br "(" ")" pathList'
-  <|> br "[" "]" propertyListBNode'
-  <|> br "{" "}" formulaContent'
-  <|> try boolean'
-  <|> literal'
-  <|> numericLiteral'
-  <|> quickVariable'
-  <|> Blank <$> (char '_' *> colon' *> n3Name') -- TODO a hack that needs fixing
-  <|> Res <$> symbol'
+pathItem :: N3Parser RDFLabel
+pathItem = 
+  br "(" ")" pathList
+  <|> br "[" "]" propertyListBNode
+  <|> br "{" "}" formulaContent
+  <|> try boolean
+  <|> literal
+  <|> numericLiteral
+  <|> quickVariable
+  <|> Blank <$> (string "_:" *> n3Name) -- TODO a hack that needs fixing
+  <|> Res <$> n3symbol
   <?> "pathitem"
   
 {-  
 we create a blank node for the list and return it, whilst
 adding the list contents to the graph
-
-TODO: could use Data.Foldable.foldrM but N3Parser is not
-an instance of Foldable, so just use Control.Monad.foldM
-and reverse the list.
-
-Although semantically the same as the original Swish parser,
-we do work 'backwards', so that the first blank node created
-is for the last element in the list, rather than being the
-list itself as with the old approach.
-
-Hmm, I note that if
-  
-  let gr1 = test "<urn:a> <urn:b> ( ) ."
-      gr2 = test' "<urn:a> <urn:b> ( ) ."
-
-or
-
-  let gr1 = test "<urn:a> <urn:b> ( <urn:c> <urn:d> ) ."
-      gr2 = test' "<urn:a> <urn:b> ( <urn:c> <urn:d> ) ."
-
-then
-
-  gr1 == gr2
-
-but if we use bnodes they do not compare equal
-
-  let gr1 = test "<urn:a> <urn:b> ( _:aa ) ."
-      gr2 = test' "<urn:a> <urn:b> ( _:aa ) ."
-
-  gr1 /= gr2
-
-(in this case gr1 == gr1 and gr2 == gr2, so it's something to do with
-compaing blank nodes between graphs):
-
-*Swish.HaskellRDF.N3Parser> gr1
-Graph, formulae: 
-arcs: 
-    (<urn:a>,<urn:b>,_:1)
-    (_:1,rdf:rest,rdf:nil)
-    (_:1,rdf:first,_:aa)
-
-*Swish.HaskellRDF.N3Parser> gr2
-Graph, formulae: 
-arcs: 
-    (<urn:a>,<urn:b>,_:1)
-    (_:1,rdf:rest,rdf:nil)
-    (_:1,rdf:first,_:aa)
-
 -}
-pathList' :: N3Parser RDFLabel
-pathList' = do
-  cts <- many (lexeme expression') <?> "pathlist"
+pathList :: N3Parser RDFLabel
+pathList = do
+  cts <- many (lexeme expression) <?> "pathlist"
   eNode <- operatorLabel rdf_nil
-  foldM addElem eNode (reverse cts)
-  where
-    addElem prevNode curElem = do
-      bNode <- newBlankNode
+  case cts of
+    [] -> return eNode
+      
+    (c:cs) -> do
+      sNode <- newBlankNode
       first <- operatorLabel rdf_first
+      addStatement sNode first c
+      lNode <- foldM addElem sNode cs
       rest <- operatorLabel rdf_rest
-      addStatement bNode first curElem
-      addStatement bNode rest prevNode
-      return bNode
-  
+      addStatement lNode rest eNode
+      return sNode
+
+    where      
+      addElem prevNode curElem = do
+        bNode <- newBlankNode
+        first <- operatorLabel rdf_first
+        rest <- operatorLabel rdf_rest
+        addStatement prevNode rest bNode
+        addStatement bNode first curElem
+        return bNode
+        
 {-
 formulacontent ::=		|	statementlist
 
@@ -780,30 +872,47 @@ productions from the origial parser.
 
 TODO: is it correct?
 -}
-formulaContent' :: N3Parser RDFLabel
-formulaContent' = do
+formulaContent :: N3Parser RDFLabel
+formulaContent = do
   bNode <- newBlankNode
   pstate <- getState
   let fstate = pstate { graphState = emptyRDFGraph, thisNode = bNode }
   setState fstate
-  statementList'
+  statementList
   fstate' <- getState
   let nstate = pstate { nodeGen = nodeGen fstate' }
   setState nstate
   updateState $ updateGraph $ setFormula (Formula bNode (graphState fstate'))
   return bNode
   
-statementList' :: N3Parser ()
-statementList' = sepEndBy (lexeme statement') fullStop' *> return ()
+-- need to work out what is going on here
+subgraph :: RDFLabel -> N3Parser RDFGraph
+subgraph = undefined
+
+{-
+subgraph :: RDFLabel -> N3Parser RDFGraph
+subgraph this = do
+  pstate <- getState
+  let fstate = pstate { graphState = emptyRDFGraph, thisNode = this }
+  setState fstate       -- switch new state into parser
+  statements            -- parse statements of formula
+  fstate' <- getState
+  let nstate = pstate { nodeGen = nodeGen fstate' }
+  setState nstate       -- swap back state, with updated nodeGen
+  return (graphState fstate')
+-}
+
+statementList :: N3Parser ()
+statementList = ignore $ sepEndBy (lexeme statement) fullStop
 
 {-
 boolean ::=		|	 "@false" 
 		|	 "@true" 
 -}
 
-boolean' :: N3Parser RDFLabel
-boolean' = mkTypedLit xsd_boolean <$> 
-           (atWord' "false" <|> atWord' "true")
+boolean :: N3Parser RDFLabel
+boolean = mkTypedLit xsd_boolean <$> 
+          (try (atWord "false") <|> atWord "true")
            
 {-
 dtlang ::=		|	 "@"  langcode
@@ -815,17 +924,17 @@ langcode ::=	[a-z]+(-[a-z0-9]+)*
 
 -}
 
-literal' :: N3Parser RDFLabel
-literal' = Lit <$> string' <*> optionMaybe dtlang'
+literal :: N3Parser RDFLabel
+literal = Lit <$> n3string <*> optionMaybe dtlang
   
-dtlang' :: N3Parser ScopedName
-dtlang' = 
-  (char '@' *> langcode' <?> "langcode")
-  <|> (try (string "^^") *> symbol')
+dtlang :: N3Parser ScopedName
+dtlang = 
+  (char '@' *> langcode <?> "langcode")
+  <|> (try (string "^^") *> n3symbol)
   <?> "dtlang"
 
-langcode' :: N3Parser ScopedName
-langcode' = do
+langcode :: N3Parser ScopedName
+langcode = do
   h <- (many1 $ oneOf ['a'..'z']) <?> "start of langcode (a to z)"
   mt <- optionMaybe ( (:) <$> char '-' <*> many1 (oneOf (['a'..'z'] ++ ['0'..'9']))) <?> "a to z or 0 to 9 (langcode after the hyphen)"
   return $ langName $ h ++ fromMaybe "" mt
@@ -839,29 +948,29 @@ numericliteral ::=		|	decimal
 		|	integer
 -}
 
-numericLiteral' :: N3Parser RDFLabel
-numericLiteral' =
-  try (mkTypedLit xsd_double <$> double')
-  <|> try (mkTypedLit xsd_decimal <$> decimal')
-  <|> mkTypedLit xsd_integer <$> integer'
+numericLiteral :: N3Parser RDFLabel
+numericLiteral =
+  try (mkTypedLit xsd_double <$> n3double)
+  <|> try (mkTypedLit xsd_decimal <$> n3decimal)
+  <|> mkTypedLit xsd_integer <$> n3integer
   <?> "numericliteral"
 
-sign' :: N3Parser Char
-sign' = char '+' <|> char '-'
+n3sign :: N3Parser Char
+n3sign = char '+' <|> char '-'
 
-integer' :: N3Parser String
-integer' = do
-  ms <- optionMaybe sign'
+n3integer :: N3Parser String
+n3integer = do
+  ms <- optionMaybe n3sign
   ds <- many1 digit
   case ms of
     Just s -> return $ s : ds
     _ -> return ds
 
-decimal' :: N3Parser String
-decimal' = (++) <$> integer' <*> ( (:) <$> char '.' <*> many1 digit )
+n3decimal :: N3Parser String
+n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many1 digit )
            
-double' :: N3Parser String  
-double' = (++) <$> decimal' <*> ( (:) <$> oneOf "eE" <*> integer' )
+n3double :: N3Parser String  
+n3double = (++) <$> n3decimal <*> ( (:) <$> oneOf "eE" <*> n3integer )
 
 {-
 propertylist ::=		|	verb object objecttail propertylisttail
@@ -871,9 +980,9 @@ propertylisttail ::=		|	 ";"  propertylist
 
 -}
 
-propertyListBNode' :: N3Parser RDFLabel
-propertyListBNode' = do
-  plist <- sepBy ((,) <$> lexeme verb' <*> objectList') semiColon'
+propertyListBNode :: N3Parser RDFLabel
+propertyListBNode = do
+  plist <- sepEndBy ((,) <$> lexeme verb <*> objectList) semiColon
   bNode <- newBlankNode
   let addList (vrb,items) = mapM_ (addItem vrb) items
       addItem (True,vrb) obj  = addStatement bNode vrb obj
@@ -882,9 +991,9 @@ propertyListBNode' = do
   forM_ plist addList
   return bNode
 
-propertyListWith' :: RDFLabel -> N3Parser ()
-propertyListWith' subj = 
-  sepBy (lexeme verb' >>= objectListWith' subj) semiColon' *> return ()
+propertyListWith :: RDFLabel -> N3Parser ()
+propertyListWith subj = 
+  ignore $ sepEndBy (lexeme verb >>= objectListWith subj) semiColon
   
 {-
 object ::=		|	expression
@@ -895,24 +1004,24 @@ We change the production rule from objecttail to objectlist for lists of
 objects (may change back)
 -}
 
-object' :: N3Parser RDFLabel
-object' = lexeme expression'
+object :: N3Parser RDFLabel
+object = lexeme expression
 
-objectList' :: N3Parser [RDFLabel]
-objectList' = sepBy1 object' comma'
+objectList :: N3Parser [RDFLabel]
+objectList = sepBy1 object comma
 
-objectWith' :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
-objectWith' subj (flag,vrb) = object' >>= addFunc subj vrb
+objectWith :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
+objectWith subj (flag,vrb) = object >>= addFunc subj vrb
   where
     addFunc = if flag then addStatement else addStatementRev
 
-objectListWith' :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
-objectListWith' subj vrb =
-  sepBy1 (objectWith' subj vrb) comma' *> return ()
+objectListWith :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
+objectListWith subj vrb =
+  ignore $ sepBy1 (objectWith subj vrb) comma
 
 {-
-objectList1' :: N3Parser [RDFLabel]
-objectList1' = sepBy1 object' comma'
+objectList1 :: N3Parser [RDFLabel]
+objectList1 = sepBy1 object comma
 -}
 
 {-
@@ -925,41 +1034,48 @@ verb ::=		|	 "<="
 		|	expression
 -}
 
-verb' :: N3Parser (Bool, RDFLabel)
-verb' = 
+verb :: N3Parser (Bool, RDFLabel)
+verb = 
   -- we check reverse first so that <= is tried before looking for a URI via expression rule
-  ((,) False) <$> verbReverse'
-  <|> ((,) True) <$> verbForward'
+  ((,) False) <$> verbReverse
+  <|> ((,) True) <$> verbForward
   <?> "verb"
 
 -- those verbs for which subject is on the right and object on the left
-verbReverse' :: N3Parser RDFLabel
-verbReverse' =
-  try (string "<=") *> operatorLabel logImplies
-  <|> between (try (atWord' "is")) (atWord' "of") (lexeme expression')
+verbReverse :: N3Parser RDFLabel
+verbReverse =
+  try (string "<=") *> operatorLabel log_implies
+  <|> between (try (atWord "is")) (atWord "of") (lexeme expression)
 
 -- those verbs with subject on the left and object on the right
-verbForward' :: N3Parser RDFLabel
-verbForward' =  
-  (try (string "=>") *> operatorLabel logImplies)
+verbForward :: N3Parser RDFLabel
+verbForward =  
+  (try (string "=>") *> operatorLabel log_implies)
   <|> (string "=" *> operatorLabel owl_sameAs)
-  <|> (try (string "a") *> operatorLabel rdf_type)
-  <|> (atWord' "has" *> lexeme expression')
-  <|> lexeme expression'
+  <|> (try (atWord "a") *> operatorLabel rdf_type)
+  <|> (atWord "has" *> lexeme expression)
+  <|> lexeme expression
 
 {-
 universal ::=		|	 "@forAll"  symbol_csl
+
+TODO: what needs to be done to support universal quantification
 -}
-universal' :: N3Parser ()
-universal' = atWord' "forAll" *> symbolCsl' >>= undefined -- TODO support
+universal :: N3Parser ()
+universal = try (atWord "forAll") *> unexpected "universal (@forAll) currently unsupported." -- *> symbolCsl
+
+{-
 
 -- OLD --
   
+-- helper routines
+
+isymbol :: String -> N3Parser ()
+isymbol s = symbol s >> return ()
+
 --  document         = directive* statement-list
 
 document :: N3Parser RDFGraph
-document = document'
-{-
 document = do
   whiteSpace
   _ <- many directive
@@ -967,7 +1083,6 @@ document = do
   eof
   s <- getState
   return $ setNamespaces (prefixUris s) (graphState s)
--}
     
 --  directive        = "@prefix" prefix ":" uriRef2 "."   // Namespace declaration
 --                   | "@prefix" ":" uriRef2 "."          // Default namespace
@@ -986,10 +1101,6 @@ directive =
   (try (symbol "@prefix") >> (defaultPrefix <|> namedPrefix))
   <|> (string "@" >> syntaxUri)
   <?> "directive"
-
--- a specialization of bracket/between 
-br :: String -> String -> N3Parser a -> N3Parser a
-br lsym rsym = between (symbol lsym) (symbol rsym)
 
 defaultPrefix :: N3Parser ()
 defaultPrefix = do
@@ -1134,7 +1245,6 @@ subgraph this = do
   setState nstate       -- swap back state, with updated nodeGen
   return (graphState fstate')
 
-
 --  prop             = uri-ref2
 --                   | varid
 --
@@ -1159,11 +1269,6 @@ operator =
   <|> (symbol "/" >> operatorLabel operator_slash)
   <?> ""
 
-operatorLabel :: ScopedName -> N3Parser RDFLabel
-operatorLabel snam = do
-  s <- getState
-  return $ Res $ getPrefixScopedName s snam
-
 --  subject          = node
 
 subject :: N3Parser RDFLabel
@@ -1186,14 +1291,6 @@ object subj ppty _ = do
   o <- litNode
   addStatement subj ppty o
         
--- Add statement to graph in N3 parser state
-
-addStatement :: RDFLabel -> RDFLabel -> RDFLabel -> N3Parser ()
-addStatement s p o = updateState (updateGraph (addArc (arc s p o) ))
-
-addStatementRev :: RDFLabel -> RDFLabel -> RDFLabel -> N3Parser ()
-addStatementRev o p s = addStatement s p o
-
 --  nodeList         = litNode*
 --
 --  subj    is the node from which the list is linked.
@@ -1498,9 +1595,6 @@ absoluteUriPart :: String -- ^ URI base
                    -> String
 absoluteUriPart base rel = showURI $ fromJust $ relativeTo (fromJust (parseURIReference rel)) (fromJust (parseURI base))
   
-showURI :: URI -> String
-showURI u = uriToString id u ""
-
 absUriRef :: N3Parser String
 absUriRef = do
   u <- between (char '<') (char '>' <?> "end of URI '>'") anyUriChars
@@ -1521,6 +1615,7 @@ uriChar =
     <|> oneOf "[];?:@&=+$,-_.!~*'()%//#"
     <?> "URI character"
 
+-}
 
 --------------------------------------------------------------------------------
 --

@@ -60,18 +60,6 @@ import Swish.HaskellRDF.RDFGraph
 
 import Swish.HaskellRDF.Vocabulary
     ( namespaceRDF
-{-
-    , namespaceRDFS
-    , namespaceRDFD
-    , namespaceRDFC
-    , namespaceRDFO
-    , namespaceXSD
-    , namespaceXsdType
-    , namespaceOWL
-    , namespaceMATH
-    , namespaceLOG
-    , namespaceDAML
--}
     , namespaceLang, langName, langTag, isLang
     , rdf_type
     , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
@@ -79,7 +67,6 @@ import Swish.HaskellRDF.Vocabulary
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs
-    , operator_plus, operator_minus, operator_slash, operator_star
     )
 
 import System.IO

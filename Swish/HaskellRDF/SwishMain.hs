@@ -13,8 +13,8 @@
 --  Swish:  Semantic Web Inference Scripting in Haskell
 --
 --  This program is a simple skeleton for constructing Semantic Web [1]
---  inference tools in Haskell, using the RDF graph, Notation 3 parser
---  and Notation 3 formatter modules.
+--  inference tools in Haskell, using the RDF graph and several RDF
+--  parsers (at present Notation 3 and NTriples).
 --
 --  It might be viewed as a kind of embroyonic CWM [2] in Haskell, except
 --  that the intent is that Haskell will be used as a primary language for
@@ -44,16 +44,21 @@
 --
 --  * Add RDF/XML input and output
 --
---  * Add N-triples input and output
+--  * Add Turtle and related formats for input and output
 --
 --------------------------------------------------------------------------------
 
-module Swish.HaskellRDF.SwishMain(runSwish,runSwishArgs) where
+module Swish.HaskellRDF.SwishMain (
+  SwishStatus(..),
+  runSwish,
+  runSwishArgs
+  ) where
 
 import Paths_swish (version)
 
 import Swish.HaskellRDF.SwishCommands
     ( swishFormat
+    , swishBase
     , swishInput
     , swishOutput
     , swishMerge
@@ -63,29 +68,25 @@ import Swish.HaskellRDF.SwishCommands
     )
 
 import Swish.HaskellRDF.SwishMonad
-    ( SwishStateIO, SwishState(..)
+    ( SwishStateIO, SwishState(..), SwishStatus(..)
     , emptyState
     , SwishFormat(..)
     , swishError
     , reportLines 
     )
 
-import Swish.HaskellUtils.ListHelpers
-    ( breakAll )
+import Swish.HaskellUtils.QName (qnameFromURI)
+import Swish.HaskellUtils.ListHelpers (breakAll)
 
-import Control.Monad.State
-    ( execStateT )
+import Control.Monad.State (execStateT)
+import Control.Monad (liftM)
 
-import Data.Char
-    ( isSpace )
+import Network.URI (parseURI)
 
+import Data.Char (isSpace)
 import Data.Version (showVersion)
 
-import Control.Monad
-    ( when )
-
-import System.Exit
-    ( ExitCode(ExitSuccess) )
+import System.Exit (ExitCode(ExitSuccess, ExitFailure))
 
 ------------------------------------------------------------
 --  Command line description
@@ -102,7 +103,9 @@ usageText =
     , "any of the following:"
     , "-h        display this message."
     , "-?        display this message."
-    , "-n3       use Notation3 format for subsequent input and output."
+    , "-q        do not display Swish version on start up."
+    , "-nt       use Ntriples format for subsequent input and output."
+    , "-n3       use Notation3 format for subsequent input and output (default)"
     , "-i[=file] read file in selected format into the graph workspace,"
     , "          replacing any existing graph."
     , "-m[=file] merge file in selected format with the graph workspace."
@@ -112,6 +115,8 @@ usageText =
     , "          to the standard output stream."
     , "-o[=file] write the graph workspace to a file in the selected format."
     , "-s[=file] read and execute Swish script commands from the named file."
+    , "-b[=base] set or clear the base URI. The semantics of this are not"
+    , "          fully defined yet."
     , ""
     , "    If an optional filename value is omitted, the standard input"
     , "    or output stream is used, as appropriate."
@@ -126,18 +131,18 @@ usageText =
     , ""
     , "Examples:"
     , ""
-    , "swish -n3 -i=file"
+    , "swish -i=file"
     , "    read file as Notation3, and report any syntax errors."
-    , "swich -n3 -i=file1 -c=file2"
+    , "swish -i=file1 -o=file2"
+    , "    read file1 as Notation3, report any syntax errors, and output the"
+    , "    resulting graph as reformatted Notation3 (the output format"
+    , "    is not perfect but may be improved)."
+    , "swish -nt -i=file -n3 -o"
+    , "    read file as NTriples and output as Notation3 to the screen."
+    , "swich -i=file1 -c=file2"
     , "    read file1 and file2 as notation3, report any syntax errors, and"
     , "    if both are OK, compare the resulting graphs to indicate whether"
     , "    or not they are equivalent."
-    , "swish -n3 -i=file1 -o=file2"
-    , "    read file1 as Notation3, report any syntax errors, and output the"
-    , "    resulting graph as reformatted Notation3.  (The output may be"
-    , "    unedifying, but is intended to be used to test round-tripping"
-    , "    of Notation 3 data.  The Notation3 formatter may be improved in"
-    , "    subsequent versions.)"
     ]
 
 ------------------------------------------------------------
@@ -161,35 +166,44 @@ swishCommand cmd =
             ""      -> return ()    -- do nothing
             "-?"    -> swishHelp
             "-h"    -> swishHelp
+            "-q"    -> return ()    -- swishVerbose False
+            "-nt"   -> swishFormat NT
             "-n3"   -> swishFormat N3
             "-i"    -> swishInput arg
             "-m"    -> swishMerge arg
             "-c"    -> swishCompare arg
             "-d"    -> swishGraphDiff arg
             "-o"    -> swishOutput arg
+            "-b"    -> setBase arg
             "-s"    -> swishScript arg
-            _       -> swishError ("Invalid command line element: "++cmd) 4
+            _       -> swishError ("Invalid command line element: "++cmd) SwishArgumentError
 
 swishHelp :: SwishStateIO ()
 swishHelp = reportLines usageText
 
+setBase :: String -> SwishStateIO ()
+setBase "" = swishBase Nothing
+setBase bname = do
+  case parseURI bname of 
+    Just _ -> swishBase $ Just $ qnameFromURI bname
+    _ -> swishError ("Skipping invalid base URI <" ++ bname ++ ">") SwishArgumentError
+    
 ------------------------------------------------------------
 --  Interactive test function (e.g. for use in Hugs)
 ------------------------------------------------------------
 
 runSwish :: String -> IO ExitCode
-runSwish cmdline =
-    do  { let args = breakAll isSpace cmdline
-        ; ec <- runSwishArgs args
-        ; when (ec /= ExitSuccess) (putStrLn $ "Swish exit: "++show ec)
-        ; return ec
-        }
+runSwish cmdline = do
+  let args = breakAll isSpace cmdline
+  ec <- runSwishArgs args
+  if ec == SwishSuccess
+    then return ExitSuccess
+    else do
+      putStrLn $ "Swish exit: "++show ec
+      return $ ExitFailure (fromEnum ec)
 
-runSwishArgs :: [String] -> IO ExitCode
-runSwishArgs args =
-    do  { state <- execStateT (swishCommands args) emptyState
-        ; return $ exitcode state
-        }
+runSwishArgs :: [String] -> IO SwishStatus
+runSwishArgs args = exitcode `liftM` execStateT (swishCommands args) emptyState
 
 --------------------------------------------------------------------------------
 --

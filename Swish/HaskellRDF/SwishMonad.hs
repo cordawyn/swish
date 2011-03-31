@@ -16,13 +16,15 @@
 --------------------------------------------------------------------------------
 
 module Swish.HaskellRDF.SwishMonad
-    ( SwishStateIO, SwishState(..)
-    , setFormat, setGraph
+    ( SwishStateIO, SwishState(..), SwishStatus(..)
+    , setFormat, setBase, setGraph
     , modGraphs, findGraph, findFormula
     , modRules, findRule
     , modRulesets, findRuleset
     , findOpenVarModify, findDatatype
-    , setInfo, resetInfo, setError, resetError, setExitcode
+    , setInfo, resetInfo, setError, resetError
+    , setStatus
+    -- , setVerbose
     , emptyState
     , SwishFormat(..)
     , NamedGraph(..), NamedGraphMap
@@ -59,8 +61,8 @@ import Swish.HaskellRDF.Rule
     ( Formula(..)
     )
 
-import Swish.HaskellUtils.Namespace
-    ( ScopedName(..) )
+import Swish.HaskellUtils.Namespace (ScopedName(..))
+import Swish.HaskellUtils.QName (QName)
 
 import Swish.HaskellUtils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
@@ -69,20 +71,10 @@ import Swish.HaskellUtils.LookupMap
     , mapVals
     )
 
-import Control.Monad
-    ( when )
+import Control.Monad.Trans (MonadTrans(..))
+import Control.Monad.State (StateT(..), modify)
 
-import Control.Monad.Trans
-    ( MonadTrans(..) )
-
-import Control.Monad.State
-    ( modify, StateT(..))
-
-import System.Exit
-    ( ExitCode(ExitSuccess,ExitFailure) )
-
-import System.IO
-    ( hPutStrLn, stderr )
+import System.IO (hPutStrLn, stderr)
 
 ------------------------------------------------------------
 --  State and state monad for Swish program
@@ -91,36 +83,67 @@ import System.IO
 --  Uses StateT Monad transformer:
 --  See example by Mark Carroll at http://www.haskell.org/hawiki/MonadState
 
-data SwishFormat = N3 | NT | RDF
-    deriving (Eq, Show)
+data SwishFormat = N3 | NT -- | RDF
+    deriving Eq
+
+instance Show SwishFormat where
+  show N3  = "N3"
+  show NT  = "Ntriples"
+  -- show RDF = "RDF/XML"
 
 data SwishState = SwishState
     { format    :: SwishFormat
+    , base      :: Maybe QName      -- base to use rather than file name
     , graph     :: RDFGraph         -- current graph
     , graphs    :: NamedGraphMap    -- script processor named graphs
     , rules     :: RDFRuleMap       -- script processor named rules
     , rulesets  :: RDFRulesetMap    -- script processor rulesets
     , infomsg   :: Maybe String     -- information message, or Nothing
     , errormsg  :: Maybe String     -- error message, or Nothing
-    , exitcode  :: ExitCode
+    , exitcode  :: SwishStatus      -- current status message
+    -- , banner    :: Bool             -- display banner
     }
+
+-- | Status of the processor
+--
+data SwishStatus =
+  SwishSuccess               -- ^ successful run
+  | SwishGraphCompareError   -- ^ graphs do not compare
+  | SwishDataInputError      -- ^ input data problem (ie format/syntax)
+  | SwishDataAccessError     -- ^ data access error
+  | SwishArgumentError       -- ^ command-line argument error
+  | SwishExecutionError      -- ^ error executing a Swish script
+    deriving (Eq, Enum)
+
+instance Show SwishStatus where
+  show SwishSuccess           = "Success."
+  show SwishGraphCompareError = "The graphs do not compare as equal."
+  show SwishDataInputError    = "There was a format or syntax error in the input data."
+  show SwishDataAccessError   = "There was a problem accessing data."
+  show SwishArgumentError     = "Argument error: use -h or -? for help."
+  show SwishExecutionError    = "There was a problem executing a Swish script."
 
 type SwishStateIO a = StateT SwishState IO a
 
 emptyState :: SwishState
 emptyState = SwishState
     { format    = N3
+    , base      = Nothing
     , graph     = emptyRDFGraph
     , graphs    = emptyLookupMap
     , rules     = emptyLookupMap
     , rulesets  = rdfRulesetMap
     , infomsg   = Nothing
     , errormsg  = Nothing
-    , exitcode  = ExitSuccess
+    , exitcode  = SwishSuccess
+    -- , banner = True
     }
 
 setFormat :: SwishFormat -> SwishState -> SwishState
 setFormat   fm state = state { format = fm }
+
+setBase :: Maybe QName -> SwishState -> SwishState
+setBase bs state = state { base = bs }
 
 setGraph :: RDFGraph -> SwishState -> SwishState
 setGraph    gr state = state { graph = gr }
@@ -178,9 +201,13 @@ setError msg state = state { errormsg = Just msg }
 resetError :: SwishState -> SwishState
 resetError state = state { errormsg = Nothing }
 
-setExitcode :: ExitCode -> SwishState -> SwishState
-setExitcode ec state = state { exitcode = ec }
+setStatus :: SwishStatus -> SwishState -> SwishState
+setStatus ec state = state { exitcode = ec }
 
+{-
+setVerbose :: Bool -> SwishState -> SwishState
+setVerbose f state = state { banner = f }
+-}
 
 ------------------------------------------------------------
 --  Data types for Swish script dictionaries
@@ -205,12 +232,11 @@ type NamedGraphMap = LookupMap NamedGraph
 --  Report error and set exit status code
 ------------------------------------------------------------
 
-swishError :: String -> Int -> SwishStateIO ()
-swishError msg sts =
-    do  { reportLine msg
-        ; when (sts == 4) $ reportLine "Use 'Swish -h' or 'Swish -?' for help"
-        ; modify $ setExitcode (ExitFailure sts)
-        }
+swishError :: String -> SwishStatus -> SwishStateIO ()
+swishError msg sts = do
+  reportLines [msg, show sts ++ "\n"]
+  -- when (sts == 4) $ reportLine "Use 'Swish -h' or 'Swish -?' for help\n"
+  modify $ setStatus sts
 
 ------------------------------------------------------------
 --  Output text to the standard error stream

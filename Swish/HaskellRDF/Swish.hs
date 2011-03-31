@@ -14,22 +14,17 @@
 --
 --------------------------------------------------------------------------------
 
---     WNH RIP OUT module Swish.HaskellRDF.Swish where
--- module Main where      WNH RIP OUT!!!!
-
 import Paths_swish (version)
+import Data.Version (showVersion)
 
-import Swish.HaskellRDF.SwishMain
-
-import System.Environment
-       ( getArgs )
-
-import System.Exit
-    ( ExitCode(ExitSuccess,ExitFailure), exitWith )
+import System.Environment (getArgs)
+import System.Exit (ExitCode(ExitSuccess,ExitFailure), exitWith)
 
 import Control.Monad (unless)
 
-import Data.Version (showVersion)
+import System.IO (stderr, hPutStrLn)
+
+import Swish.HaskellRDF.SwishMain
 
 ------------------------------------------------------------
 --  Swish main program
@@ -43,14 +38,16 @@ import Data.Version (showVersion)
 
 main :: IO ()
 main = do
-  putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n"
   args <- getArgs
+  unless ("-q" `elem` args) $ reportVersion
   code <- runSwishArgs args
-  unless (code == ExitSuccess) $ 
-    if code == ExitFailure 1
-      then putStrLn "Swish: graphs compare different"
-      else putStrLn $ "Swish: "++show code
-  exitWith code
+  case code of
+    SwishSuccess -> exitWith ExitSuccess
+    _ -> hPutStrLn stderr ("Swish: "++show code) >> 
+         exitWith (ExitFailure (fromEnum code))
+  
+reportVersion :: IO ()
+reportVersion = putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n" 
   
 --------------------------------------------------------------------------------
 --

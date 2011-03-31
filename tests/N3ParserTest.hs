@@ -10,15 +10,14 @@
 --  Stability   :  provisional
 --  Portability :  H98
 --
---  This Module contains test cases for module N3Parses.
+--  This Module contains test cases for module "N3Parser".
 --
 --------------------------------------------------------------------------------
 
---  WNH RIP OUT module Swish.HaskellRDF.N3ParserTest where
+module Main where
 
 import Swish.HaskellRDF.N3Parser
-    ( ParseResult(..)
-    , parseN3fromString
+    ( parseN3fromString, parseN3
     , parseTextFromString, parseAltFromString
     , parseNameFromString, parsePrefixFromString
     , parseAbsURIrefFromString, parseLexURIrefFromString
@@ -26,83 +25,41 @@ import Swish.HaskellRDF.N3Parser
     )
 
 import Swish.HaskellRDF.RDFGraph
-    ( RDFTriple, RDFGraph, RDFLabel(..), NSGraph(..)
+    ( RDFGraph, RDFLabel(..), NSGraph(..)
     -- LookupNamespace(..), Namespace
-    , NamespaceMap, emptyNamespaceMap
-    , LookupFormula(..), Formula, FormulaMap, emptyFormulaMap
-    , setArcs, getArcs, add, delete, extract, labels
-    , setNamespaces
+    , emptyNamespaceMap
+    , LookupFormula(..), emptyFormulaMap
     , emptyRDFGraph, toRDFGraph
       -- Export selected RDFLabel values
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
-    , res_rdfs_member
-    , res_rdfd_GeneralRestriction
-    , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
     , res_owl_sameAs, res_log_implies
-    , res_operator_plus, res_operator_minus
-    , res_operator_slash, res_operator_star
     )
 
 import Swish.HaskellUtils.Namespace
     ( Namespace(..)
-    , makeNamespaceQName
     , nullNamespace
-    , getQName, getScopedNameURI
     , ScopedName(..)
-    , makeScopedName, makeQNameScopedName
+    , makeScopedName
     , nullScopedName
+    , makeUriScopedName
     )
 
 import Swish.HaskellRDF.Vocabulary
     ( namespaceRDF
-    , namespaceRDFS
-    , namespaceRDFD
-    , namespaceRDFC
-    , namespaceRDFO
-    , namespaceXSD
-    , namespaceXsdType
-    , namespaceOWL
-    , namespaceMATH
-    , namespaceLOG
-    , namespaceDAML
-    , namespaceLang, langName
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
-    , rdfs_member
-    , rdfd_GeneralRestriction
-    , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs
-    , operator_plus, operator_minus, operator_slash, operator_star
+    , langName
+    , rdf_XMLLiteral
     )
 
-import Swish.HaskellUtils.LookupMap
-    ( LookupMap(..)
-    , mapFind, mapFindMaybe )
+import Swish.HaskellUtils.QName (QName, qnameFromURI)
+import Swish.HaskellUtils.LookupMap (LookupMap(..))
 
-import Swish.HaskellRDF.GraphClass
-    ( Arc, arcSubj, arcPred, arcObj, arc )
+import Swish.HaskellRDF.GraphClass (Arc, arc) 
 
-import Swish.HaskellUtils.QName
-    ( QName(..) )
+import Swish.HaskellUtils.ErrorM (ErrorM(..))
 
-import Swish.HaskellUtils.ErrorM
-    ( ErrorM(..) )
+import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
-import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
-    , assertEqual, runTestTT, runTestText, putTextToHandle )
-
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn )
-
-------------------------------------------------------------
---  Common values
-------------------------------------------------------------
-
-pref_rdf = nsURI namespaceRDF
-pref_op  = nsURI namespaceRDFO
-pref_owl = nsURI namespaceOWL
+import Data.List (intercalate)
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper
@@ -123,6 +80,7 @@ parseItemTest ifroms def lab inp val err =
             Right v -> (noError,v)
         fixerr = if err /= noError then pe else noError
 
+noError, errorText :: String
 noError   = ""
 errorText = "*"
 
@@ -135,8 +93,8 @@ testLabelEq lab eq n1 n2 =
     TestCase ( assertEqual ("testLabelEq:"++lab) eq (n1==n2) )
 
 testGraphEq :: String -> Bool -> RDFGraph -> RDFGraph -> Test
-testGraphEq lab eq g1 g2 =
-    TestCase ( assertEqual ("testGraphEq:"++lab) eq (g1==g2) )
+testGraphEq lab eq gg1 gg2 =
+    TestCase ( assertEqual ("testGraphEq:"++lab) eq (gg1==gg2) )
 
 parseTest :: String -> String -> RDFGraph -> String -> Test
 parseTest lab inp gr er =
@@ -146,6 +104,17 @@ parseTest lab inp gr er =
       ]
     where
         (pe,pg) = case parseN3fromString inp of
+            Result g -> ("",g)
+            Error  s -> (s,emptyRDFGraph)
+
+parseTestB :: QName -> String -> String -> RDFGraph -> String -> Test
+parseTestB base lab inp gr er =
+    TestList
+      [ TestCase ( assertEqual ("parseTestError<base>:"++lab) er pe )
+      , TestCase ( assertEqual ("parseTestGraph<base>:"++lab) gr pg )
+      ]
+    where
+        (pe,pg) = case parseN3 inp (Just base) of
             Result g -> ("",g)
             Error  s -> (s,emptyRDFGraph)
 
@@ -159,33 +128,26 @@ parseCharTest c = parseItemTest (parseTextFromString c) ""
 
 parseAltTest :: String -> String
                 -> String -> String -> String -> String -> Test
-parseAltTest c1 c2 = parseItemTest (parseAltFromString c1 c2) ""
+parseAltTest cc1 cc2 = parseItemTest (parseAltFromString cc1 cc2) ""
 
+charInp01, char01 :: String
 charInp01 = ":"
 char01    = ":"
 
+charInp02, char02 :: String
 charInp02 = "<>"
 char02    = "<>"
 
+charInp03 :: String
 charInp03 = "<="
 
-parseCharTest01 = parseCharTest char01
-                    "parseCharTest01" charInp01 char01 noError
-parseCharTest02 = parseCharTest char02
-                    "parseCharTest02" charInp02 char02 noError
-parseCharTest03 = parseAltTest char01 char02
-                    "parseCharTest03" charInp01 char01 noError
-parseCharTest04 = parseAltTest char01 char02
-                    "parseCharTest04" charInp02 char02 noError
-parseCharTest05 = parseAltTest char01 char02
-                    "parseCharTest04" charInp03 "" errorText
-
+charTestSuite :: Test
 charTestSuite = TestList
-  [ parseCharTest01
-  , parseCharTest02
-  , parseCharTest03
-  , parseCharTest04
-  , parseCharTest05
+  [ parseCharTest char01 "parseCharTest01" charInp01 char01 noError
+  , parseCharTest char02 "parseCharTest02" charInp02 char02 noError
+  , parseAltTest char01 char02 "parseCharTest03" charInp01 char01 noError
+  , parseAltTest char01 char02 "parseCharTest04" charInp02 char02 noError
+  , parseAltTest char01 char02 "parseCharTest04" charInp03 "" errorText
   ]
 
 ------------------------------------------------------------
@@ -195,18 +157,10 @@ charTestSuite = TestList
 parseNameTest :: String -> String -> String -> String -> Test
 parseNameTest = parseItemTest parseNameFromString ""
 
-nameInp01 = "name"
-name01    = "name"
-
-nameInp02 = "rdf"
-name02    = "rdf"
-
-parseNameTest01 = parseNameTest "parseNameTest01" nameInp01 name01 ""
-parseNameTest02 = parseNameTest "parseNameTest02" nameInp02 name02 ""
-
+nameTestSuite :: Test
 nameTestSuite = TestList
-  [ parseNameTest01
-  , parseNameTest02
+  [ parseNameTest "parseNameTest01" "name" "name" ""
+  , parseNameTest "parseNameTest02" "rdf" "rdf" ""
   ]
 
 ------------------------------------------------------------
@@ -216,18 +170,14 @@ nameTestSuite = TestList
 parsePrefixTest :: String -> String -> Namespace -> String -> Test
 parsePrefixTest = parseItemTest parsePrefixFromString nullNamespace
 
-prefixInp01 = "pref"
-prefix01    = Namespace "pref" "pref:"
+prefix01, prefix02 :: Namespace
+prefix01 = Namespace "pref" "pref:"
+prefix02 = Namespace "rdf" $ nsURI namespaceRDF
 
-prefixInp02 = "rdf"
-prefix02    = Namespace "rdf" pref_rdf
-
-parsePrefixTest01 = parsePrefixTest "parsePrefixTest01" prefixInp01 prefix01 ""
-parsePrefixTest02 = parsePrefixTest "parsePrefixTest02" prefixInp02 prefix02 ""
-
+prefixTestSuite :: Test
 prefixTestSuite = TestList
-  [ parsePrefixTest01
-  , parsePrefixTest02
+  [ parsePrefixTest "parsePrefixTest01" "pref" prefix01 ""
+  , parsePrefixTest "parsePrefixTest02" "rdf" prefix02 ""
   ]
 
 ------------------------------------------------------------
@@ -240,26 +190,23 @@ parseAbsUriRefTest = parseItemTest parseAbsURIrefFromString ""
 parseLexUriRefTest :: String -> String -> String -> String -> Test
 parseLexUriRefTest = parseItemTest parseLexURIrefFromString ""
 
+absUriRefInp01, absUriRefInp01s, absUriRef01 :: String
 absUriRefInp01  = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
 absUriRefInp01s = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
 absUriRef01     = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 
+absUriRefInp02, absUriRefInp02s, absUriRef02 :: String
 absUriRefInp02  = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1>"
 absUriRefInp02s = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> "
 absUriRef02     = "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
 
-parseAbsUriRefTest01 = parseAbsUriRefTest "parseAbsUriRefTest01" absUriRefInp01 absUriRef01 ""
-parseAbsUriRefTest02 = parseAbsUriRefTest "parseAbsUriRefTest02" absUriRefInp02 absUriRef02 ""
-parseAbsUriRefTest03 = parseLexUriRefTest "parseAbsUriRefTest03" absUriRefInp01s absUriRef01 ""
-parseAbsUriRefTest04 = parseLexUriRefTest "parseAbsUriRefTest04" absUriRefInp02s absUriRef02 ""
-
+absUriRefTestSuite :: Test
 absUriRefTestSuite = TestList
-  [ parseAbsUriRefTest01
-  , parseAbsUriRefTest02
-  , parseAbsUriRefTest03
-  , parseAbsUriRefTest04
+  [ parseAbsUriRefTest "parseAbsUriRefTest01" absUriRefInp01 absUriRef01 ""
+  , parseAbsUriRefTest "parseAbsUriRefTest02" absUriRefInp02 absUriRef02 ""
+  , parseLexUriRefTest "parseAbsUriRefTest03" absUriRefInp01s absUriRef01 ""
+  , parseLexUriRefTest "parseAbsUriRefTest04" absUriRefInp02s absUriRef02 ""
   ]
-
 
 ------------------------------------------------------------
 --  Test simple URIref parsing
@@ -268,93 +215,126 @@ absUriRefTestSuite = TestList
 parseUriRef2Test :: String -> String -> ScopedName -> String -> Test
 parseUriRef2Test = parseItemTest parseURIref2FromString nullScopedName
 
+uriRef01 :: String
 uriRef01 = "rdf:type "
+
+sname01 :: ScopedName
 sname01  = ScopedName namespaceRDF "type"
 
+uriRef02 :: String
 uriRef02 = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> "
+
+sname02 :: ScopedName
 sname02  =
     makeScopedName "" "http://id.ninebynine.org/wip/2003/test/graph1/node#" "s1"
 
-parseUriRef2Test01 = parseUriRef2Test "parseUriRef2Test01" uriRef01 sname01 ""
-parseUriRef2Test02 = parseUriRef2Test "parseUriRef2Test02" uriRef02 sname02 ""
-
+uriRef2TestSuite :: Test
 uriRef2TestSuite = TestList
-  [ parseUriRef2Test01
-  , parseUriRef2Test02
+  [ parseUriRef2Test "parseUriRef2Test01" uriRef01 sname01 ""
+  , parseUriRef2Test "parseUriRef2Test02" uriRef02 sname02 ""
   ]
 
 ------------------------------------------------------------
 --  Define some common values
 ------------------------------------------------------------
 
+baseFile :: String
+baseFile = "file:///dev/null"
+
+dqn :: QName
+dqn = qnameFromURI baseFile
+
+dbase, base1, base2, base3, base4, basea :: Namespace
+dbase = Namespace ""      (baseFile ++ "#")
 base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
 base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
 base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basea = Namespace "a" "http://example.org/basea#"
 
-qb1s1 = ScopedName base1 "s1"
-qb2s2 = ScopedName base2 "s2"
-qb3s3 = ScopedName base3 "s3"
+u1 :: RDFLabel
+u1 = Res $ ScopedName base1 ""
 
-s1 = Res qb1s1  :: RDFLabel
-s2 = Res qb2s2  :: RDFLabel
-s3 = Res qb3s3  :: RDFLabel
+ds1, ds2, ds3 :: RDFLabel
+ds1 = Res $ ScopedName dbase "s1"
+ds2 = Res $ ScopedName dbase "s2"
+ds3 = Res $ ScopedName dbase "s3"
 
-b1 = Blank "b1" :: RDFLabel
-b2 = Blank "b2" :: RDFLabel
-b3 = Blank "b3" :: RDFLabel
-b4 = Blank "b4" :: RDFLabel
-b5 = Blank "b5" :: RDFLabel
-b6 = Blank "b6" :: RDFLabel
-b7 = Blank "b7" :: RDFLabel
-b8 = Blank "b8" :: RDFLabel
+dp1, dp2, dp3 :: RDFLabel
+dp1 = Res $ ScopedName dbase "p1"
+dp2 = Res $ ScopedName dbase "p2"
+dp3 = Res $ ScopedName dbase "p3"
 
-c1 = Blank "c1" :: RDFLabel
-c2 = Blank "c2" :: RDFLabel
-c3 = Blank "c3" :: RDFLabel
-c4 = Blank "c4" :: RDFLabel
-c5 = Blank "c5" :: RDFLabel
-c6 = Blank "c6" :: RDFLabel
+do1, do2, do3 :: RDFLabel
+do1 = Res $ ScopedName dbase "o1"
+do2 = Res $ ScopedName dbase "o2"
+do3 = Res $ ScopedName dbase "o3"
 
-qb1p1 = ScopedName base1 "p1"
-qb2p2 = ScopedName base2 "p2"
-qb3p3 = ScopedName base3 "p3"
+s1, s2, s3, sa :: RDFLabel
+s1 = Res $ ScopedName base1 "s1"
+s2 = Res $ ScopedName base2 "s2"
+s3 = Res $ ScopedName base3 "s3"
+sa = Res $ ScopedName basea "a"
 
-p1 = Res qb1p1  :: RDFLabel
-p2 = Res qb2p2  :: RDFLabel
-p3 = Res qb3p3  :: RDFLabel
+b1, b2, b3, b4, b5, b6, b7, b8 :: RDFLabel
+b1 = Blank "b1"
+b2 = Blank "b2"
+b3 = Blank "b3"
+b4 = Blank "b4"
+b5 = Blank "b5"
+b6 = Blank "b6"
+b7 = Blank "b7"
+b8 = Blank "b8"
 
-qb1o1 = ScopedName base1 "o1"
-qb2o2 = ScopedName base2 "o2"
-qb3o3 = ScopedName base3 "o3"
+c1, c2, c3, c4, c5, c6 :: RDFLabel
+c1 = Blank "c1"
+c2 = Blank "c2"
+c3 = Blank "c3"
+c4 = Blank "c4"
+c5 = Blank "c5"
+c6 = Blank "c6"
 
-o1 = Res qb1o1  :: RDFLabel
-o2 = Res qb2o2  :: RDFLabel
-o3 = Res qb3o3  :: RDFLabel
+p1, p2, p3, pa :: RDFLabel
+p1 = Res $ ScopedName base1 "p1" 
+p2 = Res $ ScopedName base2 "p2" 
+p3 = Res $ ScopedName base3 "p3" 
+pa = Res $ ScopedName basea "b" 
 
-l1 = Lit "l1"  Nothing :: RDFLabel
-l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'" Nothing :: RDFLabel
-l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--" Nothing    :: RDFLabel
+o1, o2, o3, oa :: RDFLabel
+o1 = Res $ ScopedName base1 "o1"
+o2 = Res $ ScopedName base2 "o2"
+o3 = Res $ ScopedName base3 "o3"
+oa = Res $ ScopedName basea "c"
 
-lfr    = Lit "chat"          (Just $ langName "fr")     :: RDFLabel
-lxml   = Lit "<br/>"         (Just rdf_XMLLiteral )     :: RDFLabel
-lfrxml = Lit "<em>chat</em>" (Just rdf_XMLLiteral )     :: RDFLabel -- was: lang "fr"
+l1, l2, l3 :: RDFLabel
+l1 = Lit "l1"  Nothing
+l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'" Nothing
+l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--" Nothing
 
-qb1f1 = ScopedName base1 "f1"
-qb2f2 = ScopedName base2 "f2"
+lfr, lxml, lfrxml :: RDFLabel
+lfr    = Lit "chat"          (Just $ langName "fr")
+lxml   = Lit "<br/>"         (Just rdf_XMLLiteral )
+lfrxml = Lit "<em>chat</em>" (Just rdf_XMLLiteral )
 
-f1 = Res qb1f1  :: RDFLabel
-f2 = Res qb2f2  :: RDFLabel
+bTrue, bFalse :: RDFLabel
+bTrue  = Lit "true"  $ Just $ ScopedName (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") "boolean"
+bFalse = Lit "false" $ Just $ ScopedName (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") "boolean"
 
-v1 = Var "var1" :: RDFLabel
-v2 = Var "var2" :: RDFLabel
-v3 = Var "var3" :: RDFLabel
-v4 = Var "var4" :: RDFLabel
+f1, f2 :: RDFLabel
+f1 = Res $ ScopedName base1 "f1"
+f2 = Res $ ScopedName base2 "f2" 
+
+v1, v2, v3, v4 :: RDFLabel
+v1 = Var "var1"
+v2 = Var "var2"
+v3 = Var "var3"
+v4 = Var "var4"
 
 ------------------------------------------------------------
 --  Construct graphs for testing
 ------------------------------------------------------------
 
+t01 , t01b, t02, t03, t04, t05, t06, t07 :: Arc RDFLabel
 t01  = arc s1 p1 o1
 t01b = arc b1 b2 b3
 t02  = arc s2 p1 o2
@@ -367,6 +347,41 @@ t07  = arc s3 p2 l3
 makeNewPrefixNamespace :: (String,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = Namespace pre (nsURI ns)
 
+dg1 :: RDFGraph
+dg1 = toRDFGraph [arc ds1 dp1 do1]
+
+dg2 :: RDFGraph
+dg2 = toRDFGraph
+      [ arc a1 b1 c1
+      , arc a2 b2 c2
+      , arc a3 b3 c3
+      , arc a4 b4 c4
+      , arc a5 b5 c5
+      ]
+  where
+    -- the document base is set to file:///dev/null to begin with
+    mU = Res . makeUriScopedName 
+    a1 = mU "file:///dev/a1"
+    b1 = mU "file:///dev/b1"
+    c1 = mU "file:///dev/c1"
+    a2 = mU "http://example.org/ns/a2"
+    b2 = mU "http://example.org/ns/b2"
+    c2 = mU "http://example.org/ns/c2"
+    a3 = mU "http://example.org/ns/foo/a3"
+    b3 = mU "http://example.org/ns/foo/b3"
+    c3 = mU "http://example.org/ns/foo/c3"
+    
+    ns4 = Namespace "" "http://example.org/ns/foo/bar#"
+    ns5 = Namespace "" "http://example.org/ns2#"
+    mUN a b = Res (ScopedName a b)
+    a4 = mUN ns4 "a4"
+    b4 = mUN ns4 "b4"
+    c4 = mUN ns4 "c4"
+    a5 = mUN ns5 "a5"
+    b5 = mUN ns5 "b5"
+    c5 = mUN ns5 "c5"
+
+nslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace
     [ ("base1",base1)
     , ("base2",base2)
@@ -374,97 +389,89 @@ nslist = LookupMap $ map makeNewPrefixNamespace
     , ("base4",base4)
     ]
 
-g1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01]
-        }
+toGraph :: [Arc RDFLabel] -> RDFGraph
+toGraph stmts = NSGraph { namespaces = nslist
+                        , formulae   = emptyFormulaMap
+                        , statements = stmts
+                        }
 
-g1b = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01b]
-        }
+g1 :: RDFGraph
+g1 = toGraph [t01]
 
-g2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t02,t03]
-        }
+g1a :: RDFGraph
+g1a = toGraph [arc sa pa oa] 
 
-g3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t04]
-        }
+g1_31 :: RDFGraph
+g1_31 = toGraph [arc u1 u1 u1]
 
+g1b :: RDFGraph
+g1b = toGraph [t01b]
+
+g2 :: RDFGraph
+g2 = toGraph [t01,t02,t03]
+
+g3 :: RDFGraph
+g3 = toGraph [t01,t04]
+
+g4 :: RDFGraph
 g4 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t01,t05]
         }
 
+g5 :: RDFGraph
 g5 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t01,t02,t03,t04,t05]
         }
 
+g6 :: RDFGraph
 g6 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t01,t06]
         }
 
+g7 :: RDFGraph
 g7 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t01,t07]
         }
 
+t801, t802, t807, t808, t811, t812 :: Arc RDFLabel
 t801 = arc s1 res_rdf_type       o1
 t802 = arc s2 res_owl_sameAs     o2
--- t803 = arc s3 res_operator_plus  o3
--- t804 = arc s3 res_operator_minus o3
--- t805 = arc s3 res_operator_star  o3
--- t806 = arc s3 res_operator_slash o3
 t807 = arc o1 p1 s1
 t808 = arc s2 p1 o2
--- t809 = arc s1 p2 o1
--- t810 = arc o2 p2 s2
 t811 = arc s1 res_log_implies o1
 t812 = arc o2 res_log_implies s2
 
+g8 :: RDFGraph
 g8 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
-        -- , statements = [t801,t802,t803,t804,t805,t806,t807,t808,t809,t810]
-        -- , statements = [t801,t802,t807,t808,t811,t812]
-        -- , statements = [t801,t802,t807,t808,t811]
-        , statements = [t811]
+        , statements = [t801,t802,t807,t808,t811,t812]
         }
 
+g81 :: RDFGraph
 g81 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t801,t802]
         }
 
-{-
-g82 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t803,t804,t805,t806]
-        }
--}
-
+g83 :: RDFGraph
 g83 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
-        -- , statements = [t807,t808,t809,t810]
         , statements = [t807,t808,t811,t812]
         }
 
+t911, t912, t913, t914, t921, t922, t923, t924,
+  t925, t926, t927, t928 :: Arc RDFLabel
 t911 = arc s1 p1 o1
 t912 = arc s1 p1 o2
 t913 = arc s1 p2 o2
@@ -478,6 +485,7 @@ t926 = arc s2 p2 o2
 t927 = arc s2 p2 o3
 t928 = arc s2 p2 l1
 
+g9 :: RDFGraph
 g9 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -486,6 +494,8 @@ g9 = NSGraph
                         t925,t926,t927,t928]
         }
 
+t1011, t1012, t1013, t1014, t1021, t1022, t1023, t1024,
+  t1025, t1026, t1027, t1028 :: Arc RDFLabel
 t1011 = arc s1 p1 o1
 t1012 = arc o2 p1 s1
 t1013 = arc s1 p2 o2
@@ -499,6 +509,7 @@ t1026 = arc o2 p2 s2
 t1027 = arc o3 p2 s2
 t1028 = arc l1 p2 s2
 
+g10 :: RDFGraph
 g10 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -507,38 +518,46 @@ g10 = NSGraph
                         t1025,t1026,t1027,t1028]
         }
 
+t1111, t1112, t1113 :: Arc RDFLabel
 t1111 = arc s1 p1 v1
 t1112 = arc v2 p1 o1
 t1113 = arc v3 p1 v4
 
+g11 :: RDFGraph
 g11 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t1111,t1112,t1113]
         }
 
+t1211, t1221, t1222, t1223, t1224 :: Arc RDFLabel
 t1211 = arc b1 p1 o1
 t1221 = arc b2 res_rdf_first v1
 t1222 = arc b2 res_rdf_rest  b3
 t1223 = arc b3 res_rdf_first v2
 t1224 = arc b3 res_rdf_rest  res_rdf_nil
 
+g12 :: RDFGraph
 g12 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t1211,t1221,t1222,t1223,t1224]
         }
 
+t1711, t1722, t1733 :: Arc RDFLabel
 t1711 = arc s1 p1 lfr
 t1722 = arc s2 p2 lxml
 t1733 = arc s3 p3 lfrxml
 
+g17 :: RDFGraph
 g17 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
         , statements = [t1711,t1722,t1733]
         }
 
+tx101, tx102, tx111, tx112, tx113, tx114, tx121, tx122, tx123,
+  tx124, tx125, tx126, tx127, tx128 :: Arc RDFLabel
 tx101 = arc b1 res_owl_sameAs s1
 tx102 = arc s2 res_owl_sameAs b2
 tx111 = arc b1 p1 o1
@@ -554,6 +573,7 @@ tx126 = arc b2 p2 o2
 tx127 = arc b2 p2 o3
 tx128 = arc b2 p2 l1
 
+x1 :: RDFGraph
 x1 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -563,6 +583,8 @@ x1 = NSGraph
                         tx125,tx126,tx127,tx128]
         }
 
+tx201, tx202, tx211, tx212, tx213, tx214, tx221, tx222, tx223,
+  tx224, tx225, tx226, tx227, tx228 :: Arc RDFLabel
 tx201 = arc b1 res_owl_sameAs s1
 tx202 = arc s2 res_owl_sameAs b2
 tx211 = arc b1 p1 o1
@@ -578,6 +600,7 @@ tx226 = arc o2 p2 b2
 tx227 = arc o3 p2 b2
 tx228 = arc l1 p2 b2
 
+x2 :: RDFGraph
 x2 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -587,6 +610,8 @@ x2 = NSGraph
                         tx225,tx226,tx227,tx228]
         }
 
+tx311, tx312, tx313, tx314, tx321, tx322, tx323,
+  tx324, tx325, tx326, tx327, tx328 :: Arc RDFLabel
 tx311 = arc s1 p1 o1
 tx312 = arc o2 p1 s1
 tx313 = arc s1 p2 o2
@@ -600,6 +625,7 @@ tx326 = arc o2 p2 s2
 tx327 = arc o3 p2 s2
 tx328 = arc l1 p2 s2
 
+x3 :: RDFGraph
 x3 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -608,6 +634,8 @@ x3 = NSGraph
                         tx325,tx326,tx327,tx328]
         }
 
+tx401, tx402, tx403, tx404, tx405, tx406, tx407,
+  tx408, tx409 :: Arc RDFLabel
 tx401 = arc s1 res_owl_sameAs b1
 tx402 = arc b1 res_rdf_first  o1
 tx403 = arc b1 res_rdf_rest   b2
@@ -618,6 +646,7 @@ tx407 = arc b3 res_rdf_rest   b4
 tx408 = arc b4 res_rdf_first  l1
 tx409 = arc b4 res_rdf_rest   res_rdf_nil
 
+x4 :: RDFGraph
 x4 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -626,6 +655,8 @@ x4 = NSGraph
                         tx409]
         }
 
+tx501, tx502, tx503, tx504, tx505, tx506, tx507,
+  tx508, tx509 :: Arc RDFLabel
 tx501 = arc b1 res_owl_sameAs s1
 tx502 = arc b1 res_rdf_first  o1
 tx503 = arc b1 res_rdf_rest   b2
@@ -636,6 +667,7 @@ tx507 = arc b3 res_rdf_rest   b4
 tx508 = arc b4 res_rdf_first  l1
 tx509 = arc b4 res_rdf_rest   res_rdf_nil
 
+x5 :: RDFGraph
 x5 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -644,6 +676,8 @@ x5 = NSGraph
                         tx509]
         }
 
+tx601, tx602, tx603, tx604, tx605, tx606, tx607,
+  tx608 :: Arc RDFLabel
 tx601 = arc s1 res_rdf_first o1
 tx602 = arc s1 res_rdf_rest  b2
 tx603 = arc b2 res_rdf_first o2
@@ -653,6 +687,7 @@ tx606 = arc b3 res_rdf_rest  b4
 tx607 = arc b4 res_rdf_first l1
 tx608 = arc b4 res_rdf_rest  res_rdf_nil
 
+x6 :: RDFGraph
 x6 = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -660,31 +695,37 @@ x6 = NSGraph
                         tx605,tx606,tx607,tx608]
         }
 
+tx701 :: Arc RDFLabel
 tx701 = arc b1 p2 f2
-x7f   = LookupMap [Formula b1 g2]
+
+x7 :: RDFGraph
 x7    = NSGraph
         { namespaces = nslist
-        , formulae   = x7f
+        , formulae   = LookupMap [Formula b1 g2]
         , statements = [tx701]
         }
 
+tx801 :: Arc RDFLabel
 tx801 = arc f1 p2 f2
-x8f   = LookupMap [Formula f1 g2]
+
+x8 :: RDFGraph
 x8    = NSGraph
         { namespaces = nslist
-        , formulae   = x8f
+        , formulae   = LookupMap [Formula f1 g2]
         , statements = [tx801]
         }
 
-tx901 = tx801
-x9f   = LookupMap [Formula f1 g1]
+x9 :: RDFGraph
 x9    = NSGraph
         { namespaces = nslist
-        , formulae   = x9f
-        , statements = [tx901]
+        , formulae   = LookupMap [Formula f1 g1]
+        , statements = [tx801]
         }
 
 --  Test allocation of bnodes carries over a nested formula
+
+tx1201, tx1202, tx1203, tx1204, tx1205, 
+  tx1211, tx1212 :: Arc RDFLabel
 tx1201 = arc s1 p1 b1
 tx1202 = arc b1 p1 o1
 tx1203 = arc b2 p2 f2
@@ -692,19 +733,25 @@ tx1204 = arc s3 p3 b3
 tx1205 = arc b3 p3 o3
 tx1211 = arc s2 p2 b4
 tx1212 = arc b4 p2 o2
+
+x12fg :: RDFGraph
 x12fg  = NSGraph
         { namespaces = emptyNamespaceMap
         , formulae   = emptyFormulaMap
         , statements = [tx1211,tx1212]
         }
-x12f   = LookupMap [Formula b2 x12fg]
+        
+x12 :: RDFGraph
 x12    = NSGraph
         { namespaces = nslist
-        , formulae   = x12f
+        , formulae   = LookupMap [Formula b2 x12fg]
         , statements = [tx1201,tx1202,tx1203,tx1204,tx1205]
         }
 
 --  List of simple anon nodes
+
+tx1301, tx1302, tx1303, tx1304, tx1305, tx1306, tx1307,
+  tx1308, tx1309 :: Arc RDFLabel
 tx1301 = arc s1 res_rdf_first b1
 tx1302 = arc s1 res_rdf_rest  c1
 tx1303 = arc c1 res_rdf_first b2
@@ -715,6 +762,7 @@ tx1307 = arc b1 p1 o1
 tx1308 = arc b2 p1 o2
 tx1309 = arc b3 p1 o3
 
+x13 :: RDFGraph
 x13    = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -723,6 +771,9 @@ x13    = NSGraph
         }
 
 --  List of more complex anon nodes
+
+tx1401, tx1402, tx1403, tx1404, tx1405, tx1406, tx1407,
+  tx1408, tx1409, tx1410, tx1411, tx1412 :: Arc RDFLabel
 tx1401 = arc s1 res_rdf_first b1
 tx1402 = arc s1 res_rdf_rest  c1
 tx1403 = arc c1 res_rdf_first b2
@@ -736,6 +787,7 @@ tx1410 = arc b2 p2 o2
 tx1411 = arc b3 p1 o3
 tx1412 = arc b3 p2 o3
 
+x14 :: RDFGraph
 x14    = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -744,6 +796,9 @@ x14    = NSGraph
         }
 
 --  List with nested list
+
+tx1501, tx1502, tx1503, tx1504, tx1505, tx1506, tx1507,
+  tx1508, tx1509 :: Arc RDFLabel
 tx1501 = arc s1 res_rdf_first b1
 tx1502 = arc s1 res_rdf_rest  c1
 tx1503 = arc c1 res_rdf_first b2
@@ -754,6 +809,8 @@ tx1507 = arc b1 p1 o1
 tx1508 = arc b2 p2 c3
 tx1509 = arc b3 p1 o3
 
+tx1521, tx1522, tx1523, tx1524, tx1525, tx1526, tx1527,
+  tx1528, tx1529 :: Arc RDFLabel
 tx1521 = arc c3 res_rdf_first b4
 tx1522 = arc c3 res_rdf_rest  c4
 tx1523 = arc c4 res_rdf_first b5
@@ -764,6 +821,7 @@ tx1527 = arc b4 p1 o1
 tx1528 = arc b5 p1 o2
 tx1529 = arc b6 p1 o3
 
+x15 :: RDFGraph
 x15    = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -774,6 +832,9 @@ x15    = NSGraph
         }
 
 --  More complex list with nested list
+
+tx1601, tx1602, tx1603, tx1604, tx1605, tx1606, tx1607,
+  tx1608, tx1609, tx1610, tx1611 :: Arc RDFLabel
 tx1601 = arc s1 res_rdf_first b1
 tx1602 = arc s1 res_rdf_rest  c1
 tx1603 = arc c1 res_rdf_first b2
@@ -786,6 +847,8 @@ tx1609 = arc b2 p2 c3
 tx1610 = arc b3 p1 o3
 tx1611 = arc b3 p2 o3
 
+tx1621, tx1622, tx1623, tx1624, tx1625, tx1626, tx1627,
+  tx1628, tx1629, tx1630, tx1631, tx1632 :: Arc RDFLabel
 tx1621 = arc c3 res_rdf_first b4
 tx1622 = arc c3 res_rdf_rest  c4
 tx1623 = arc c4 res_rdf_first b5
@@ -799,6 +862,7 @@ tx1630 = arc b5 p2 o2
 tx1631 = arc b6 p1 o3
 tx1632 = arc b6 p2 o3
 
+x16 :: RDFGraph
 x16    = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -808,48 +872,111 @@ x16    = NSGraph
                         tx1627,tx1628,tx1629,tx1630,tx1631,tx1632]
         }
 
+kg1 :: RDFGraph
+kg1 = toRDFGraph
+      [ arc b a c ]
+  where
+    -- the document base is set to file:///dev/null to begin with
+    ns = Namespace "" (baseFile ++ "#")
+    mUN = Res . ScopedName ns
+    a = mUN "a"
+    b = mUN "b"
+    c = mUN "c"
+
 ------------------------------------------------------------
 --  Simple parser tests
 ------------------------------------------------------------
 
+-- check default base
+simpleN3Graph_dg_01 :: String
+simpleN3Graph_dg_01 =
+    ":s1 :p1 :o1 ."
+
+-- from the turtle documentation
+simpleN3Graph_dg_02 :: String
+simpleN3Graph_dg_02 =
+  "# this is a complete turtle document\n" ++
+  "# In-scope base URI is the document URI at this point\n" ++
+  "<a1> <b1> <c1> .\n" ++
+  "@base <http://example.org/ns/> .\n" ++
+  "# In-scope base URI is http://example.org/ns/ at this point\n" ++
+  "<a2> <http://example.org/ns/b2> <c2> .\n" ++
+  "@base <foo/> .\n" ++
+  "# In-scope base URI is http://example.org/ns/foo/ at this point\n" ++
+  "<a3> <b3> <c3> .\n" ++
+  "@prefix : <bar#> .\n" ++
+  ":a4 :b4 :c4 .\n" ++
+  "@prefix : <http://example.org/ns2#> .\n" ++
+  ":a5 :b5 :c5 .\n"
+
+commonPrefixes :: String
 commonPrefixes =
     "@prefix base1 : <" ++ nsURI base1 ++ "> . \n" ++
     "@prefix base2 : <" ++ nsURI base2 ++ "> . \n" ++
     "@prefix base3 : <" ++ nsURI base3 ++ "> . \n"
 
 --  Single statement using <uri> form
+simpleN3Graph_g1_01 :: String
 simpleN3Graph_g1_01 =
     " <http://id.ninebynine.org/wip/2003/test/graph1/node/s1> " ++
     " <http://id.ninebynine.org/wip/2003/test/graph1/node/p1> " ++
     " <http://id.ninebynine.org/wip/2003/test/graph1/node/o1> . "
 
 --  Single statement using prefix:name form
+simpleN3Graph_g1_02 :: String
 simpleN3Graph_g1_02 =
     "@prefix base1 : <" ++ nsURI base1 ++ "> ." ++
     " base1:s1 base1:p1 base1:o1 . "
 
+--  Single statement using prefix:name form
+--  (this was added to check that the parser did not
+--   think we meant 'a:a a :b .' here)
+--
+simpleN3Graph_g1_02a :: String
+simpleN3Graph_g1_02a =
+    "@prefix a: <" ++ nsURI basea ++ "> ." ++
+    "a:a a:b a:c ."
+
 --  Single statement using :name form
+simpleN3Graph_g1_03 :: String
 simpleN3Graph_g1_03 =
     "@prefix : <" ++ nsURI base1 ++ "> .\n" ++
     " :s1 :p1 :o1 . "
 
+--  Turtle supports ':' but (apparently) not N3, but try
+--  and support it.
+--
+simpleN3Graph_g1_03_1 :: String
+simpleN3Graph_g1_03_1 =
+    "@prefix : <" ++ nsURI base1 ++ "> .\n" ++
+    " : : :."
+
+simpleN3Graph_g1_03_2 :: String
+simpleN3Graph_g1_03_2 =
+    "@prefix b: <" ++ nsURI base1 ++ "> .\n" ++
+    "b: b: b:. "
+
 --  Single statement using relative URI form
+simpleN3Graph_g1_04 :: String
 simpleN3Graph_g1_04 =
     "@base <" ++ nsURI base1 ++ "> .\n" ++
     " <s1> <p1> <o1> . "
 
 --  Single statement using blank nodes
+simpleN3Graph_g1_05 :: String
 simpleN3Graph_g1_05 =
     "@base <" ++ nsURI base1 ++ "> .\n" ++
     " _:b1 _:b2 _:b3 . "
 
 --  Single statement with junk following
+simpleN3Graph_g1_06 :: String
 simpleN3Graph_g1_06 =
     "@prefix base1 : <" ++ nsURI base1 ++ "> ." ++
     " base1:s1 base1:p1 base1:o1 . " ++
     " **** "
 
 --  Multiple statements
+simpleN3Graph_g2 :: String
 simpleN3Graph_g2 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
@@ -857,18 +984,21 @@ simpleN3Graph_g2 =
     " base3:s3 base1:p1 base3:o3 . \n"
 
 --  Graph with literal
+simpleN3Graph_g3 :: String
 simpleN3Graph_g3 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
     " base1:s1 base1:p1 \"l1\" . \n"
 
 --  Graph with nodeid
+simpleN3Graph_g4 :: String
 simpleN3Graph_g4 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
     " base2:s2 base1:p1 _:b1 . \n"
 
 --  Graph with literal and nodeid
+simpleN3Graph_g5 :: String
 simpleN3Graph_g5 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
@@ -878,12 +1008,14 @@ simpleN3Graph_g5 =
     " base2:s2 base1:p1 _:b1 . \n"
 
 --  Triple-quoted literal
+simpleN3Graph_g6 :: String
 simpleN3Graph_g6 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
     " base3:s3 base1:p1 \"\"\"l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'\"\"\" . \n"
 
 --  String escapes
+simpleN3Graph_g7 :: String
 simpleN3Graph_g7 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
@@ -892,51 +1024,50 @@ simpleN3Graph_g7 =
     " . \n"
 
 --  Different verb forms
+simpleN3Graph_g8 :: String
 simpleN3Graph_g8 =
     commonPrefixes ++
-    " base1:s1 => base1:o1 . \n"
-    {-
     " base1:s1 a base1:o1 . \n" ++
     " base2:s2 = base2:o2 . \n" ++
-    -- " base3:s3 + base3:o3 . \n" ++
-    -- " base3:s3 - base3:o3 . \n" ++
-    -- " base3:s3 * base3:o3 . \n" ++
-    -- " base3:s3 / base3:o3 . \n" ++
     " base1:s1 @is  base1:p1 @of base1:o1 . \n" ++
     " base2:s2 @has base1:p1 base2:o2 . \n" ++
-    -- " base1:s1 >-  base2:p2 -> base1:o1 . \n" ++
-    -- " base2:s2 <-  base2:p2 <- base2:o2 . \n"
     " base1:s1 => base1:o1 . \n" ++
-    -- XXX " base2:s2 <= base2:o2 . \n"
-    ""
-    -}
-    
--- TODO: what is going on with log:implies
+    " base2:s2 <= base2:o2 . \n"
 
+simpleN3Graph_g8b :: String
+simpleN3Graph_g8b =
+    commonPrefixes ++
+    " base1:s1 a base1:o1 . \n" ++
+    " base2:s2 = base2:o2 . \n" ++
+    " base1:s1 is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 @has base1:p1 base2:o2 . \n" ++
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
+
+simpleN3Graph_g81 :: String
 simpleN3Graph_g81 =
     commonPrefixes ++
     " base1:s1 a base1:o1 . \n" ++
     " base2:s2 = base2:o2 . \n"
 
-{-
-simpleN3Graph_g82 =
-    commonPrefixes ++
-    " base3:s3 + base3:o3 . \n" ++
-    " base3:s3 - base3:o3 . \n" ++
-    " base3:s3 * base3:o3 . \n" ++
-    " base3:s3 / base3:o3 . \n"
--}
-
+simpleN3Graph_g83 :: String
 simpleN3Graph_g83 =
     commonPrefixes ++
     " base1:s1 @is  base1:p1 @of base1:o1 . \n" ++
     " base2:s2 @has base1:p1 base2:o2 . \n" ++
-    -- " base1:s1 >-  base2:p2 -> base1:o1 . \n" ++
-    -- " base2:s2 <-  base2:p2 <- base2:o2 . \n"
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
+
+simpleN3Graph_g83b :: String
+simpleN3Graph_g83b =
+    commonPrefixes ++
+    " base1:s1 is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 @has base1:p1 base2:o2 . \n" ++
     " base1:s1 => base1:o1 . \n" ++
     " base2:s2 <= base2:o2 . \n"
 
 --  Semicolons and commas
+simpleN3Graph_g9 :: String
 simpleN3Graph_g9 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 ; \n" ++
@@ -952,7 +1083,25 @@ simpleN3Graph_g9 =
     "                   base3:o3 , \n" ++
     "                   \"l1\"   . \n"
 
+-- ensure you can end a property list with a semicolon
+simpleN3Graph_g9b :: String
+simpleN3Graph_g9b =
+    commonPrefixes ++
+    " base1:s1 base1:p1 base1:o1 ; \n" ++
+    "          base1:p1 base2:o2 ; \n" ++
+    "          base2:p2 base2:o2 ; \n" ++
+    "          base2:p2 base3:o3;. \n" ++
+    " base2:s2 base1:p1 base1:o1 , \n" ++
+    "                   base2:o2 , \n" ++
+    "                   base3:o3 , \n" ++
+    "                   \"l1\"   ; \n" ++
+    "          base2:p2 base1:o1 , \n" ++
+    "                   base2:o2 , \n" ++
+    "                   base3:o3 , \n" ++
+    "                   \"l1\"   ;. \n"
+
 --  'is ... of' and semicolons and commas
+simpleN3Graph_g10 :: String
 simpleN3Graph_g10 =
     commonPrefixes ++
     " base1:s1 @has base1:p1 base1:o1 ; \n" ++
@@ -969,6 +1118,7 @@ simpleN3Graph_g10 =
     "                          \"l1\"   . \n"
 
 --  Simple statements using ?var form
+simpleN3Graph_g11 :: String
 simpleN3Graph_g11 =
     "@prefix base1 : <" ++ nsURI base1 ++ "> . \n" ++
     " base1:s1 base1:p1 ?var1 . \n"          ++
@@ -976,66 +1126,95 @@ simpleN3Graph_g11 =
     " ?var3 base1:p1 ?var4 .    \n"
 
 --  Bare anonymous nodes
+simpleN3Graph_g12 :: String
 simpleN3Graph_g12 =
     "@prefix base1 : <" ++ nsURI base1 ++ "> . \n" ++
     " [ base1:p1 base1:o1 ] .  \n"          ++
     " ( ?var1 ?var2 ) .    \n"
 
 --  Literals with dataype and language
+simpleN3Graph_g17 :: String
 simpleN3Graph_g17 =
     commonPrefixes ++
     " base1:s1 base1:p1 \"chat\"@fr . \n "                          ++
     " base2:s2 base2:p2 \"<br/>\"^^rdf:XMLLiteral . \n "            ++
     " base3:s3 base3:p3 \"<em>chat</em>\"^^rdf:XMLLiteral . \n "
 
-simpleTest011 = parseTest "simpleTest011" simpleN3Graph_g1_01 g1  noError
-simpleTest012 = parseTest "simpleTest012" simpleN3Graph_g1_02 g1  noError
-simpleTest013 = parseTest "simpleTest013" simpleN3Graph_g1_03 g1  noError
-simpleTest014 = parseTest "simpleTest014" simpleN3Graph_g1_04 g1  noError
-simpleTest015 = parseTest "simpleTest015" simpleN3Graph_g1_05 g1b noError
-simpleTest016 = parseTest "simpleTest016" simpleN3Graph_g1_06 emptyRDFGraph
-                ( "(line 1, column 103):\n"++
-                  "unexpected \"*\"\n"++
-                  "expecting declaration, pathitem or end of input") -- TODO this msg will change when parser is finished
---                  "expecting URI or blank node or end of input" )
-simpleTest03  = parseTest "simpleTest03"  simpleN3Graph_g2    g2  noError
-simpleTest04  = parseTest "simpleTest04"  simpleN3Graph_g3    g3  noError
-simpleTest05  = parseTest "simpleTest05"  simpleN3Graph_g4    g4  noError
-simpleTest06  = parseTest "simpleTest06"  simpleN3Graph_g5    g5  noError
-simpleTest07  = parseTest "simpleTest07"  simpleN3Graph_g6    g6  noError
-simpleTest08  = parseTest "simpleTest08"  simpleN3Graph_g7    g7  noError
-simpleTest09  = parseTest "simpleTest09"  simpleN3Graph_g8    g8  noError
-simpleTest10  = parseTest "simpleTest10"  simpleN3Graph_g81   g81 noError
--- simpleTest11  = parseTest "simpleTest11"  simpleN3Graph_g82   g82 noError
-simpleTest12  = parseTest "simpleTest12"  simpleN3Graph_g83   g83 noError
-simpleTest13  = parseTest "simpleTest13"  simpleN3Graph_g9    g9  noError
-simpleTest14  = parseTest "simpleTest14"  simpleN3Graph_g10   g10 noError
-simpleTest15  = parseTest "simpleTest15"  simpleN3Graph_g11   g11 noError
-simpleTest16  = parseTest "simpleTest16"  simpleN3Graph_g12   g12 noError
-simpleTest17  = parseTest "simpleTest17"  simpleN3Graph_g17   g17 noError
+emsg16 :: String
+emsg16 = intercalate "\n" [
+  "",
+  "@prefix base1 : <http://id.ninebynine.org/wip/2003/test/graph1/node/> . base1:s1 base1:p1 base1:o1 .  **** ",
+  "                                                                                                      ^",
+  "(line 1, column 103 indicated by the '^' sign above):",
+  "",
+  "unexpected \"*\"",
+  "expecting declaration, \"@\", pathitem or end of input"
+  ]
 
+
+simpleTestSuite :: Test
 simpleTestSuite = TestList
-  [ simpleTest011
-  , simpleTest012
-  , simpleTest013
-  , simpleTest014
-  , simpleTest015
-  , simpleTest016
-  , simpleTest03
-  , simpleTest04
-  , simpleTest05
-  , simpleTest06
-  , simpleTest07
-  , simpleTest08
-  , simpleTest09
-  , simpleTest10
---  , simpleTest11
-  , simpleTest12
-  , simpleTest13
-  , simpleTest14
-  , simpleTest15
-  , simpleTest16
-  , simpleTest17
+  [ parseTestB dqn "simpleTestd01" simpleN3Graph_dg_01 dg1  noError
+  , parseTestB dqn "simpleTestd02" simpleN3Graph_dg_02 dg2  noError
+  , parseTest "simpleTest011" simpleN3Graph_g1_01 g1  noError
+  , parseTest "simpleTest012" simpleN3Graph_g1_02 g1  noError
+  , parseTest "simpleTest012a" simpleN3Graph_g1_02a g1a  noError
+  , parseTest "simpleTest013" simpleN3Graph_g1_03 g1  noError
+  , parseTest "simpleTest013_1" simpleN3Graph_g1_03_1 g1_31  noError
+  , parseTest "simpleTest013_2" simpleN3Graph_g1_03_2 g1_31  noError
+  , parseTest "simpleTest014" simpleN3Graph_g1_04 g1  noError
+  , parseTest "simpleTest015" simpleN3Graph_g1_05 g1b noError
+  , parseTest "simpleTest016" simpleN3Graph_g1_06 emptyRDFGraph emsg16
+  , parseTest "simpleTest03"  simpleN3Graph_g2    g2  noError
+  , parseTest "simpleTest04"  simpleN3Graph_g3    g3  noError
+  , parseTest "simpleTest05"  simpleN3Graph_g4    g4  noError
+  , parseTest "simpleTest06"  simpleN3Graph_g5    g5  noError
+  , parseTest "simpleTest07"  simpleN3Graph_g6    g6  noError
+  , parseTest "simpleTest08"  simpleN3Graph_g7    g7  noError
+  , parseTest "simpleTest09"  simpleN3Graph_g8    g8  noError
+  , parseTest "simpleTest09b" simpleN3Graph_g8b   g8  noError
+  , parseTest "simpleTest10"  simpleN3Graph_g81   g81 noError
+  , parseTest "simpleTest12"  simpleN3Graph_g83   g83 noError
+  , parseTest "simpleTest12b" simpleN3Graph_g83b  g83 noError
+  , parseTest "simpleTest13"  simpleN3Graph_g9    g9  noError
+  , parseTest "simpleTest13b" simpleN3Graph_g9b   g9  noError
+  , parseTest "simpleTest14"  simpleN3Graph_g10   g10 noError
+  , parseTest "simpleTest15"  simpleN3Graph_g11   g11 noError
+  , parseTest "simpleTest16"  simpleN3Graph_g12   g12 noError
+  , parseTest "simpleTest17"  simpleN3Graph_g17   g17 noError
+  ]
+
+------------------------------------------------------------
+--  Literal parser tests
+------------------------------------------------------------
+--
+--  Expand upon the literal testing done above
+--
+
+litN3Graph_g1 :: String
+litN3Graph_g1 =
+    commonPrefixes ++
+    " base1:s1 base1:p1 \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>.\n" ++
+    " base2:s2 base2:p2 \"false\"^^<http://www.w3.org/2001/XMLSchema#boolean>.\n" ++
+    " base3:s3 base3:p3 \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>.\n"
+    
+litN3Graph_g2 :: String
+litN3Graph_g2 =
+    commonPrefixes ++
+    " base1:s1 base1:p1 @true.\n" ++
+    " base2:s2 base2:p2 @false.\n" ++
+    " base3:s3 base3:p3 true.\n"
+    
+lit_g1 :: RDFGraph
+lit_g1 = toGraph [ arc s1 p1 bTrue
+                 , arc s2 p2 bFalse
+                 , arc s3 p3 bTrue
+                 ]
+
+litTestSuite :: Test
+litTestSuite = TestList
+  [ parseTest "litTest01" litN3Graph_g1 lit_g1  noError
+  , parseTest "litTest02" litN3Graph_g2 lit_g1  noError
   ]
 
 ------------------------------------------------------------
@@ -1047,6 +1226,7 @@ simpleTestSuite = TestList
 --
 
 --  Simple anon nodes, with semicolons and commas
+exoticN3Graph_x1 :: String
 exoticN3Graph_x1 =
     commonPrefixes ++
     " [ base1:p1 base1:o1 ; \n" ++
@@ -1063,7 +1243,26 @@ exoticN3Graph_x1 =
     "            base3:o3 , \n" ++
     "            \"l1\"   ] . \n"
 
+-- check semi-colons at end of property list
+exoticN3Graph_x1b :: String
+exoticN3Graph_x1b =
+    commonPrefixes ++
+    " [ base1:p1 base1:o1 ; \n" ++
+    "   base1:p1 base2:o2 ; \n" ++
+    "   base2:p2 base2:o2 ; \n" ++
+    "   base2:p2 base3:o3; ] = base1:s1 . \n" ++
+    " base2:s2 = \n" ++
+    " [ base1:p1 base1:o1 , \n" ++
+    "   base2:o2 , \n" ++
+    "   base3:o3 , \n" ++
+    "   \"l1\"   ; \n" ++
+    "   base2:p2 base1:o1 , \n" ++
+    "            base2:o2 , \n" ++
+    "            base3:o3 , \n" ++
+    "            \"l1\" ;  ] ;. \n"
+
 --  Simple anon nodes, with 'is ... of' and semicolons and commas
+exoticN3Graph_x2 :: String
 exoticN3Graph_x2 =
     commonPrefixes ++
     " [ @has base1:p1     base1:o1 ; \n" ++
@@ -1081,41 +1280,21 @@ exoticN3Graph_x2 =
     "                     \"l1\"   ] . \n"
 
 
---  Simple anon nodes, attached to identified node
-exoticN3Graph_x3 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    " [ has base1:p1 of base1:o1 ; \n" ++
-    "   is  base1:p1 of base2:o2 ; \n" ++
-    "   has base2:p2 of base2:o2 ; \n" ++
-    "   is  base2:p2 of base3:o3 ] . \n" ++
-    " base2:s2 :- \n" ++
-    " [ has base1:p1 of base1:o1 , \n" ++
-    "                   base2:o2 , \n" ++
-    "                   base3:o3 , \n" ++
-    "                   \"l1\"   ; \n" ++
-    "   is  base2:p2 of base1:o1 , \n" ++
-    "                   base2:o2 , \n" ++
-    "                   base3:o3 , \n" ++
-    "                   \"l1\"   ] . \n"
+--  List nodes
 
-
---  List nodes, with and without :-
-
+exoticN3Graph_x4 :: String
 exoticN3Graph_x4 =
     commonPrefixes ++
     " base1:s1 = (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
 
+exoticN3Graph_x5 :: String
 exoticN3Graph_x5 =
     commonPrefixes ++
     " (base1:o1 base2:o2 base3:o3 \"l1\") = base1:s1 .\n"
 
-exoticN3Graph_x6 =
-    commonPrefixes ++
-    " base1:s1 :- (base1:o1 base2:o2 base3:o3 \"l1\") .\n"
-
 --  Formula nodes, with and without :-
 
+exoticN3Graph_x7 :: String
 exoticN3Graph_x7 =
     commonPrefixes ++
     " { base1:s1 base1:p1 base1:o1 .   \n" ++
@@ -1123,36 +1302,8 @@ exoticN3Graph_x7 =
     "   base3:s3 base1:p1 base3:o3 . } \n" ++
     " base2:p2 base2:f2 . "
 
-exoticN3Graph_x8 =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    " { base1:s1 base1:p1 base1:o1 .     \n" ++
-    "   base2:s2 base1:p1 base2:o2 .     \n" ++
-    "   base3:s3 base1:p1 base3:o3 . } ; \n" ++
-    " base2:p2 base2:f2 . "
-
-exoticN3Graph_x9 =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    "   { base1:s1 base1:p1 base1:o1 } ; \n" ++
-    "   base2:p2 base2:f2 "
-    -- (also omits final periods)
-
-exoticN3Graph_x8a =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    " { base1:s1 base1:p1 base1:o1 .     \n" ++
-    "   base2:s2 base1:p1 base2:o2 .     \n" ++
-    "   base3:s3 base1:p1 base3:o3 . } . \n" ++
-    " base1:f1 base2:p2 base2:f2 . "
-
-exoticN3Graph_x9a =
-    commonPrefixes ++
-    " base1:f1 :- \n" ++
-    " { base1:s1 base1:p1 base1:o1 . } . \n" ++
-    " base1:f1 base2:p2 base2:f2 . "
-
 --  Test allocation of bnodes carries over a nested formula
+exoticN3Graph_x12 :: String
 exoticN3Graph_x12 =
     commonPrefixes ++
     " base1:s1 base1:p1 [ base1:p1 base1:o1 ] .     \n" ++
@@ -1160,88 +1311,90 @@ exoticN3Graph_x12 =
     "            base2:p2 base2:f2 .                \n" ++
     " base3:s3 base3:p3 [ base3:p3 base3:o3 ] ."
 
---  List of bnodes
-exoticN3Graph_x13 =
+exoticTestSuite :: Test
+exoticTestSuite = 
+  TestList
+  [ parseTest "exoticTest01"  exoticN3Graph_x1   x1  noError
+  , parseTest "exoticTest01b" exoticN3Graph_x1b  x1  noError
+  , parseTest "exoticTest02"  exoticN3Graph_x2   x2  noError
+  , parseTest "exoticTest04" exoticN3Graph_x4  x4  noError
+  , parseTest "exoticTest05" exoticN3Graph_x5  x5  noError
+  , parseTest "exoticTest07" exoticN3Graph_x7  x7  noError
+  , parseTest "exoticTest12" exoticN3Graph_x12 x12 noError
+  , testGraphEq "exoticTest20" False x7 x8
+  , testGraphEq "exoticTest21" False x8 x9
+  ]
+
+keywordN3Graph_01 :: String
+keywordN3Graph_01 = 
+  "@keywords .\n" ++
+  "b a c . "
+
+-- a modification of simpleN3Graph_g8
+keywordN3Graph_02 :: String
+keywordN3Graph_02 = 
     commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1] \n" ++
-    "    [base1:p1 base2:o2] \n" ++
-    "    [base1:p1 base3:o3] ) .\n"
+    "@keywords a , is, of ,has.\n" ++
+    " base1:s1 a base1:o1 . \n" ++
+    " base2:s2 = base2:o2 . \n" ++
+    " base1:s1 is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 has base1:p1 base2:o2 . \n" ++
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
 
---  List of more complex bnodes
-exoticN3Graph_x14 =
+-- a modification of simpleN3Graph_g83
+keywordN3Graph_03 :: String
+keywordN3Graph_03 = 
     commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n" ++
-    "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
-    "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
+    "@keywords of.\n" ++
+    " base1:s1 @is  base1:p1 of base1:o1 . \n" ++
+    " base2:s2 @has base1:p1 base2:o2 . \n" ++
+    " base1:s1 => base1:o1 . \n" ++
+    " base2:s2 <= base2:o2 . \n"
 
---  List with nested list
-exoticN3Graph_x15 =
+keywordTestSuite :: Test
+keywordTestSuite = TestList
+  [ parseTestB dqn "keywordTest01" keywordN3Graph_01  kg1  noError
+  , parseTest "keywordTest02"      keywordN3Graph_02  g8  noError
+  , parseTest "keywordTest03"      keywordN3Graph_03  g83 noError
+  ]
+    
+------------------------------------------------------------
+--  Test parser failure
+------------------------------------------------------------
+--
+--  Very limited at the moment.
+--
+
+failTest :: String -> String -> String -> Test
+failTest lbl gr pe = parseTest lbl gr emptyRDFGraph pe
+
+failN3Graph_g1 :: String
+failN3Graph_g1 =
     commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1] \n"++
-    "    [base2:p2 \n" ++
-    "       ( [base1:p1 base1:o1] \n" ++
-    "         [base1:p1 base2:o2] \n" ++
-    "         [base1:p1 base3:o3] ) ] \n"++
-    "    [base1:p1 base3:o3] ) .\n"
+    " base1:s1 base2:p2 unknown3:o3 . "
 
---  More complex list with nested list
-exoticN3Graph_x16 =
-    commonPrefixes ++
-    " base1:s1 :- \n" ++
-    "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n"++
-    "    [base2:p2 \n" ++
-    "       ( [base1:p1 base1:o1; base2:p2 base1:o1] \n" ++
-    "         [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
-    "         [base1:p1 base3:o3; base2:p2 base3:o3] ) ] \n"++
-    "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
+fail1 :: String
+fail1 = intercalate "\n" [
+         "",
+         "@prefix base3 : <http://id.ninebynine.org/wip/2003/test/graph3/node> . ",
+         " base1:s1 base2:p2 unknown3:o3 . ",
+         "                            ^",
+         "(line 4, column 29 indicated by the '^' sign above):",
+         "",
+         "unexpected Prefix 'unknown3:' not bound."
+        ]
 
-exoticTest01 = parseTest "exoticTest01" exoticN3Graph_x1  x1  noError
-exoticTest02 = parseTest "exoticTest02" exoticN3Graph_x2  x2  noError
--- exoticTest03 = parseTest "exoticTest03" exoticN3Graph_x3  x3  noError
-exoticTest04 = parseTest "exoticTest04" exoticN3Graph_x4  x4  noError
-exoticTest05 = parseTest "exoticTest05" exoticN3Graph_x5  x5  noError
--- exoticTest06 = parseTest "exoticTest06" exoticN3Graph_x6  x6  noError
-exoticTest07 = parseTest "exoticTest07" exoticN3Graph_x7  x7  noError
--- exoticTest08 = parseTest "exoticTest08" exoticN3Graph_x8  x8  noError
--- exoticTest09 = parseTest "exoticTest09" exoticN3Graph_x9  x9  noError
--- exoticTest10 = parseTest "exoticTest10" exoticN3Graph_x8a x8  noError
--- exoticTest11 = parseTest "exoticTest11" exoticN3Graph_x9a x9  noError
-exoticTest12 = parseTest "exoticTest12" exoticN3Graph_x12 x12 noError
--- exoticTest13 = parseTest "exoticTest13" exoticN3Graph_x13 x13 noError
--- exoticTest14 = parseTest "exoticTest14" exoticN3Graph_x14 x14 noError
--- exoticTest15 = parseTest "exoticTest15" exoticN3Graph_x15 x15 noError
--- exoticTest16 = parseTest "exoticTest16" exoticN3Graph_x16 x16 noError
-exoticTest20 = testGraphEq "exoticTest20" False x7 x8
-exoticTest21 = testGraphEq "exoticTest21" False x8 x9
-
-exoticTestSuite = TestList
-  [ exoticTest01
-  , exoticTest02
---  , exoticTest03
-  , exoticTest04
-  , exoticTest05
---  , exoticTest06
-  , exoticTest07
---  , exoticTest08
---  , exoticTest09
---  , exoticTest10
---  , exoticTest11
-  , exoticTest12
---  , exoticTest13
---  , exoticTest14
---  , exoticTest15
---  , exoticTest16
-  , exoticTest20
-  , exoticTest21
+failTestSuite :: Test
+failTestSuite = TestList
+  [ failTest "failTest01" failN3Graph_g1 fail1
   ]
 
 ------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
   [ charTestSuite
   , nameTestSuite
@@ -1249,18 +1402,14 @@ allTests = TestList
   , absUriRefTestSuite
   , uriRef2TestSuite
   , simpleTestSuite
+  , litTestSuite
   , exoticTestSuite
+  , keywordTestSuite
+  , failTestSuite
   ]
 
-main = runTestTT allTests
-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
-
+main :: IO ()
+main = runTestTT allTests >> return ()
 
 --------------------------------------------------------------------------------
 --

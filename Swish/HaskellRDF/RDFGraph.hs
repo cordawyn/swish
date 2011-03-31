@@ -44,8 +44,6 @@ module Swish.HaskellRDF.RDFGraph
     , res_rdfd_GeneralRestriction
     , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
     , res_owl_sameAs, res_log_implies
-    , res_operator_plus, res_operator_minus
-    , res_operator_slash, res_operator_star
       -- Exported for testing:
     , grMatchMap, grEq
     , mapnode, maplist
@@ -68,7 +66,6 @@ import Swish.HaskellRDF.Vocabulary
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs, log_implies
-    , operator_plus, operator_minus, operator_slash, operator_star
     )
 
 import Swish.HaskellRDF.GraphClass
@@ -205,9 +202,8 @@ labelEq _                   _               = False
 res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil,
   res_rdfs_member, res_rdfd_GeneralRestriction,
   res_rdfd_onProperties, res_rdfd_constraint,
-  res_rdfd_maxCardinality, res_owl_sameAs, res_log_implies,
-  res_operator_plus, res_operator_minus, 
-  res_operator_slash, res_operator_star :: RDFLabel
+  res_rdfd_maxCardinality, res_owl_sameAs, res_log_implies
+  :: RDFLabel
 
 res_rdf_type                = Res rdf_type
 res_rdf_first               = Res rdf_first
@@ -220,10 +216,6 @@ res_rdfd_constraint         = Res rdfd_constraint
 res_rdfd_maxCardinality     = Res rdfd_maxCardinality
 res_owl_sameAs              = Res owl_sameAs
 res_log_implies             = Res log_implies
-res_operator_plus           = Res operator_plus
-res_operator_minus          = Res operator_minus
-res_operator_slash          = Res operator_slash
-res_operator_star           = Res operator_star
 
 ---------------------------------------------------------
 --  Additional functions on RDFLabel values

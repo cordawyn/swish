@@ -19,11 +19,15 @@ module Swish.HaskellUtils.QName
     , newQName, qnameFromPair, qnameFromURI
     , getNamespace, getLocalName, getQNameURI
     , splitURI
+    , qnameFromFilePath
     )
 where
 
-import Data.Char
-    ( isAlpha, isAlphaNum )
+import Data.Char (isAlpha, isAlphaNum)
+
+import System.Directory (canonicalizePath)
+import System.FilePath (splitDirectories)
+import Data.List (intercalate)
 
 ------------------------------------------------------------
 --  Qualified name
@@ -121,6 +125,30 @@ isNameStartChar c = isAlpha c || c == '_'
 isNameChar :: Char -> Bool
 isNameChar      c = isAlphaNum c || c `elem` ".-_"
 
+{-|
+Convert a filepath to a file: URI stored in a QName. If the
+input file path is relative then the working directory is used
+to convert it into an absolute path.
+
+If the input represents a directory then it *must* end in 
+the directory separator - e.g. "/foo/bar/" rather than "/foo/bar"
+for Posix systems.
+
+This has not been tested on Windows.
+
+-}
+qnameFromFilePath :: FilePath -> IO QName
+qnameFromFilePath = fmap qnameFromURI . filePathToURI
+  
+filePathToURI :: FilePath -> IO String
+filePathToURI fname = do
+  ipath <- canonicalizePath fname
+  let paths = splitDirectories ipath
+      txt = intercalate "/" $ case paths of
+        "/":rs -> rs
+        _      -> paths
+  
+  return $ "file:///" ++ txt
 
 --------------------------------------------------------------------------------
 --
