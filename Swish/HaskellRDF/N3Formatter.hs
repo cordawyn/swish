@@ -273,6 +273,7 @@ extractFormula fn = do
     Nothing -> return Nothing
     Just fv -> put newState >> return (Just fv)
 
+{-
 moreFormulae :: Formatter Bool
 moreFormulae =  do
   st <- get
@@ -284,6 +285,8 @@ nextFormula = do
   let (nf : fq) = formQueue st
   put $ st { formQueue = fq }
   return nf
+
+-}
 
 -- list has a length of 1
 len1 :: [a] -> Bool
@@ -487,13 +490,15 @@ formatSubjects = do
   if flagP
     then do
       prstr <- formatProperties sb sbstr
-      fmstr <- formatFormulae ""
+      -- fmstr <- formatFormulae ""
       flagS <- moreSubjects
       if flagS
         then do
           fr <- formatSubjects
-          return $ puts (prstr ++ fmstr ++ " .") . fr
-        else return $ puts $ prstr ++ fmstr
+          return $ puts (prstr ++ " .") . fr
+          -- return $ puts (prstr ++ fmstr ++ " .") . fr
+        else return $ puts $ prstr
+        -- else return $ puts $ prstr ++ fmstr
            
     else do
          txt <- nextLine sbstr
@@ -526,6 +531,7 @@ formatObjects sb pr prstr = do
       return $ nl ++ fr
     else return $ prstr ++ " " ++ obstr
 
+{-
 formatFormulae :: String -> Formatter String
 formatFormulae fp = do
   more  <- moreFormulae
@@ -536,11 +542,9 @@ formatFormulae fp = do
       formatFormulae $ fp ++ " ." ++ fnstr
     else return fp
 
-{-
 TODO: need to remove the use of :-. It's not clear to me whether
 we are guaranteed that fn is only used once in the graph - ie
 if it is safe to inline this formula at the label location.
--}
 
 formatFormula :: (RDFLabel,RDFGraph) -> Formatter String
 formatFormula (fn,gr) = do
@@ -557,6 +561,8 @@ formatFormula (fn,gr) = do
   setNgs (nodeGenSt fgs')
   f4str <- nextLine "    }"
   return $ f1str ++ f2str ++ f3str f4str
+
+-}
 
 --- DJB's version of formatFormula when it can be inserted inline
 insertFormula :: RDFGraph -> Formatter String

@@ -690,8 +690,6 @@ x15    = NSGraph
                         tx1527,tx1528,tx1529]
         }
 
-
-
 --  More complex list with nested list
 tx1601 = arc s1 res_rdf_first b1
 tx1602 = arc s1 res_rdf_rest  c1
