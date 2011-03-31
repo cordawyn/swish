@@ -864,7 +864,7 @@ mapBlankNode lab = do
     n -> return n
   
   -- TODO: is this what we want?
-  return $ "_:_" ++ show nv
+  return $ "_:swish" ++ show nv
 
 -- TODO: need to be a bit more clever with this than we did in NTriples
 --       not sure the following counts as clever enough ...
