@@ -42,8 +42,9 @@
 --  No performance testing has been applied.
 --
 --  Not all N3 grammar elements are supported, including:
---    @forSome
---    @forAll
+--    @forSome (we read it in but ignore the arguments)
+--    @forAll  (this causes a parse error)
+--    formulae are lightly tested
 --
 --------------------------------------------------------------------------------
 
@@ -336,17 +337,14 @@ parseURIref2FromString =
 
 {-
  TODO:
-  - update to latest specification
-    - @prefix, @forSome, @forAll
     - this parser is a *lot* slower than the original one
   
 -}
 
 -- helper routines
 
-comma, colon , semiColon , fullStop :: N3Parser ()
+comma, semiColon , fullStop :: N3Parser ()
 comma = ignore $ symbol ","
-colon = ignore $ symbol ":"
 semiColon = ignore $ symbol ";"
 fullStop = ignore $ symbol "."
 
@@ -453,13 +451,13 @@ n3string = tripleQuoted <|> singleQuoted <?> "string"
 {-
 singleQuoted ::=  "[^"\\]*(?:\\.[^"\\]*)*"
 
--}
-
 asciiChars :: String
 asciiChars = map chr [0x20..0x7e]
 
 asciiCharsN3 :: String
 asciiCharsN3 = filter (`notElem` "\\\"") asciiChars
+
+-}
 
 -- the grammer has only upper-case A-F but some lower case values
 -- seen in the wild, so support them
@@ -577,9 +575,9 @@ statement ::=		|	declaration
 
 statement :: N3Parser ()
 statement =
-  try declaration
-  -- <|> try existential      TODO: put back in
-  -- <|> try universal        TODO: put back in
+  declaration
+  <|> existential
+  <|> universal
   <|> simpleStatement
   -- having an error here leads to less informative errors in general, it seems
   -- <?> "statement (existential or universal quantification or a simple statement)"
@@ -741,25 +739,18 @@ localQName name = do
     
     else fail "Invalid 'bare' word" -- TODO: not ideal error message; can we handle this case differently?
 
-matchPrefix :: N3Parser Namespace
-matchPrefix = do
-  pre <- n3Name
-      
-  -- do we want a lexeme here or not? apparently not
-  -- colon
-  ignore $ char ':'
-  
-  st <- getState
-  case mapFindMaybe pre (prefixUris st) of
-    Just uri -> return $ Namespace pre uri
-    Nothing  -> unexpected $ "Prefix '" ++ pre ++ ":' not bound."
-
 {-
 existential ::=		|	 "@forSome"  symbol_csl
+
+For now we just read in the symbols and ignore them,
+since we do not mark blank nodes as existentially quantified
+(we assume this is the case).
+
+TODO: fix this?
 -}
 
 existential :: N3Parser ()
-existential = atWord "forSome" *> symbolCsl >>= fail "existentials (forSome) currently unsupported" -- TODO support
+existential = try (atWord "forSome") *> symbolCsl >> return ()
 
 {-
 simpleStatement ::=		|	subject propertylist
@@ -1065,9 +1056,11 @@ verbForward =
 
 {-
 universal ::=		|	 "@forAll"  symbol_csl
+
+TODO: what needs to be done to support universal quantification
 -}
 universal :: N3Parser ()
-universal = atWord "forAll" *> symbolCsl >>= fail "universal (forAll) currently unsupported." -- TODO support
+universal = try (atWord "forAll") *> unexpected "universal (@forAll) currently unsupported." -- *> symbolCsl
 
 {-
 

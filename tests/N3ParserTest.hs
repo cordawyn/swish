@@ -1173,7 +1173,7 @@ emsg16 = intercalate "\n" [
   "(line 1, column 103 indicated by the '^' sign above):",
   "",
   "unexpected \"*\"",
-  "expecting declaration, pathitem or end of input"
+  "expecting declaration, \"@\", pathitem or end of input"
   ]
 
 

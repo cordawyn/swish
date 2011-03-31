@@ -118,7 +118,7 @@ data SwishStatus =
 instance Show SwishStatus where
   show SwishSuccess           = "Success."
   show SwishGraphCompareError = "The graphs do not compare as equal."
-  show SwishDataInputError    = "There was a format or syntax error in the input data/"
+  show SwishDataInputError    = "There was a format or syntax error in the input data."
   show SwishDataAccessError   = "There was a problem accessing data."
   show SwishArgumentError     = "Argument error: use -h or -? for help."
   show SwishExecutionError    = "There was a problem executing a Swish script."
