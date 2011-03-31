@@ -119,12 +119,8 @@ Library
       Swish.HaskellUtils.ShowM
       Swish.HaskellUtils.TraceHelpers
 
-   -- hide the Sort modules since aim to replace these in the near future
-   -- and their documentation doesn't build at the moment
    other-modules:
       -- Paths_swish
-      Swish.HaskellRDF.Sort.LibBase
-      Swish.HaskellRDF.Sort.QuickSort
 
    ghc-options:
       -Wall

@@ -93,12 +93,9 @@ import Swish.HaskellUtils.LookupMap
 import Swish.HaskellUtils.Namespace
     ( ScopedName(..), getScopeURI )
 
-import Swish.HaskellRDF.Sort.QuickSort
-    ( stableQuickSort )
-
 import Data.Char (ord, isDigit)
 
-import Data.List (foldl', delete, groupBy, intercalate, partition)
+import Data.List (foldl', delete, groupBy, intercalate, partition, sort)
 
 import Text.Printf (printf)
 
@@ -890,7 +887,7 @@ showScopedName = quote True . show
 newtype SortedArcs lb = SA [Arc lb]
 
 sortArcs :: (Ord lb) => [Arc lb] -> SortedArcs lb
-sortArcs = SA . stableQuickSort
+sortArcs = SA . sort
 
 --  Rearrange a list of arcs into a tree of pairs which group together
 --  all statements for a single subject, and similarly for multiple
