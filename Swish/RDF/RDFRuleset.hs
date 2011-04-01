@@ -88,12 +88,7 @@ import Swish.RDF.GraphClass
 import Swish.Utils.ListHelpers
     ( equiv, flist )
 
-import Swish.Utils.ErrorM
-    ( ErrorM(..) )
-
-import Data.List
-    ( nub )
-
+import Data.List (nub)
 import Data.Maybe (fromMaybe)
 
 ------------------------------------------------------------
@@ -241,8 +236,8 @@ querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 --  and return the corresponding RDFGraph value.
 makeRDFGraphFromN3String :: String -> RDFGraph
 makeRDFGraphFromN3String str = case parseN3fromString str of
-    Error  msg -> error msg
-    Result gr  -> gr
+    Left  msg -> error msg
+    Right gr  -> gr
 
 -- |Create an RDF formula.
 makeRDFFormula ::

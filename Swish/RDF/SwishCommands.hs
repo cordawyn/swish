@@ -62,7 +62,6 @@ import Swish.RDF.GraphClass
     )
 
 import Swish.Utils.QName (QName, qnameFromURI, qnameFromFilePath, getQNameURI)
-import Swish.Utils.ErrorM (ErrorM(..))
 
 import System.IO
     ( Handle, openFile, IOMode(..)
@@ -259,11 +258,11 @@ swishParseScript ::
 swishParseScript (mfpath,fnam) inp = do
   buri <- calculateBaseURI mfpath
   case parseScriptFromString (Just buri) inp of
-    Error err -> do
+    Left err -> do
       swishError ("Script syntax error in file "++fnam++": "++err) SwishDataInputError
       return []
               
-    Result scs -> return scs
+    Right scs -> return scs
 
 swishCheckResult :: SwishStateIO () -> SwishStateIO ()
 swishCheckResult swishcommand = do
@@ -358,8 +357,8 @@ swishParse (mfpath,fnam) inp = do
         >> return Nothing
         
       readIn reader = case reader inp of
-        Result res -> return $ Just res
-        Error eMsg -> toError eMsg
+        Left eMsg -> toError eMsg
+        Right res -> return $ Just res
              
   case fmt of
     N3 -> readIn (flip parseN3 (Just buri))

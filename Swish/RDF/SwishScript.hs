@@ -103,9 +103,6 @@ import Swish.Utils.LookupMap
 import Swish.Utils.ListHelpers
     ( equiv, flist )
 
-import Swish.Utils.ErrorM
-    ( ErrorM(..), errorToEither )
-
 import Text.ParserCombinators.Parsec
     ( (<?>), (<|>)
     , many, manyTill, option, sepBy, between, try, notFollowedBy
@@ -132,11 +129,8 @@ import qualified System.IO.Error as IO
 --
 -- NOTE: during the parser re-write we strip out some of this functionality
 -- 
-parseScriptFromString :: Maybe QName -> String -> ErrorM [SwishStateIO ()]
-parseScriptFromString base inp =
-    case parseAnyfromString script base inp of
-        Left  err -> Error  err
-        Right scs -> Result scs
+parseScriptFromString :: Maybe QName -> String -> Either String [SwishStateIO ()]
+parseScriptFromString = parseAnyfromString script 
 
 ----------------------------------------------------------------------
 --  Syntax productions
@@ -518,7 +512,7 @@ ssReadGraph :: Maybe String -> SwishStateIO (Either String RDFGraph)
 ssReadGraph muri = 
   let gf inp = case inp of
         Left  es -> Left es
-        Right is -> errorToEither (parseN3 is (fmap qnameFromURI muri))
+        Right is -> parseN3 is (fmap qnameFromURI muri)
         
   in gf `liftM` getResourceData muri
 

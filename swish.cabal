@@ -108,7 +108,6 @@ Library
       Swish.RDF.VarBinding
       Swish.RDF.Vocabulary
       Swish.Utils.DateTime
-      Swish.Utils.ErrorM
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
       Swish.Utils.MiscHelpers

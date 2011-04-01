@@ -93,9 +93,6 @@ import Swish.Utils.QName
 import Swish.Utils.ListHelpers
     ( equiv )
 
-import Swish.Utils.ErrorM
-    ( ErrorM(Error,Result) )
-
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
     , assertBool, assertEqual, assertString
@@ -131,8 +128,8 @@ testGr lab e a = TestCase $ assertBool lab (eg `elem` a)
 
 graphFromString :: String -> RDFGraph
 graphFromString str = case parseN3fromString str of
-    Result gr -> gr
-    Error msg -> error msg
+    Right gr -> gr
+    Left msg -> error msg
 
 -- Compare lists for set equivalence:
 

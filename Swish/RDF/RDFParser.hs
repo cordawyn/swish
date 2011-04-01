@@ -57,8 +57,6 @@ import Swish.RDF.Vocabulary
     , default_base
     )
 
-import Swish.Utils.ErrorM (ErrorM)
-
 import Control.Applicative
 import Control.Monad (MonadPlus(..), ap)
 
@@ -143,7 +141,7 @@ instance Alternative (GenParser a b) where
   empty = mzero
   (<|>) = mplus
   
-type ParseResult = ErrorM RDFGraph
+type ParseResult = Either String RDFGraph
 
 ignore :: (Monad m) => m a -> m ()
 ignore p = p >> return ()

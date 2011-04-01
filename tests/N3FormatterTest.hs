@@ -85,9 +85,6 @@ import Swish.Utils.LookupMap
 import Swish.RDF.GraphClass
     ( Arc, arcSubj, arcPred, arcObj, arc )
 
-import Swish.Utils.ErrorM
-    ( ErrorM(..) )
-
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
     , assertEqual, runTestTT, runTestText, putTextToHandle )
@@ -1096,8 +1093,8 @@ parseTest lab inp gr er =
       ]
     where
         (pe,pg) = case parseN3fromString inp of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 noError   = ""
 errorText = "*"
@@ -1143,8 +1140,8 @@ roundTripTest lab gr =
     where
         out     = formatGraphAsString gr
         (pe,pg) = case parseN3fromString out of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 --  Full round trip from graph source.  This test may pick up some errors
 --  the bnode generation logic that are not tested by hand-assembled graph
@@ -1158,12 +1155,12 @@ fullRoundTripTest lab grstr =
       ]
     where
         (ge,gr) = case parseN3fromString grstr of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
         out     = formatGraphAsString gr
         (pe,pg) = case parseN3fromString out of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 roundTripTest01 = roundTripTest "01" g1np
 roundTripTest02 = roundTripTest "02" g1
@@ -1260,8 +1257,8 @@ exoticTest lab gr =
     where
         out     = formatGraphAsString gr
         (pe,pg) = case parseN3fromString out of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 --  Simple anon nodes, with semicolons and commas
 exoticN3Graph_x1 =

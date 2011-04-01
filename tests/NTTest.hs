@@ -32,9 +32,6 @@ import Swish.RDF.Vocabulary (langName, rdf_XMLLiteral)
 
 import Swish.RDF.GraphClass (arc)
 
-import Swish.Utils.ErrorM
-    ( ErrorM(..) )
-
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual, runTestTT )
@@ -53,8 +50,8 @@ checkGraph lab inp gr =
       ]
     where
       (pe,pg) = case parseNT inp of
-        Result g -> (noError, g)
-        Error  s -> (s, emptyRDFGraph)
+        Right g -> (noError, g)
+        Left  s -> (s, emptyRDFGraph)
             
 noError :: String
 noError = ""
@@ -65,14 +62,14 @@ noError = ""
 roundTrip :: String -> String -> Test
 roundTrip lbl inp = 
   let (pErr1, pGr1) = case parseNT inp of
-        Result g -> (noError, g)
-        Error  s -> (s, emptyRDFGraph)
+        Right g -> (noError, g)
+        Left  s -> (s, emptyRDFGraph)
         
       inp2 = formatGraphAsString pGr1
       
       (pErr2, pGr2) = case parseNT inp2 of
-        Result g -> (noError, g)
-        Error  s -> (s, emptyRDFGraph)
+        Right g -> (noError, g)
+        Left  s -> (s, emptyRDFGraph)
         
   in TestList
     [ TestCase (assertEqual ("roundTrip-parsing1:"++lbl) noError pErr1)

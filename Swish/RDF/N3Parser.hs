@@ -109,9 +109,6 @@ import Swish.RDF.Vocabulary
     , xsd_boolean, xsd_integer, xsd_decimal, xsd_double
     )
 
-import Swish.Utils.ErrorM
-    ( ErrorM(Error,Result) )
-
 import Swish.RDF.RDFParser
     ( SpecialMap
     , mapPrefix
@@ -238,8 +235,7 @@ type N3Parser a = RDFParser N3State a
 parseN3fromString ::
   String -- ^ input in N3 format.
   -> ParseResult
-parseN3fromString =
-    either Error Result . parseAnyfromString document Nothing 
+parseN3fromString = parseAnyfromString document Nothing 
 
 -- | Parse a string with an optional base URI.
 --            
@@ -249,7 +245,7 @@ parseN3 ::
   String -- ^ input in N3 format.
   -> Maybe QName -- ^ optional base URI
   -> ParseResult
-parseN3 inp mbase = either Error Result $ parseAnyfromString document mbase inp
+parseN3 = flip (parseAnyfromString document)
 
 {-
 -- useful for testing

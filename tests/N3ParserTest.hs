@@ -55,8 +55,6 @@ import Swish.Utils.LookupMap (LookupMap(..))
 
 import Swish.RDF.GraphClass (Arc, arc) 
 
-import Swish.Utils.ErrorM (ErrorM(..))
-
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
 import Data.List (intercalate)
@@ -104,8 +102,8 @@ parseTest lab inp gr er =
       ]
     where
         (pe,pg) = case parseN3fromString inp of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 parseTestB :: QName -> String -> String -> RDFGraph -> String -> Test
 parseTestB base lab inp gr er =
@@ -115,8 +113,8 @@ parseTestB base lab inp gr er =
       ]
     where
         (pe,pg) = case parseN3 inp (Just base) of
-            Result g -> ("",g)
-            Error  s -> (s,emptyRDFGraph)
+            Right g -> ("",g)
+            Left  s -> (s,emptyRDFGraph)
 
 ------------------------------------------------------------
 --  Test simple character parsing

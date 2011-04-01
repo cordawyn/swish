@@ -63,9 +63,6 @@ import Swish.RDF.RDFParser
     , annotateParsecError
     )
 
-import Swish.Utils.ErrorM
-    ( ErrorM(Error,Result) )
-
 import Control.Applicative
 import Control.Monad (when)
 
@@ -103,7 +100,8 @@ type NTParser a = RDFParser NTState a
 parseNT ::
   String -- ^ input in NTriples format.
   -> ParseResult
-parseNT = either Error Result . parsefromString ntripleDoc
+parseNT = parsefromString ntripleDoc
+-- parseNT = either Error Result . parsefromString ntripleDoc
 
 {-
 -- useful for testing
