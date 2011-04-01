@@ -1,7 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
-
--- the above is only needed for the Dfa code
-
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -12,7 +8,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98 + ????
+--  Portability :  H98
 --
 --  This module defines the datatytpe mapping and relation values
 --  used for RDF dataype xsd:integer
