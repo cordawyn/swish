@@ -78,7 +78,6 @@ Library
       Swish.HaskellRDF.BuiltInRules
       Swish.HaskellRDF.ClassRestrictionRule
       Swish.HaskellRDF.Datatype
-      Swish.HaskellRDF.Dfa.Dfa
       Swish.HaskellRDF.GraphClass
       Swish.HaskellRDF.GraphMatch
       Swish.HaskellRDF.GraphMem

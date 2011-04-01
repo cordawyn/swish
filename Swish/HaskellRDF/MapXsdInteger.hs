@@ -1,3 +1,7 @@
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
+
+-- the above is only needed for the Dfa code
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -24,11 +28,7 @@ import Swish.HaskellRDF.Datatype
     ( DatatypeMap(..)
     )
 
-
-import Swish.HaskellRDF.Dfa.Dfa
-    ( Re(..)
-    , matchRe
-    )
+import Text.ParserCombinators.Parsec
 
 ------------------------------------------------------------
 --  Implementation of DatatypeMap for xsd:integer
@@ -40,27 +40,35 @@ import Swish.HaskellRDF.Dfa.Dfa
 mapXsdInteger :: DatatypeMap Integer
 mapXsdInteger = DatatypeMap
     { -- mapL2V :: String -> Maybe Integer
-      mapL2V = \s -> case [ x
-                          | matchRe reInteger s
-                          , (x,t) <- reads $ skipPlus s
-                          , ("","") <- lex t
-                          ] of
-                    [] -> Nothing
-                    is -> Just $ head is
+      mapL2V = fromString
+      
       -- mapV2L :: Integer -> Maybe String
     , mapV2L = Just . show
     }
 
-skipPlus :: String -> String
-skipPlus ('+':s) = s
-skipPlus s       = s
+-- previously there was a regular expression used to check
+-- the string before parsing; this has been replaced by a
+-- simple parsec parser.
+-- 
+fromString :: String -> Maybe Integer
+fromString input =
+  case runParser intVal "" "" input of
+    Right ival -> Just ival
+    Left _     -> Nothing
+  
+leadingSign :: CharParser st Integer
+leadingSign = 
+  (char '-' >> return (-1)) <|> 
+  (char '+' >> return 1) <|>
+  return 1
 
-reInteger :: Re Char
-reInteger = ReCat [ReOpt (alt "+-"), digits]
-    where
-        digits = RePlus $ alt "0123456789"
-        alt cs = ReOr $ map (\c -> ReTerm [c]) cs
-
+intVal :: CharParser st Integer
+intVal = do
+  sign <- leadingSign
+  aval <- many1 (oneOf "0123456789")
+  notFollowedBy anyChar
+  return $ sign * read aval
+    
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
