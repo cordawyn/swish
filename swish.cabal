@@ -102,7 +102,7 @@ Library
       Swish.RDF.Rule
       Swish.RDF.Ruleset
       Swish.RDF.SwishCommands
-      -- Swish.RDF.SwishMain
+      Swish.RDF.SwishMain
       Swish.RDF.SwishMonad
       Swish.RDF.SwishScript
       Swish.RDF.VarBinding
@@ -201,12 +201,10 @@ Executable         QNameTest
  -- we do not have the data files to run this test
  Executable         SwishTest
    Main-Is:        tests/SwishTest.hs
-   Other-Modules:  Swish.RDF.SwishMain
 
 Executable         Swish
-   Main-Is:        Swish/RDF/Swish.hs
-   Other-Modules:  Swish.RDF.SwishMain
-                   Paths_swish
+   Main-Is:        src/Swish.hs
+   Other-Modules:  Paths_swish
 
    ghc-options:
       -Wall -fno-warn-orphans

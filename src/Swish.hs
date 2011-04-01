@@ -14,6 +14,8 @@
 --
 --------------------------------------------------------------------------------
 
+module Main where
+
 import Paths_swish (version)
 import Data.Version (showVersion)
 
