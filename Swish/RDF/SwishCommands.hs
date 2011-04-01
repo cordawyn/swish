@@ -67,7 +67,7 @@ import System.IO
     ( Handle, openFile, IOMode(..)
     , hPutStr, hPutStrLn, hClose, hGetContents
     , hIsReadable, hIsWritable
-    , stdin, stdout, stderr
+    , stdin, stdout
     )
 
 import Network.URI (URI, 
@@ -84,31 +84,27 @@ import System.IO.Error
 --  Set file format to supplied value
 ------------------------------------------------------------
 
-swishFormat :: SwishFormat -> SwishStateIO ()
-swishFormat = modify . setFormat
+-- the second argument allows for options to be passed along
+-- with the format (a la cwm) but this is not supported yet
+--
+swishFormat :: SwishFormat -> Maybe String -> SwishStateIO ()
+swishFormat fmt _ = modify (setFormat fmt)
 
 ------------------------------------------------------------
 --  Set base URI to supplied value
 ------------------------------------------------------------
 
-swishBase :: Maybe QName -> SwishStateIO ()
-swishBase = modify . setBase
-
-{-
-
-------------------------------------------------------------
---  Display the banner or not
-------------------------------------------------------------
-
-swishVerbose :: Bool -> SwishStateIO ()
-swishVerbose = modify . setVerbose
--}
+-- the Maybe String argument is ignored (a result of a lack of
+-- design with the command-line processing)
+--
+swishBase :: Maybe QName -> Maybe String -> SwishStateIO ()
+swishBase mb _ = modify (setBase mb)
 
 ------------------------------------------------------------
 --  Read graph from named file
 ------------------------------------------------------------
 
-swishInput :: String -> SwishStateIO ()
+swishInput :: Maybe String -> SwishStateIO ()
 swishInput fnam =
   swishReadGraph fnam >>= maybe (return ()) (modify . setGraph)
   
@@ -116,7 +112,7 @@ swishInput fnam =
 --  Merge graph from named file
 ------------------------------------------------------------
 
-swishMerge :: String -> SwishStateIO ()
+swishMerge :: Maybe String -> SwishStateIO ()
 swishMerge fnam =
   swishReadGraph fnam >>= maybe (return ()) (modify . mergeGraph)
     
@@ -129,7 +125,7 @@ mergeGraph gr state = state { graph = newgr }
 --  Compare graph from named file
 ------------------------------------------------------------
 
-swishCompare :: String -> SwishStateIO ()
+swishCompare :: Maybe String -> SwishStateIO ()
 swishCompare fnam =
   swishReadGraph fnam >>= maybe (return ()) compareGraph
     
@@ -143,7 +139,7 @@ compareGraph gr = do
 --  Display graph differences from named file
 ------------------------------------------------------------
 
-swishGraphDiff :: String -> SwishStateIO ()
+swishGraphDiff :: Maybe String -> SwishStateIO ()
 swishGraphDiff fnam =
   swishReadGraph fnam >>= maybe (return ()) diffGraph
 
@@ -153,7 +149,7 @@ diffGraph gr = do
   let p1 = partitionGraph (getArcs oldGr)
       p2 = partitionGraph (getArcs gr)
       diffs = comparePartitions p1 p2
-  maybehandleclose <- swishWriteFile "" -- null filename -> stdout
+  maybehandleclose <- swishWriteFile Nothing
   case maybehandleclose of
     Just (h,c) -> do
       swishOutputDiffs "" h diffs
@@ -190,13 +186,13 @@ swishOutputPart _ hnd part =
 --  Execute script from named file
 ------------------------------------------------------------
 
-swishScript :: String -> SwishStateIO ()
+swishScript :: Maybe String -> SwishStateIO ()
 swishScript fnam = swishReadScript fnam >>= mapM_ swishCheckResult
 
-swishReadScript :: String -> SwishStateIO [SwishStateIO ()]
+swishReadScript :: Maybe String -> SwishStateIO [SwishStateIO ()]
 swishReadScript fnam =
-  let hdlr (h,i,mfpath) = do
-        res <- swishParseScript (mfpath,fnam) i
+  let hdlr (h,i) = do
+        res <- swishParseScript fnam i
         lift $ hClose h
         return res
   
@@ -252,14 +248,15 @@ appendUris buri uri =
       _ -> Left $ "Invalid URI: <" ++ uri ++ ">"
       
 swishParseScript ::
-    (Maybe FilePath, String) -- file name as QName, file name (may be "")
-    -> String  -- script contents
-    -> SwishStateIO [SwishStateIO ()]
-swishParseScript (mfpath,fnam) inp = do
+  Maybe String -- file name (or "stdin" if Nothing)
+  -> String  -- script contents
+  -> SwishStateIO [SwishStateIO ()]
+swishParseScript mfpath inp = do
   buri <- calculateBaseURI mfpath
   case parseScriptFromString (Just buri) inp of
     Left err -> do
-      swishError ("Script syntax error in file "++fnam++": "++err) SwishDataInputError
+      let inName = maybe "standard input" ("file " ++) mfpath
+      swishError ("Script syntax error in " ++ inName ++ ": "++err) SwishDataInputError
       return []
               
     Right scs -> return scs
@@ -281,12 +278,12 @@ swishCheckResult swishcommand = do
 --  Output graph to named file
 ------------------------------------------------------------
 
-swishOutput :: String -> SwishStateIO ()
+swishOutput :: Maybe String -> SwishStateIO ()
 swishOutput fnam = 
   let hdlr (h,c) = swishOutputGraph fnam h >> when c (lift $ hClose h)
   in swishWriteFile fnam >>= maybe (return ()) hdlr
      
-swishOutputGraph :: String -> Handle -> SwishStateIO ()
+swishOutputGraph :: Maybe String -> Handle -> SwishStateIO ()
 swishOutputGraph _ hnd = do
   fmt <- gets format
   
@@ -306,10 +303,10 @@ swishOutputGraph _ hnd = do
 --  Keep the logic separate for reading file data and
 --  parsing it to an RDF graph value.
 
-swishReadGraph :: String -> SwishStateIO (Maybe RDFGraph)
+swishReadGraph :: Maybe String -> SwishStateIO (Maybe RDFGraph)
 swishReadGraph fnam =
-  let reader (h,i,mfpath) = do
-        res <- swishParse (mfpath,fnam) i
+  let reader (h,i) = do
+        res <- swishParse fnam i
         lift $ hClose h
         return res
   
@@ -318,44 +315,45 @@ swishReadGraph fnam =
 -- Open and read file, returning its handle and content, or Nothing
 -- WARNING:  the handle must not be closed until input is fully evaluated
 --
--- The file name is also returned (or None if stdin is being
--- used). The file name is not 'normalized' here (i.e. relative paths
--- are not expanded out here).
---
-swishOpenFile :: String -> SwishStateIO (Maybe (Handle,String,Maybe FilePath))
-swishOpenFile fnam = do
-  (hnd,hop,qn) <- lift $ if null fnam
-                      then return (stdin,True,Nothing)
-                      else do
-                        o <- try (openFile fnam ReadMode)
-                        case o of
-                          Left  _ -> return (stdin,False,Nothing)
-                          Right h -> return (h,True,Just fnam)
+swishOpenFile :: Maybe String -> SwishStateIO (Maybe (Handle,String))
+swishOpenFile Nothing     = readFromHandle stdin "standard input."
+swishOpenFile (Just fnam) = do
+  o <- lift $ try $ openFile fnam ReadMode
+  case o of
+    Left  _ -> do
+      swishError ("Cannot open file: "++fnam) SwishDataAccessError
+      return Nothing
+      
+    Right hnd -> readFromHandle hnd ("file: " ++ fnam)
 
-  hrd <- lift $ hIsReadable hnd
-  if hop && hrd
+readFromHandle :: Handle -> String -> SwishStateIO (Maybe (Handle, String))
+readFromHandle hdl lbl = do
+  hrd <- lift $ hIsReadable hdl
+  if hrd
     then do
-      fc <- lift $ hGetContents hnd
-      return $ Just (hnd,fc,qn)
+      fc <- lift $ hGetContents hdl
+      return $ Just (hdl,fc)
   
     else do
-      lift $ hClose hnd
-      swishError ("Cannot read file: "++fnam) SwishDataAccessError
+      -- closing stdin should not be an issue here?
+      lift $ hClose hdl
+      swishError ("Cannot read from " ++ lbl) SwishDataAccessError
       return Nothing
 
-
 swishParse :: 
-  (Maybe FilePath, String) -- ^ base of file, file name (may be "")
+  Maybe String -- ^ filename (if not stdin)
   -> String  -- ^ contents of file
   -> SwishStateIO (Maybe RDFGraph)
-swishParse (mfpath,fnam) inp = do
+swishParse mfpath inp = do
   fmt <- gets format
   buri <- calculateBaseURI mfpath
   
   let toError eMsg =
-        swishError (show fmt ++ " syntax error in file " ++ fnam ++ ": " ++ eMsg) SwishDataInputError 
+        swishError (show fmt ++ " syntax error in " ++ inName ++ ": " ++ eMsg) SwishDataInputError 
         >> return Nothing
         
+      inName = maybe "standard input" ("file " ++) mfpath
+  
       readIn reader = case reader inp of
         Left eMsg -> toError eMsg
         Right res -> return $ Just res
@@ -373,24 +371,30 @@ swishParse (mfpath,fnam) inp = do
 --  handled should be closed when writing is done (if writing
 --  to standard output, the handle should not be closed as the
 --  run-time system should deal with that).
-swishWriteFile :: String -> SwishStateIO (Maybe (Handle,Bool))
-swishWriteFile fnam = do
-  (hnd,hop,cls) <-
-    lift $ if null fnam 
-           then return (stdout,True,False)
-           else do
-             o <- try (openFile fnam WriteMode)
-             case o of
-               Left  _ -> return (stderr,False,False)
-               Right h -> return (h,True,True)
-            
-  hwt <- lift $ hIsWritable hnd
-  if hop && hwt
-    then return $ Just (hnd,cls)
+swishWriteFile :: Maybe String -> SwishStateIO (Maybe (Handle,Bool))
+swishWriteFile Nothing = do
+  hwt <- lift $ hIsWritable stdout
+  if hwt
+    then return $ Just (stdout, False)
     else do
-      when cls (lift $ hClose hnd)
-      swishError ("Cannot write file: "++fnam) SwishDataAccessError
+      swishError ("Cannot write to standard output") SwishDataAccessError
       return Nothing
+  
+swishWriteFile (Just fnam) = do
+  o <- lift $ try $ openFile fnam WriteMode
+  case o of
+    Left _ -> do
+      swishError ("Cannot open file for writing: " ++ fnam) SwishDataAccessError
+      return Nothing
+      
+    Right hnd -> do
+      hwt <- lift $ hIsWritable hnd
+      if hwt
+        then return $ Just (hnd, True)
+        else do
+          lift $ hClose hnd
+          swishError ("Cannot write to file: "++fnam) SwishDataAccessError
+          return Nothing
   
 --------------------------------------------------------------------------------
 --

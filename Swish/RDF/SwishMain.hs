@@ -51,10 +51,11 @@
 module Swish.RDF.SwishMain (
   SwishStatus(..),
   runSwish,
-  runSwishArgs
+  runSwishActions,
+  displaySwishHelp,
+  splitArguments,
+  validateCommands
   ) where
-
-import Paths_swish (version)
 
 import Swish.RDF.SwishCommands
     ( swishFormat
@@ -71,8 +72,6 @@ import Swish.RDF.SwishMonad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
     , emptyState
     , SwishFormat(..)
-    , swishError
-    , reportLines 
     )
 
 import Swish.Utils.QName (qnameFromURI)
@@ -84,7 +83,7 @@ import Control.Monad (liftM)
 import Network.URI (parseURI)
 
 import Data.Char (isSpace)
-import Data.Version (showVersion)
+import Data.Either (partitionEithers)
 
 import System.Exit (ExitCode(ExitSuccess, ExitFailure))
 
@@ -92,10 +91,14 @@ import System.Exit (ExitCode(ExitSuccess, ExitFailure))
 --  Command line description
 ------------------------------------------------------------
 
+-- we do not display the version in the help file to avoid having
+-- to include the Paths_swish module (so that we can use this from
+-- an interactive environment).
+--
+
 usageText :: [String]
 usageText =
-    [ "Swish " ++ showVersion version
-    , "Read, merge, write, compare and process RDF graphs."
+    [ "Swish: Read, merge, write, compare and process RDF graphs."
     , ""
     , "Usage: swish option option ..."
     , ""
@@ -103,6 +106,7 @@ usageText =
     , "any of the following:"
     , "-h        display this message."
     , "-?        display this message."
+    , "-v        display Swish version and quit."
     , "-q        do not display Swish version on start up."
     , "-nt       use Ntriples format for subsequent input and output."
     , "-n3       use Notation3 format for subsequent input and output (default)"
@@ -145,6 +149,9 @@ usageText =
     , "    or not they are equivalent."
     ]
 
+displaySwishHelp :: IO ()
+displaySwishHelp = mapM_ putStrLn usageText
+
 ------------------------------------------------------------
 --  Swish command line interpreter
 ------------------------------------------------------------
@@ -153,61 +160,92 @@ usageText =
 --  Monad.  lift allows a pure IO monad to be used as a step
 --  of the computation.
 --
-swishCommands :: [String] -> SwishStateIO ()
+        
+-- Return any arguments that need processing immediately, namely                     
+-- help and quiet. Should return a typed structure rather than
+-- strings
+--
+splitArguments :: [String] -> ([String], [String])
+splitArguments = partitionEithers . map splitArgument
+
+splitArgument :: String -> Either String String
+splitArgument "-?" = Left "-h"
+splitArgument "-h" = Left "-h"
+splitArgument "-v" = Left "-v"
+splitArgument "-q" = Left "-q"
+splitArgument x    = Right x
+
+type SwishAction = (Maybe String, Maybe String -> SwishStateIO ())
+
+validateCommands :: [String] -> Either (String, SwishStatus) [SwishAction]
+validateCommands args = 
+  let (ls, rs) = partitionEithers (map validateCommand args)
+  in case ls of
+    (e:_) -> Left e
+    []    -> Right rs
+  
+-- This allows you to say "-nt=foo" and currently ignores the values
+-- passed through. This may change
+--    
+validateCommand :: String -> Either (String, SwishStatus) SwishAction
+validateCommand cmd =
+  let (nam,more) = break (=='=') cmd
+      arg        = drop 1 more
+      marg       = if null arg then Nothing else Just arg
+      
+      wrap f = Right (marg, f)
+  in case nam of
+    "-nt"   -> wrap $ swishFormat NT
+    "-n3"   -> wrap $ swishFormat N3
+    "-i"    -> wrap swishInput
+    "-m"    -> wrap swishMerge
+    "-c"    -> wrap swishCompare
+    "-d"    -> wrap swishGraphDiff
+    "-o"    -> wrap swishOutput
+    "-b"    -> validateBase marg
+    "-s"    -> wrap swishScript
+    _       -> Left ("Invalid command line argument: "++cmd, SwishArgumentError)
+
+swishCommands :: [SwishAction] -> SwishStateIO ()
 swishCommands = mapM_ swishCommand
 
-swishCommand :: String -> SwishStateIO ()
-swishCommand cmd =
-        let
-            (nam,more) = break (=='=') cmd
-            arg        = drop 1 more
-        in
-        case nam of
-            ""      -> return ()    -- do nothing
-            "-?"    -> swishHelp
-            "-h"    -> swishHelp
-            "-q"    -> return ()    -- swishVerbose False
-            "-nt"   -> swishFormat NT
-            "-n3"   -> swishFormat N3
-            "-i"    -> swishInput arg
-            "-m"    -> swishMerge arg
-            "-c"    -> swishCompare arg
-            "-d"    -> swishGraphDiff arg
-            "-o"    -> swishOutput arg
-            "-b"    -> setBase arg
-            "-s"    -> swishScript arg
-            _       -> swishError ("Invalid command line element: "++cmd) SwishArgumentError
+swishCommand :: SwishAction -> SwishStateIO ()
+swishCommand (marg, act) = act marg
 
-swishHelp :: SwishStateIO ()
-swishHelp = reportLines usageText
-
-setBase :: String -> SwishStateIO ()
-setBase "" = swishBase Nothing
-setBase bname = do
-  case parseURI bname of 
-    Just _ -> swishBase $ Just $ qnameFromURI bname
-    _ -> swishError ("Skipping invalid base URI <" ++ bname ++ ">") SwishArgumentError
-    
+validateBase :: Maybe String -> Either (String, SwishStatus) SwishAction
+validateBase Nothing  = Right (Nothing, swishBase Nothing)
+validateBase (Just b) =
+  case parseURI b of
+    Just _ -> Right (Nothing, swishBase (Just (qnameFromURI b)))
+    _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
+  
 ------------------------------------------------------------
 --  Interactive test function (e.g. for use in Hugs)
 ------------------------------------------------------------
 
--- the use of Paths_swish (and it being a hidden module) means
--- that it is a lot harder to use this module in an interactive
--- session.
+-- this ignores the "flags" options, namely
+--    -q / -h / -? / -v
 
 runSwish :: String -> IO ExitCode
 runSwish cmdline = do
   let args = breakAll isSpace cmdline
-  ec <- runSwishArgs args
-  if ec == SwishSuccess
-    then return ExitSuccess
-    else do
-      putStrLn $ "Swish exit: "++show ec
-      return $ ExitFailure (fromEnum ec)
+      (_, cmds) = splitArguments args
+      
+  case validateCommands cmds of
+    Left (emsg, ecode) -> do
+      putStrLn $ "Swish exit: " ++ emsg
+      return $ ExitFailure $ fromEnum ecode
+      
+    Right acts -> do
+      ec <- runSwishActions acts
+      case ec of
+        SwishSuccess -> return ExitSuccess
+        _  -> do
+          putStrLn $ "Swish exit: " ++ show ec
+          return $ ExitFailure $ fromEnum ec
 
-runSwishArgs :: [String] -> IO SwishStatus
-runSwishArgs args = exitcode `liftM` execStateT (swishCommands args) emptyState
+runSwishActions :: [SwishAction] -> IO SwishStatus
+runSwishActions acts = exitcode `liftM` execStateT (swishCommands acts) emptyState
 
 --------------------------------------------------------------------------------
 --

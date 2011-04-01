@@ -39,15 +39,29 @@ import Swish.RDF.SwishMain
 main :: IO ()
 main = do
   args <- getArgs
-  unless ("-q" `elem` args) $ reportVersion
-  code <- runSwishArgs args
-  case code of
-    SwishSuccess -> exitWith ExitSuccess
-    _ -> hPutStrLn stderr ("Swish: "++show code) >> 
-         exitWith (ExitFailure (fromEnum code))
+  let (flags, cmds) = splitArguments args
+      doHelp = "-h" `elem` flags
+      doVersion = "-v" `elem` flags
+      doQuiet = "-q" `elem` flags
+      
+  if doHelp || doVersion
+    then if doHelp then displaySwishHelp else displayVersion >> exitWith ExitSuccess
+    else do
+      unless doQuiet $ displayVersion >> putStrLn "\n"
+      case validateCommands cmds of
+        Left (emsg, ecode) -> do
+          hPutStrLn stderr $ "Swish: " ++ emsg
+          exitWith $ ExitFailure $ fromEnum ecode
+          
+        Right acts -> do
+          code <- runSwishActions acts
+          case code of
+            SwishSuccess -> exitWith ExitSuccess
+            _ -> hPutStrLn stderr ("Swish: "++show code)
+                 >> exitWith (ExitFailure $ fromEnum code)
   
-reportVersion :: IO ()
-reportVersion = putStrLn $ "Swish-" ++ showVersion version ++ " CLI\n\n" 
+displayVersion :: IO ()
+displayVersion = putStrLn $ "Swish " ++ showVersion version 
   
 --------------------------------------------------------------------------------
 --
