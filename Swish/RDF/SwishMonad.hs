@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98
+--  Portability :  FlexibleInstances and MultiParamTypeClasses
 --
 --  SwishMonad:  Composed state and IO monad for Swish
 --

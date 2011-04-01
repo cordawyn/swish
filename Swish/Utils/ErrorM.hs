@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98
+--  Portability :  FlexibleInstances
 --
 --  This module defines a Monad for reporting errors.  It is conceived as a
 --  very simple extension of Maybe, except that the failure variant caries

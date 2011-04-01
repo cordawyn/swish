@@ -192,6 +192,10 @@ setBase bname = do
 --  Interactive test function (e.g. for use in Hugs)
 ------------------------------------------------------------
 
+-- the use of Paths_swish (and it being a hidden module) means
+-- that it is a lot harder to use this module in an interactive
+-- session.
+
 runSwish :: String -> IO ExitCode
 runSwish cmdline = do
   let args = breakAll isSpace cmdline
