@@ -17,27 +17,27 @@
 
 module Main where
 
-import Swish.HaskellRDF.BuiltInMap
+import Swish.RDF.BuiltInMap
     ( findRDFOpenVarBindingModifier
     , findRDFDatatype
     , rdfRulesetMap
     , allRulesets
     )
 
-import Swish.HaskellRDF.RDFDatatypeXsdInteger
+import Swish.RDF.RDFDatatypeXsdInteger
     ( typeNameXsdInteger, namespaceXsdInteger
     )
 
-import Swish.HaskellRDF.Ruleset
+import Swish.RDF.Ruleset
     ( Ruleset(..)
     , getContextAxiom, getMaybeContextAxiom
     , getContextRule,  getMaybeContextRule
     )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( ScopedName(..) )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( swishName
     , scopeRDF
     , scopeRDFS
@@ -45,10 +45,10 @@ import Swish.HaskellRDF.Vocabulary
     , namespaceXsdType
     )
 
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
     ( mapFindMaybe )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
 import Test.HUnit

@@ -17,22 +17,22 @@
 
 module Main where
 
-import Swish.HaskellRDF.NTParser (parseNT)
-import Swish.HaskellRDF.NTFormatter (formatGraphAsString)
+import Swish.RDF.NTParser (parseNT)
+import Swish.RDF.NTFormatter (formatGraphAsString)
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
   ( RDFGraph, RDFLabel(..)
     , emptyRDFGraph 
     , toRDFGraph
     )
 
-import Swish.HaskellUtils.Namespace (makeUriScopedName)
+import Swish.Utils.Namespace (makeUriScopedName)
 
-import Swish.HaskellRDF.Vocabulary (langName, rdf_XMLLiteral)
+import Swish.RDF.Vocabulary (langName, rdf_XMLLiteral)
 
-import Swish.HaskellRDF.GraphClass (arc)
+import Swish.RDF.GraphClass (arc)
 
-import Swish.HaskellUtils.ErrorM
+import Swish.Utils.ErrorM
     ( ErrorM(..) )
 
 import Test.HUnit

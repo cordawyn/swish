@@ -17,7 +17,7 @@
 
 module Main where
 
-import Swish.HaskellRDF.RDFProof
+import Swish.RDF.RDFProof
     ( RDFProof, RDFProofStep
     , makeRDFProof, makeRDFProofStep
     , makeRdfInstanceEntailmentRule
@@ -25,13 +25,13 @@ import Swish.HaskellRDF.RDFProof
     , makeRdfSimpleEntailmentRule
     )
 
-import Swish.HaskellRDF.RDFQuery
+import Swish.RDF.RDFQuery
     ( rdfQueryFind, rdfQuerySubs )
 
-import Swish.HaskellRDF.RDFVarBinding
+import Swish.RDF.RDFVarBinding
     ( RDFVarBindingFilter, RDFVarBindingModify )
 
-import Swish.HaskellRDF.RDFRuleset
+import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
     , GraphClosure(..), makeGraphClosureRule
     , makeRDFGraphFromN3String
@@ -42,11 +42,11 @@ import Swish.HaskellRDF.RDFRuleset
     , makeNodeAllocTo
     )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( Label(..), RDFLabel(..), NSGraph(..), RDFGraph
     , getArcs, add, allLabels, allNodes )
 
-import Swish.HaskellRDF.VarBinding
+import Swish.RDF.VarBinding
     ( VarBinding(..), nullVarBinding
     , VarBindingModify(..)
     , makeVarFilterModify
@@ -54,10 +54,10 @@ import Swish.HaskellRDF.VarBinding
     , varFilterEQ, varFilterNE
     )
 
-import Swish.HaskellRDF.Rule
+import Swish.RDF.Rule
     ( Expression(..), Formula(..), Rule(..) )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..), ScopedName(..) )
 
 import Test.HUnit

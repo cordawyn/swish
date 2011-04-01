@@ -17,7 +17,7 @@
 
 module Main where
 
-import Swish.HaskellRDF.VarBinding
+import Swish.RDF.VarBinding
     ( VarBinding(..)
     , subBinding, nullVarBinding, makeVarBinding
     , boundVars, subBinding, makeVarBinding
@@ -31,10 +31,10 @@ import Swish.HaskellRDF.VarBinding
     , varFilterEQ, varFilterNE
     )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( swishName )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
 import Test.HUnit

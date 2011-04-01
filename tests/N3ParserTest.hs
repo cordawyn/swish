@@ -16,7 +16,7 @@
 
 module Main where
 
-import Swish.HaskellRDF.N3Parser
+import Swish.RDF.N3Parser
     ( parseN3fromString, parseN3
     , parseTextFromString, parseAltFromString
     , parseNameFromString, parsePrefixFromString
@@ -24,7 +24,7 @@ import Swish.HaskellRDF.N3Parser
     , parseURIref2FromString
     )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( RDFGraph, RDFLabel(..), NSGraph(..)
     -- LookupNamespace(..), Namespace
     , emptyNamespaceMap
@@ -35,7 +35,7 @@ import Swish.HaskellRDF.RDFGraph
     , res_owl_sameAs, res_log_implies
     )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..)
     , nullNamespace
     , ScopedName(..)
@@ -44,18 +44,18 @@ import Swish.HaskellUtils.Namespace
     , makeUriScopedName
     )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceRDF
     , langName
     , rdf_XMLLiteral
     )
 
-import Swish.HaskellUtils.QName (QName, qnameFromURI)
-import Swish.HaskellUtils.LookupMap (LookupMap(..))
+import Swish.Utils.QName (QName, qnameFromURI)
+import Swish.Utils.LookupMap (LookupMap(..))
 
-import Swish.HaskellRDF.GraphClass (Arc, arc) 
+import Swish.RDF.GraphClass (Arc, arc) 
 
-import Swish.HaskellUtils.ErrorM (ErrorM(..))
+import Swish.Utils.ErrorM (ErrorM(..))
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 

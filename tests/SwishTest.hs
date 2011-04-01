@@ -24,7 +24,7 @@ import Test.HUnit
       ( Test(..), Assertable(..),
         assertEqual, runTestTT, runTestText, putTextToHandle )
 
-import Swish.HaskellRDF.SwishMain
+import Swish.RDF.SwishMain
 
 
 ------------------------------------------------------------

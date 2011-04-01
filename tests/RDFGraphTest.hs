@@ -16,17 +16,17 @@
 
 module Main where
 
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
     ( LookupMap(..)
     , mapFind, mapFindMaybe, mapContains )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
-import Swish.HaskellRDF.GraphClass
+import Swish.RDF.GraphClass
     ( Label(..), Arc, arcSubj, arcPred, arcObj, arc )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
     , makeQNameScopedName
@@ -34,14 +34,14 @@ import Swish.HaskellUtils.Namespace
     , makeUriScopedName
     )
 
-import Swish.HaskellUtils.QName
+import Swish.Utils.QName
     ( QName(..)
     , newQName, qnameFromPair, qnameFromURI
     , getNamespace, getLocalName, getQNameURI
     , splitURI
     )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( RDFTriple, RDFGraph, RDFLabel(..), NSGraph(..)
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp
@@ -58,7 +58,7 @@ import Swish.HaskellRDF.RDFGraph
     , newNode, newNodes
     , grMatchMap, grEq )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceLang, langName, langTag, isLang
     , rdf_type

@@ -16,12 +16,12 @@
 
 module Main where
 
-import Swish.HaskellRDF.N3Formatter
+import Swish.RDF.N3Formatter
     ( formatGraphAsStringNl
     , formatGraphAsString
     , formatGraphDiag )
 
-import Swish.HaskellRDF.N3Parser
+import Swish.RDF.N3Parser
     ( ParseResult(..)
     , parseN3fromString
     , parseTextFromString, parseAltFromString
@@ -29,7 +29,7 @@ import Swish.HaskellRDF.N3Parser
     , parseAbsURIrefFromString, parseLexURIrefFromString
     , parseURIref2FromString )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( RDFTriple, RDFGraph, RDFLabel(..), NSGraph(..)
     , setArcs, getArcs, add, delete, extract, labels
     , NamespaceMap, emptyNamespaceMap
@@ -44,7 +44,7 @@ import Swish.HaskellRDF.RDFGraph
     , res_owl_sameAs
     )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..)
     , makeNamespaceQName
     , getQName, getScopedNameURI
@@ -53,7 +53,7 @@ import Swish.HaskellUtils.Namespace
     , nullScopedName
     )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
     , namespaceRDFD
@@ -71,21 +71,21 @@ import Swish.HaskellRDF.Vocabulary
     , owl_sameAs
     )
 
-import Swish.HaskellUtils.QName
+import Swish.Utils.QName
     ( QName(..)
     , newQName, qnameFromPair, qnameFromURI
     , getNamespace, getLocalName, getQNameURI
     , splitURI
     )
 
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
     ( LookupMap(..)
     , emptyLookupMap, makeLookupMap, listLookupMap )
 
-import Swish.HaskellRDF.GraphClass
+import Swish.RDF.GraphClass
     ( Arc, arcSubj, arcPred, arcObj, arc )
 
-import Swish.HaskellUtils.ErrorM
+import Swish.Utils.ErrorM
     ( ErrorM(..) )
 
 import Test.HUnit

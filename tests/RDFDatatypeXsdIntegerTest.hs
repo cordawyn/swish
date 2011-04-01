@@ -17,7 +17,7 @@
 
 module Main where
 
-import Swish.HaskellRDF.RDFDatatypeXsdInteger
+import Swish.RDF.RDFDatatypeXsdInteger
     ( rdfDatatypeXsdInteger
     , rdfDatatypeValXsdInteger
     , typeNameXsdInteger, namespaceXsdInteger
@@ -25,27 +25,27 @@ import Swish.HaskellRDF.RDFDatatypeXsdInteger
     , prefixXsdInteger
     )
 
-import Swish.HaskellRDF.RDFVarBinding
+import Swish.RDF.RDFVarBinding
     ( RDFVarBinding )
 
-import Swish.HaskellRDF.RDFRuleset
+import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
     , makeRDFGraphFromN3String
     , makeRDFFormula
     )
 
-import Swish.HaskellRDF.RDFDatatype
+import Swish.RDF.RDFDatatype
     ( RDFDatatype
     , RDFDatatypeVal
     , RDFDatatypeMod
     , applyRDFDatatypeMod
     )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( RDFLabel(..), RDFGraph
     )
 
-import Swish.HaskellRDF.ClassRestrictionRule
+import Swish.RDF.ClassRestrictionRule
     ( ClassRestriction(..), ClassRestrictionFn
     , makeDatatypeRestriction, makeDatatypeRestrictionFn
     , makeRDFClassRestrictionRules
@@ -53,7 +53,7 @@ import Swish.HaskellRDF.ClassRestrictionRule
     , falseGraph, falseGraphStr
     )
 
-import Swish.HaskellRDF.Datatype
+import Swish.RDF.Datatype
     ( Datatype(..)
     , typeName, typeRules, typeMkRules
     , getTypeAxiom, getTypeRule
@@ -64,23 +64,23 @@ import Swish.HaskellRDF.Datatype
     , nullDatatypeMod
     )
 
-import Swish.HaskellRDF.Ruleset
+import Swish.RDF.Ruleset
     ( Ruleset(..)
     , getRulesetAxiom, getRulesetRule
     )
 
-import Swish.HaskellRDF.Rule
+import Swish.RDF.Rule
     ( Expression(..), Formula(..), Rule(..)
     , nullScope, nullFormula, nullRule
     )
 
-import Swish.HaskellRDF.VarBinding
+import Swish.RDF.VarBinding
     ( VarBinding(..)
     , makeVarBinding
     , VarBindingModify(..)
     )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
     , getScopePrefix, getScopeURI
@@ -89,7 +89,7 @@ import Swish.HaskellUtils.Namespace
     , matchName
     )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceNull
     , namespaceRDF
     , namespaceRDFS
@@ -102,16 +102,16 @@ import Swish.HaskellRDF.Vocabulary
     , scopeRDFD
     )
 
-import Swish.HaskellUtils.QName
+import Swish.Utils.QName
     ( QName(..)
     )
 
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
     , mapFind, mapFindMaybe
     )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
 import Test.HUnit

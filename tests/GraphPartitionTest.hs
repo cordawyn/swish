@@ -16,26 +16,26 @@
 
 module Main where
 
-import Swish.HaskellRDF.GraphPartition
+import Swish.RDF.GraphPartition
     ( PartitionedGraph(..), getArcs
     , GraphPartition(..), node, toArcs
     , partitionGraph, comparePartitions
     )
 
-import Swish.HaskellRDF.GraphClass
+import Swish.RDF.GraphClass
     ( Label(..)
     , Arc(..), arcSubj, arcPred, arcObj, arc, arcToTriple, arcFromTriple
     -- , hasLabel, arcLabels
     )
 
-import Swish.HaskellRDF.GraphMem
+import Swish.RDF.GraphMem
     -- ( GraphMem(..)
     -- , setArcs, getArcs, add, delete, extract, labels
     ( LabelMem(..)
     , labelIsVar, labelHash
     )
 
-import Swish.HaskellUtils.TestHelpers
+import Swish.Utils.TestHelpers
     ( test, testEq, 
     --     WNH FIX testNe, 
     testLe, testGe, testElem
@@ -45,7 +45,7 @@ import Swish.HaskellUtils.TestHelpers
     testEqv2, testHasEqv, testMaybeEqv
     )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
 import Test.HUnit

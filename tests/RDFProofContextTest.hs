@@ -17,52 +17,52 @@
 
 module Main where
 
-import Swish.HaskellRDF.BuiltInMap
+import Swish.RDF.BuiltInMap
     ( rdfRulesetMap, allRulesets )
 
-import Swish.HaskellRDF.RDFProofContext
+import Swish.RDF.RDFProofContext
     ( rulesetRDF
     , rulesetRDFS
     , rulesetRDFD )
 
-import Swish.HaskellRDF.RDFProof
+import Swish.RDF.RDFProof
     ( RDFProof, RDFProofStep
     , makeRDFProof, makeRDFProofStep
     , makeRdfInstanceEntailmentRule
     , makeRdfSubgraphEntailmentRule
     , makeRdfSimpleEntailmentRule )
 
-import Swish.HaskellRDF.RDFRuleset
+import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
     , nullRDFFormula
     , makeRDFGraphFromN3String
     , makeRDFFormula
     , makeNodeAllocTo )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( RDFGraph )
 
-import Swish.HaskellRDF.RDFGraphShowM()
+import Swish.RDF.RDFGraphShowM()
 
-import Swish.HaskellRDF.Proof
+import Swish.RDF.Proof
     ( Proof(..), Step(..)
     , checkProof, checkStep, showProof, showsProof, showsFormula
     , explainProof)
 
-import Swish.HaskellRDF.Ruleset
+import Swish.RDF.Ruleset
     ( getContextAxiom, getContextRule )
 
-import Swish.HaskellRDF.Rule
+import Swish.RDF.Rule
     ( Expression(..), Formula(..), Rule(..)
     , nullScope, nullFormula, nullRule )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..), ScopedName(..) )
 
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
     ( mapFindMaybe )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
     , namespaceRDFD

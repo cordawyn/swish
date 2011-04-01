@@ -30,7 +30,7 @@ import Test.HUnit
     , runTestTT, runTestText, putTextToHandle
     )
 
-import Swish.HaskellUtils.QName
+import Swish.Utils.QName
     ( QName(..)
     , newQName, qnameFromPair, qnameFromURI
     , getNamespace, getLocalName, getQNameURI

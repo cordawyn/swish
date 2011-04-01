@@ -17,7 +17,7 @@
 
 module Main where
 
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
     , emptyLookupMap, makeLookupMap, listLookupMap
     , reverseLookupMap
@@ -34,7 +34,7 @@ import Swish.HaskellUtils.LookupMap
     , mapTranslateEntries, mapTranslateEntriesM
     )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
 import Data.List ( sort )

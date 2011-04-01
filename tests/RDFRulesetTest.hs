@@ -19,7 +19,7 @@
 
 module Main where
 
-import Swish.HaskellRDF.RDFRuleset
+import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
     , nullRDFFormula
     , GraphClosure(..), makeGraphClosureRule
@@ -33,10 +33,10 @@ import Swish.HaskellRDF.RDFRuleset
     , graphClosureFwdApply, graphClosureBwdApply
     )
 
-import Swish.HaskellRDF.RDFQuery
+import Swish.RDF.RDFQuery
     ( rdfQueryBack, rdfQueryBackFilter, rdfQueryBackModify )
 
-import Swish.HaskellRDF.RDFVarBinding
+import Swish.RDF.RDFVarBinding
     ( RDFVarBinding
     , RDFVarBindingModify
     , RDFVarBindingFilter
@@ -47,7 +47,7 @@ import Swish.HaskellRDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( Label (..), RDFLabel(..), RDFGraph
     , setArcs, getArcs, addArc, add, delete, extract, labels, merge
     , allLabels, allNodes, remapLabels, remapLabelList
@@ -55,25 +55,25 @@ import Swish.HaskellRDF.RDFGraph
     , Label (..), Arc(..), arc, arcSubj, arcPred, arcObj, Selector
     )
 
-import Swish.HaskellRDF.VarBinding
+import Swish.RDF.VarBinding
     ( VarBinding(..), nullVarBinding
     , makeVarBinding
     , vbmCompatibility, vbmCompose
     , makeVarFilterModify
     )
 
-import Swish.HaskellRDF.Ruleset
+import Swish.RDF.Ruleset
     ( Ruleset(..)
     , makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules
     , getRulesetAxiom, getRulesetRule
     , getContextAxiom, getContextRule, getMaybeContextRule )
 
-import Swish.HaskellRDF.Rule
+import Swish.RDF.Rule
     ( Expression(..), Formula(..), Rule(..)
     , fwdCheckInference
     , showsFormula, showsFormulae, showsWidth )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
     , getScopePrefix, getScopeURI
@@ -81,13 +81,13 @@ import Swish.HaskellUtils.Namespace
     , makeScopedName
     )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceOWL
     , scopeRDF
     )
 
-import Swish.HaskellUtils.QName
+import Swish.Utils.QName
     ( QName(..) )
 
 import Test.HUnit

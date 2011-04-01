@@ -20,7 +20,7 @@
 
 module Main where
 
-import Swish.HaskellRDF.RDFQuery
+import Swish.RDF.RDFQuery
     ( rdfQueryFind, rdfQueryFilter
     , rdfQueryBack, rdfQueryBackFilter, rdfQueryBackModify
     , rdfQueryInstance
@@ -33,7 +33,7 @@ import Swish.HaskellRDF.RDFQuery
     , rdfQuerySubs2
     )
 
-import Swish.HaskellRDF.RDFVarBinding
+import Swish.RDF.RDFVarBinding
     ( RDFVarBinding, nullRDFVarBinding
     , RDFVarBindingModify, RDFVarBindingFilter
     , rdfVarBindingUriRef, rdfVarBindingBlank
@@ -43,7 +43,7 @@ import Swish.HaskellRDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.HaskellRDF.RDFGraph
+import Swish.RDF.RDFGraph
     ( Arc(..), arcSubj
     , RDFGraph, RDFLabel(..)
     , isLiteral, isBlank, isQueryVar, makeBlank
@@ -53,7 +53,7 @@ import Swish.HaskellRDF.RDFGraph
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
     )
 
-import Swish.HaskellRDF.VarBinding
+import Swish.RDF.VarBinding
     ( VarBinding(..), nullVarBinding
     , boundVars, subBinding, makeVarBinding
     , applyVarBinding, joinVarBindings
@@ -67,7 +67,7 @@ import Swish.HaskellRDF.VarBinding
     , varFilterEQ, varFilterNE
     )
 
-import Swish.HaskellUtils.Namespace
+import Swish.Utils.Namespace
     ( Namespace(..)
     , makeNamespaceQName
     , ScopedName(..)
@@ -75,7 +75,7 @@ import Swish.HaskellUtils.Namespace
     , makeScopedName
     )
 
-import Swish.HaskellRDF.Vocabulary
+import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceXSD
     , namespaceLang, langName
@@ -84,16 +84,16 @@ import Swish.HaskellRDF.Vocabulary
     , xsd_boolean, xsd_integer
     )
 
-import Swish.HaskellRDF.N3Parser
+import Swish.RDF.N3Parser
     ( ParseResult(..), parseN3fromString )
 
-import Swish.HaskellUtils.QName
+import Swish.Utils.QName
     ( QName(..) )
 
-import Swish.HaskellUtils.ListHelpers
+import Swish.Utils.ListHelpers
     ( equiv )
 
-import Swish.HaskellUtils.ErrorM
+import Swish.Utils.ErrorM
     ( ErrorM(Error,Result) )
 
 import Test.HUnit

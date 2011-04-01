@@ -25,11 +25,11 @@ import Test.HUnit
 import Data.List( elemIndex )
 import Data.Maybe( fromJust )
 
-import Swish.HaskellUtils.ListHelpers
-import Swish.HaskellUtils.MiscHelpers
-import Swish.HaskellRDF.GraphClass (Arc(..),Label(..),arcFromTriple,arcToTriple)
-import Swish.HaskellRDF.GraphMem
-import Swish.HaskellRDF.GraphMatch
+import Swish.Utils.ListHelpers
+import Swish.Utils.MiscHelpers
+import Swish.RDF.GraphClass (Arc(..),Label(..),arcFromTriple,arcToTriple)
+import Swish.RDF.GraphMem
+import Swish.RDF.GraphMatch
       ( graphMatch,
         -- The rest exported for testing only
         LabelMap(..), GenLabelMap(..), LabelEntry(..), GenLabelEntry(..),
@@ -40,7 +40,7 @@ import Swish.HaskellRDF.GraphMatch
         graphLabels, assignLabelMap, newGenerationMap,
         graphMatch1, graphMatch2, equivalenceClasses, reclassify
       )
-import Swish.HaskellUtils.LookupMap
+import Swish.Utils.LookupMap
       ( LookupEntryClass(..), LookupMap(..), makeLookupMap
       , mapSortByKey, mapSortByVal
       )
