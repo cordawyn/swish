@@ -16,33 +16,30 @@
 
 module Main where
 
-import System.IO
-      ( Handle, IOMode(WriteMode),
-        openFile, hClose, hPutStr, hPutStrLn )
 import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
-        assertEqual, runTestTT, runTestText, putTextToHandle )
+        assertEqual, runTestTT )
 import Data.List( elemIndex )
 import Data.Maybe( fromJust )
 
 import Swish.Utils.ListHelpers
 import Swish.Utils.MiscHelpers
-import Swish.RDF.GraphClass (Arc(..),Label(..),arcFromTriple,arcToTriple)
+import Swish.RDF.GraphClass (Arc(..), LDGraph(..),
+                             Label(..),
+                             arcFromTriple,arcToTriple)
 import Swish.RDF.GraphMem
 import Swish.RDF.GraphMatch
-      ( graphMatch,
-        -- The rest exported for testing only
-        LabelMap(..), GenLabelMap(..), LabelEntry(..), GenLabelEntry(..),
+      ( LabelMap, GenLabelMap(..), LabelEntry, 
+        EquivalenceClass,
         ScopedLabel(..), makeScopedLabel, makeScopedArc,
-        LabelIndex, EquivalenceClass, nullLabelVal, emptyMap,
-        labelIsVar, labelHash,
+        LabelIndex, nullLabelVal, emptyMap,
         mapLabelIndex, {-mapLabelList,-} setLabelHash, newLabelMap,
         graphLabels, assignLabelMap, newGenerationMap,
-        graphMatch1, graphMatch2, equivalenceClasses, reclassify
+        graphMatch1, equivalenceClasses
       )
 import Swish.Utils.LookupMap
-      ( LookupEntryClass(..), LookupMap(..), makeLookupMap
-      , mapSortByKey, mapSortByVal
+      ( LookupEntryClass(..), makeLookupMap
+      , mapSortByVal
       )
 
 default ( Int )
@@ -50,6 +47,8 @@ default ( Int )
 ------------------------------------------------------------
 -- Define some common values
 ------------------------------------------------------------
+
+base1, base2, base3, base4 :: String
 
 base1 = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 base2 = "http://id.ninebynine.org/wip/2003/test/graph2/node/"
@@ -60,9 +59,15 @@ base4 = "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 --  Set, get graph arcs as lists of triples
 ------------------------------------------------------------
 
+setArcsT :: (Swish.RDF.GraphClass.LDGraph lg lb) =>
+            [(lb, lb, lb)] -> lg lb -> lg lb
 setArcsT a = setArcs $ map arcFromTriple a
+
+getArcsT :: (Swish.RDF.GraphClass.LDGraph lg lb) =>
+            lg lb -> [(lb, lb, lb)]
 getArcsT g = map arcToTriple $ getArcs g
 
+toStatement :: a -> a -> a -> Arc a
 toStatement s p o = Arc s p o
 
 ------------------------------------------------------------
@@ -88,7 +93,7 @@ makeEntries :: (Label lb) => [(lb,LabelIndex)] -> [LabelEntry lb]
 makeEntries lvs = map newEntry lvs
 
 labelMapSortByVal :: (Label lb) => LabelMap lb -> LabelMap lb
-labelMapSortByVal (LabelMap gen lmap) = LabelMap gen (mapSortByVal lmap)
+labelMapSortByVal (LabelMap gen lm) = LabelMap gen (mapSortByVal lm)
 
 ------------------------------------------------------------
 --  Graph helper function tests
@@ -97,21 +102,26 @@ labelMapSortByVal (LabelMap gen lmap) = LabelMap gen (mapSortByVal lmap)
 -- select
 
 testSelect :: String -> [Char] -> [Char] -> Test
-testSelect lab l1 l2 = testeq ("Select"++lab ) l1 l2
+testSelect lab = testeq ("Select"++lab )
 
+isOne :: Int -> Bool
+isOne = (1 ==)
+
+testSelect01, testSelect02, testSelect03, testSelect04 :: Test
 testSelect01 = testSelect "01"
-                (select (1==) [0,1,2,0,1,2] ['a','b','c','a','b','c'])
+                (select isOne [0,1,2,0,1,2] ['a','b','c','a','b','c'])
                 ['b','b']
 testSelect02 = testSelect "02"
-                (select (1==) [1,1,1,1,1,1] ['a','b','c','a','b','c'])
+                (select isOne [1,1,1,1,1,1] ['a','b','c','a','b','c'])
                 ['a','b','c','a','b','c']
 testSelect03 = testSelect "03"
-                (select (1==) [0,0,0,0,0,0] ['a','b','c','a','b','c'])
+                (select isOne [0,0,0,0,0,0] ['a','b','c','a','b','c'])
                 []
 testSelect04 = testSelect "04"
-                (select (1==) []            []                       )
+                (select isOne []            []                       )
                 []
 
+testSelectSuite :: Test
 testSelectSuite = TestList
     [
     testSelect01, testSelect02, testSelect03, testSelect04
@@ -123,102 +133,94 @@ mf   :: Int -> Char
 mf n = "_abcde" !! n
 
 testMapset :: String -> [Int] -> [Char] -> Test
-testMapset lab l1 l2 = testeq ("Mapset"++lab ) l2 (mapset mf l1)
+testMapset lab l1s l2s = testeq ("Mapset"++lab ) l2s (mapset mf l1s)
 
-testMapset01 = testMapset "01" [0,1,2,3,4,5] ['_','a','b','c','d','e']
-testMapset02 = testMapset "02" [1,1,3,3,5,5] ['a','c','e']
-testMapset03 = testMapset "03" [5,4,3,2,1,0] ['e','d','c','b','a','_']
-testMapset04 = testMapset "04" []            []
-testMapset05 = testMapset "05" [1,2,3,4,5,0] ['a','b','c','d','e','_']
-
+testMapsetSuite :: Test
 testMapsetSuite = TestList
-    [
-    testMapset01, testMapset02, testMapset03, testMapset04,
-    testMapset05
+    [ testMapset "01" [0,1,2,3,4,5] ['_','a','b','c','d','e']
+    , testMapset "02" [1,1,3,3,5,5] ['a','c','e']
+    , testMapset "03" [5,4,3,2,1,0] ['e','d','c','b','a','_']
+    , testMapset "04" []            []
+    , testMapset "05" [1,2,3,4,5,0] ['a','b','c','d','e','_']
     ]
 
 -- subset
 
 testSubset :: String -> Bool -> [Int] -> [Int] -> Test
-testSubset lab res l1 l2 = testeq ("Mapset"++lab ) res (l1 `subset` l2)
+testSubset lab res l1s l2s = testeq ("Mapset"++lab ) res (l1s `subset` l2s)
 
-testSubset01 = testSubset "01" True  [1,2,3]       [0,1,2,3,4,5]
-testSubset02 = testSubset "02" True  [5,3,1]       [0,1,2,3,4,5]
-testSubset03 = testSubset "03" True  [5,4,3,2,1,0] [0,1,2,3,4,5]
-testSubset04 = testSubset "04" True  []            []
-testSubset05 = testSubset "05" False [0,1,2,3,4,5] [1,2,3]
-testSubset06 = testSubset "06" False [0,1,2,3,4,5] [5,3,1]
-testSubset07 = testSubset "07" True  []            [1,2,3]
-testSubset08 = testSubset "08" False [1,2,3]       []
-
+testSubsetSuite :: Test
 testSubsetSuite = TestList
-    [
-    testSubset01, testSubset02, testSubset03, testSubset04,
-    testSubset05, testSubset06, testSubset07, testSubset08
+    [ testSubset "01" True  [1,2,3]       [0,1,2,3,4,5]
+    , testSubset "02" True  [5,3,1]       [0,1,2,3,4,5]
+    , testSubset "03" True  [5,4,3,2,1,0] [0,1,2,3,4,5]
+    , testSubset "04" True  []            []
+    , testSubset "05" False [0,1,2,3,4,5] [1,2,3]
+    , testSubset "06" False [0,1,2,3,4,5] [5,3,1]
+    , testSubset "07" True  []            [1,2,3]
+    , testSubset "08" False [1,2,3]       []
     ]
 
 -- hash
 
 testHash :: String -> Bool -> Int -> Int -> Test
 testHash lab eq h1 h2 = testeq ("Hash"++lab ) eq (h1 == h2)
+
+testHashEq :: String -> Int -> Int -> Test
 testHashEq lab h1 h2  = testeq ("Hash"++lab ) h1 h2
 
-testHash01 = testHash "01" True  (hash 0 base1) (hash 0 base1)
-testHash02 = testHash "02" True  (hash 2 "")    (hash 2 "")
-testHash03 = testHash "03" False (hash 3 base1) (hash 3 base2)
-testHash04 = testHash "04" False (hash 4 base1) (hash 5 base1)
-testHash05 = testHash "05" False (hash 2 "")    (hash 3 "")
-testHash06 = testHashEq "06"     1424775        (hash 3 base1)
-testHash07 = testHashEq "07"     11801303       (hash 3 base2)
-
+testHashSuite :: Test
 testHashSuite = TestList
-    [
-    testHash01, testHash02, testHash03, testHash04,
-    testHash05, testHash06, testHash07
+    [ testHash "01" True  (hash 0 base1) (hash 0 base1)
+    , testHash "02" True  (hash 2 "")    (hash 2 "")
+    , testHash "03" False (hash 3 base1) (hash 3 base2)
+    , testHash "04" False (hash 4 base1) (hash 5 base1)
+    , testHash "05" False (hash 2 "")    (hash 3 "")
+    , testHashEq "06"     1424775        (hash 3 base1)
+    , testHashEq "07"     11801303       (hash 3 base2)
     ]
 
 ------------------------------------------------------------
 --  Simple graph label tests
 ------------------------------------------------------------
 
-testLab01 = testeq "Lab01" False (labelIsVar lab1f)
-testLab02 = testeq "Lab02" True  (labelIsVar lab1v)
-testLab03 = testeq "Lab03" False (labelIsVar lab2f)
-testLab04 = testeq "Lab04" True  (labelIsVar lab2v)
-
-testLab05 = testeq "Lab05"  3436883 (labelHash 1 lab1f)
-testLab06 = testeq "Lab06" 10955600 (labelHash 1 lab1v)
-testLab07 = testeq "Lab07"  3436884 (labelHash 1 lab2f)
-testLab08 = testeq "Lab08" 10955601 (labelHash 1 lab2v)
-
-testLab09 = testeq "Lab09" "!lab1" (show lab1f)
-testLab10 = testeq "Lab10" "?lab1" (show lab1v)
-testLab11 = testeq "Lab11" "!lab2" (show lab2f)
-testLab12 = testeq "Lab12" "?lab2" (show lab2v)
-
-testLab13 = testeq "Lab13" "lab1" (getLocal lab1v)
-testLab14 = testeq "Lab14" "lab2" (getLocal lab2v)
-testLab15 = testeq "Lab15" lab1v  (makeLabel "lab1")
-testLab16 = testeq "Lab16" lab2v  (makeLabel "lab2")
-
+testLabSuite :: Test
 testLabSuite = TestList
-    [
-    testLab01, testLab02, testLab03, testLab04,
-    testLab05, testLab06, testLab07, testLab08,
-    testLab09, testLab10, testLab11, testLab12,
-    testLab13, testLab14, testLab15, testLab16
+    [ testeq "Lab01" False (labelIsVar lab1f)
+    , testeq "Lab02" True  (labelIsVar lab1v)
+    , testeq "Lab03" False (labelIsVar lab2f)
+    , testeq "Lab04" True  (labelIsVar lab2v)
+
+    , testeq "Lab05"  3436883 (labelHash 1 lab1f)
+    , testeq "Lab06" 10955600 (labelHash 1 lab1v)
+    , testeq "Lab07"  3436884 (labelHash 1 lab2f)
+    , testeq "Lab08" 10955601 (labelHash 1 lab2v)
+
+    , testeq "Lab09" "!lab1" (show lab1f)
+    , testeq "Lab10" "?lab1" (show lab1v)
+    , testeq "Lab11" "!lab2" (show lab2f)
+    , testeq "Lab12" "?lab2" (show lab2v)
+
+    , testeq "Lab13" "lab1" (getLocal lab1v)
+    , testeq "Lab14" "lab2" (getLocal lab2v)
+    , testeq "Lab15" lab1v  (makeLabel "lab1")
+    , testeq "Lab16" lab2v  (makeLabel "lab2")
     ]
 
 ------------------------------------------------------------
 --  Simple graph tests
 ------------------------------------------------------------
 
+lab1f, lab1v, lab2f, lab2v :: LabelMem
 lab1f = LF "lab1"
 lab1v = LV "lab1"
 lab2f = LF "lab2"
 lab2v = LV "lab2"
 
+gr1 :: GraphMem LabelMem
 gr1 = GraphMem { arcs=[]::[Arc LabelMem] }
+
+ga1 :: [(LabelMem, LabelMem, LabelMem)]
 ga1 =
     [
     (lab1f,lab1f,lab1f),
@@ -236,8 +238,11 @@ ga1 =
     (lab1v,lab2f,lab2v)
     ]
 
+gs4 :: Arc LabelMem -> Bool
 gs4 (Arc _ _ (LV "lab2")) = True
 gs4 (Arc _ _  _         ) = False
+
+ga4 :: [(LabelMem, LabelMem, LabelMem)]
 ga4 =
     [
     (lab2v,lab2v,lab2v),
@@ -247,7 +252,10 @@ ga4 =
     (lab1v,lab2f,lab2v)
     ]
 
+gr2 :: GraphMem LabelMem
 gr2 = GraphMem { arcs=[]::[Arc LabelMem] }
+
+ga2 :: [(LabelMem, LabelMem, LabelMem)]
 ga2 =
     [
     (lab1f,lab1f,lab1f),
@@ -256,7 +264,10 @@ ga2 =
     (lab2v,lab2v,lab2v)
     ]
 
+gr3 :: GraphMem LabelMem
 gr3 = GraphMem { arcs=[]::[Arc LabelMem] }
+
+ga3 :: [(LabelMem, LabelMem, LabelMem)]
 ga3 =
     [
     (lab1f,lab1f,lab1v),
@@ -270,45 +281,39 @@ ga3 =
     (lab1v,lab2f,lab2v)
     ]
 
+gl4 :: [LabelMem]
 gl4 = [lab1f,lab1v,lab2f,lab2v]
 
-
+gr1a, gr2a, gr3a, gr4a, gr4b, gr4c, gr4d, gr4e,
+  gr4g :: GraphMem LabelMem
 gr1a = setArcsT ga1 gr1
-testGraph01 = testeq "Graph01" ga1 (getArcsT gr1a)
-
 gr2a = setArcsT ga2 gr2
-testGraph02 = testeq "Graph01" ga2 (getArcsT gr2a)
-
 gr3a = setArcsT ga3 gr3
-testGraph03 = testeq "Graph03" ga3 (getArcsT gr3a)
-
 gr4a = add gr2a gr3a
-testGraph04 = testeqv "Graph04" ga1 (getArcsT gr4a)
-
 gr4b = add gr3a gr2a
-testGraph05 = testeqv "Graph05" ga1 (getArcsT gr4b)
-
 gr4c = delete gr2a gr4a
-testGraph06 = testeqv "Graph06" ga3 (getArcsT gr4c)
-
 gr4d = delete gr3a gr4a
-testGraph07 = testeqv "Graph07" ga2 (getArcsT gr4d)
-
 gr4e = extract gs4 gr4a
-testGraph08 = testeqv "Graph08" ga4 (getArcsT gr4e)
+gr4g = add gr2a gr4a
+
+gl4f :: [LabelMem]
+gl4f = labels gr4a
+
+gr4ee :: [Bool]
 gr4ee = map gs4 (getArcs gr4a)
 
-gl4f = labels gr4a
-testGraph09 = testeqv "Graph09" gl4 gl4f
-
-gr4g = add gr2a gr4a
-testGraph10 = testeq "Graph10" ga1 (getArcsT gr4g)
-
+testGraphSuite :: Test
 testGraphSuite = TestList
-    [
-    testGraph01, testGraph02, testGraph03, testGraph04,
-    testGraph05, testGraph06, testGraph07, testGraph08,
-    testGraph09, testGraph10
+    [ testeq "Graph01" ga1 (getArcsT gr1a)
+    , testeq "Graph01" ga2 (getArcsT gr2a)
+    , testeq "Graph03" ga3 (getArcsT gr3a)
+    , testeqv "Graph04" ga1 (getArcsT gr4a)
+    , testeqv "Graph05" ga1 (getArcsT gr4b)
+    , testeqv "Graph06" ga3 (getArcsT gr4c)
+    , testeqv "Graph07" ga2 (getArcsT gr4d)
+    , testeqv "Graph08" ga4 (getArcsT gr4e)
+    , testeqv "Graph09" gl4 gl4f
+    , testeq "Graph10" ga1 (getArcsT gr4g)
     ]
 
 ------------------------------------------------------------
@@ -319,6 +324,7 @@ testGraphSuite = TestList
 -- Define some common values
 ------------------------------------------------------------
 
+s1, s2, s3, s4, s5, s6, s7, s8 :: LabelMem
 s1 = LF "s1"
 s2 = LF "s2"
 s3 = LF "s3"
@@ -328,16 +334,19 @@ s6 = LF "basemore"
 s7 = LF ("base"++"more")
 s8 = LV "s8"
 
+b1, b2, b3, b4 :: LabelMem
 b1 = LV "b1"
 b2 = LV "b2"
 b3 = LV "b3"
 b4 = LV "b4"
 
+p1, p2, p3, p4 :: LabelMem
 p1 = LF "p1"
 p2 = LF "p2"
 p3 = LF "p3"
 p4 = LF "p4"
 
+o1, o2, o3, o4, o5, o6 :: LabelMem
 o1 = LF "o1"
 o2 = LF "o2"
 o3 = LF "o3"
@@ -345,6 +354,8 @@ o4 = LF ""
 o5 = LV "o5"
 o6 = LV "s5"
 
+l1, l2, l3, l4, l5, l6, l7, l8, l9,
+  l10, l11, l12 :: LabelMem
 l1  = LF "l1"
 l2  = LF "l2-en"
 l3  = LF "l2-fr"
@@ -358,6 +369,7 @@ l10 = LF "l10-xml"
 l11 = LF "l10-xml-en"
 l12 = LF "l10-xml-fr"
 
+v1, v2, v3, v4 :: LabelMem
 v1  = LV "v1"
 v2  = LV "v2"
 v3  = LV "v3"
@@ -371,6 +383,7 @@ testLabelEq :: String -> Bool -> LabelMem -> LabelMem -> Test
 testLabelEq lab eq n1 n2 =
     TestCase ( assertEqual ("testLabelEq:"++lab) eq (n1==n2) )
 
+nodelist :: [(String, LabelMem)]
 nodelist =
   [ ("s1",s1), ("s2",s2), ("s3",s3), ("s4",s4), ("s5",s5),
     ("s6",s6), ("s7",s7), ("s8",s8),
@@ -383,6 +396,7 @@ nodelist =
     ("v1",v1), ("v2",v2)
   ]
 
+nodeeqlist :: [(String, String)]
 nodeeqlist =
   [
     ("s4","o4"),
@@ -396,14 +410,15 @@ nodeeqlist =
     ("l8","l9")
   ]
 
+testLabelEqSuite :: Test
 testLabelEqSuite = TestList
-  [ testLabelEq (testLab l1 l2) (testEq  l1 l2) n1 n2
-      | (l1,n1) <- nodelist , (l2,n2) <- nodelist ]
+  [ testLabelEq (testLab a b) (testEq  a b) n1 n2
+      | (a,n1) <- nodelist , (b,n2) <- nodelist ]
     where
-    testLab l1 l2 = l1 ++ "-" ++ l2
-    testEq  l1 l2 = (l1 == l2)        ||
-            (l1,l2) `elem` nodeeqlist ||
-            (l2,l1) `elem` nodeeqlist
+    testLab a b = a ++ "-" ++ b
+    testEq  a b = (a == b)        ||
+            (a,b) `elem` nodeeqlist ||
+            (b,a) `elem` nodeeqlist
 
 
 ------------------------------------------------------------
@@ -414,6 +429,7 @@ testLabelOrd :: String -> Ordering -> LabelMem -> LabelMem -> Test
 testLabelOrd lab order n1 n2 =
     TestCase ( assertEqual ("testLabelOrd:"++lab) order (compare n1 n2) )
 
+nodeorder :: [String]
 nodeorder =
   [
     "o4",
@@ -428,18 +444,19 @@ nodeorder =
     "v1", "v2"
   ]
 
+testLabelOrdSuite :: Test
 testLabelOrdSuite = TestList
-  [ testLabelOrd (testLab l1 l2) (testOrd l1 l2) n1 n2
-      | (l1,n1) <- nodelist , (l2,n2) <- nodelist ]
+  [ testLabelOrd (testLab a b) (testOrd a b) n1 n2
+      | (a,n1) <- nodelist , (b,n2) <- nodelist ]
     where
-    testLab l1 l2 = l1 ++ "-" ++ l2
-    testOrd l1 l2
-      | testEq l1 l2  = EQ
-      | otherwise     = compare (fromJust $ elemIndex l1 nodeorder)
-                                (fromJust $ elemIndex l2 nodeorder)
-    testEq  l1 l2 = (l1 == l2)        ||
-            (l1,l2) `elem` nodeeqlist ||
-            (l2,l1) `elem` nodeeqlist
+    testLab a b = a ++ "-" ++ b
+    testOrd a b
+      | testEq a b = EQ
+      | otherwise  = compare (fromJust $ elemIndex a nodeorder)
+                      (fromJust $ elemIndex b nodeorder)
+    testEq  a b = (a == b)        ||
+            (a,b) `elem` nodeeqlist ||
+            (b,a) `elem` nodeeqlist
 
 
 ------------------------------------------------------------
@@ -452,27 +469,32 @@ testStmtEq :: String -> Bool -> Statement -> Statement -> Test
 testStmtEq lab eq t1 t2 =
     TestCase ( assertEqual ("testStmtEq:"++lab) eq (t1==t2) )
 
+slist :: [(String, LabelMem)]
 slist =
   [
     ("s1",s1), ("s4",s4), ("s5",s5), ("s6",s6), ("s7",s7)
   ]
 
+plist :: [(String, LabelMem)]
 plist =
   [
     ("p1",p1)
   ]
 
+olist :: [(String, LabelMem)]
 olist =
   [ ("o1",o1), ("o4",o4), ("o5",o5),
     ("l1",l1), ("l4",l4), ("l7",l7), ("l8",l8), ("l10",l10)
   ]
 
+tlist :: [(String, Arc LabelMem)]
 tlist =
   [ (lab s p o,trp s p o) | s <- slist, p <- plist, o <- olist ]
     where
     lab (s,_) (p,_) (o,_) = s++"."++p++"."++o
     trp (_,s) (_,p) (_,o) = Arc s p o
 
+stmteqlist :: [(String, String)]
 stmteqlist =
   [
     ("s6.p1.l1", "s7.p1.l1"),
@@ -492,24 +514,39 @@ stmteqlist =
     ("s7.p1.l7", "s7.p1.l8")
   ]
 
+testStmtEqSuite :: Test
 testStmtEqSuite = TestList
-  [ testStmtEq (testLab l1 l2) (testEq  l1 l2) t1 t2
-      | (l1,t1) <- tlist , (l2,t2) <- tlist ]
+  [ testStmtEq (testLab a b) (testEq  a b) t1 t2
+      | (a,t1) <- tlist , (b,t2) <- tlist ]
     where
-    testLab l1 l2 = l1 ++ "-" ++ l2
-    testEq  l1 l2 = (l1 == l2)        ||
-            (l1,l2) `elem` stmteqlist ||
-            (l2,l1) `elem` stmteqlist
+    testLab a b = a ++ "-" ++ b
+    testEq  a b = (a == b)        ||
+            (a,b) `elem` stmteqlist ||
+            (b,a) `elem` stmteqlist
 
 ------------------------------------------------------------
 --  Graph element handling support routines
 ------------------------------------------------------------
 
+lmap :: LabelMap LabelMem
 lmap = tstLabelMap 5 [(s1,(1,1)),(s2,(2,2)),(s3,(3,3)),(s4,(4,4)),
                       (o1,(1,1)),(o2,(2,2)),(o3,(3,3))]
+       
+-- setLabelHash :: (Label lb) => LabelMap lb -> (lb,Int) -> LabelMap lb
+lmap1, lmap2a, lmap2b, lmap3 :: LabelMap LabelMem
+lmap1  = setLabelHash lmap (s2,22)
+lmap2a = setLabelHash lmap1  (o1,66)
+lmap2b = setLabelHash lmap2a (o5,67)
+
+-- newLabelMap :: (Label lb) => LabelMap lb -> [(lb,Int)] -> LabelMap lb
+lmap3 = newLabelMap lmap [(s1,61),(s3,63),(o2,66)]
+
+llst :: [String]       
 llst = ["s1","s2","s3","s4","o1","o2","o3"]
 
 -- showLabelMap :: (Label lb) => LabelMap lb -> String
+
+testShowLabelMap :: Test
 testShowLabelMap = testeq "showLabelMap" showMap (show lmap)
     where
         showMap = "LabelMap gen=5, map=\n"++
@@ -521,19 +558,7 @@ testShowLabelMap = testeq "showLabelMap" showMap (show lmap)
                   "    !o2:(2,2)\n"++
                   "    !o3:(3,3)"
 
--- mapLabelIndex :: (Label lb) => LabelMap lb -> lb -> LabelIndex
-testMapLabelIndex01 = testeq "testMapLabelIndex01" (1,1) (mapLabelIndex lmap s1 )
-testMapLabelIndex02 = testeq "testMapLabelIndex02" (2,2) (mapLabelIndex lmap s2 )
-testMapLabelIndex03 = testeq "testMapLabelIndex03" (3,3) (mapLabelIndex lmap s3 )
-testMapLabelIndex04 = testeq "testMapLabelIndex04" (4,4) (mapLabelIndex lmap s4 )
-testMapLabelIndex05 = testeq "testMapLabelIndex05" (1,1) (mapLabelIndex lmap o1 )
-testMapLabelIndex06 = testeq "testMapLabelIndex06" (4,4) (mapLabelIndex lmap o4 )
-testMapLabelIndex07 = testeq "testMapLabelIndex07" nullLabelVal (mapLabelIndex lmap o5 )
-testMapLabelIndex08 = testeq "testMapLabelIndex08" nullLabelVal (mapLabelIndex lmap o6 )
-
--- setLabelHash :: (Label lb) => LabelMap lb -> (lb,Int) -> LabelMap lb
-lmap1 = setLabelHash lmap (s2,22)
-
+testMapLabelHash00 :: Test
 testMapLabelHash00 = testeq "mapLabelHash00" showMap (show lmap1)
     where
         showMap = "LabelMap gen=5, map=\n"++
@@ -545,73 +570,54 @@ testMapLabelHash00 = testeq "mapLabelHash00" showMap (show lmap1)
                   "    !o2:(2,2)\n"++
                   "    !o3:(3,3)"
 
-testMapLabelHash01 = testeq "MapLabelHash01" (1,1)  (mapLabelIndex lmap1 s1 )
-testMapLabelHash02 = testeq "MapLabelHash02" (5,22) (mapLabelIndex lmap1 s2 )
-testMapLabelHash03 = testeq "MapLabelHash03" (3,3)  (mapLabelIndex lmap1 s3 )
-testMapLabelHash04 = testeq "MapLabelHash04" (4,4)  (mapLabelIndex lmap1 s4 )
-testMapLabelHash05 = testeq "MapLabelHash05" (1,1)  (mapLabelIndex lmap1 o1 )
-testMapLabelHash06 = testeq "MapLabelHash06" (4,4)  (mapLabelIndex lmap1 o4 )
-testMapLabelHash07 = testeq "MapLabelHash07" nullLabelVal (mapLabelIndex lmap1 o5 )
-testMapLabelHash08 = testeq "MapLabelHash08" nullLabelVal (mapLabelIndex lmap1 o6 )
+-- mapLabelIndex :: (Label lb) => LabelMap lb -> lb -> LabelIndex
 
-lmap2a = setLabelHash lmap1  (o1,66)
-lmap2b = setLabelHash lmap2a (o5,67)
-testMapLabelHash11 = testeq "MapLabelHash11" (1,1)  (mapLabelIndex lmap2b s1 )
-testMapLabelHash12 = testeq "MapLabelHash12" (5,22) (mapLabelIndex lmap2b s2 )
-testMapLabelHash13 = testeq "MapLabelHash13" (3,3)  (mapLabelIndex lmap2b s3 )
-testMapLabelHash14 = testeq "MapLabelHash14" (4,4)  (mapLabelIndex lmap2b s4 )
-testMapLabelHash15 = testeq "MapLabelHash15" (5,66) (mapLabelIndex lmap2b o1 )
-testMapLabelHash16 = testeq "MapLabelHash16" (2,2)  (mapLabelIndex lmap2b o2 )
-testMapLabelHash17 = testeq "MapLabelHash17" (4,4)  (mapLabelIndex lmap2b o4 )
-testMapLabelHash18 = testeq "MapLabelHash18" nullLabelVal (mapLabelIndex lmap1 o5 )
-
--- newLabelMap :: (Label lb) => LabelMap lb -> [(lb,Int)] -> LabelMap lb
-lmap3 = newLabelMap lmap [(s1,61),(s3,63),(o2,66)]
-testLabelMap01 = testeq "LabelMap01" (6,61) (mapLabelIndex lmap3 s1 )
-testLabelMap02 = testeq "LabelMap02" (2,2)  (mapLabelIndex lmap3 s2 )
-testLabelMap03 = testeq "LabelMap03" (6,63) (mapLabelIndex lmap3 s3 )
-testLabelMap04 = testeq "LabelMap04" (4,4)  (mapLabelIndex lmap3 s4 )
-testLabelMap05 = testeq "LabelMap05" (1,1)  (mapLabelIndex lmap3 o1 )
-testLabelMap06 = testeq "LabelMap06" (6,66) (mapLabelIndex lmap3 o2 )
-
+testLabelMapSuite :: Test
 testLabelMapSuite = TestList
   [ testShowLabelMap
-  , testMapLabelIndex01
-  , testMapLabelIndex02
-  , testMapLabelIndex03
-  , testMapLabelIndex04
-  , testMapLabelIndex05
-  , testMapLabelIndex06
-  , testMapLabelIndex07
-  , testMapLabelIndex08
   , testMapLabelHash00
-  , testMapLabelHash01
-  , testMapLabelHash02
-  , testMapLabelHash03
-  , testMapLabelHash04
-  , testMapLabelHash05
-  , testMapLabelHash06
-  , testMapLabelHash07
-  , testMapLabelHash08
-  , testMapLabelHash11
-  , testMapLabelHash12
-  , testMapLabelHash13
-  , testMapLabelHash14
-  , testMapLabelHash15
-  , testMapLabelHash16
-  , testMapLabelHash17
-  , testMapLabelHash18
-  , testLabelMap01
-  , testLabelMap02
-  , testLabelMap03
-  , testLabelMap04
-  , testLabelMap05
+
+  , testeq "testMapLabelIndex01" (1,1) (mapLabelIndex lmap s1 )
+  , testeq "testMapLabelIndex02" (2,2) (mapLabelIndex lmap s2 )
+  , testeq "testMapLabelIndex03" (3,3) (mapLabelIndex lmap s3 )
+  , testeq "testMapLabelIndex04" (4,4) (mapLabelIndex lmap s4 )
+  , testeq "testMapLabelIndex05" (1,1) (mapLabelIndex lmap o1 )
+  , testeq "testMapLabelIndex06" (4,4) (mapLabelIndex lmap o4 )
+  , testeq "testMapLabelIndex07" nullLabelVal (mapLabelIndex lmap o5 )
+  , testeq "testMapLabelIndex08" nullLabelVal (mapLabelIndex lmap o6 )
+
+  , testeq "MapLabelHash01" (1,1)  (mapLabelIndex lmap1 s1 )
+  , testeq "MapLabelHash02" (5,22) (mapLabelIndex lmap1 s2 )
+  , testeq "MapLabelHash03" (3,3)  (mapLabelIndex lmap1 s3 )
+  , testeq "MapLabelHash04" (4,4)  (mapLabelIndex lmap1 s4 )
+  , testeq "MapLabelHash05" (1,1)  (mapLabelIndex lmap1 o1 )
+  , testeq "MapLabelHash06" (4,4)  (mapLabelIndex lmap1 o4 )
+  , testeq "MapLabelHash07" nullLabelVal (mapLabelIndex lmap1 o5 )
+  , testeq "MapLabelHash08" nullLabelVal (mapLabelIndex lmap1 o6 )
+
+  , testeq "MapLabelHash11" (1,1)  (mapLabelIndex lmap2b s1 )
+  , testeq "MapLabelHash12" (5,22) (mapLabelIndex lmap2b s2 )
+  , testeq "MapLabelHash13" (3,3)  (mapLabelIndex lmap2b s3 )
+  , testeq "MapLabelHash14" (4,4)  (mapLabelIndex lmap2b s4 )
+  , testeq "MapLabelHash15" (5,66) (mapLabelIndex lmap2b o1 )
+  , testeq "MapLabelHash16" (2,2)  (mapLabelIndex lmap2b o2 )
+  , testeq "MapLabelHash17" (4,4)  (mapLabelIndex lmap2b o4 )
+  , testeq "MapLabelHash18" nullLabelVal (mapLabelIndex lmap1 o5 )
+    
+  , testeq "LabelMap01" (6,61) (mapLabelIndex lmap3 s1 )
+  , testeq "LabelMap02" (2,2)  (mapLabelIndex lmap3 s2 )
+  , testeq "LabelMap03" (6,63) (mapLabelIndex lmap3 s3 )
+  , testeq "LabelMap04" (4,4)  (mapLabelIndex lmap3 s4 )
+  , testeq "LabelMap05" (1,1)  (mapLabelIndex lmap3 o1 )
+  , testeq "LabelMap06" (6,66) (mapLabelIndex lmap3 o2 )
+    
   ]
 
 ------------------------------------------------------------
 --  Graph matching support
 ------------------------------------------------------------
 
+t01, t02, t03, t04, t05, t06 :: Arc LabelMem
 t01 = toStatement s1 p1 o1
 t02 = toStatement s2 p1 o2
 t03 = toStatement s3 p1 o3
@@ -619,41 +625,49 @@ t04 = toStatement s1 p1 l1
 t05 = toStatement s2 p1 l4
 t06 = toStatement s3 p1 l10
 
+t10, t11, t12 :: Arc LabelMem
 t10 = toStatement s1 p1 b1
 t11 = toStatement b1 p2 b2
 t12 = toStatement b2 p3 o1
 
+t20, t21, t22 :: Arc LabelMem
 t20 = toStatement s1 p1 b3
 t21 = toStatement b3 p2 b4
 t22 = toStatement b4 p3 o1
 
+as1, as2, as4, as5, as6 :: [Arc LabelMem]
 as1 = [t01]
-
 as2 = [t01,t02,t03,t04,t05,t06]
-
 as4 = [t01,t02,t03,t04,t05,t06,t10,t11,t12]
-
 as5 = [t01,t02,t03,t04,t05,t06,t20,t21,t22]
-
 as6 = [t01,t02,t03,t04,t05,t06,t10,t11,t12,t20,t21,t22]
 
-
 -- graphLabels :: (Label lb) => [Arc lb] -> [lb]
+
+ls4 :: [LabelMem]
 ls4 = [s1,s2,s3,p1,p2,p3,o1,o2,o3,l1,l4,l10,b1,b2]
+
+testGraphLabels04, testGraphLabels14 :: Test
 testGraphLabels04 = testeqv "GraphLabels04" ls4 (graphLabels as4)
 testGraphLabels14 = testeq  "GraphLabels14" str (show (graphLabels as4))
     where
         str = "[!s1,!p1,!o1,!s2,!o2,!s3,!o3,!l1,!l4-type1,!l10-xml,?b1,!p2,?b2,!p3]"
         -- str = "[!p3,?b2,!p2,?b1,!l10-xml,!l4-type1,!l1,!o3,!s3,!o2,!s2,!o1,!p1,!s1]"
 
+ls5 :: [LabelMem]
 ls5 = [s1,s2,s3,p1,p2,p3,o1,o2,o3,l1,l4,l10,b3,b4]
+
+testGraphLabels05, testGraphLabels15 :: Test
 testGraphLabels05 = testeqv "GraphLabels05" ls5 (graphLabels as5)
 testGraphLabels15 = testeq  "GraphLabels15" str (show (graphLabels as5))
     where
         str = "[!s1,!p1,!o1,!s2,!o2,!s3,!o3,!l1,!l4-type1,!l10-xml,?b3,!p2,?b4,!p3]"
         -- str = "[!p3,?b4,!p2,?b3,!l10-xml,!l4-type1,!l1,!o3,!s3,!o2,!s2,!o1,!p1,!s1]"
 
+ls6 :: [LabelMem]
 ls6 = [s1,s2,s3,p1,p2,p3,o1,o2,o3,l1,l4,l10,b1,b2,b3,b4]
+
+testGraphLabels06, testGraphLabels16 :: Test
 testGraphLabels06 = testeqv "GraphLabels05" ls6 (graphLabels as6)
 testGraphLabels16 = testeq  "GraphLabels16" str (show (graphLabels as6))
     where
@@ -664,22 +678,28 @@ testGraphLabels16 = testeq  "GraphLabels16" str (show (graphLabels as6))
 
 -- assignLabels :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
 
+lmap5 :: LabelMap LabelMem
 lmap5 = tstLabelMap 2 [(s1,(1,142577)),(s2,(1,142578)),(s3,(1,142579)),
                        (p1,(1,142385)),(p2,(1,142386)),(p3,(1,142387)),
                        (o1,(1,142321)),(o2,(1,142322)),(o3,(1,142323)),
                        (l1,(1,142129)),(l4,(1,1709580)),(l10,(1,3766582)),
                        (b3,(1,262143)),(b4,(1,262143))]
+        
+testAssignLabelMap05 :: Test        
 testAssignLabelMap05 = testeq "AssignLabels05" lmap5
                         (newGenerationMap $ assignLabelMap ls5 emptyMap)
 
+lmap6 :: LabelMap LabelMem
 lmap6 = tstLabelMap 2 [(s1,(1,142577)),(s2,(1,142578)),(s3,(1,142579)),
                        (p1,(1,142385)),(p2,(1,142386)),(p3,(1,142387)),
                        (o1,(1,142321)),(o2,(1,142322)),(o3,(1,142323)),
                        (l1,(1,142129)),(l4,(1,1709580)),(l10,(1,3766582)),
                        (b1,(2,262143)),(b2,(2,262143)),(b3,(1,262143)),(b4,(1,262143))]
+
+testAssignLabelMap06 :: Test
 testAssignLabelMap06 = testeq "AssignLabels06" lmap6 (assignLabelMap ls6 lmap5)
 
-
+lmapc :: LabelMap LabelMem
 lmapc = tstLabelMap 1 [(s1,(1,11)),(s2,(1,12)),(s3,(1,13)),
                        (p1,(1,21)),(p2,(1,22)),(p3,(1,13)),
                        (o1,(1,31)),(o2,(1,32)),(o3,(1,13)),
@@ -688,6 +708,7 @@ lmapc = tstLabelMap 1 [(s1,(1,11)),(s2,(1,12)),(s3,(1,13)),
 
 -- [[[TODO: test hash value collision on non-variable label]]]
 
+testGraphMatchSupportSuite :: Test
 testGraphMatchSupportSuite = TestList
   [ testGraphLabels04
   , testGraphLabels14
@@ -703,44 +724,65 @@ testGraphMatchSupportSuite = TestList
 --  Test steps in graph equality test
 ------------------------------------------------------------
 
-matchable l1 l2 = True
+matchable :: a -> b -> Bool
+matchable _ _ = True
 
+s1_1, s2_1, s3_1 :: ScopedLabel LabelMem
 s1_1 = makeScopedLabel 1 s1
 s2_1 = makeScopedLabel 1 s2
 s3_1 = makeScopedLabel 1 s3
+
+p1_1, p2_1, p3_1 :: ScopedLabel LabelMem
 p1_1 = makeScopedLabel 1 p1
 p2_1 = makeScopedLabel 1 p2
 p3_1 = makeScopedLabel 1 p3
+
+o1_1, o2_1, o3_1 :: ScopedLabel LabelMem
 o1_1 = makeScopedLabel 1 o1
 o2_1 = makeScopedLabel 1 o2
 o3_1 = makeScopedLabel 1 o3
+
+l1_1, l4_1, l10_1 :: ScopedLabel LabelMem
 l1_1 = makeScopedLabel 1 l1
 l4_1 = makeScopedLabel 1 l4
 l10_1 = makeScopedLabel 1 l10
+
+b1_1, b2_1, b3_1, b4_1 :: ScopedLabel LabelMem
 b1_1 = makeScopedLabel 1 b1
 b2_1 = makeScopedLabel 1 b2
 b3_1 = makeScopedLabel 1 b3
 b4_1 = makeScopedLabel 1 b4
 
+s1_2, s2_2, s3_2 :: ScopedLabel LabelMem
 s1_2 = makeScopedLabel 2 s1
 s2_2 = makeScopedLabel 2 s2
 s3_2 = makeScopedLabel 2 s3
+
+p1_2, p2_2, p3_2 :: ScopedLabel LabelMem
 p1_2 = makeScopedLabel 2 p1
 p2_2 = makeScopedLabel 2 p2
 p3_2 = makeScopedLabel 2 p3
+
+o1_2, o2_2, o3_2 :: ScopedLabel LabelMem
 o1_2 = makeScopedLabel 2 o1
 o2_2 = makeScopedLabel 2 o2
 o3_2 = makeScopedLabel 2 o3
+
+l1_2, l4_2, l10_2 :: ScopedLabel LabelMem
 l1_2 = makeScopedLabel 2 l1
 l4_2 = makeScopedLabel 2 l4
 l10_2 = makeScopedLabel 2 l10
+
+b1_2, b2_2, b3_2, b4_2 :: ScopedLabel LabelMem
 b1_2 = makeScopedLabel 2 b1
 b2_2 = makeScopedLabel 2 b2
 b3_2 = makeScopedLabel 2 b3
 b4_2 = makeScopedLabel 2 b4
 
+t01_1 :: Arc (ScopedLabel LabelMem)
 t01_1 = makeScopedArc 1 t01
 
+t01_2, t02_2, t03_2, t04_2, t05_2, t06_2 :: Arc (ScopedLabel LabelMem)
 t01_2 = makeScopedArc 2 t01
 t02_2 = makeScopedArc 2 t02
 t03_2 = makeScopedArc 2 t03
@@ -748,6 +790,7 @@ t04_2 = makeScopedArc 2 t04
 t05_2 = makeScopedArc 2 t05
 t06_2 = makeScopedArc 2 t06
 
+t10_1, t11_1, t12_1, t20_1, t21_1, t22_1 :: Arc (ScopedLabel LabelMem)
 t10_1 = makeScopedArc 1 t10
 t11_1 = makeScopedArc 1 t11
 t12_1 = makeScopedArc 1 t12
@@ -755,6 +798,7 @@ t20_1 = makeScopedArc 1 t20
 t21_1 = makeScopedArc 1 t21
 t22_1 = makeScopedArc 1 t22
 
+t10_2, t11_2, t12_2, t20_2, t21_2, t22_2 :: Arc (ScopedLabel LabelMem)
 t10_2 = makeScopedArc 2 t10
 t11_2 = makeScopedArc 2 t11
 t12_2 = makeScopedArc 2 t12
@@ -764,12 +808,16 @@ t22_2 = makeScopedArc 2 t22
 
 -- Compare graph as6 with self, in steps
 
+as61, as62 :: [Arc (ScopedLabel LabelMem)]
 as61 = map (makeScopedArc 1) as6
 as62 = map (makeScopedArc 2) as6
 
+eq1lmap :: LabelMap (ScopedLabel LabelMem)
 eq1lmap     = newGenerationMap $
               assignLabelMap (graphLabels as62) $
               assignLabelMap (graphLabels as61) emptyMap
+
+eq1ltst :: LabelMap (ScopedLabel LabelMem)
 eq1ltst     = tstLabelMap 2 [
                              (s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
                              (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
@@ -782,11 +830,15 @@ eq1ltst     = tstLabelMap 2 [
                              (l1_2,(1,142129)),(l4_2,(1,1709580)),(l10_2,(1,3766582)),
                              (b1_2,(1,262143)),(b2_2,(1,262143)),(b3_2,(1,262143)),(b4_2,(1,262143))
                             ]
+              
+testEqAssignMap01 :: Test              
 testEqAssignMap01 = testeq "EqAssignMap01" eq1ltst eq1lmap
 
+eq1hs1, eq1hs2 :: [Arc (ScopedLabel LabelMem)]
 eq1hs1      = [t10_1,t11_1,t12_1,t20_1,t21_1,t22_1]
 eq1hs2      = [t10_2,t11_2,t12_2,t20_2,t21_2,t22_2]
 
+eq1lmap' :: LabelMap (ScopedLabel LabelMem)
 eq1lmap'    = tstLabelMap 2 [(s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
                              (s1_2,(1,142577)),(s2_2,(1,142578)),(s3_2,(1,142579)),
                              (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
@@ -802,11 +854,14 @@ eq1lmap'    = tstLabelMap 2 [(s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579
                                                 (b3_2,(2,3880463)),
                                                 (b4_2,(2,3400925))]
 
+eq1lmap'' :: LabelMap (ScopedLabel LabelMem)
 eq1lmap''   = newLabelMap eq1lmap'
                 [
                 (b1_1,2576315),(b2_1,3400925),(b3_1,1571691),
                 (b1_2,2576315),(b2_2,3400925),(b3_2,1571691)
                 ]
+
+eq1ltst'' :: LabelMap (ScopedLabel LabelMem)
 eq1ltst''   = tstLabelMap 3 [
                             (s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
                             (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
@@ -825,16 +880,22 @@ eq1ltst''   = tstLabelMap 3 [
                             (b3_2,(3,1571691)),
                             (b4_2,(2,3400925))
                             ]
+
+testEqNewLabelMap07 :: Test
 testEqNewLabelMap07 = testeq "EqNewLabelMap07" eq1ltst'' eq1lmap''
 
 -- Repeat same tests for as4...
 
+as41, as42 :: [Arc (ScopedLabel LabelMem)]
 as41 = map (makeScopedArc 1) as4
 as42 = map (makeScopedArc 2) as4
 
+eq2lmap :: LabelMap (ScopedLabel LabelMem)
 eq2lmap     = newGenerationMap $
               assignLabelMap (graphLabels as42) $
               assignLabelMap (graphLabels as41) emptyMap
+              
+eq2ltst :: LabelMap (ScopedLabel LabelMem)
 eq2ltst     = tstLabelMap 2 [(s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
                              (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
                              (o1_1,(1,142321)),(o2_1,(1,142322)),(o3_1,(1,142323)),
@@ -845,11 +906,15 @@ eq2ltst     = tstLabelMap 2 [(s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579
                              (o1_2,(1,142321)),(o2_2,(1,142322)),(o3_2,(1,142323)),
                              (l1_2,(1,142129)),(l4_2,(1,1709580)),(l10_2,(1,3766582)),
                              (b1_2,(1,262143)),(b2_2,(1,262143))]
+              
+testEqAssignMap21 :: Test
 testEqAssignMap21 = testeq "EqAssignMap21" eq2ltst eq2lmap
 
+eq2hs1, eq2hs2 :: [Arc (ScopedLabel LabelMem)]
 eq2hs1      = [t10_1,t11_1,t12_1]
 eq2hs2      = [t10_2,t11_2,t12_2]
 
+eq2lmap' :: LabelMap (ScopedLabel LabelMem)
 eq2lmap'    = tstLabelMap 2 [
                              (s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
                              (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
@@ -863,11 +928,14 @@ eq2lmap'    = tstLabelMap 2 [
                              (b1_2,(2,3880463)),(b2_2,(2,3400925))
                             ]
 
+eq2lmap'' :: LabelMap (ScopedLabel LabelMem)
 eq2lmap''   = newLabelMap eq2lmap'
                 [
                 (b2_1,3400925),
                 (b2_2,3400925)
                 ]
+                
+eq2ltst'' :: LabelMap (ScopedLabel LabelMem)
 eq2ltst''   = tstLabelMap 3 [
                             (s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
                             (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
@@ -882,22 +950,30 @@ eq2ltst''   = tstLabelMap 3 [
                             (b1_2,(2,3880463)),
                             (b2_2,(3,3400925))
                             ]
+
+testEqNewLabelMap27 :: Test
 testEqNewLabelMap27 = testeq "EqNewLabelMap27" eq2ltst'' eq2lmap''
 
 -- Compare as1 with as2, in steps
 
+as11, as22 :: [Arc (ScopedLabel LabelMem)]
 as11 = map (makeScopedArc 1) as1
 as22 = map (makeScopedArc 2) as2
 
+eq3hs1, eq3hs2 :: [Arc (ScopedLabel LabelMem)]
 eq3hs1   = [t01_1]
 eq3hs2   = [t01_2,t02_2,t03_2,t04_2,t05_2,t06_2]
 
+testEqGraphMap31_1, testEqGraphMap31_2 :: Test
 testEqGraphMap31_1 = testeq "testEqGraphMap31_1" eq3hs1 as11
 testEqGraphMap31_2 = testeq "testEqGraphMap31_2" eq3hs2 as22
 
+eq3lmap :: LabelMap (ScopedLabel LabelMem)
 eq3lmap     = newGenerationMap $
               assignLabelMap (graphLabels as11) $
               assignLabelMap (graphLabels as22) emptyMap
+              
+eq3ltst :: LabelMap (ScopedLabel LabelMem)
 eq3ltst     = tstLabelMap 2
     [ (s1_1,(1,142577))
     , (p1_1,(1,142385))
@@ -907,16 +983,27 @@ eq3ltst     = tstLabelMap 2
     , (o1_2,(1,142321)), (o2_2,(1,142322)), (o3_2,(1,142323))
     , (l1_2,(1,142129)), (l4_2,(1,1709580)), (l10_2,(1,3766582))
     ]
+    
+testEqAssignMap32 :: Test    
 testEqAssignMap32 = testeq "EqAssignMap32" eq3ltst eq3lmap
 
+type EquivClass = EquivalenceClass (ScopedLabel LabelMem)
+type EquivArgs  = ((Int, Int), [ScopedLabel LabelMem])
+
+ec31 :: [EquivClass]
 ec31     = equivalenceClasses eq3lmap (graphLabels as11)
+
+ec31test :: [EquivArgs]
 ec31test =
     [ ((1,142321),[o1_1])
     , ((1,142385),[p1_1])
     , ((1,142577),[s1_1])
     ]
 
+ec32 :: [EquivClass]
 ec32 = equivalenceClasses eq3lmap (graphLabels as22)
+
+ec32test :: [EquivArgs]
 ec32test =
     [ ((1,142129),[l1_2])
     , ((1,142321),[o1_2])
@@ -930,12 +1017,17 @@ ec32test =
     , ((1,3766582),[l10_2])
     ]
 
+testEquivClass33_1, testEquivClass33_2 :: Test
 testEquivClass33_1 = testeq "EquivClass33_1" ec31test ec31
 testEquivClass33_2 = testeq "EquivClass33_2" ec32test ec32
 
 -- This value is nonsense for this test,
 -- but a parameter is needed for graphMatch1 (below)
+
+ec3pairs :: [(EquivClass, EquivClass)]
 ec3pairs = zip (pairSort ec31) (pairSort ec32)
+
+ec3test :: [(EquivClass, EquivClass)]
 ec3test  =
     [ ( ((1,142321),[o1_1]), ((1,142321),[o1_2]) )
     , ( ((1,142385),[p1_1]), ((1,142385),[p1_2]) )
@@ -946,7 +1038,10 @@ ec3test  =
 testEquivClass33_3 = testeq "EquivClass33_3" ec3test ec3pairs
 -}
 
+eq3lmap1 :: (Bool, LabelMap (ScopedLabel LabelMem))
 eq3lmap1 = graphMatch1 False matchable eq3hs1 eq3hs2 eq3lmap ec3pairs
+
+eq3ltst1 :: LabelMap (ScopedLabel LabelMem)
 eq3ltst1 = tstLabelMap 2
     [ (o1_1,(1,142321))
     , (p1_1,(1,142385))
@@ -964,6 +1059,8 @@ eq3ltst1 = tstLabelMap 2
     ]
 -- testEqAssignMap34 = testeq "EqAssignMap34" (Just eq3ltst1) eq3lmap1
 -- testEqAssignMap34 = testeq "EqAssignMap34" Nothing eq3lmap1
+
+testEqAssignMap34 :: Test
 testEqAssignMap34 = testeq "EqAssignMap34" False (fst eq3lmap1)
 
 {-
@@ -978,6 +1075,7 @@ testEqReclassify35_2 = testeqv "EqReclassify35_2" (makeEntries eq3rctst2) eq3rc2
 
 -- Test suite
 
+testGraphMatchStepSuite :: Test
 testGraphMatchStepSuite = TestList
   [ testEqAssignMap01
   -- , testEqReclassify03_1, testEqReclassify03_2
@@ -999,33 +1097,30 @@ testGraphMatchStepSuite = TestList
 ------------------------------------------------------------
 
 testGraphEq :: ( Label lb ) => String -> Bool -> GraphMem lb -> GraphMem lb -> Test
-testGraphEq lab eq g1 g2 =
-    TestCase ( assertEqual ("testGraphEq:"++lab) eq (g1==g2) )
+testGraphEq lab eq gg1 gg2 =
+    TestCase ( assertEqual ("testGraphEq:"++lab) eq (gg1==gg2) )
 
+g1, g2, g3, g4, g5, g6, g7, g8 :: GraphMem LabelMem
 g1 = GraphMem { arcs = [t01] }
-
 g2 = GraphMem { arcs = [t01,t02,t03,t04,t05,t06] }
-
 g3 = GraphMem { arcs = [t06,t05,t04,t03,t02,t01] }
-
 g4 = GraphMem { arcs = [t01,t02,t03,t04,t05,t06,t10,t11,t12] }
-
 g5 = GraphMem { arcs = [t01,t02,t03,t04,t05,t06,t20,t21,t22] }
-
 g6 = GraphMem { arcs = [t01,t02,t03,t04,t05,t06,t10,t11,t12,t20,t21,t22] }
-
 g7 = GraphMem { arcs = [t01,t02] }
-
 g8 = GraphMem { arcs = [t02,t01] }
 
+glist :: [(String, GraphMem LabelMem)]
 glist =
   [ ("g1",g1), ("g2",g2), ("g3",g3), ("g4",g4), ("g5",g5), ("g6",g6) ]
 
+grapheqlist :: [(String, String)]
 grapheqlist =
   [ ("g2","g3")
   , ("g4","g5")
   ]
 
+testGraphEqSuitePart :: Test
 testGraphEqSuitePart = TestLabel "testGraphEqSuitePart" $ TestList
   [ testGraphEq "g1-g2" False g1 g2
   , testGraphEq "g2-g1" False g2 g1
@@ -1044,16 +1139,19 @@ testGraphEqSuitePart = TestLabel "testGraphEqSuitePart" $ TestList
   , testGraphEq "g8-g7" True  g8 g7
   ]
 
+testGraphEqSuite :: Test
 testGraphEqSuite = TestLabel "testGraphEqSuite" $ TestList
-  [ testGraphEq (testLab l1 l2) (testEq l1 l2) g1 g2
-      | (l1,g1) <- glist , (l2,g2) <- glist ]
+  [ testGraphEq (testLab ll1 ll2) (testEq ll1 ll2) gg1 gg2
+      | (ll1,gg1) <- glist , (ll2,gg2) <- glist ]
     where
-    testLab l1 l2 = l1 ++ "-" ++ l2
-    testEq  l1 l2 = (l1 == l2)        ||
-            (l1,l2) `elem` grapheqlist ||
-            (l2,l1) `elem` grapheqlist
+    testLab ll1 ll2 = ll1 ++ "-" ++ ll2
+    testEq  ll1 ll2 = (ll1 == ll2)        ||
+            (ll1,ll2) `elem` grapheqlist ||
+            (ll2,ll1) `elem` grapheqlist
 
 -- Selected tests for debugging
+
+geq12, geq21, geq22, geq23, geq14, geq24, geq77, geq78, geq87 :: Test
 geq12 = testGraphEq "g1-g2" False g1 g2
 geq21 = testGraphEq "g2-g1" False g2 g1
 geq22 = testGraphEq "g2-g2" True  g2 g2
@@ -1076,6 +1174,8 @@ geq87 = testGraphEq "g8-g7" True  g8 g7
 --  Graph pattern 1:
 --  pentangle-in-pentangle, corresponding vertices linked upward
 
+v101, v102, v103, v104, v105, v106, v107, v108,
+  v109, v110 :: LabelMem
 v101  = LV "v101"
 v102  = LV "v102"
 v103  = LV "v103"
@@ -1087,6 +1187,8 @@ v108  = LV "v108"
 v109  = LV "v109"
 v110  = LV "v110"
 
+p101, p102, p103, p104, p105, p106, p107, p108,
+  p109, p110, p111, p112, p113, p114, p115 :: LabelMem
 p101  = LV "p101"
 p102  = LV "p102"
 p103  = LV "p103"
@@ -1103,6 +1205,9 @@ p113  = LV "p113"
 p114  = LV "p114"
 p115  = LV "p115"
 
+t10102, t10203, t10304, t10405, t10501, t10106,
+  t10207, t10308, t10409, t10510, t10607,
+  t10708, t10809, t10910, t11006 :: Arc LabelMem
 t10102 = toStatement v101 p101 v102
 t10203 = toStatement v102 p102 v103
 t10304 = toStatement v103 p103 v104
@@ -1122,6 +1227,8 @@ t11006 = toStatement v110 p115 v106
 --  Graph pattern 2:
 --  pentangle-in-pentangle, corresponding vertices linked downward
 
+v201, v202, v203, v204, v205, v206, v207, v208,
+  v209, v210 :: LabelMem
 v201  = LV "v201"
 v202  = LV "v202"
 v203  = LV "v203"
@@ -1133,6 +1240,8 @@ v208  = LV "v208"
 v209  = LV "v209"
 v210  = LV "v210"
 
+p201, p202, p203, p204, p205, p206, p207, p208,
+  p209, p210, p211, p212, p213, p214, p215 :: LabelMem
 p201  = LV "p201"
 p202  = LV "p202"
 p203  = LV "p203"
@@ -1149,6 +1258,9 @@ p213  = LV "p213"
 p214  = LV "p214"
 p215  = LV "p215"
 
+t20102, t20203, t20304, t20405, t20501, t20601,
+  t20702, t20803, t20904, t21005, t20607,
+  t20708, t20809, t20910, t21006 :: Arc LabelMem
 t20102 = toStatement v201 p201 v202
 t20203 = toStatement v202 p202 v203
 t20304 = toStatement v203 p203 v204
@@ -1172,6 +1284,8 @@ t21006 = toStatement v210 p215 v206
 --  length 5, where the others have circuits of length 4 and 5
 --  (ignoring direction of arcs)
 
+v301, v302, v303, v304, v305, v306, v307, v308,
+  v309, v310 :: LabelMem
 v301  = LV "v301"
 v302  = LV "v302"
 v303  = LV "v303"
@@ -1183,6 +1297,8 @@ v308  = LV "v308"
 v309  = LV "v309"
 v310  = LV "v310"
 
+p301, p302, p303, p304, p305, p306, p307, p308,
+  p309, p310, p311, p312, p313, p314, p315 :: LabelMem
 p301  = LV "p301"
 p302  = LV "p302"
 p303  = LV "p303"
@@ -1199,6 +1315,9 @@ p313  = LV "p313"
 p314  = LV "p314"
 p315  = LV "p315"
 
+t30102, t30203, t30304, t30405, t30501, t30106,
+  t30207, t30308, t30409, t30510, t30608,
+  t30709, t30810, t30906, t31007 :: Arc LabelMem
 t30102 = toStatement v301 p301 v302
 t30203 = toStatement v302 p302 v303
 t30304 = toStatement v303 p303 v304
@@ -1220,6 +1339,8 @@ t31007 = toStatement v310 p315 v307
 --  The vertices 6-10 are linked in reverse order to the
 --  corresponding vertices 1-5.
 
+v401, v402, v403, v404, v405, v406, v407, v408,
+  v409, v410 :: LabelMem
 v401  = LV "v401"
 v402  = LV "v402"
 v403  = LV "v403"
@@ -1231,6 +1352,8 @@ v408  = LV "v408"
 v409  = LV "v409"
 v410  = LV "v410"
 
+p401, p402, p403, p404, p405, p406, p407, p408,
+  p409, p410, p411, p412, p413, p414, p415 :: LabelMem
 p401  = LV "p401"
 p402  = LV "p402"
 p403  = LV "p403"
@@ -1247,6 +1370,9 @@ p413  = LV "p413"
 p414  = LV "p414"
 p415  = LV "p415"
 
+t40102, t40203, t40304, t40405, t40501, t40106,
+  t40207, t40308, t40409, t40510, t41009,
+  t40908, t40807, t40706, t40610:: Arc LabelMem
 t40102 = toStatement v401 p401 v402
 t40203 = toStatement v402 p402 v403
 t40304 = toStatement v403 p403 v404
@@ -1266,8 +1392,12 @@ t40610 = toStatement v406 p415 v410
 --  Graph pattern 5:
 --  Same as pattern 1, except same fixed property in all cases.
 
+p5 :: LabelMem
 p5    = LF "p5"
 
+t50102, t50203, t50304, t50405, t50501, t50106, t50207,
+  t50308, t50409, t50510, t50607, t50708, t50809,
+  t50910, t51006 :: Arc LabelMem
 t50102 = toStatement v101 p5 v102
 t50203 = toStatement v102 p5 v103
 t50304 = toStatement v103 p5 v104
@@ -1287,6 +1417,9 @@ t51006 = toStatement v110 p5 v106
 --  Graph pattern 6:
 --  Same as pattern 5, with different variables
 
+t60102, t60203, t60304, t60405, t60501, t60106,
+  t60207, t60308, t60409, t60510, t60607, t60708,
+  t60809, t60910, t61006 :: Arc LabelMem
 t60102 = toStatement v201 p5 v202
 t60203 = toStatement v202 p5 v203
 t60304 = toStatement v203 p5 v204
@@ -1305,15 +1438,18 @@ t61006 = toStatement v210 p5 v206
 
 --
 
+arcsToGraph :: [Arc a] -> GraphMem a
 arcsToGraph as = GraphMem { arcs = as }
 
 -- Very simple case
 
+g100 :: GraphMem LabelMem
 g100 = arcsToGraph
        [ t10102, t10203, t10304, t10405, t10501,
          t10607, t10708, t10809, t10910, t11006
        ]
 
+g200 :: GraphMem LabelMem
 g200 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20607, t20708, t20809, t20910, t21006
@@ -1321,31 +1457,37 @@ g200 = arcsToGraph
 
 -- 10/3 node graph comparisons
 
+g101 :: GraphMem LabelMem
 g101 = arcsToGraph
        [ t10102, t10203, t10304, t10405, t10501,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g201 :: GraphMem LabelMem
 g201 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20601, t20702, t20803, t20904, t21005,
          t20607, t20708, t20809, t20910, t21006 ]
 
+g301 :: GraphMem LabelMem
 g301 = arcsToGraph
        [ t30102, t30203, t30304, t30405, t30501,
          t30106, t30207, t30308, t30409, t30510,
          t30608, t30709, t30810, t30906, t31007 ]
 
+g401 :: GraphMem LabelMem
 g401 = arcsToGraph
        [ t40102, t40203, t40304, t40405, t40501,
          t40106, t40207, t40308, t40409, t40510,
          t40610, t40706, t40807, t40908, t41009 ]
 
+g501 :: GraphMem LabelMem
 g501 = arcsToGraph
        [ t50102, t50203, t50304, t50405, t50501,
          t50106, t50207, t50308, t50409, t50510,
          t50607, t50708, t50809, t50910, t51006 ]
 
+g601 :: GraphMem LabelMem
 g601 = arcsToGraph
        [ t60102, t60203, t60304, t60405, t60501,
          t60106, t60207, t60308, t60409, t60510,
@@ -1353,16 +1495,19 @@ g601 = arcsToGraph
 
 -- Remove one arc from each
 
+g102 :: GraphMem LabelMem
 g102 = arcsToGraph
        [ t10102, t10203, t10304, t10405,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g202 :: GraphMem LabelMem
 g202 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20601, t20702, t20803, t20904, t21005,
                  t20708, t20809, t20910, t21006 ]
 
+g302 :: GraphMem LabelMem
 g302 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20601, t20702, t20803, t20904,
@@ -1370,16 +1515,19 @@ g302 = arcsToGraph
 
 -- Remove two adjacent arcs from each
 
+g103 :: GraphMem LabelMem
 g103 = arcsToGraph
        [ t10102, t10203, t10304,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g203 :: GraphMem LabelMem
 g203 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20601, t20702, t20803, t20904, t21005,
          t20607, t20708,                 t21006 ]
 
+g303 :: GraphMem LabelMem
 g303 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20601, t20702, t20803, t20904,
@@ -1387,11 +1535,13 @@ g303 = arcsToGraph
 
 -- Remove two adjacent arcs from one, non-adjacent from another
 
+g104 :: GraphMem LabelMem
 g104 = arcsToGraph
        [ t10102, t10203, t10304,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g204 :: GraphMem LabelMem
 g204 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20601, t20702, t20803,
@@ -1400,13 +1550,16 @@ g204 = arcsToGraph
 -- Compare two rings of 5 with one ring of 10
 -- (each node double-connected, but different overall topology)
 
+t10901 :: Arc LabelMem
 t10901 = toStatement v109 p109 v101
 
+g105 :: GraphMem LabelMem
 g105 = arcsToGraph
        [ t10102, t10203, t10304, t10405,
                                  t10901, t10510,
          t10607, t10708, t10809,         t11006 ]
 
+g205 :: GraphMem LabelMem
 g205 = arcsToGraph
        [ t20102, t20203, t20304, t20405, t20501,
          t20607, t20708, t20809, t20910, t21006 ]
@@ -1414,18 +1567,22 @@ g205 = arcsToGraph
 -- Reverse one arc from test 01
 -- (also, rearrange arcs to catch ordering artefacts)
 
+t20201 :: Arc LabelMem
 t20201 = toStatement v202 p201 v201
 
+g106 :: GraphMem LabelMem
 g106 = arcsToGraph
        [ t10102, t10203, t10304, t10405, t10501,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g206 :: GraphMem LabelMem
 g206 = arcsToGraph
        [ t20607, t20708, t20809, t20910, t21006,
          t20601, t20702, t20803, t20904, t21005,
          t20102, t20203, t20304, t20405, t20501 ]
 
+g306 :: GraphMem LabelMem
 g306 = arcsToGraph
        [ t20607, t20708, t20809, t20910, t21006,
          t20601, t20702, t20803, t20904, t21005,
@@ -1434,31 +1591,37 @@ g306 = arcsToGraph
 -- Similar tests to 02,03,04,
 -- but add identified property rather than removing arcs
 
+f01, f02 :: LabelMem
 f01  = LF "f01"
 f02  = LF "f02"
 
 -- Fix one arc from each
 
+f10102, f10501, f21006, f20510 :: Arc LabelMem
 f10102 = toStatement v101 f01 v102
 f10501 = toStatement v105 f01 v101
 f21006 = toStatement v210 f01 v206
 f20510 = toStatement v205 f01 v210
 
+g107 :: GraphMem LabelMem
 g107 = arcsToGraph
        [ f10102, t10203, t10304, t10405, t10501,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g207 :: GraphMem LabelMem
 g207 = arcsToGraph
        [ t10102, t10203, t10304, t10405, f10501,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g307 :: GraphMem LabelMem
 g307 = arcsToGraph
        [ t20607, t20708, t20809, t20910, f21006,
          t20601, t20702, t20803, t20904, t21005,
          t20102, t20203, t20304, t20405, t20501 ]
 
+g407 :: GraphMem LabelMem
 g407 = arcsToGraph
        [ t20607, t20708, t20809, t20910, t21006,
          t20601, t20702, t20803, t20904, t21005,
@@ -1466,26 +1629,31 @@ g407 = arcsToGraph
 
 -- Fix two adjacent arcs from each
 
+f10203, f10405, f20910, f20601 :: Arc LabelMem
 f10203 = toStatement v102 f01 v103
 f10405 = toStatement v104 f01 v105
 f20910 = toStatement v209 f01 v210
 f20601 = toStatement v206 f01 v201
 
+g108 :: GraphMem LabelMem
 g108 = arcsToGraph
        [ f10102, f10203, t10304, t10405, t10501,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g208 :: GraphMem LabelMem
 g208 = arcsToGraph
        [ t10102, t10203, t10304, f10405, f10501,
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
+g308 :: GraphMem LabelMem
 g308 = arcsToGraph
        [ t20607, t20708, t20809, f20910, f21006,
          t20601, t20702, t20803, t20904, t21005,
          t20102, t20203, t20304, t20405, t20501 ]
 
+g408 :: GraphMem LabelMem
 g408 = arcsToGraph
        [ t20607, t20708, t20809, t20910, f21006,
          f20601, t20702, t20803, t20904, t21005,
@@ -1493,10 +1661,12 @@ g408 = arcsToGraph
 
 -- Fix two adjacent arcs with different properties
 
+g10203, g10102, g10405 :: Arc LabelMem
 g10203 = toStatement v102 f02 v103
 g10102 = toStatement v101 f02 v102
 g10405 = toStatement v104 f02 v105
 
+g109, g209, g309 :: GraphMem LabelMem
 g109 = arcsToGraph
        [ f10102, g10203, t10304, t10405, t10501,
          t10106, t10207, t10308, t10409, t10510,
@@ -1512,9 +1682,10 @@ g309 = arcsToGraph
          t10106, t10207, t10308, t10409, t10510,
          t10607, t10708, t10809, t10910, t11006 ]
 
-
+mgeq00 :: Test
 mgeq00 = testGraphEq "g100-g200" True  g100 g200
 
+mgeq0112, mgeq0113, mgeq0114, mgeq0115, mgeq0116, mgeq0156 :: Test
 mgeq0112 = testGraphEq "g101-g201" True  g101 g201
 mgeq0113 = testGraphEq "g101-g301" False g101 g301
 mgeq0114 = testGraphEq "g101-g401" False g101 g401
@@ -1522,29 +1693,37 @@ mgeq0115 = testGraphEq "g101-g501" False g101 g501
 mgeq0116 = testGraphEq "g101-g601" False g101 g601
 mgeq0156 = testGraphEq "g501-g601" True  g501 g601
 
+mgeq0212, mgeq0213 :: Test
 mgeq0212 = testGraphEq "g102-g202" True  g102 g202
 mgeq0213 = testGraphEq "g102-g302" False g102 g302
 
+mgeq0312, mgeq0313 :: Test
 mgeq0312 = testGraphEq "g103-g203" True  g103 g203
 mgeq0313 = testGraphEq "g103-g303" False g103 g303
 
+mgeq04, mgeq05 :: Test
 mgeq04 = testGraphEq "g104-g204" False g104 g204
 mgeq05 = testGraphEq "g105-g205" False g105 g205
 
+mgeq0612, mgeq0613 :: Test
 mgeq0612 = testGraphEq "g106-g206" True  g106 g206
 mgeq0613 = testGraphEq "g106-g306" False g106 g306
 
+mgeq0712, mgeq0713, mgeq0714 :: Test
 mgeq0712 = testGraphEq "g107-g207" True  g107 g207
 mgeq0713 = testGraphEq "g107-g307" True  g107 g307
 mgeq0714 = testGraphEq "g107-g407" False g107 g407
 
+mgeq0812, mgeq0813, mgeq0814 :: Test
 mgeq0812 = testGraphEq "g108-g208" True  g108 g208
 mgeq0813 = testGraphEq "g108-g308" True  g108 g308
 mgeq0814 = testGraphEq "g108-g408" False g108 g408
 
+mgeq0912, mgeq0913 :: Test
 mgeq0912 = testGraphEq "g109-g209" True  g109 g209
 mgeq0913 = testGraphEq "g109-g309" False g109 g309
 
+testGraphEqSuiteMore :: Test
 testGraphEqSuiteMore = TestList
   [ mgeq00
   , mgeq0112, mgeq0113, mgeq0114, mgeq0115, mgeq0116, mgeq0156
@@ -1562,6 +1741,7 @@ testGraphEqSuiteMore = TestList
 -- All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
   [ testSelectSuite
   , testMapsetSuite
@@ -1580,8 +1760,10 @@ allTests = TestList
   , testGraphEqSuiteMore
   ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+{-
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     runTestText (putTextToHandle h False) t
@@ -1595,6 +1777,8 @@ ttmore = tt testGraphEqSuiteMore    -- this test may take a long time
 tfmore = tf testGraphEqSuiteMore
 ttstep = tt testGraphMatchStepSuite
 tfstep = tf testGraphMatchStepSuite
+
+-}
 
 --------------------------------------------------------------------------------
 --

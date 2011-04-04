@@ -21,77 +21,32 @@ import Swish.RDF.N3Formatter
     , formatGraphAsString
     , formatGraphDiag )
 
-import Swish.RDF.N3Parser
-    ( ParseResult(..)
-    , parseN3fromString
-    , parseTextFromString, parseAltFromString
-    , parseNameFromString, parsePrefixFromString
-    , parseAbsURIrefFromString, parseLexURIrefFromString
-    , parseURIref2FromString )
+import Swish.RDF.N3Parser (parseN3fromString)
 
 import Swish.RDF.RDFGraph
-    ( RDFTriple, RDFGraph, RDFLabel(..), NSGraph(..)
-    , setArcs, getArcs, add, delete, extract, labels
-    , NamespaceMap, emptyNamespaceMap
-    , LookupFormula(..), Formula, FormulaMap, emptyFormulaMap
-    , setNamespaces
+    ( RDFGraph, RDFLabel(..), NSGraph(..)
+    , NamespaceMap
+    , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
       -- Export selected RDFLabel values
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
-    , res_rdfs_member
-    , res_rdfd_GeneralRestriction
-    , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
     , res_owl_sameAs
     )
 
 import Swish.Utils.Namespace
     ( Namespace(..)
-    , makeNamespaceQName
-    , getQName, getScopedNameURI
     , ScopedName(..)
-    , makeScopedName, makeQNameScopedName
-    , nullScopedName
-    )
-
-import Swish.RDF.Vocabulary
-    ( namespaceRDF
-    , namespaceRDFS
-    , namespaceRDFD
-    , namespaceXSD
-    , namespaceXsdType
-    , namespaceOWL
-    , namespaceMATH
-    , namespaceLOG
-    , namespaceDAML
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil
-    , rdfs_member
-    , rdfd_GeneralRestriction
-    , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs
-    )
-
-import Swish.Utils.QName
-    ( QName(..)
-    , newQName, qnameFromPair, qnameFromURI
-    , getNamespace, getLocalName, getQNameURI
-    , splitURI
     )
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
-    , emptyLookupMap, makeLookupMap, listLookupMap )
+    , emptyLookupMap, makeLookupMap )
 
-import Swish.RDF.GraphClass
-    ( Arc, arcSubj, arcPred, arcObj, arc )
+import Swish.RDF.GraphClass (Arc, arc)
 
 import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
-    , assertEqual, runTestTT, runTestText, putTextToHandle )
-
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn )
+    ( Test(TestCase,TestList)
+    , assertEqual, runTestTT )
 
 ------------------------------------------------------------
 --  Common test wrappers
@@ -102,70 +57,59 @@ testLabelEq lab eq n1 n2 =
     TestCase ( assertEqual ("testLabelEq:"++lab) eq (n1==n2) )
 
 testGraphEq :: String -> Bool -> RDFGraph -> RDFGraph -> Test
-testGraphEq lab eq g1 g2 =
-    TestCase ( assertEqual ("testGraphEq:"++lab) eq (g1==g2) )
+testGraphEq lab eq gg1 gg2 =
+    TestCase ( assertEqual ("testGraphEq:"++lab) eq (gg1==gg2) )
 
 ------------------------------------------------------------
 --  Define some common values
 ------------------------------------------------------------
 
+base1, base2, base3, base4 :: Namespace
 base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
 base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
-qb1s1 = ScopedName base1 "s1"
-qb2s2 = ScopedName base2 "s2"
-qb3s3 = ScopedName base3 "s3"
+s1, s2, s3 :: RDFLabel
+s1 = Res $ ScopedName base1 "s1"
+s2 = Res $ ScopedName base2 "s2"
+s3 = Res $ ScopedName base3 "s3"
 
-s1 = Res qb1s1  :: RDFLabel
-s2 = Res qb2s2  :: RDFLabel
-s3 = Res qb3s3  :: RDFLabel
+b1, b2, b3, b4, b5, b6, b7, b8 :: RDFLabel
+b1 = Blank "b1"
+b2 = Blank "b2"
+b3 = Blank "b3"
+b4 = Blank "b4"
+b5 = Blank "b5"
+b6 = Blank "b6"
+b7 = Blank "b7"
+b8 = Blank "b8"
 
-b1 = Blank "b1" :: RDFLabel
-b2 = Blank "b2" :: RDFLabel
-b3 = Blank "b3" :: RDFLabel
-b4 = Blank "b4" :: RDFLabel
-b5 = Blank "b5" :: RDFLabel
-b6 = Blank "b6" :: RDFLabel
-b7 = Blank "b7" :: RDFLabel
-b8 = Blank "b8" :: RDFLabel
+c1, c2, c3, c4, c5, c6 :: RDFLabel
+c1 = Blank "c1"
+c2 = Blank "c2"
+c3 = Blank "c3"
+c4 = Blank "c4"
+c5 = Blank "c5"
+c6 = Blank "c6"
 
-c1 = Blank "c1" :: RDFLabel
-c2 = Blank "c2" :: RDFLabel
-c3 = Blank "c3" :: RDFLabel
-c4 = Blank "c4" :: RDFLabel
-c5 = Blank "c5" :: RDFLabel
-c6 = Blank "c6" :: RDFLabel
+p1, p2, p3, p21, p22, p23, p24, p25, p26 :: RDFLabel
+p1  = Res $ ScopedName base1 "p1"
+p2  = Res $ ScopedName base2 "p2"
+p3  = Res $ ScopedName base3 "p3"
+p21 = Res $ ScopedName base2 "p21"
+p22 = Res $ ScopedName base2 "p22"
+p23 = Res $ ScopedName base2 "p23"
+p24 = Res $ ScopedName base2 "p24"
+p25 = Res $ ScopedName base2 "p25"
+p26 = Res $ ScopedName base2 "p26"
 
-qb1p1  = ScopedName base1 "p1"
-qb2p2  = ScopedName base2 "p2"
-qb3p3  = ScopedName base3 "p3"
-qb2p21 = ScopedName base2 "p21"
-qb2p22 = ScopedName base2 "p22"
-qb2p23 = ScopedName base2 "p23"
-qb2p24 = ScopedName base2 "p24"
-qb2p25 = ScopedName base2 "p25"
-qb2p26 = ScopedName base2 "p26"
+o1, o2, o3 :: RDFLabel
+o1 = Res $ ScopedName base1 "o1"
+o2 = Res $ ScopedName base2 "o2"
+o3 = Res $ ScopedName base3 "o3"
 
-p1  = Res qb1p1  :: RDFLabel
-p2  = Res qb2p2  :: RDFLabel
-p3  = Res qb3p3  :: RDFLabel
-p21 = Res qb2p21 :: RDFLabel
-p22 = Res qb2p22 :: RDFLabel
-p23 = Res qb2p23 :: RDFLabel
-p24 = Res qb2p24 :: RDFLabel
-p25 = Res qb2p25 :: RDFLabel
-p26 = Res qb2p26 :: RDFLabel
-
-qb1o1 = ScopedName base1 "o1"
-qb2o2 = ScopedName base2 "o2"
-qb3o3 = ScopedName base3 "o3"
-
-o1 = Res qb1o1 :: RDFLabel
-o2 = Res qb2o2 :: RDFLabel
-o3 = Res qb3o3 :: RDFLabel
-
+l1txt, l2txt, l3txt, l11txt, l12txt, l13txt, l14txt :: String
 l1txt = "l1"
 l2txt = "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'"
 l3txt = "l3--\r\"'\\--\x0020\&--\x00A0\&--"
@@ -174,29 +118,30 @@ l12txt = "lx12"
 l13txt = "lx13"
 l14txt = "lx14"
 
-l1  = Lit l1txt  Nothing    :: RDFLabel
-l2  = Lit l2txt  Nothing    :: RDFLabel
-l3  = Lit l3txt  Nothing    :: RDFLabel
-l11 = Lit l11txt Nothing    :: RDFLabel
-l12 = Lit l12txt Nothing    :: RDFLabel
-l13 = Lit l13txt Nothing    :: RDFLabel
-l14 = Lit l14txt Nothing    :: RDFLabel
+l1, l2, l3, l11, l12, l13, l14 :: RDFLabel
+l1  = Lit l1txt  Nothing
+l2  = Lit l2txt  Nothing
+l3  = Lit l3txt  Nothing
+l11 = Lit l11txt Nothing
+l12 = Lit l12txt Nothing
+l13 = Lit l13txt Nothing
+l14 = Lit l14txt Nothing
 
-qb1f1 = ScopedName base1 "f1"
-qb2f2 = ScopedName base2 "f2"
+f1, f2 :: RDFLabel
+f1 = Res $ ScopedName base1 "f1"
+f2 = Res $ ScopedName base2 "f2"
 
-f1 = Res qb1f1 :: RDFLabel
-f2 = Res qb2f2 :: RDFLabel
-
-v1 = Var "var1" :: RDFLabel
-v2 = Var "var2" :: RDFLabel
-v3 = Var "var3" :: RDFLabel
-v4 = Var "var4" :: RDFLabel
+v1, v2, v3, v4 :: RDFLabel
+v1 = Var "var1"
+v2 = Var "var2"
+v3 = Var "var3"
+v4 = Var "var4"
 
 ------------------------------------------------------------
 --  Construct graphs for testing
 ------------------------------------------------------------
 
+t01, t02, t03, t04, t05, t06, t07 :: Arc RDFLabel
 t01 = arc s1 p1 o1
 t02 = arc s2 p1 o2
 t03 = arc s3 p1 o3
@@ -205,6 +150,7 @@ t05 = arc s2 p1 b1
 t06 = arc s3 p1 l2
 t07 = arc s3 p2 l3
 
+nslist :: NamespaceMap
 nslist = makeLookupMap
     [ base1
     , base2
@@ -212,58 +158,19 @@ nslist = makeLookupMap
     , base4
     ]
 
-g1np = NSGraph
-        { namespaces = emptyNamespaceMap
-        , formulae   = emptyFormulaMap
-        , statements = [t01]
-        }
+g1np :: RDFGraph
+g1np = toRDFGraph [t01]
 
-g1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01]
-        }
+toGraph :: [Arc RDFLabel] -> RDFGraph
+toGraph arcs = (toRDFGraph arcs) {namespaces = nslist}
 
-g1b1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [b01]
-        }
-    where
-        b01 = arc b1 p1 o1
-
-g1b3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [b01]
-        }
-    where
-        b01 = arc b1 b2 b3
-
-g1a1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [a01]
-        }
-    where
-        a1  = Blank "1"  :: RDFLabel
-        a01 = arc a1 p1 o1
-
-g1l1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [l01]
-        }
-    where
-        l01 = arc s1 p1 l1
-
-g1l2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [l02]
-        }
-    where
-        l02 = arc s1 p1 l2
+g1, g1b1, g1b3, g1a1, g1l1, g1l2 :: RDFGraph
+g1   = toGraph [t01]
+g1b1 = toGraph [arc b1 p1 o1]
+g1b3 = toGraph [arc b1 b2 b3]
+g1a1 = toGraph [arc (Blank "1") p1 o1]
+g1l1 = toGraph [arc s1 p1 l1]
+g1l2 = toGraph [arc s1 p1 l2]
 
 {-
 g1f1 = NSGraph
@@ -276,6 +183,7 @@ g1f1 = NSGraph
         formo1g1 = LookupMap [Formula o1 g1]
 -}
 
+g1f2, g1f3 :: RDFGraph
 g1f2 = NSGraph
         { namespaces = nslist
         , formulae   = formb2g1
@@ -296,42 +204,15 @@ g1f3 = NSGraph
 
 ----
 
-g2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t02,t03]
-        }
+g2, g3, g4, g5, g6, g7 :: RDFGraph
+g2 = toGraph [t01,t02,t03]
+g3 = toGraph [t01,t04]
+g4 = toGraph [t01,t05]
+g5 = toGraph [t01,t02,t03,t04,t05]
+g6 = toGraph [t01,t06]
+g7 = toGraph [t01,t07]
 
-g3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t04]
-        }
-
-g4 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t05]
-        }
-
-g5 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t02,t03,t04,t05]
-        }
-
-g6 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t06]
-        }
-
-g7 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t07]
-        }
-
+t801, t802, t807, t808, t809, t810 :: Arc RDFLabel
 t801 = arc s1 res_rdf_type       o1
 t802 = arc s2 res_owl_sameAs     o2
 t807 = arc o1 p1 s1
@@ -339,24 +220,13 @@ t808 = arc s2 p1 o2
 t809 = arc s1 p2 o1
 t810 = arc o2 p2 s2
 
-g8 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t801,t802,t807,t808,t809,t810]
-        }
+g8, g81, g83 :: RDFGraph
+g8  = toGraph [t801,t802,t807,t808,t809,t810]
+g81 = toGraph [t801,t802]
+g83 = toGraph [t807,t808,t809,t810]
 
-g81 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t801,t802]
-        }
-
-g83 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t807,t808,t809,t810]
-        }
-
+t911, t912, t913, t914, t921, t922, t923, t924,
+  t925, t926, t927, t928 :: Arc RDFLabel
 t911 = arc s1 p1 o1
 t912 = arc s1 p1 o2
 t913 = arc s1 p2 o2
@@ -370,14 +240,13 @@ t926 = arc s2 p2 o2
 t927 = arc s2 p2 o3
 t928 = arc s2 p2 l1
 
-g9 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t911,t912,t913,t914,
-                        t921,t922,t923,t924,
-                        t925,t926,t927,t928]
-        }
+g9 :: RDFGraph
+g9 = toGraph [t911,t912,t913,t914,
+              t921,t922,t923,t924,
+              t925,t926,t927,t928]
 
+t1011, t1012, t1013, t1014, t1021, t1022, t1023, t1024,
+  t1025, t1026, t1027, t1028 :: Arc RDFLabel
 t1011 = arc s1 p1 o1
 t1012 = arc o2 p1 s1
 t1013 = arc s1 p2 o2
@@ -392,24 +261,19 @@ t1027 = arc o3 p2 s2
 -- t1028 = arc l1 p2 s2
 t1028 = arc s1 p2 s2
 
-g10 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t1011,t1012,t1013,t1014,
-                        t1021,t1022,t1023,t1024,
-                        t1025,t1026,t1027,t1028 ]
-        }
+g10 :: RDFGraph
+g10 = toGraph [t1011,t1012,t1013,t1014,
+               t1021,t1022,t1023,t1024,
+               t1025,t1026,t1027,t1028]
 
-t1111 = arc s1 p1 v1
-t1112 = arc v2 p1 o1
-t1113 = arc v3 p1 v4
+g11 :: RDFGraph
+g11 = toGraph [ arc s1 p1 v1
+              , arc v2 p1 o1
+              , arc v3 p1 v4]
 
-g11 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t1111,t1112,t1113]
-        }
-
+tx101, tx102, tx111, tx112, tx113, tx114,
+  tx121, tx122, tx123, tx124, tx125, tx126,
+  tx127, tx128 :: Arc RDFLabel
 tx101 = arc b1 res_owl_sameAs s1
 tx102 = arc s2 res_owl_sameAs b2
 tx111 = arc b1 p1 o1
@@ -425,15 +289,15 @@ tx126 = arc b2 p2 o2
 tx127 = arc b2 p2 o3
 tx128 = arc b2 p2 l2
 
-x1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx101,tx102,
-                        tx111,tx112,tx113,tx114,
-                        tx121,tx122,tx123,tx124,
-                        tx125,tx126,tx127,tx128]
-        }
+x1 :: RDFGraph
+x1 = toGraph [tx101,tx102,
+              tx111,tx112,tx113,tx114,
+              tx121,tx122,tx123,tx124,
+              tx125,tx126,tx127,tx128]
 
+tx201, tx202, tx211, tx212, tx213, tx214,
+  tx221, tx222, tx223, tx224, tx225, tx226,
+  tx227 :: Arc RDFLabel
 tx201 = arc b1 res_owl_sameAs s1
 tx202 = arc s2 res_owl_sameAs b2
 tx211 = arc b1 p1 o1
@@ -449,15 +313,15 @@ tx226 = arc o2 p2 b2
 tx227 = arc o3 p2 b2
 -- tx228 = arc l1 p2 b2
 
-x2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx201,tx202,
-                        tx211,tx212,tx213,tx214,
-                        tx221,tx222,tx223,tx224,
-                        tx225,tx226,tx227]
-        }
+x2 :: RDFGraph
+x2 = toGraph [tx201,tx202,
+              tx211,tx212,tx213,tx214,
+              tx221,tx222,tx223,tx224,
+              tx225,tx226,tx227]
 
+tx311, tx312, tx313, tx314,
+  tx321, tx322, tx323, tx324, tx325, tx326,
+  tx327 :: Arc RDFLabel
 tx311 = arc s1 p1 o1
 tx312 = arc o2 p1 s1
 tx313 = arc s1 p2 o2
@@ -471,14 +335,13 @@ tx326 = arc o2 p2 s2
 tx327 = arc o3 p2 s2
 -- tx328 = arc l1 p2 s2
 
-x3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx311,tx312,tx313,tx314,
-                        tx321,tx322,tx323,tx324,
-                        tx325,tx326,tx327]
-        }
+x3 :: RDFGraph
+x3 = toGraph [tx311,tx312,tx313,tx314,
+              tx321,tx322,tx323,tx324,
+              tx325,tx326,tx327]
 
+tx401, tx402, tx403, tx404, tx405, tx406,
+  tx407, tx408, tx409 :: Arc RDFLabel
 tx401 = arc s1 res_owl_sameAs b1
 tx402 = arc b1 res_rdf_first  o1
 tx403 = arc b1 res_rdf_rest   b2
@@ -489,40 +352,22 @@ tx407 = arc b3 res_rdf_rest   b4
 tx408 = arc b4 res_rdf_first  l1
 tx409 = arc b4 res_rdf_rest   res_rdf_nil
 
-x4 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx401,tx402,tx403,tx404,
-                        tx405,tx406,tx407,tx408,
-                        tx409]
-        }
+x4 :: RDFGraph
+x4 = toGraph [tx401,tx402,tx403,tx404,
+              tx405,tx406,tx407,tx408,
+              tx409]
 
-tx501 = arc b1 res_owl_sameAs s1
-tx502 = arc b1 res_rdf_first  o1
-tx503 = arc b1 res_rdf_rest   b2
-tx504 = arc b2 res_rdf_first  o2
-tx505 = arc b2 res_rdf_rest   b3
-tx506 = arc b3 res_rdf_first  o3
-tx507 = arc b3 res_rdf_rest   b4
-tx508 = arc b4 res_rdf_first  l1
-tx509 = arc b4 res_rdf_rest   res_rdf_nil
-
-x5 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx501,tx502,tx503,tx504,
-                        tx505,tx506,tx507,tx508,
-                        tx509]
-        }
-
-tx601 = arc s1 res_rdf_first o1
-tx602 = arc s1 res_rdf_rest  b2
-tx603 = arc b2 res_rdf_first o2
-tx604 = arc b2 res_rdf_rest  b3
-tx605 = arc b3 res_rdf_first o3
-tx606 = arc b3 res_rdf_rest  b4
-tx607 = arc b4 res_rdf_first l1
-tx608 = arc b4 res_rdf_rest  res_rdf_nil
+x5 :: RDFGraph
+x5 = toGraph [ arc b1 res_owl_sameAs s1
+             , arc b1 res_rdf_first  o1
+             , arc b1 res_rdf_rest   b2
+             , arc b2 res_rdf_first  o2
+             , arc b2 res_rdf_rest   b3
+             , arc b3 res_rdf_first  o3
+             , arc b3 res_rdf_rest   b4
+             , arc b4 res_rdf_first  l1
+             , arc b4 res_rdf_rest   res_rdf_nil
+             ]
 
 {-
 I was aiming for
@@ -542,313 +387,235 @@ cwm parse the triples differently, and it depends
 on the output format too (eg n3 vs ntriples).
 -}
 
-x6 = NSGraph
+x6 :: RDFGraph
+x6 = toGraph [ arc s1 res_rdf_first o1
+             , arc s1 res_rdf_rest  b2
+             , arc b2 res_rdf_first o2
+             , arc b2 res_rdf_rest  b3
+             , arc b3 res_rdf_first o3
+             , arc b3 res_rdf_rest  b4
+             , arc b4 res_rdf_first l1
+             , arc b4 res_rdf_rest  res_rdf_nil
+             ]
+
+x7 :: RDFGraph
+x7 = NSGraph
         { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx601,tx602,tx603,tx604,
-                        tx605,tx606,tx607,tx608]
+        , formulae   = LookupMap [Formula b1 g2]
+        , statements = [arc b1 p2 f2]
         }
 
-formb1g2 = LookupMap [Formula b1 g2]
-tx701    = arc b1 p2 f2
-x7       = NSGraph
+x8 :: RDFGraph
+x8 = NSGraph
         { namespaces = nslist
-        , formulae   = formb1g2
-        , statements = [tx701]
+        , formulae   = LookupMap [Formula f1 g2]
+        , statements = [arc f1 p2 f2]
         }
 
-formf1g2 = LookupMap [Formula f1 g2]
-tx801    = arc f1 p2 f2
-x8       = NSGraph
-        { namespaces = nslist
-        , formulae   = formf1g2
-        , statements = [tx801]
-        }
-
-formf1g1 = LookupMap [Formula f1 g1]
-tx901 = arc f1 p2 f2
-
+x9 :: RDFGraph
 x9 = NSGraph
         { namespaces = nslist
-        , formulae   = formf1g1
-        , statements = [tx801]
+        , formulae   = LookupMap [Formula f1 g1]
+        , statements = [arc f1 p2 f2]
         }
-
+        
 --  Test allocation of bnodes carries over a nested formula
-tx1201 = arc s1 p1 b1
-tx1202 = arc b1 p1 o1
-tx1203 = arc b2 p2 f2
-tx1204 = arc s3 p3 b3
-tx1205 = arc b3 p3 o3
-tx1211 = arc s2 p2 b4
-tx1212 = arc b4 p2 o2
-x12fg  = NSGraph
-        { namespaces = emptyNamespaceMap
-        , formulae   = emptyFormulaMap
-        , statements = [tx1211,tx1212]
-        }
-x12f   = LookupMap [Formula b2 x12fg]
+
+x12, x12fg :: RDFGraph
 x12    = NSGraph
         { namespaces = nslist
-        , formulae   = x12f
-        , statements = [tx1201,tx1202,tx1203,tx1204,tx1205]
+        , formulae   = LookupMap [Formula b2 x12fg]
+        , statements = [ arc s1 p1 b1
+                       , arc b1 p1 o1
+                       , arc b2 p2 f2
+                       , arc s3 p3 b3
+                       , arc b3 p3 o3
+                       ]
         }
 
+x12fg  = toRDFGraph [ arc s2 p2 b4
+                    , arc b4 p2 o2
+                    ]
+        
 --  List of simple anon nodes
-tx1301 = arc s1 res_rdf_first b1
-tx1302 = arc s1 res_rdf_rest  c1
-tx1303 = arc c1 res_rdf_first b2
-tx1304 = arc c1 res_rdf_rest  c2
-tx1305 = arc c2 res_rdf_first b3
-tx1306 = arc c2 res_rdf_rest  res_rdf_nil
-tx1307 = arc b1 p1 o1
-tx1308 = arc b2 p1 o2
-tx1309 = arc b3 p1 o3
 
-x13    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1301,tx1302,tx1303,tx1304,tx1305,tx1306,
-                        tx1307,tx1308,tx1309]
-        }
+x13 :: RDFGraph
+x13 = toGraph [ arc s1 res_rdf_first b1
+              , arc s1 res_rdf_rest  c1
+              , arc c1 res_rdf_first b2
+              , arc c1 res_rdf_rest  c2
+              , arc c2 res_rdf_first b3
+              , arc c2 res_rdf_rest  res_rdf_nil
+              , arc b1 p1 o1
+              , arc b2 p1 o2
+              , arc b3 p1 o3
+              ]
 
 --  List of simple anon nodes using autogenerated bnodes
-b_1 = Blank "1" :: RDFLabel
-b_2 = Blank "2" :: RDFLabel
-b_3 = Blank "3" :: RDFLabel
-c_1 = Blank "4" :: RDFLabel
-c_2 = Blank "5" :: RDFLabel
 
-tx1301a = arc s1  res_rdf_first b_1
-tx1302a = arc s1  res_rdf_rest  c_1
-tx1303a = arc c_1 res_rdf_first b_2
-tx1304a = arc c_1 res_rdf_rest  c_2
-tx1305a = arc c_2 res_rdf_first b_3
-tx1306a = arc c_2 res_rdf_rest  res_rdf_nil
-tx1307a = arc b_1 p1 o1
-tx1308a = arc b_2 p1 o2
-tx1309a = arc b_3 p1 o3
-
-x13a = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1301a,tx1302a,tx1303a,tx1304a,tx1305a,tx1306a,
-                        tx1307a,tx1308a,tx1309a]
-        }
+x13a :: RDFGraph
+x13a = toGraph [ arc s1  res_rdf_first b_1
+               , arc s1  res_rdf_rest  c_1
+               , arc c_1 res_rdf_first b_2
+               , arc c_1 res_rdf_rest  c_2
+               , arc c_2 res_rdf_first b_3
+               , arc c_2 res_rdf_rest  res_rdf_nil
+               , arc b_1 p1 o1
+               , arc b_2 p1 o2
+               , arc b_3 p1 o3
+               ]
+  where
+    b_1 = Blank "1"
+    b_2 = Blank "2"
+    b_3 = Blank "3"
+    c_1 = Blank "4"
+    c_2 = Blank "5"
 
 --  List of more complex anon nodes
-tx1401 = arc s1 res_rdf_first b1
-tx1402 = arc s1 res_rdf_rest  c1
-tx1403 = arc c1 res_rdf_first b2
-tx1404 = arc c1 res_rdf_rest  c2
-tx1405 = arc c2 res_rdf_first b3
-tx1406 = arc c2 res_rdf_rest  res_rdf_nil
-tx1407 = arc b1 p1 o1
-tx1408 = arc b1 p2 o1
-tx1409 = arc b2 p1 o2
-tx1410 = arc b2 p2 o2
-tx1411 = arc b3 p1 o3
-tx1412 = arc b3 p2 o3
 
-x14    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1401,tx1402,tx1403,tx1404,tx1405,tx1406,
-                        tx1407,tx1408,tx1409,tx1410,tx1411,tx1412]
-        }
+x14 :: RDFGraph
+x14 = toGraph [ arc s1 res_rdf_first b1
+              , arc s1 res_rdf_rest  c1
+              , arc c1 res_rdf_first b2
+              , arc c1 res_rdf_rest  c2
+              , arc c2 res_rdf_first b3
+              , arc c2 res_rdf_rest  res_rdf_nil
+              , arc b1 p1 o1
+              , arc b1 p2 o1
+              , arc b2 p1 o2
+              , arc b2 p2 o2
+              , arc b3 p1 o3
+              , arc b3 p2 o3
+              ]
 
 --  List with nested list
-tx1501 = arc s1 res_rdf_first b1
-tx1502 = arc s1 res_rdf_rest  c1
-tx1503 = arc c1 res_rdf_first b2
-tx1504 = arc c1 res_rdf_rest  c2
-tx1505 = arc c2 res_rdf_first b3
-tx1506 = arc c2 res_rdf_rest  res_rdf_nil
-tx1507 = arc b1 p1 o1
-tx1508 = arc b2 p2 c3
-tx1509 = arc b3 p1 o3
 
-tx1521 = arc c3 res_rdf_first b4
-tx1522 = arc c3 res_rdf_rest  c4
-tx1523 = arc c4 res_rdf_first b5
-tx1524 = arc c4 res_rdf_rest  c5
-tx1525 = arc c5 res_rdf_first b6
-tx1526 = arc c5 res_rdf_rest  res_rdf_nil
-tx1527 = arc b4 p1 o1
-tx1528 = arc b5 p1 o2
-tx1529 = arc b6 p1 o3
+x15 :: RDFGraph
+x15 = toGraph [ arc s1 res_rdf_first b1
+              , arc s1 res_rdf_rest  c1
+              , arc c1 res_rdf_first b2
+              , arc c1 res_rdf_rest  c2
+              , arc c2 res_rdf_first b3
+              , arc c2 res_rdf_rest  res_rdf_nil
+              , arc b1 p1 o1
+              , arc b2 p2 c3
+              , arc b3 p1 o3
 
-x15    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1501,tx1502,tx1503,tx1504,tx1505,tx1506,
-                        tx1507,tx1508,tx1509,
-                        tx1521,tx1522,tx1523,tx1524,tx1525,tx1526,
-                        tx1527,tx1528,tx1529]
-        }
+              , arc c3 res_rdf_first b4
+              , arc c3 res_rdf_rest  c4
+              , arc c4 res_rdf_first b5
+              , arc c4 res_rdf_rest  c5
+              , arc c5 res_rdf_first b6
+              , arc c5 res_rdf_rest  res_rdf_nil
+              , arc b4 p1 o1
+              , arc b5 p1 o2
+              , arc b6 p1 o3
+              ]
 
 --  More complex list with nested list
-tx1601 = arc s1 res_rdf_first b1
-tx1602 = arc s1 res_rdf_rest  c1
-tx1603 = arc c1 res_rdf_first b2
-tx1604 = arc c1 res_rdf_rest  c2
-tx1605 = arc c2 res_rdf_first b3
-tx1606 = arc c2 res_rdf_rest  res_rdf_nil
-tx1607 = arc b1 p1 o1
-tx1608 = arc b1 p2 o1
-tx1609 = arc b2 p2 c3
-tx1610 = arc b3 p1 o3
-tx1611 = arc b3 p2 o3
 
-tx1621 = arc c3 res_rdf_first b4
-tx1622 = arc c3 res_rdf_rest  c4
-tx1623 = arc c4 res_rdf_first b5
-tx1624 = arc c4 res_rdf_rest  c5
-tx1625 = arc c5 res_rdf_first b6
-tx1626 = arc c5 res_rdf_rest  res_rdf_nil
-tx1627 = arc b4 p1 o1
-tx1628 = arc b4 p2 o1
-tx1629 = arc b5 p1 o2
-tx1630 = arc b5 p2 o2
-tx1631 = arc b6 p1 o3
-tx1632 = arc b6 p2 o3
+x16 :: RDFGraph
+x16 = toGraph [ arc s1 res_rdf_first b1
+              , arc s1 res_rdf_rest  c1
+              , arc c1 res_rdf_first b2
+              , arc c1 res_rdf_rest  c2
+              , arc c2 res_rdf_first b3
+              , arc c2 res_rdf_rest  res_rdf_nil
+              , arc b1 p1 o1
+              , arc b1 p2 o1
+              , arc b2 p2 c3
+              , arc b3 p1 o3
+              , arc b3 p2 o3
 
-x16    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1601,tx1602,tx1603,tx1604,tx1605,tx1606,
-                        tx1607,tx1608,tx1609,tx1610,tx1611,
-                        tx1621,tx1622,tx1623,tx1624,tx1625,tx1626,
-                        tx1627,tx1628,tx1629,tx1630,tx1631,tx1632]
-        }
+              , arc c3 res_rdf_first b4
+              , arc c3 res_rdf_rest  c4
+              , arc c4 res_rdf_first b5
+              , arc c4 res_rdf_rest  c5
+              , arc c5 res_rdf_first b6
+              , arc c5 res_rdf_rest  res_rdf_nil
+              , arc b4 p1 o1
+              , arc b4 p2 o1
+              , arc b5 p1 o2
+              , arc b5 p2 o2
+              , arc b6 p1 o3
+              , arc b6 p2 o3
+              ]
 
 --  Troublesome example
-tx1701 = arc s1 res_rdf_type  o1
-tx1702 = arc s1 res_rdf_first b1
-tx1703 = arc s1 res_rdf_rest  c1
-tx1704 = arc c1 res_rdf_first b2
-tx1705 = arc c1 res_rdf_rest  res_rdf_nil
 
-tx1706 = arc b1 p21 o2
-tx1707 = arc b1 p22 c2
+x17 :: RDFGraph
+x17 = toGraph [ arc s1 res_rdf_type  o1
+              , arc s1 res_rdf_first b1
+              , arc s1 res_rdf_rest  c1
+              , arc c1 res_rdf_first b2
+              , arc c1 res_rdf_rest  res_rdf_nil
 
-tx1708 = arc b2 p24 o3
-tx1709 = arc b2 p25 l13
+              , arc b1 p21 o2
+              , arc b1 p22 c2
 
-tx1710 = arc c2 res_rdf_first b3
-tx1711 = arc c2 res_rdf_rest  c3
-tx1712 = arc c3 res_rdf_first l12
-tx1713 = arc c3 res_rdf_rest  res_rdf_nil
+              , arc b2 p24 o3
+              , arc b2 p25 l13
 
-tx1714 = arc b3 p23 l11
+              , arc c2 res_rdf_first b3
+              , arc c2 res_rdf_rest  c3
+              , arc c3 res_rdf_first l12
+              , arc c3 res_rdf_rest  res_rdf_nil
 
-x17    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1701,tx1702,tx1703,tx1704,tx1705,tx1706,
-                        tx1707,tx1708,tx1709,
-                        tx1710,tx1711,tx1712,tx1713,tx1714]
-        }
+              , arc b3 p23 l11
+              ]
 
 -- collection graphs
 
-graph_c1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc s1 p1 res_rdf_nil]
-        }
-
-graph_c1rev = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc res_rdf_nil p1 o1]
-        }
-
-graph_c2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc s1 p1 b1,
-	                arc b1 res_rdf_first l1,
-                        arc b1 res_rdf_rest b2,
-	                arc b2 res_rdf_first o2,
-                        arc b2 res_rdf_rest b3,
-	                arc b3 res_rdf_first l2,
-                        arc b3 res_rdf_rest b4,
-	                arc b4 res_rdf_first o3,
-                        arc b4 res_rdf_rest res_rdf_nil]
-        }
-
-graph_c2rev = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc b1 res_rdf_first l1,
-                        arc b1 res_rdf_rest b2,
-	                arc b2 res_rdf_first o2,
-                        arc b2 res_rdf_rest b3,
-	                arc b3 res_rdf_first l2,
-                        arc b3 res_rdf_rest b4,
-	                arc b4 res_rdf_first o3,
-                        arc b4 res_rdf_rest res_rdf_nil,
-                        arc b1 p1 o1]
-        }
-
-
-graph_c3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc s1 p1 b1,
-	                arc b1 res_rdf_first l1,
-                        arc b1 res_rdf_rest b2,
-	                arc b2 res_rdf_first o2,
-                        arc b2 res_rdf_rest b3,
-	                arc b3 res_rdf_first l2,
-                        arc b3 res_rdf_rest b4,
-	                arc b4 res_rdf_first o3,
-                        arc b4 res_rdf_rest res_rdf_nil,
-                        arc s1 p2 res_rdf_nil,
-                        arc s2 p2 o2]
-        }
+graph_c1, graph_c1rev, graph_c2, graph_c2rev,
+  graph_c3 :: RDFGraph
+graph_c1    = toGraph [arc s1 p1 res_rdf_nil]
+graph_c1rev = toGraph [arc res_rdf_nil p1 o1]
+graph_c2    = toGraph [arc s1 p1 b1,
+                       arc b1 res_rdf_first l1,
+                       arc b1 res_rdf_rest b2,
+                       arc b2 res_rdf_first o2,
+                       arc b2 res_rdf_rest b3,
+                       arc b3 res_rdf_first l2,
+                       arc b3 res_rdf_rest b4,
+                       arc b4 res_rdf_first o3,
+                       arc b4 res_rdf_rest res_rdf_nil]
+graph_c2rev = toGraph [arc b1 res_rdf_first l1,
+                       arc b1 res_rdf_rest b2,
+                       arc b2 res_rdf_first o2,
+                       arc b2 res_rdf_rest b3,
+                       arc b3 res_rdf_first l2,
+                       arc b3 res_rdf_rest b4,
+                       arc b4 res_rdf_first o3,
+                       arc b4 res_rdf_rest res_rdf_nil,
+                       arc b1 p1 o1]
+graph_c3    = toGraph [arc s1 p1 b1,
+                       arc b1 res_rdf_first l1,
+                       arc b1 res_rdf_rest b2,
+                       arc b2 res_rdf_first o2,
+                       arc b2 res_rdf_rest b3,
+                       arc b3 res_rdf_first l2,
+                       arc b3 res_rdf_rest b4,
+                       arc b4 res_rdf_first o3,
+                       arc b4 res_rdf_rest res_rdf_nil,
+                       arc s1 p2 res_rdf_nil,
+                       arc s2 p2 o2]
 
 -- bnode graphs
 
-graph_b1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc s1 p1 b1]
-        }
-
-graph_b1rev = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc b1 p1 o1]
-        }
-
-graph_b2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc s1 p1 b1,
-	                arc b1 p2 l1,
-	                arc b1 o2 o3]
-        }
-
-graph_b2rev = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc b1 p2 l1,
-                        arc b1 o2 o3,
-                        arc b1 p1 o1]
-        }
-
-
-graph_b3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [arc s1 p1 b1,
-	                arc b1 p2 l2,
-	                arc b1 o2 o3,
-	                arc s1 p2 b2,
-	                arc s2 p2 o2]
-        }
+graph_b1, graph_b1rev, graph_b2, graph_b2rev, graph_b3 :: RDFGraph
+graph_b1    = toGraph [arc s1 p1 b1]
+graph_b1rev = toGraph [arc b1 p1 o1]
+graph_b2    = toGraph [arc s1 p1 b1,
+                       arc b1 p2 l1,
+                       arc b1 o2 o3]
+graph_b2rev = toGraph [arc b1 p2 l1,
+                       arc b1 o2 o3,
+                       arc b1 p1 o1]
+graph_b3    = toGraph [arc s1 p1 b1,
+                       arc b1 p2 l2,
+                       arc b1 o2 o3,
+                       arc s1 p2 b2,
+                       arc s2 p2 o2]
 
 ------------------------------------------------------------
 --  Trivial formatter tests
@@ -876,6 +643,7 @@ diagTest lab gr out =
     where
       (res,nmap,ngen,trc) = formatGraphDiag gr
 
+commonPrefixes :: String
 commonPrefixes =
     "@prefix base1: <" ++ nsURI base1 ++ "> .\n" ++
     "@prefix base2: <" ++ nsURI base2 ++ "> .\n" ++
@@ -883,39 +651,46 @@ commonPrefixes =
     "@prefix base4: <" ++ nsURI base4 ++ "> .\n"
 
 --  Single statement using <uri> form
+simpleN3Graph_g1_01 :: String
 simpleN3Graph_g1_01 =
     "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> " ++
     "<http://id.ninebynine.org/wip/2003/test/graph1/node#p1> " ++
     "<http://id.ninebynine.org/wip/2003/test/graph1/node#o1> .\n"
 
 --  Single statement using prefix:name form
+simpleN3Graph_g1_02 :: String
 simpleN3Graph_g1_02 =
     commonPrefixes ++
     "base1:s1 base1:p1 base1:o1 .\n"
 
 --  Single blank node
+simpleN3Graph_g1_03 :: String
 simpleN3Graph_g1_03 =
     commonPrefixes ++
     "[\n base1:p1 base1:o1\n] .\n"
     -- "_:b1 base1:p1 base1:o1 .\n"
 
 --  Single auto-allocated blank node
+simpleN3Graph_g1_04 :: String
 simpleN3Graph_g1_04 =
     commonPrefixes ++
     "[\n base1:p1 base1:o1\n] .\n"
     -- "_:_1 base1:p1 base1:o1 .\n"
 
 --  Single literal object
+simpleN3Graph_g1_05 :: String
 simpleN3Graph_g1_05 =
     commonPrefixes ++
     "base1:s1 base1:p1 \"l1\" .\n"
 
 --  Single multiline literal object
+simpleN3Graph_g1_06 :: String
 simpleN3Graph_g1_06 =
     commonPrefixes ++
     "base1:s1 base1:p1 \"l2-'\\\"line1\\\"'\\n\\nl2-'\\\"\\\"line2\\\"\\\"'\" .\n"
 
 -- this 'round trips' into a triple-quoted string
+simpleN3Graph_g1_06_rt :: String
 simpleN3Graph_g1_06_rt =
     commonPrefixes ++
     "base1:s1 base1:p1 \"\"\"l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'\"\"\" .\n"
@@ -933,6 +708,7 @@ simpleN3Graph_g1_07 =
 -}
 
 --  Single statement with formula blank node
+simpleN3Graph_g1_08 :: String
 simpleN3Graph_g1_08 =
     commonPrefixes ++
     "base1:s1 base1:p1  { \n"++
@@ -940,12 +716,14 @@ simpleN3Graph_g1_08 =
     " }  .\n"
     
 --  Three blank nodes (or is that blind mice?)
+simpleN3Graph_g1_09 :: String
 simpleN3Graph_g1_09 =
     commonPrefixes ++
     "[\n _:b2 []\n] .\n"
     -- "_:b1 _:b2 _:b3 .\n"
 
 --  Simple nested formula case
+simpleN3Graph_g1_10 :: String
 simpleN3Graph_g1_10 =
     commonPrefixes ++
     "base1:s1 base1:p1  { \n"           ++
@@ -958,24 +736,27 @@ simpleN3Graph_g1_10 =
 Simple troublesome case
 -}
     
+simpleN3Graph_x13a :: String
 simpleN3Graph_x13a =
     commonPrefixes ++
-    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> " ++ b1 ++ " ;\n"++
-    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2 ++ " " ++ b3 ++ " ) .\n"
+    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> " ++ b1s ++ " ;\n"++
+    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2s ++ " " ++ b3s ++ " ) .\n"
     where
-      b1 = "[\n base1:p1 base1:o1\n]"
-      b2 = "[\n base1:p1 base2:o2\n]"
-      b3 = "[\n base1:p1 base3:o3\n]"
+      b1s = "[\n base1:p1 base1:o1\n]"
+      b2s = "[\n base1:p1 base2:o2\n]"
+      b3s = "[\n base1:p1 base3:o3\n]"
 
 {-
 Simple collection tests; may replicate some of the
 previous tests.
 -}
 
+simpleN3Graph_c1 :: String
 simpleN3Graph_c1 =
     commonPrefixes ++
     "base1:s1 base1:p1 () .\n"
 
+simpleN3Graph_c1rev :: String
 simpleN3Graph_c1rev =
     commonPrefixes ++
     "() base1:p1 base1:o1 .\n"
@@ -983,14 +764,17 @@ simpleN3Graph_c1rev =
 collItems :: String
 collItems = "( \"l1\" base2:o2 \"\"\"" ++ l2txt ++ "\"\"\" base3:o3 )"
 
+simpleN3Graph_c2 :: String
 simpleN3Graph_c2 =
     commonPrefixes ++
     "base1:s1 base1:p1 " ++ collItems ++ " .\n"
 
+simpleN3Graph_c2rev :: String
 simpleN3Graph_c2rev =
     commonPrefixes ++
     collItems ++ " base1:p1 base1:o1 .\n"
 
+simpleN3Graph_c3 :: String
 simpleN3Graph_c3 =
     commonPrefixes ++
     "base1:s1 base1:p1 " ++ collItems ++ " ;\n" ++
@@ -1002,84 +786,66 @@ Simple bnode tests; may replicate some of the
 previous tests.
 -}
 
+simpleN3Graph_b1 :: String
 simpleN3Graph_b1 =
     commonPrefixes ++
     "base1:s1 base1:p1 [] .\n"
 
+simpleN3Graph_b1rev :: String
 simpleN3Graph_b1rev =
     commonPrefixes ++
     "[\n base1:p1 base1:o1\n] .\n"
 
+simpleN3Graph_b2 :: String
 simpleN3Graph_b2 =
     commonPrefixes ++
     "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
 
+simpleN3Graph_b2rev :: String
 simpleN3Graph_b2rev =
     commonPrefixes ++
     "[\n base1:p1 base1:o1 ;\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
 
+simpleN3Graph_b3 :: String
 simpleN3Graph_b3 =
     commonPrefixes ++
     "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
     "         base2:p2 [] .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
-trivialTest01 = formatTest "trivialTest01" g1np simpleN3Graph_g1_01
-trivialTest02 = formatTest "trivialTest02" g1   simpleN3Graph_g1_02
-trivialTest03 = formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
-trivialTest04 = formatTest "trivialTest04" g1a1 simpleN3Graph_g1_04
-trivialTest05 = formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
-trivialTest06 = formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06_rt
--- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07 -- formula is a named node
-trivialTest08 = formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
-trivialTest09 = formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
-trivialTest10 = formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
-trivialTest13a = formatTest "trivialTest13a" x13a simpleN3Graph_x13a
+-- diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
 
-trivialTestc1 = formatTest "trivialTestc1" graph_c1 simpleN3Graph_c1
-trivialTestc2 = formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
-trivialTestc3 = formatTest "trivialTestc3" graph_c3 simpleN3Graph_c3
-trivialTestc1rev = formatTest "trivialTestc1rev" graph_c1rev simpleN3Graph_c1rev
-trivialTestc2rev = formatTest "trivialTestc2rev" graph_c2rev simpleN3Graph_c2rev
-
-trivialTestb1 = formatTest "trivialTestb1" graph_b1 simpleN3Graph_b1
-trivialTestb2 = formatTest "trivialTestb2" graph_b2 simpleN3Graph_b2
-trivialTestb3 = formatTest "trivialTestb3" graph_b3 simpleN3Graph_b3
-trivialTestb1rev = formatTest "trivialTestb1rev" graph_b1rev simpleN3Graph_b1rev
-trivialTestb2rev = formatTest "trivialTestb2rev" graph_b2rev simpleN3Graph_b2rev
-
-trivialTestx4 = formatTest "trivialTestx4" x4 exoticN3Graph_x4
-trivialTestx5 = formatTest "trivialTestx5" x5 exoticN3Graph_x5
-trivialTestx7 = formatTest "trivialTestx7" x7 exoticN3Graph_x7
-
-diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
-
+trivialTestSuite :: Test
 trivialTestSuite = TestList
-  [ trivialTest01
-  , trivialTest02
-  , trivialTest03
-  , trivialTest04
-  , trivialTest05
-  , trivialTest06
---  , trivialTest07
-  , trivialTest08
-  , trivialTest09
-  , trivialTest10
-  , trivialTest13a
-  , trivialTestc1
-  , trivialTestc2
-  , trivialTestc3
-  , trivialTestc1rev
-  , trivialTestc2rev
-  , trivialTestb1
-  , trivialTestb2
-  , trivialTestb3
-  , trivialTestb1rev
-  , trivialTestb2rev
-  , trivialTestx4
-  , trivialTestx5
-  , trivialTestx7
-  ]
+ [ formatTest "trivialTest01" g1np simpleN3Graph_g1_01
+ , formatTest "trivialTest02" g1   simpleN3Graph_g1_02
+ , formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
+ , formatTest "trivialTest04" g1a1 simpleN3Graph_g1_04
+ , formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
+ , formatTest "trivialTest06" g1l2 simpleN3Graph_g1_06_rt
+   -- trivialTest07 = formatTest "trivialTest07" g1f1 simpleN3Graph_g1_07 -- formula is a named node
+ , formatTest "trivialTest08" g1f2 simpleN3Graph_g1_08
+ , formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
+ , formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
+ , formatTest "trivialTest13a" x13a simpleN3Graph_x13a
+
+ , formatTest "trivialTestc1" graph_c1 simpleN3Graph_c1
+ , formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
+ , formatTest "trivialTestc3" graph_c3 simpleN3Graph_c3
+ , formatTest "trivialTestc1rev" graph_c1rev simpleN3Graph_c1rev
+ , formatTest "trivialTestc2rev" graph_c2rev simpleN3Graph_c2rev
+
+ , formatTest "trivialTestb1" graph_b1 simpleN3Graph_b1
+ , formatTest "trivialTestb2" graph_b2 simpleN3Graph_b2
+ , formatTest "trivialTestb3" graph_b3 simpleN3Graph_b3
+ , formatTest "trivialTestb1rev" graph_b1rev simpleN3Graph_b1rev
+ , formatTest "trivialTestb2rev" graph_b2rev simpleN3Graph_b2rev
+
+ , formatTest "trivialTestx4" x4 exoticN3Graph_x4
+ , formatTest "trivialTestx5" x5 exoticN3Graph_x5
+ , formatTest "trivialTestx7" x7 exoticN3Graph_x7
+   
+ ]
 
 ------------------------------------------------------------
 --  Parser tests to cross-check round-trip testing
@@ -1096,29 +862,21 @@ parseTest lab inp gr er =
             Right g -> ("",g)
             Left  s -> (s,emptyRDFGraph)
 
+noError, errorText :: String
 noError   = ""
 errorText = "*"
 
-parseTest01 = parseTest "01" simpleN3Graph_g1_01 g1np noError
-parseTest02 = parseTest "02" simpleN3Graph_g1_02 g1   noError
-parseTest03 = parseTest "03" simpleN3Graph_g1_03 g1b1 noError
-parseTest04 = parseTest "04" simpleN3Graph_g1_04 g1a1 noError
-parseTest05 = parseTest "05" simpleN3Graph_g1_05 g1l1 noError
-parseTest06 = parseTest "06" simpleN3Graph_g1_06 g1l2 noError
-parseTest06rt = parseTest "06rt" simpleN3Graph_g1_06_rt g1l2 noError
--- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError -- formula is a named node
-parseTest08 = parseTest "08" simpleN3Graph_g1_08 g1f2 noError
-
+parseTestSuite :: Test
 parseTestSuite = TestList
-  [ parseTest01
-  , parseTest02
-  , parseTest03
-  , parseTest04
-  , parseTest05
-  , parseTest06
-  , parseTest06rt
---  , parseTest07
-  , parseTest08
+  [ parseTest "01" simpleN3Graph_g1_01 g1np noError
+  , parseTest "02" simpleN3Graph_g1_02 g1   noError
+  , parseTest "03" simpleN3Graph_g1_03 g1b1 noError
+  , parseTest "04" simpleN3Graph_g1_04 g1a1 noError
+  , parseTest "05" simpleN3Graph_g1_05 g1l1 noError
+  , parseTest "06" simpleN3Graph_g1_06 g1l2 noError
+  , parseTest "06rt" simpleN3Graph_g1_06_rt g1l2 noError
+    -- parseTest07 = parseTest "07" simpleN3Graph_g1_07 g1f1 noError -- formula is a named node
+  , parseTest "08" simpleN3Graph_g1_08 g1f2 noError
   ]
 
 ------------------------------------------------------------
@@ -1154,7 +912,7 @@ fullRoundTripTest lab grstr =
       -- , TestCase ( assertEqual ("FullRoundTrip:"++lab) "" out )
       ]
     where
-        (ge,gr) = case parseN3fromString grstr of
+        (_,gr) = case parseN3fromString grstr of
             Right g -> ("",g)
             Left  s -> (s,emptyRDFGraph)
         out     = formatGraphAsString gr
@@ -1162,40 +920,24 @@ fullRoundTripTest lab grstr =
             Right g -> ("",g)
             Left  s -> (s,emptyRDFGraph)
 
-roundTripTest01 = roundTripTest "01" g1np
-roundTripTest02 = roundTripTest "02" g1
-roundTripTest03 = roundTripTest "03" g1b1
-roundTripTest04 = roundTripTest "04" g1a1
-roundTripTest05 = roundTripTest "05" g1l1
-roundTripTest06 = roundTripTest "06" g1l2
--- roundTripTest07 = roundTripTest "07" g1f1 -- formula is a named node
-roundTripTest08 = roundTripTest "08" g1f2
-roundTripTest11 = fullRoundTripTest "11" simpleN3Graph_g1_01
-roundTripTest12 = fullRoundTripTest "12" simpleN3Graph_g1_02
-roundTripTest13 = fullRoundTripTest "13" simpleN3Graph_g1_03
-roundTripTest14 = fullRoundTripTest "14" simpleN3Graph_g1_04
-roundTripTest15 = fullRoundTripTest "15" simpleN3Graph_g1_05
-roundTripTest16 = fullRoundTripTest "16rt" simpleN3Graph_g1_06_rt
--- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
-roundTripTest18 = fullRoundTripTest "18" simpleN3Graph_g1_08
-
+roundTripTestSuite :: Test
 roundTripTestSuite = TestList
-  [ roundTripTest01
-  , roundTripTest02
-  , roundTripTest03
-  , roundTripTest04
-  , roundTripTest05
-  , roundTripTest06
---  , roundTripTest07
-  , roundTripTest08
-  , roundTripTest11
-  , roundTripTest12
-  , roundTripTest13
-  , roundTripTest14
-  , roundTripTest15
-  , roundTripTest16
---  , roundTripTest17
-  , roundTripTest18
+  [ roundTripTest "01" g1np
+  , roundTripTest "02" g1
+  , roundTripTest "03" g1b1
+  , roundTripTest "04" g1a1
+  , roundTripTest "05" g1l1
+  , roundTripTest "06" g1l2
+    -- roundTripTest07 = roundTripTest "07" g1f1 -- formula is a named node
+  , roundTripTest "08" g1f2
+  , fullRoundTripTest "11" simpleN3Graph_g1_01
+  , fullRoundTripTest "12" simpleN3Graph_g1_02
+  , fullRoundTripTest "13" simpleN3Graph_g1_03
+  , fullRoundTripTest "14" simpleN3Graph_g1_04
+  , fullRoundTripTest "15" simpleN3Graph_g1_05
+  , fullRoundTripTest "16rt" simpleN3Graph_g1_06_rt
+    -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
+  , fullRoundTripTest "18" simpleN3Graph_g1_08
   ]
 
 ------------------------------------------------------------
@@ -1210,32 +952,20 @@ roundTripTestSuite = TestList
 simpleTest :: String -> RDFGraph -> Test
 simpleTest lab = roundTripTest ("SimpleTest:"++lab)
 
-simpleTest01 = simpleTest "01" g2
-simpleTest02 = simpleTest "02" g3
-simpleTest03 = simpleTest "03" g4
-simpleTest04 = simpleTest "04" g5
-simpleTest05 = simpleTest "05" g6 -- TODO: parsing quoted string
-simpleTest06 = simpleTest "06" g7 -- TODO: parsing quoted string
-simpleTest07 = simpleTest "07" g8
-simpleTest08 = simpleTest "08" g81
-simpleTest10 = simpleTest "10" g83
-simpleTest11 = simpleTest "11" g9
-simpleTest12 = simpleTest "12" g10
-simpleTest13 = simpleTest "13" g11
-
+simpleTestSuite :: Test
 simpleTestSuite = TestList
-  [ simpleTest01
-  , simpleTest02
-  , simpleTest03
-  , simpleTest04
-  , simpleTest05
-  , simpleTest06
-  , simpleTest07
-  , simpleTest08
-  , simpleTest10
-  , simpleTest11
-  , simpleTest12
-  , simpleTest13
+  [ simpleTest "01" g2
+  , simpleTest "02" g3
+  , simpleTest "03" g4
+  , simpleTest "04" g5
+  , simpleTest "05" g6
+  , simpleTest "06" g7
+  , simpleTest "07" g8
+  , simpleTest "08" g81
+  , simpleTest "10" g83
+  , simpleTest "11" g9
+  , simpleTest "12" g10
+  , simpleTest "13" g11
   ]
 
 ------------------------------------------------------------
@@ -1261,6 +991,7 @@ exoticTest lab gr =
             Left  s -> (s,emptyRDFGraph)
 
 --  Simple anon nodes, with semicolons and commas
+exoticN3Graph_x1 :: String
 exoticN3Graph_x1 =
     commonPrefixes ++
     " [ base1:p1 base1:o1 ; \n" ++
@@ -1278,6 +1009,7 @@ exoticN3Graph_x1 =
     "            \"\"\"" ++ l2txt ++ "\"\"\"   ] . \n"
 
 --  Simple anon nodes, with 'is ... of' and semicolons and commas
+exoticN3Graph_x2 :: String
 exoticN3Graph_x2 =
     commonPrefixes ++
     " [ @has base1:p1     base1:o1 ; \n" ++
@@ -1316,10 +1048,12 @@ exoticN3Graph_x3 =
 
 --  List nodes, with and without :-
 
+exoticN3Graph_x4 :: String
 exoticN3Graph_x4 =
     commonPrefixes ++
     "base1:s1 = ( base1:o1 base2:o2 base3:o3 \"l1\" ) .\n"
 
+exoticN3Graph_x5 :: String
 exoticN3Graph_x5 =
     commonPrefixes ++
     "( base1:o1 base2:o2 base3:o3 \"l1\" ) = base1:s1 .\n"
@@ -1332,6 +1066,7 @@ exoticN3Graph_x6 =
 
 --  Formula nodes
 
+exoticN3Graph_x7 :: String
 exoticN3Graph_x7 =
     commonPrefixes ++
     " { \n" ++
@@ -1341,6 +1076,7 @@ exoticN3Graph_x7 =
     " }  base2:p2 base2:f2 .\n"
 
 -- as above with the trailing . in the formula
+exoticN3Graph_x7a :: String
 exoticN3Graph_x7a =
     commonPrefixes ++
     " { \n" ++
@@ -1368,6 +1104,7 @@ exoticN3Graph_x9 =
 -}
 
 --  Test allocation of bnodes over a nested formula
+exoticN3Graph_x12 :: String
 exoticN3Graph_x12 =
     commonPrefixes ++
     " base1:s1 base1:p1 [ base1:p1 base1:o1 ] .     \n" ++
@@ -1407,6 +1144,7 @@ exoticN3Graph_x14 =
     "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
     "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
 -}
+exoticN3Graph_x14 :: String
 exoticN3Graph_x14 =
     commonPrefixes ++
     " base1:s1 = \n" ++
@@ -1464,116 +1202,68 @@ exoticN3Graph_x18 =
 -}
 
 -- Check graph sources parse to expected values
-exoticParseTest01 = parseTest "exoticParseTest01" exoticN3Graph_x1 x1 noError
-exoticParseTest02 = parseTest "exoticParseTest02" exoticN3Graph_x2 x2 noError
--- exoticParseTest03 = parseTest "exoticParseTest03" exoticN3Graph_x3 x3 noError
-exoticParseTest04 = parseTest "exoticParseTest04" exoticN3Graph_x4 x4 noError
-exoticParseTest05 = parseTest "exoticParseTest05" exoticN3Graph_x5 x5 noError
--- exoticParseTest06 = parseTest "exoticParseTest06" exoticN3Graph_x6 x6 noError
-exoticParseTest07 = parseTest "exoticParseTest07" exoticN3Graph_x7 x7 noError
-exoticParseTest07a = parseTest "exoticParseTest07a" exoticN3Graph_x7a x7 noError
--- exoticParseTest08 = parseTest "exoticParseTest08" exoticN3Graph_x8 x8 noError
--- exoticParseTest09 = parseTest "exoticParseTest09" exoticN3Graph_x9 x9 noError
-exoticParseTest12 = parseTest "exoticParseTest12" exoticN3Graph_x12 x12 noError
--- exoticParseTest13 = parseTest "exoticParseTest13" exoticN3Graph_x13 x13 noError
-exoticParseTest14 = parseTest "exoticParseTest14" exoticN3Graph_x14 x14 noError
--- exoticParseTest15 = parseTest "exoticParseTest15" exoticN3Graph_x15 x15 noError
--- exoticParseTest16 = parseTest "exoticParseTest16" exoticN3Graph_x16 x16 noError
--- exoticParseTest17 = parseTest "exoticParseTest17" exoticN3Graph_x17 x17 noError
 
-exoticTest01 = exoticTest "01" x1
-exoticTest02 = exoticTest "02" x2
-exoticTest03 = exoticTest "03" x3
-exoticTest04 = exoticTest "04" x4
-exoticTest05 = exoticTest "05" x5
-exoticTest06 = exoticTest "06" x6
-exoticTest07 = exoticTest "07" x7
--- exoticTest08 = exoticTest "08" x8 -- TODO: serialisation uses :- with a named node
--- exoticTest09 = exoticTest "09" x9 -- TODO: serialisation uses :- with a named node
-exoticTest10 = testGraphEq  "exoticTest10" False x7 x8
-exoticTest11 = testGraphEq  "exoticTest11" False x8 x9
-exoticTest12 = exoticTest "12" x12
-exoticTest13 = exoticTest "13" x13
-exoticTest13a = exoticTest "13a" x13a
-exoticTest14 = exoticTest "14" x14
-exoticTest15 = exoticTest "15" x15
-exoticTest16 = exoticTest "16" x16
-exoticTest17 = exoticTest "17" x17
-
-exoticRoundTripTest01 = fullRoundTripTest "Exotic01" exoticN3Graph_x1
-exoticRoundTripTest02 = fullRoundTripTest "Exotic02" exoticN3Graph_x2
--- exoticRoundTripTest03 = fullRoundTripTest "Exotic03" exoticN3Graph_x3
-exoticRoundTripTest04 = fullRoundTripTest "Exotic04" exoticN3Graph_x4
-exoticRoundTripTest05 = fullRoundTripTest "Exotic05" exoticN3Graph_x5
--- exoticRoundTripTest06 = fullRoundTripTest "Exotic06" exoticN3Graph_x6
-exoticRoundTripTest07 = fullRoundTripTest "Exotic07" exoticN3Graph_x7
--- exoticRoundTripTest08 = fullRoundTripTest "Exotic08" exoticN3Graph_x8
--- exoticRoundTripTest09 = fullRoundTripTest "Exotic09" exoticN3Graph_x9
-exoticRoundTripTest12 = fullRoundTripTest "Exotic12" exoticN3Graph_x12
-exoticRoundTripTest14 = fullRoundTripTest "Exotic14" exoticN3Graph_x14
--- exoticRoundTripTest15 = fullRoundTripTest "Exotic15" exoticN3Graph_x15
--- exoticRoundTripTest16 = fullRoundTripTest "Exotic16" exoticN3Graph_x16
--- exoticRoundTripTest17 = fullRoundTripTest "Exotic17" exoticN3Graph_x17
--- exoticRoundTripTest18 = fullRoundTripTest "Exotic18" exoticN3Graph_x18
-
+exoticTestSuite :: Test
 exoticTestSuite = TestList
-  [ exoticParseTest01
-  , exoticParseTest02
---  , exoticParseTest03
-  , exoticParseTest04
-  , exoticParseTest05
---  , exoticParseTest06
-  , exoticParseTest07
-  , exoticParseTest07a
---  , exoticParseTest08
---  , exoticParseTest09
-  , exoticParseTest12
---  , exoticParseTest13   -- TODO: possibly re-instate (this test uses "a:b :- (...)" so do we already test "a:b = (...)"?)
---  , exoticParseTest13a  -- we no longer try and round-trip x13a
---  , exoticParseTest14   -- TODO: re-instate; issues with owl:sameAs getting inserted
---  , exoticParseTest15
---  , exoticParseTest16
---  , exoticParseTest17
-  , exoticTest01
-  , exoticTest02
-  , exoticTest03
-  , exoticTest04
-  , exoticTest05
-  , exoticTest06
-  , exoticTest07
---  , exoticTest08
---  , exoticTest09
-  , exoticTest10
-  , exoticTest11
-  , exoticTest12
-  , exoticTest13
-  , exoticTest13a
-  , exoticTest14
-  , exoticTest15
-  , exoticTest16
-  , exoticTest17
-  , exoticRoundTripTest01
-  , exoticRoundTripTest02
---  , exoticRoundTripTest03
-  , exoticRoundTripTest04
-  , exoticRoundTripTest05
---  , exoticRoundTripTest06
-  , exoticRoundTripTest07
---  , exoticRoundTripTest08
---  , exoticRoundTripTest09
-  , exoticRoundTripTest12
---  , exoticRoundTripTest13  -- TODO: re-instate
-  , exoticRoundTripTest14
---  , exoticRoundTripTest15
---  , exoticRoundTripTest16
---  , exoticRoundTripTest17
---  , exoticRoundTripTest18
+  [ parseTest "exoticParseTest01" exoticN3Graph_x1 x1 noError
+  , parseTest "exoticParseTest02" exoticN3Graph_x2 x2 noError
+    -- exoticParseTest03 = parseTest "exoticParseTest03" exoticN3Graph_x3 x3 noError
+  , parseTest "exoticParseTest04" exoticN3Graph_x4 x4 noError
+  , parseTest "exoticParseTest05" exoticN3Graph_x5 x5 noError
+    -- exoticParseTest06 = parseTest "exoticParseTest06" exoticN3Graph_x6 x6 noError
+  , parseTest "exoticParseTest07" exoticN3Graph_x7 x7 noError
+  , parseTest "exoticParseTest07a" exoticN3Graph_x7a x7 noError
+    -- exoticParseTest08 = parseTest "exoticParseTest08" exoticN3Graph_x8 x8 noError
+    -- exoticParseTest09 = parseTest "exoticParseTest09" exoticN3Graph_x9 x9 noError
+  , parseTest "exoticParseTest12" exoticN3Graph_x12 x12 noError
+    -- exoticParseTest13 = parseTest "exoticParseTest13" exoticN3Graph_x13 x13 noError
+    -- exoticParseTest14 = parseTest "exoticParseTest14" exoticN3Graph_x14 x14 noError -- TODO: re-instate?
+    -- exoticParseTest15 = parseTest "exoticParseTest15" exoticN3Graph_x15 x15 noError
+    -- exoticParseTest16 = parseTest "exoticParseTest16" exoticN3Graph_x16 x16 noError
+    -- exoticParseTest17 = parseTest "exoticParseTest17" exoticN3Graph_x17 x17 noError
+
+  , exoticTest "01" x1
+  , exoticTest "02" x2
+  , exoticTest "03" x3
+  , exoticTest "04" x4
+  , exoticTest "05" x5
+  , exoticTest "06" x6
+  , exoticTest "07" x7
+    -- exoticTest08 = exoticTest "08" x8 -- TODO: serialisation uses :- with a named node
+    -- exoticTest09 = exoticTest "09" x9 -- TODO: serialisation uses :- with a named node
+  , testGraphEq  "exoticTest10" False x7 x8
+  , testGraphEq  "exoticTest11" False x8 x9
+  , exoticTest "12" x12
+  , exoticTest "13" x13
+  , exoticTest "13a" x13a
+  , exoticTest "14" x14
+  , exoticTest "15" x15
+  , exoticTest "16" x16
+  , exoticTest "17" x17
+
+  , fullRoundTripTest "Exotic01" exoticN3Graph_x1
+  , fullRoundTripTest "Exotic02" exoticN3Graph_x2
+    -- exoticRoundTripTest03 = fullRoundTripTest "Exotic03" exoticN3Graph_x3
+  , fullRoundTripTest "Exotic04" exoticN3Graph_x4
+  , fullRoundTripTest "Exotic05" exoticN3Graph_x5
+    -- exoticRoundTripTest06 = fullRoundTripTest "Exotic06" exoticN3Graph_x6
+  , fullRoundTripTest "Exotic07" exoticN3Graph_x7
+    -- exoticRoundTripTest08 = fullRoundTripTest "Exotic08" exoticN3Graph_x8
+    -- exoticRoundTripTest09 = fullRoundTripTest "Exotic09" exoticN3Graph_x9
+  , fullRoundTripTest "Exotic12" exoticN3Graph_x12
+  , fullRoundTripTest "Exotic14" exoticN3Graph_x14
+    -- exoticRoundTripTest15 = fullRoundTripTest "Exotic15" exoticN3Graph_x15
+    -- exoticRoundTripTest16 = fullRoundTripTest "Exotic16" exoticN3Graph_x16
+    -- exoticRoundTripTest17 = fullRoundTripTest "Exotic17" exoticN3Graph_x17
+    -- exoticRoundTripTest18 = fullRoundTripTest "Exotic18" exoticN3Graph_x18
+    
   ]
 
 ------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
   [ trivialTestSuite
   , parseTestSuite
@@ -1582,14 +1272,17 @@ allTests = TestList
   , exoticTestSuite
   ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+{-
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     runTestText (putTextToHandle h False) t
     hClose h
 tf = runTestFile
 tt = runTestTT
+-}
 
 --------------------------------------------------------------------------------
 --

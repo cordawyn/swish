@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, MultiParamTypeClasses #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -19,17 +19,15 @@ module Main where
 
 import Swish.Utils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
-    , emptyLookupMap, makeLookupMap, listLookupMap
+    , makeLookupMap
     , reverseLookupMap
-    , keyOrder
-    , mapFind, mapFindMaybe, mapContains
+    , mapFind, mapContains
     , mapReplace, mapReplaceOrAdd, mapReplaceAll, mapReplaceMap
     , mapAdd, mapAddIfNew
     , mapDelete, mapDeleteAll
     , mapApplyToAll, mapTranslate
     , mapEq, mapKeys, mapVals
     , mapSelect, mapMerge
-    , mapSortByKey, mapSortByVal
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
     )
@@ -39,13 +37,9 @@ import Swish.Utils.ListHelpers
 
 import Data.List ( sort )
 
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn )
-
 import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
-    , assertEqual, runTestTT, runTestText, putTextToHandle )
+    ( Test(TestCase,TestList)
+    , assertEqual, runTestTT )
 
 ------------------------------------------------------------
 --  Declare lookup entry for testing
@@ -97,127 +91,93 @@ testLookupMapFind :: String -> TestMap -> Int -> String -> Test
 testLookupMapFind lab lm k res =
     testeq ("LookupMapFind"++lab ) res (mapFind "" k lm)
 
+lm00, lm01, lm02, lm03, lm04, lm05, lm06, lm07, lm08, lm09 :: TestMap
 lm00 = newMap []
-testLookupMap00     = testLookupMap     "00" lm00 []
-testLookupMapFind00 = testLookupMapFind "00" lm00 2 ""
-
 lm01 = mapAdd lm00 $ newEntry (1,"aaa")
-testLookupMap01     = testLookupMap     "01" lm01 [(1,"aaa")]
-testLookupMapFind01 = testLookupMapFind "01" lm01 2 ""
-
 lm02 = mapAdd lm01 $ newEntry (2,"bbb")
-testLookupMap02     = testLookupMap     "02" lm02 [(2,"bbb"),(1,"aaa")]
-testLookupMapFind02 = testLookupMapFind "02" lm02 2 "bbb"
-
 lm03 = mapAdd lm02 $ newEntry (3,"ccc")
-testLookupMap03     = testLookupMap     "03" lm03 [(3,"ccc"),(2,"bbb"),(1,"aaa")]
-testLookupMapFind03 = testLookupMapFind "03" lm03 2 "bbb"
-
 lm04 = mapAdd lm03 $ newEntry (2,"bbb")
-testLookupMap04     = testLookupMap     "04" lm04 [(2,"bbb"),(3,"ccc"),(2,"bbb"),(1,"aaa")]
-testLookupMapFind04 = testLookupMapFind "04" lm04 2 "bbb"
-
 lm05 = mapReplaceAll lm04 $ newEntry (2,"bbb1")
-testLookupMap05     = testLookupMap     "05" lm05 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
-testLookupMapFind05 = testLookupMapFind "05" lm05 2 "bbb1"
-
 lm06 = mapReplaceAll lm05 $ newEntry (9,"zzzz")
-testLookupMap06     = testLookupMap     "06" lm06 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
-testLookupMapFind06 = testLookupMapFind "06" lm06 2 "bbb1"
-
 lm07 = mapReplace lm06 $ newEntry (2,"bbb")
-testLookupMap07     = testLookupMap     "07" lm07 [(2,"bbb"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
-testLookupMapFind07 = testLookupMapFind "07" lm07 2 "bbb"
-testLookupMapFind0x = testLookupMapFind "0x" lm07 9 ""
-
 lm08 = mapDelete lm07 3
-testLookupMap08     = testLookupMap     "08" lm08 [(2,"bbb"),(2,"bbb1"),(1,"aaa")]
-testLookupMapFind08 = testLookupMapFind "08" lm08 2 "bbb"
-
 lm09 = mapDeleteAll lm08 2
-testLookupMap09     = testLookupMap     "09" lm09 [(1,"aaa")]
-testLookupMapFind09 = testLookupMapFind "09" lm09 2 ""
 
+la10 :: [String]
 la10 = mapApplyToAll lm03 (flip replicate '*')
-testLookupMapApp10  = testeq "LookupMapApplyToAll10" ["***","**","*"] la10
 
+lt11, lt12, lt13, lt14 :: String
 lt11 = mapTranslate lm03 la10 1 "****"
-testLookupMapTran11  = testeq "LookupMapTranslate11" "*"   lt11
-
 lt12 = mapTranslate lm03 la10 2 "****"
-testLookupMapTran12  = testeq "LookupMapTranslate12" "**"  lt12
-
 lt13 = mapTranslate lm03 la10 3 "****"
-testLookupMapTran13  = testeq "LookupMapTranslate13" "***" lt13
-
 lt14 = mapTranslate lm03 la10 4 "****"
-testLookupMapTran14  = testeq "LookupMapTranslate14" "****" lt14
 
+lm20, lm21, lm22, lm33, lm34, lm35, lm36 :: TestMap
 lm20 = mapReplaceMap lm05 $ newMap [(2,"bbb20"),(3,"ccc20")]
-testLookupMap20     = testLookupMap     "20" lm20 [(2,"bbb20"),(3,"ccc20"),(2,"bbb20"),(1,"aaa")]
-testLookupMapFind20 = testLookupMapFind "20" lm20 2 "bbb20"
-
 lm21 = mapReplaceMap lm05 $ newMap []
-testLookupMap21     = testLookupMap     "21" lm21 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
-testLookupMapFind21 = testLookupMapFind "21" lm21 2 "bbb1"
-
 lm22 = mapReplaceMap lm05 $ newMap [(9,"zzz22"),(1,"aaa22")]
-testLookupMap22     = testLookupMap     "22" lm22 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
-testLookupMapFind22 = testLookupMapFind "22" lm22 1 "aaa22"
-
-testLookupContains31 = testeq "LookupContains31" True  (mapContains lm22 2)
-testLookupContains32 = testeq "LookupContains32" False (mapContains lm22 9)
-
 lm33 = mapAddIfNew lm22 $ newEntry (1,"aaa33")
-testLookupMap33      = testLookupMap      "33" lm33 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
-testLookupMapFind33a = testLookupMapFind "33a" lm33 1 "aaa22"
-testLookupMapFind33b = testLookupMapFind "33b" lm33 4 ""
-
 lm34 = mapAddIfNew lm22 $ newEntry (4,"ddd34")
-testLookupMap34      = testLookupMap      "34" lm34 [(4,"ddd34"),(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
-testLookupMapFind34a = testLookupMapFind "34a" lm34 1 "aaa22"
-testLookupMapFind34b = testLookupMapFind "34b" lm34 4 "ddd34"
-
 lm35 = mapReplaceOrAdd (newEntry (1,"aaa35")) lm22
-testLookupMap35      = testLookupMap      "35" lm35 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa35")]
-testLookupMapFind35a = testLookupMapFind "35a" lm35 1 "aaa35"
-testLookupMapFind35b = testLookupMapFind "35b" lm35 4 ""
-
 lm36 = mapReplaceOrAdd (newEntry (4,"ddd36")) lm22
-testLookupMap36      = testLookupMap      "36" lm36 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22"),(4,"ddd36")]
-testLookupMapFind36a = testLookupMapFind "36a" lm36 1 "aaa22"
-testLookupMapFind36b = testLookupMapFind "36b" lm36 4 "ddd36"
 
-testLookupMapSuite = TestList
-    [
-    testLookupMap01, testLookupMapFind01,
-    testLookupMap02, testLookupMapFind02,
-    testLookupMap03, testLookupMapFind03,
-    testLookupMap04, testLookupMapFind04,
-    testLookupMap05, testLookupMapFind05,
-    testLookupMap06, testLookupMapFind06,
-    testLookupMap07, testLookupMapFind07, testLookupMapFind0x,
-    testLookupMap08, testLookupMapFind08,
-    testLookupMap09, testLookupMapFind09,
-    testLookupMapApp10,
-    testLookupMapTran11, testLookupMapTran12,
-    testLookupMapTran13, testLookupMapTran14,
-    testLookupMap20, testLookupMapFind20,
-    testLookupMap21, testLookupMapFind21,
-    testLookupMap22, testLookupMapFind22,
-    testLookupContains31,
-    testLookupContains32,
-    testLookupMap33, testLookupMapFind33a, testLookupMapFind33b,
-    testLookupMap34, testLookupMapFind34a, testLookupMapFind34b,
-    testLookupMap35, testLookupMapFind35a, testLookupMapFind35b,
-    testLookupMap36, testLookupMapFind36a, testLookupMapFind36b
-    ]
+testLookupMapSuite :: Test
+testLookupMapSuite = 
+  TestList
+  [ testLookupMap     "00" lm00 []
+  , testLookupMapFind "00" lm00 2 ""
+  , testLookupMap     "01" lm01 [(1,"aaa")]
+  , testLookupMapFind "01" lm01 2 ""
+  , testLookupMap     "02" lm02 [(2,"bbb"),(1,"aaa")]
+  , testLookupMapFind "02" lm02 2 "bbb"
+  , testLookupMap     "03" lm03 [(3,"ccc"),(2,"bbb"),(1,"aaa")]
+  , testLookupMapFind "03" lm03 2 "bbb"
+  , testLookupMap     "04" lm04 [(2,"bbb"),(3,"ccc"),(2,"bbb"),(1,"aaa")]
+  , testLookupMapFind "04" lm04 2 "bbb"
+  , testLookupMap     "05" lm05 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
+  , testLookupMapFind "05" lm05 2 "bbb1"
+  , testLookupMap     "06" lm06 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
+  , testLookupMapFind "06" lm06 2 "bbb1"
+  , testLookupMap     "07" lm07 [(2,"bbb"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
+  , testLookupMapFind "07" lm07 2 "bbb"
+  , testLookupMapFind "0x" lm07 9 ""
+  , testLookupMap     "08" lm08 [(2,"bbb"),(2,"bbb1"),(1,"aaa")]
+  , testLookupMapFind "08" lm08 2 "bbb"
+  , testLookupMap     "09" lm09 [(1,"aaa")]
+  , testLookupMapFind "09" lm09 2 ""
+  , testeq "LookupMapApplyToAll10" ["***","**","*"] la10
+  , testeq "LookupMapTranslate11" "*"   lt11
+  , testeq "LookupMapTranslate12" "**"  lt12
+  , testeq "LookupMapTranslate13" "***" lt13
+  , testeq "LookupMapTranslate14" "****" lt14
+  , testLookupMap     "20" lm20 [(2,"bbb20"),(3,"ccc20"),(2,"bbb20"),(1,"aaa")]
+  , testLookupMapFind "20" lm20 2 "bbb20"
+  , testLookupMap     "21" lm21 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
+  , testLookupMapFind "21" lm21 2 "bbb1"
+  , testLookupMap     "22" lm22 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
+  , testLookupMapFind "22" lm22 1 "aaa22"
+  , testeq "LookupContains31" True  (mapContains lm22 2)
+  , testeq "LookupContains32" False (mapContains lm22 9)
+  , testLookupMap      "33" lm33 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
+  , testLookupMapFind "33a" lm33 1 "aaa22"
+  , testLookupMapFind "33b" lm33 4 ""
+  , testLookupMap      "34" lm34 [(4,"ddd34"),(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
+  , testLookupMapFind "34a" lm34 1 "aaa22"
+  , testLookupMapFind "34b" lm34 4 "ddd34"
+  , testLookupMap      "35" lm35 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa35")]
+  , testLookupMapFind "35a" lm35 1 "aaa35"
+  , testLookupMapFind "35b" lm35 4 ""
+  , testLookupMap      "36" lm36 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22"),(4,"ddd36")]
+  , testLookupMapFind "36a" lm36 1 "aaa22"
+  , testLookupMapFind "36b" lm36 4 "ddd36"
+  ]
 
 ------------------------------------------------------------
 --  Reverse lookup map test tests
 ------------------------------------------------------------
 
-revdef = -1 :: Int
+revdef :: Int
+revdef = -1
 
 newRevMap :: [(String,Int)] -> RevTestMap
 newRevMap es = makeLookupMap (map newEntry es)
@@ -232,70 +192,60 @@ testRevLookupMapFind lab lm k res =
 
 rlm00 :: RevTestMap
 rlm00 = reverseLookupMap lm00
-testRevLookupMap00     = testRevLookupMap     "00" rlm00 []
-testRevLookupMapFind00 = testRevLookupMapFind "00" rlm00 "" revdef
 
 rlm01 :: RevTestMap
 rlm01 = reverseLookupMap lm01
-testRevLookupMap01     = testRevLookupMap     "01" rlm01 [("aaa",1)]
-testRevLookupMapFind01 = testRevLookupMapFind "01" rlm01 "bbb" revdef
 
 rlm02 :: RevTestMap
 rlm02 = reverseLookupMap lm02
-testRevLookupMap02     = testRevLookupMap     "02" rlm02 [("bbb",2),("aaa",1)]
-testRevLookupMapFind02 = testRevLookupMapFind "02" rlm02 "bbb" 2
 
 rlm03 :: RevTestMap
 rlm03 = reverseLookupMap lm03
-testRevLookupMap03     = testRevLookupMap     "03" rlm03 [("ccc",3),("bbb",2),("aaa",1)]
-testRevLookupMapFind03 = testRevLookupMapFind "03" rlm03 "bbb" 2
 
 rlm04 :: RevTestMap
 rlm04 = reverseLookupMap lm04
-testRevLookupMap04     = testRevLookupMap     "04" rlm04 [("bbb",2),("ccc",3),("bbb",2),("aaa",1)]
-testRevLookupMapFind04 = testRevLookupMapFind "04" rlm04 "bbb" 2
 
 rlm05 :: RevTestMap
 rlm05 = reverseLookupMap lm05
-testRevLookupMap05     = testRevLookupMap     "05" rlm05 [("bbb1",2),("ccc",3),("bbb1",2),("aaa",1)]
-testRevLookupMapFind05 = testRevLookupMapFind "05" rlm05 "bbb1" 2
 
 rlm06 :: RevTestMap
 rlm06 = reverseLookupMap lm06
-testRevLookupMap06     = testRevLookupMap     "06" rlm06 [("bbb1",2),("ccc",3),("bbb1",2),("aaa",1)]
-testRevLookupMapFind06 = testRevLookupMapFind "06" rlm06 "bbb1" 2
 
 rlm07 :: RevTestMap
 rlm07 = reverseLookupMap lm07
-testRevLookupMap07     = testRevLookupMap     "07" rlm07 [("bbb",2),("ccc",3),("bbb1",2),("aaa",1)]
-testRevLookupMapFind07 = testRevLookupMapFind "07" rlm07 "bbb" 2
-testRevLookupMapFind0w = testRevLookupMapFind "07" rlm07 "bbb1" 2
-testRevLookupMapFind0x = testRevLookupMapFind "0x" rlm07 "*" revdef
 
 rlm08 :: RevTestMap
 rlm08 = reverseLookupMap lm08
-testRevLookupMap08     = testRevLookupMap     "08" rlm08 [("bbb",2),("bbb1",2),("aaa",1)]
-testRevLookupMapFind08 = testRevLookupMapFind "08" rlm08 "bbb" 2
 
 rlm09 :: RevTestMap
 rlm09 = reverseLookupMap lm09
-testRevLookupMap09     = testRevLookupMap     "09" rlm09 [("aaa",1)]
-testRevLookupMapFind09 = testRevLookupMapFind "09" rlm09 "" revdef
 
-testRevLookupMapSuite = TestList
-    [
-    testRevLookupMap01, testRevLookupMapFind01,
-    testRevLookupMap02, testRevLookupMapFind02,
-    testRevLookupMap03, testRevLookupMapFind03,
-    testRevLookupMap04, testRevLookupMapFind04,
-    testRevLookupMap05, testRevLookupMapFind05,
-    testRevLookupMap06, testRevLookupMapFind06,
-    testRevLookupMap07, testRevLookupMapFind07,
-                        testRevLookupMapFind0w,
-                        testRevLookupMapFind0x,
-    testRevLookupMap08, testRevLookupMapFind08,
-    testRevLookupMap09, testRevLookupMapFind09
-    ]
+testRevLookupMapSuite :: Test
+testRevLookupMapSuite = 
+  TestList
+  [ testRevLookupMap     "00" rlm00 []
+  , testRevLookupMapFind "00" rlm00 "" revdef
+  , testRevLookupMap     "01" rlm01 [("aaa",1)]
+  , testRevLookupMapFind "01" rlm01 "bbb" revdef
+  , testRevLookupMap     "02" rlm02 [("bbb",2),("aaa",1)]
+  , testRevLookupMapFind "02" rlm02 "bbb" 2
+  , testRevLookupMap     "03" rlm03 [("ccc",3),("bbb",2),("aaa",1)]
+  , testRevLookupMapFind "03" rlm03 "bbb" 2
+  , testRevLookupMap     "04" rlm04 [("bbb",2),("ccc",3),("bbb",2),("aaa",1)]
+  , testRevLookupMapFind "04" rlm04 "bbb" 2
+  , testRevLookupMap     "05" rlm05 [("bbb1",2),("ccc",3),("bbb1",2),("aaa",1)]
+  , testRevLookupMapFind "05" rlm05 "bbb1" 2
+  , testRevLookupMap     "06" rlm06 [("bbb1",2),("ccc",3),("bbb1",2),("aaa",1)]
+  , testRevLookupMapFind "06" rlm06 "bbb1" 2
+  , testRevLookupMap     "07" rlm07 [("bbb",2),("ccc",3),("bbb1",2),("aaa",1)]
+  , testRevLookupMapFind "07" rlm07 "bbb" 2
+  , testRevLookupMapFind "07" rlm07 "bbb1" 2
+  , testRevLookupMapFind "0x" rlm07 "*" revdef
+  , testRevLookupMap     "08" rlm08 [("bbb",2),("bbb1",2),("aaa",1)]
+  , testRevLookupMapFind "08" rlm08 "bbb" 2
+  , testRevLookupMap     "09" rlm09 [("aaa",1)]
+  , testRevLookupMapFind "09" rlm09 "" revdef
+  ]    
 
 ------------------------------------------------------------
 --  mapKeys
@@ -305,29 +255,20 @@ testMapKeys :: String -> TestMap -> [Int] -> Test
 testMapKeys lab m1 mk =
     testeq ("testMapKeys:"++lab) mk (sort $ mapKeys m1)
 
-testMapKeys00 = testMapKeys "00" lm00 []
-testMapKeys01 = testMapKeys "01" lm01 [1]
-testMapKeys02 = testMapKeys "02" lm02 [1,2]
-testMapKeys03 = testMapKeys "03" lm03 [1,2,3]
-testMapKeys04 = testMapKeys "04" lm04 [1,2,3]
-testMapKeys05 = testMapKeys "05" lm05 [1,2,3]
-testMapKeys06 = testMapKeys "06" lm06 [1,2,3]
-testMapKeys07 = testMapKeys "07" lm07 [1,2,3]
-testMapKeys08 = testMapKeys "08" lm08 [1,2]
-testMapKeys09 = testMapKeys "09" lm09 [1]
-
-testMapKeysSuite = TestList
-    [ testMapKeys00
-    , testMapKeys01
-    , testMapKeys02
-    , testMapKeys03
-    , testMapKeys04
-    , testMapKeys05
-    , testMapKeys06
-    , testMapKeys07
-    , testMapKeys08
-    , testMapKeys09
-    ]
+testMapKeysSuite :: Test
+testMapKeysSuite = 
+  TestList
+  [ testMapKeys "00" lm00 []
+ ,  testMapKeys "01" lm01 [1]
+ ,  testMapKeys "02" lm02 [1,2]
+ ,  testMapKeys "03" lm03 [1,2,3]
+ ,  testMapKeys "04" lm04 [1,2,3]
+ ,  testMapKeys "05" lm05 [1,2,3]
+ ,  testMapKeys "06" lm06 [1,2,3]
+ ,  testMapKeys "07" lm07 [1,2,3]
+ ,  testMapKeys "08" lm08 [1,2]
+ ,  testMapKeys "09" lm09 [1]
+ ]
 
 ------------------------------------------------------------
 --  mapVals
@@ -337,34 +278,26 @@ testMapVals :: String -> TestMap -> [String] -> Test
 testMapVals lab m1 mv =
     testeq ("MapVals:"++lab) mv (sort $ mapVals m1)
 
-testMapVals00 = testMapVals "00" lm00 []
-testMapVals01 = testMapVals "01" lm01 ["aaa"]
-testMapVals02 = testMapVals "02" lm02 ["aaa","bbb"]
-testMapVals03 = testMapVals "03" lm03 ["aaa","bbb","ccc"]
-testMapVals04 = testMapVals "04" lm04 ["aaa","bbb","ccc"]
-testMapVals05 = testMapVals "05" lm05 ["aaa","bbb1","ccc"]
-testMapVals06 = testMapVals "06" lm06 ["aaa","bbb1","ccc"]
-testMapVals07 = testMapVals "07" lm07 ["aaa","bbb","bbb1","ccc"]
-testMapVals08 = testMapVals "08" lm08 ["aaa","bbb","bbb1"]
-testMapVals09 = testMapVals "09" lm09 ["aaa"]
-
-testMapValsSuite = TestList
-    [ testMapVals00
-    , testMapVals01
-    , testMapVals02
-    , testMapVals03
-    , testMapVals04
-    , testMapVals05
-    , testMapVals06
-    , testMapVals07
-    , testMapVals08
-    , testMapVals09
-    ]
+testMapValsSuite :: Test
+testMapValsSuite =
+  TestList
+  [ testMapVals "00" lm00 []
+  , testMapVals "01" lm01 ["aaa"]
+  , testMapVals "02" lm02 ["aaa","bbb"]
+  , testMapVals "03" lm03 ["aaa","bbb","ccc"]
+  , testMapVals "04" lm04 ["aaa","bbb","ccc"]
+  , testMapVals "05" lm05 ["aaa","bbb1","ccc"]
+  , testMapVals "06" lm06 ["aaa","bbb1","ccc"]
+  , testMapVals "07" lm07 ["aaa","bbb","bbb1","ccc"]
+  , testMapVals "08" lm08 ["aaa","bbb","bbb1"]
+  , testMapVals "09" lm09 ["aaa"]
+  ]
 
 ------------------------------------------------------------
 --  mapEq
 ------------------------------------------------------------
 
+maplist :: [(String, TestMap)]
 maplist =
   [ ("lm00",lm00)
   , ("lm01",lm01)
@@ -378,6 +311,7 @@ maplist =
   , ("lm09",lm09)
   ]
 
+mapeqlist :: [(String, String)]
 mapeqlist =
   [ ("lm01","lm09")
   , ("lm02","lm08")
@@ -391,6 +325,7 @@ testMapEq :: String -> Bool -> TestMap -> TestMap -> Test
 testMapEq lab eq m1 m2 =
     testeq ("testMapEq:"++lab) eq (mapEq m1 m2)
 
+testMapEqSuite :: Test
 testMapEqSuite = TestList
   [ testMapEq (testLab l1 l2) (testEq l1 l2) m1 m2
       | (l1,m1) <- maplist , (l2,m2) <- maplist ]
@@ -404,52 +339,46 @@ testMapEqSuite = TestList
 --  mapSelect and mapMerge
 ------------------------------------------------------------
 
+lm101, lm102, lm103, lm104 :: TestMap
 lm101 = mapAdd lm03 $ newEntry (4,"ddd")
-testLookupMap101 = testLookupMap "101" lm101 [(4,"ddd"),(3,"ccc"),(2,"bbb"),(1,"aaa")]
-
 lm102 = mapSelect lm101 [1,3]
-testLookupMap102 = testLookupMap "102" lm102 [(3,"ccc"),(1,"aaa")]
-
 lm103 = mapSelect lm101 [2,4]
-testLookupMap103 = testLookupMap "103" lm103 [(4,"ddd"),(2,"bbb")]
-
 lm104 = mapSelect lm101 [2,3]
-testLookupMap104 = testLookupMap "104" lm104 [(3,"ccc"),(2,"bbb")]
 
-mapSelectSuite = TestList
-    [ testLookupMap101
-    , testLookupMap102
-    , testLookupMap103
-    , testLookupMap104
-    ]
-
+mapSelectSuite :: Test
+mapSelectSuite = 
+  TestList
+  [ testLookupMap "101" lm101 [(4,"ddd"),(3,"ccc"),(2,"bbb"),(1,"aaa")]
+  , testLookupMap "102" lm102 [(3,"ccc"),(1,"aaa")]
+  , testLookupMap "103" lm103 [(4,"ddd"),(2,"bbb")]
+  , testLookupMap "104" lm104 [(3,"ccc"),(2,"bbb")]
+  ]
+  
+lm105, lm106, lm107, lm108 :: TestMap
 lm105 = mapMerge lm102 lm103
-testLookupMap105 = testLookupMap "105" lm105 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
-
 lm106 = mapMerge lm102 lm104
-testLookupMap106 = testLookupMap "106" lm106 [(1,"aaa"),(2,"bbb"),(3,"ccc")]
-
 lm107 = mapMerge lm103 lm104
-testLookupMap107 = testLookupMap "107" lm107 [(2,"bbb"),(3,"ccc"),(4,"ddd")]
-
 lm108 = mapMerge lm101 lm102
-testLookupMap108 = testLookupMap "108" lm108 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
 
-mapMergeSuite = TestList
-    [ testLookupMap105
-    , testLookupMap106
-    , testLookupMap107
-    , testLookupMap108
-    ]
-
+mapMergeSuite :: Test
+mapMergeSuite =
+  TestList
+  [ testLookupMap "105" lm105 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
+  , testLookupMap "106" lm106 [(1,"aaa"),(2,"bbb"),(3,"ccc")]
+  , testLookupMap "107" lm107 [(2,"bbb"),(3,"ccc"),(4,"ddd")]
+  , testLookupMap "108" lm108 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
+  ] 
+  
 ------------------------------------------------------------
 --  Tranlation tests
 ------------------------------------------------------------
 
 -- Rather late in the day, generic versions of the testing functions used earlier
 type TestMapG a b = LookupMap (GenMapEntry a b)
+
 newMapG :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> (TestMapG a b)
 newMapG es = makeLookupMap (map newEntry es)
+
 testLookupMapG :: (Eq a, Show a, Eq b, Show b) => String -> (TestMapG a b) -> [(a,b)] -> Test
 testLookupMapG lab m1 m2 = testeq ("LookupMapG"++lab ) (newMapG m2) m1
 testLookupMapM ::
@@ -458,50 +387,62 @@ testLookupMapM ::
     => String -> m (TestMapG a b) -> m (TestMapG a b) -> Test
 testLookupMapM lab m1 m2 = testeq ("LookupMapM"++lab ) m2 m1
 
-tm101               = newMap [(1,"a"),(2,"bb"),(3,"ccc"),(4,"dddd")]
-testTranslateMap101 = testLookupMapG "tm101" tm101 [(1,"a"),(2,"bb"),(3,"ccc"),(4,"dddd")]
+tm101 :: TestMap
+tm101 = newMap [(1,"a"),(2,"bb"),(3,"ccc"),(4,"dddd")]
 
-tf102 = (flip replicate '*') :: Int -> String
+tf102 :: Int -> String
+tf102 = flip replicate '*'
+
 tm102 :: StrTestMap
 tm102 = mapTranslateKeys tf102 tm101
-testTranslateMap102 = testLookupMapG "tm102" tm102 [("*","a"),("**","bb"),("***","ccc"),("****","dddd")]
 
-tf103 = length
 tm103 :: RevTestMap
-tm103 = mapTranslateVals tf103 tm102
-testTranslateMap103 = testLookupMapG "tm103" tm103 [("*",1),("**",2),("***",3),("****",4)]
+tm103 = mapTranslateVals length tm102
 
+tf104 :: (LookupEntryClass a Int [b],
+          LookupEntryClass c String Int) =>
+         a -> c
 tf104 e = newEntry ( (flip replicate '#') k, 5-(length v) ) where (k,v) = keyVal e
+
 tm104 :: RevTestMap
 tm104 = mapTranslateEntries tf104 tm101
-testTranslateMap104 = testLookupMapG "tm104" tm104 [("#",4),("##",3),("###",2),("####",1)]
 
 -- Test monadic translation, using Maybe monad
 -- (Note that if Nothing is generated at any step,
 -- it propagates to the result)
+--
+tf105 :: (LookupEntryClass a Int [b],
+          LookupEntryClass c String Int) =>
+         a -> Maybe c
 tf105 e = Just $ tf104 e
+
 tm105 :: MayTestMap
 tm105 = mapTranslateEntriesM tf105 tm101
-testTranslateMap105 = testLookupMapM "tm105" tm105 (Just tm104)
 
+tf106 :: (LookupEntryClass a Int [b],
+          LookupEntryClass c String Int) =>
+         a -> Maybe c
 tf106 e = if k == 2 then Nothing else tf105 e where (k,_) = keyVal e
+
 tm106 :: MayTestMap
 tm106 = mapTranslateEntriesM tf106 tm101
-testTranslateMap106 = testLookupMapM "tm106" tm106 Nothing
 
-mapTranslateSuite = TestList
-    [ testTranslateMap101
-    , testTranslateMap102
-    , testTranslateMap103
-    , testTranslateMap104
-    , testTranslateMap105
-    , testTranslateMap106
-    ]
-
+mapTranslateSuite :: Test
+mapTranslateSuite = 
+  TestList
+  [ testLookupMapG "tm101" tm101 [(1,"a"),(2,"bb"),(3,"ccc"),(4,"dddd")]
+  , testLookupMapG "tm102" tm102 [("*","a"),("**","bb"),("***","ccc"),("****","dddd")]
+  , testLookupMapG "tm103" tm103 [("*",1),("**",2),("***",3),("****",4)]
+  , testLookupMapG "tm104" tm104 [("#",4),("##",3),("###",2),("####",1)]
+  , testLookupMapM "tm105" tm105 (Just tm104)
+  , testLookupMapM "tm106" tm106 Nothing
+  ] 
+  
 ------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
   [ testLookupMapSuite
   , testRevLookupMapSuite
@@ -513,14 +454,17 @@ allTests = TestList
   , mapTranslateSuite
   ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+{-
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     runTestText (putTextToHandle h False) t
     hClose h
 tf = runTestFile
 tt = runTestTT
+-}
 
 --------------------------------------------------------------------------------
 --

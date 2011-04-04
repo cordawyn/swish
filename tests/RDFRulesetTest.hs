@@ -21,12 +21,9 @@ module Main where
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
-    , nullRDFFormula
-    , GraphClosure(..), makeGraphClosureRule
+    , GraphClosure(..)
     , makeRDFGraphFromN3String
     , makeRDFFormula
-    , makeN3ClosureAllocatorRule
-    , makeN3ClosureRule
     , makeN3ClosureSimpleRule
     , makeNodeAllocTo
     -- for debugging
@@ -34,50 +31,40 @@ import Swish.RDF.RDFRuleset
     )
 
 import Swish.RDF.RDFQuery
-    ( rdfQueryBack, rdfQueryBackFilter, rdfQueryBackModify )
+    ( rdfQueryBack, rdfQueryBackModify )
 
 import Swish.RDF.RDFVarBinding
     ( RDFVarBinding
     , RDFVarBindingModify
     , RDFVarBindingFilter
-    , rdfVarBindingUriRef, rdfVarBindingBlank
-    , rdfVarBindingLiteral
-    , rdfVarBindingUntypedLiteral, rdfVarBindingTypedLiteral
-    , rdfVarBindingXMLLiteral, rdfVarBindingDatatyped
-    , rdfVarBindingMemberProp
+    , rdfVarBindingXMLLiteral
     )
 
 import Swish.RDF.RDFGraph
     ( Label (..), RDFLabel(..), RDFGraph
-    , setArcs, getArcs, addArc, add, delete, extract, labels, merge
-    , allLabels, allNodes, remapLabels, remapLabelList
-    , toRDFGraph, emptyRDFGraph
-    , Label (..), Arc(..), arc, arcSubj, arcPred, arcObj, Selector
+    , Arc(..)
+    , getArcs
+    , allLabels
+    , toRDFGraph
     )
-
+    
 import Swish.RDF.VarBinding
-    ( VarBinding(..), nullVarBinding
-    , makeVarBinding
-    , vbmCompatibility, vbmCompose
+    ( makeVarBinding
+    , vbmCompose
     , makeVarFilterModify
     )
 
 import Swish.RDF.Ruleset
-    ( Ruleset(..)
-    , makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules
-    , getRulesetAxiom, getRulesetRule
-    , getContextAxiom, getContextRule, getMaybeContextRule )
+    ( makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules
+    , getRulesetAxiom, getRulesetRule )
 
 import Swish.RDF.Rule
-    ( Expression(..), Formula(..), Rule(..)
-    , fwdCheckInference
-    , showsFormula, showsFormulae, showsWidth )
+    ( Formula(..), Rule(..)
+    , fwdCheckInference )
 
 import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
-    , getScopePrefix, getScopeURI
-    , getQName, getScopedNameURI
     , makeScopedName
     )
 
@@ -87,25 +74,14 @@ import Swish.RDF.Vocabulary
     , scopeRDF
     )
 
-import Swish.Utils.QName
-    ( QName(..) )
-
 import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
-    , assertBool, assertEqual, assertString
-    , runTestTT, runTestText, putTextToHandle
+    ( Test(TestCase,TestList)
+    , assertBool, assertEqual
+    , runTestTT
     )
 
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn
-    )
-
-import Data.List
-    ( nub, sort )
-
-import Data.Maybe
-    ( isJust, fromJust )
+import Data.List (nub, sort)
+import Data.Maybe (isJust, fromJust)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -170,6 +146,7 @@ testSameRules lab rs1 rs2 =
 --  Common values
 ------------------------------------------------------------
 
+pref_rdf, pref_owl :: String
 pref_rdf = nsURI namespaceRDF
 pref_owl = nsURI namespaceOWL
 
@@ -187,18 +164,22 @@ pref_owl = nsURI namespaceOWL
 --  A proof context is a list of rulesets,
 --  which may be cited by a proof.
 
+rn1 :: Namespace
 rn1  = Namespace "r1" "http://id.ninebynine.org/wip/2003/rulesettest/r1"
 
 -- Common prefix declarations for graph expressions
+pref :: String
 pref =
     "@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n" ++
     "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . \n" ++
     "@prefix ex:   <http://example.org/> . \n" ++
     " \n"
 
+a11, a12 :: RDFFormula
 a11  = makeRDFFormula rn1 "a11" (pref++"ex:R1 rdf:type ex:C1 .")
 a12  = makeRDFFormula rn1 "a12" (pref++"ex:R2 rdf:type ex:C2 .")
 
+r11, r12 :: RDFRule
 r11  = makeN3ClosureSimpleRule rn1 "r11"
             ( pref++"?r1 rdf:type ex:C1 . ?r2 rdf:type ex:C2 ." )
             ( pref++"?r1 ex:P1 ?r2 ." )
@@ -210,91 +191,95 @@ r12  = makeN3ClosureSimpleRule rn1 "r12"
 --  Basic formula and rule comparison tests
 --  (tests support code added in module Proof.hs)
 
-testCmpAX01 = testEq "testCmpAX01" True  a11 a11
-testCmpAX02 = testEq "testCmpAX02" False a11 a12
-testCmpAX03 = testLe "testCmpAX03" True  a11 a11
-testCmpAX04 = testLe "testCmpAX04" True  a11 a12
-testCmpAX05 = testLe "testCmpAX05" False a12 a11
+testFormulaSuite :: Test
+testFormulaSuite =
+  TestList
+  [ testEq "testCmpAX01" True  a11 a11
+  , testEq "testCmpAX02" False a11 a12
+  , testLe "testCmpAX03" True  a11 a11
+  , testLe "testCmpAX04" True  a11 a12
+  , testLe "testCmpAX05" False a12 a11
+  ]
 
-testFormulaSuite = TestList
-    [ testCmpAX01, testCmpAX02, testCmpAX03, testCmpAX04, testCmpAX05
-    ]
-
-testCmpRU01 = testEq "testCmpRU01" True  r11 r11
-testCmpRU02 = testEq "testCmpRU02" False r11 r12
-testCmpRU03 = testLe "testCmpRU03" True  r11 r11
-testCmpRU04 = testLe "testCmpRU04" True  r11 r12
-testCmpRU05 = testLe "testCmpRU05" False r12 r11
-
-testRuleSuite = TestList
-    [ testCmpRU01, testCmpRU02, testCmpRU03, testCmpRU04, testCmpRU05
-    ]
+testRuleSuite :: Test
+testRuleSuite =
+  TestList
+  [ testEq "testCmpRU01" True  r11 r11
+  , testEq "testCmpRU02" False r11 r12
+  , testLe "testCmpRU03" True  r11 r11
+  , testLe "testCmpRU04" True  r11 r12
+  , testLe "testCmpRU05" False r12 r11
+  ]
 
 --  Test simple ruleset construction and access
 
+a1s :: [RDFFormula]
 a1s  = [ a11, a12 ]
 
+r1s :: [RDFRule]
 r1s  = [ r11, r12 ]
 
-r1   = makeRuleset rn1 a1s r1s
+r1 :: RDFRuleset
+r1 = makeRuleset rn1 a1s r1s
 
-testNS01  = testSameNamespace "testNS01" rn1 (getRulesetNamespace r1)
-testAX01  = testSameAxioms    "testAX01" a1s (getRulesetAxioms r1)
-testRU01  = testSameRules     "testRU01" r1s (getRulesetRules r1)
-
-testGeta11 = testEqual "testGeta11" (Just a11) $
-    getRulesetAxiom (ScopedName rn1 "a11") r1
-testGeta12 = testEqual "testGeta11" (Just a12) $
-    getRulesetAxiom (ScopedName rn1 "a12") r1
-testGetr11 = testEqual "testGetr11" (Just r11) $
-    getRulesetRule (ScopedName rn1 "r11") r1
-testGetr12 = testEqual "testGetr12" (Just r12) $
-    getRulesetRule (ScopedName rn1 "r12") r1
-testGetnone = testEqual "testGetnone" Nothing $
-    getRulesetRule (ScopedName rn1 "none") r1
-
-testRulesetSuite = TestList
-    [ testNS01, testAX01, testRU01
-    , testGeta11, testGeta12
-    , testGetr11, testGetr12
-    , testGetnone
-    ]
+testRulesetSuite :: Test
+testRulesetSuite = 
+  TestList
+  [ testSameNamespace "testNS01" rn1 (getRulesetNamespace r1)
+  , testSameAxioms    "testAX01" a1s (getRulesetAxioms r1)
+  , testSameRules     "testRU01" r1s (getRulesetRules r1)
+  , testEqual "testGeta11" (Just a11) $
+      getRulesetAxiom (ScopedName rn1 "a11") r1
+  , testEqual "testGeta11" (Just a12) $
+      getRulesetAxiom (ScopedName rn1 "a12") r1
+  , testEqual "testGetr11" (Just r11) $
+      getRulesetRule (ScopedName rn1 "r11") r1
+  , testEqual "testGetr12" (Just r12) $
+      getRulesetRule (ScopedName rn1 "r12") r1
+  , testEqual "testGetnone" Nothing $
+      getRulesetRule (ScopedName rn1 "none") r1
+  ]
 
 ------------------------------------------------------------
 --  Component tests for RDF proof context
 ------------------------------------------------------------
 
+prefix :: String
 prefix =
     "@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n" ++
     "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . \n" ++
     "@prefix ex:   <http://example.org/> . \n" ++
     " \n"
 
-scopeex   = Namespace "ex"   "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
+scopeex :: Namespace
+scopeex = Namespace "ex" "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
 makeFormula :: Namespace -> String -> String -> RDFFormula
 makeFormula scope local gr =
     makeRDFFormula scope local (prefix++gr)
 
 allocateTo :: String -> String -> [RDFLabel] -> RDFVarBindingModify
-allocateTo bv av = makeNodeAllocTo (vn bv) (vn av)
-    where
-        vn ('?':n) = Var n
+allocateTo bv av = makeNodeAllocTo (Var bv) (Var av)
 
-isXMLLit     ('?':x) = rdfVarBindingXMLLiteral     (Var x)
+isXMLLit :: String -> RDFVarBindingFilter
+isXMLLit = rdfVarBindingXMLLiteral . Var
 
 queryBack :: [Arc RDFLabel] -> RDFGraph -> [[RDFVarBinding]]
-queryBack qas tg = rdfQueryBack (toRDFGraph qas) tg
+queryBack qas = rdfQueryBack (toRDFGraph qas) 
 
 -- Backward chaining rdf:r2
 
-rdfr2ant  = makeRDFGraphFromN3String "?x  ?a ?l . "
-rdfr2con  = makeRDFGraphFromN3String "?x  ?a ?b . ?b rdf:type rdf:XMLLiteral ."
-rdfr2modv = (allocateTo "?b" "?l") (allLabels labelIsVar rdfr2ant)
-rdfr2modc = vbmCompose (makeVarFilterModify $ isXMLLit "?l") rdfr2modv
+rdfr2ant, rdfr2con :: RDFGraph
+rdfr2ant  = makeRDFGraphFromN3String "?x ?a ?l . "
+rdfr2con  = makeRDFGraphFromN3String "?x ?a ?b . ?b rdf:type rdf:XMLLiteral ."
 
-testRDF01 = test    "testRDF01" $ isJust rdfr2modc
+rdfr2modv :: RDFVarBindingModify
+rdfr2modv = allocateTo "b" "l" $ allLabels labelIsVar rdfr2ant
 
+rdfr2modc :: Maybe RDFVarBindingModify
+rdfr2modc = vbmCompose (makeVarFilterModify $ isXMLLit "l") rdfr2modv
+
+rdfr2grc :: RDFClosure 
 rdfr2grc = GraphClosure
             { nameGraphRule = ScopedName scopeRDF "r2"
             , ruleAnt       = getArcs rdfr2ant
@@ -302,6 +287,7 @@ rdfr2grc = GraphClosure
             , ruleModify    = fromJust rdfr2modc
             }
 
+rdfr2rul :: RDFRule
 rdfr2rul = Rule
             { ruleName       = nameGraphRule rdfr2grc
             , fwdApply       = graphClosureFwdApply rdfr2grc
@@ -309,24 +295,32 @@ rdfr2rul = Rule
             , checkInference = fwdCheckInference rdfr2rul
             }
 
-con03  = formExpr $ makeFormula scopeex "con03" $
+con03 :: RDFGraph
+con03 = formExpr $ makeFormula scopeex "con03" $
     "ex:s ex:p1 _:l1 ; ex:p2a _:l2; ex:p2b _:l2 ." ++
     "_:l1 rdf:type rdf:XMLLiteral ." ++
     "_:l2 rdf:type rdf:XMLLiteral ."
 
+v_a, v_b, v_x :: RDFLabel
 v_a   = Var "a"
 v_b   = Var "b"
 v_x   = Var "x"
-u_s   = Res (makeScopedName "" "http://example.org/" "s")
-u_p1  = Res (makeScopedName "" "http://example.org/" "p1")
-u_p2a = Res (makeScopedName "" "http://example.org/" "p2a")
-u_p2b = Res (makeScopedName "" "http://example.org/" "p2b")
-u_rt  = Res (makeScopedName "" pref_rdf "type")
-u_rx  = Res (makeScopedName "" pref_rdf "XMLLiteral")
+
+u_s, u_p1, u_p2a, u_p2b, u_rt, u_rx :: RDFLabel
+u_s   = Res $ makeScopedName "" "http://example.org/" "s"
+u_p1  = Res $ makeScopedName "" "http://example.org/" "p1"
+u_p2a = Res $ makeScopedName "" "http://example.org/" "p2a"
+u_p2b = Res $ makeScopedName "" "http://example.org/" "p2b"
+u_rt  = Res $ makeScopedName "" pref_rdf "type"
+u_rx  = Res $ makeScopedName "" pref_rdf "XMLLiteral"
+
+b_l1, b_l2 :: RDFLabel
 b_l1  = Blank "l1"
 b_l2  = Blank "l2"
 
+rdfr2v1, rdfr2b1, rdfr2v2, rdfr2v3 :: [[RDFVarBinding]]
 rdfr2v1 = queryBack (ruleCon rdfr2grc) con03
+
 rdfr2b1 = [ [ makeVarBinding [ (v_x,u_s), (v_a,u_p1),  (v_b,b_l1) ]
             , makeVarBinding [ (v_x,u_s), (v_a,u_p2a), (v_b,b_l2) ]
             , makeVarBinding [ (v_x,u_s), (v_a,u_p2b), (v_b,b_l2) ]
@@ -356,21 +350,21 @@ rdfr2b1 = [ [ makeVarBinding [ (v_x,u_s), (v_a,u_p1),  (v_b,b_l1) ]
 rdfr2v2 = rdfQueryBackModify (ruleModify rdfr2grc) rdfr2v1
 rdfr2v3 = map nub rdfr2v2
 
-testRDF02 = testVal "testRDF02" rdfr2b1 rdfr2v1
-testRDF03 = testVal "testRDF03" [] rdfr2v2
-testRDF04 = testVal "testRDF04" [] rdfr2v3
-
-testRDF09 = testEq "testRDF09" True [] $ bwdApply rdfr2rul con03
-
-testRDFSuite = TestList
-    [ testRDF01, testRDF02, testRDF03, testRDF04
-    , testRDF09
-    ]
+testRDFSuite :: Test
+testRDFSuite = 
+  TestList
+  [ test    "testRDF01" $ isJust rdfr2modc
+  , testVal "testRDF02" rdfr2b1 rdfr2v1
+  , testVal "testRDF03" [] rdfr2v2
+  , testVal "testRDF04" [] rdfr2v3
+  , testEq "testRDF09" True [] $ bwdApply rdfr2rul con03
+  ]
 
 ------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
   [ testFormulaSuite
   , testRuleSuite
@@ -378,14 +372,17 @@ allTests = TestList
   , testRDFSuite
   ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+{-
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     runTestText (putTextToHandle h False) t
     hClose h
 tf = runTestFile
 tt = runTestTT
+-}
 
 --------------------------------------------------------------------------------
 --

@@ -56,6 +56,10 @@ Flag  tests
   Description: Build the test programs.
   Default:     False
 
+Flag  hpc
+  Description: Use Hpc for the tests
+  Default:     False
+
 Library
    Build-Depends:
       base >=3 && < 5,
@@ -128,75 +132,166 @@ Executable         BuiltInMapTest
    if !flag(tests)
       buildable: False
 
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         GraphPartitionTest
    Main-Is:        tests/GraphPartitionTest.hs
+
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
 Executable         GraphTest
    Main-Is:        tests/GraphTest.hs
    if !flag(tests)
       buildable: False
 
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         NTTest
    Main-Is:        tests/NTTest.hs
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
 Executable         N3ParserTest
    Main-Is:        tests/N3ParserTest.hs
    if !flag(tests)
       buildable: False
 
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         N3FormatterTest
    Main-Is:        tests/N3FormatterTest.hs
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
 Executable         RDFDatatypeXsdIntegerTest
    Main-Is:        tests/RDFDatatypeXsdIntegerTest.hs
    if !flag(tests)
       buildable: False
 
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         RDFGraphTest
    Main-Is:        tests/RDFGraphTest.hs
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
 Executable         RDFProofContextTest
    Main-Is:        tests/RDFProofContextTest.hs
    if !flag(tests)
       buildable: False
                     
-Executable         RDFProofText
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+Executable         RDFProofTest
    Main-Is:        tests/RDFProofTest.hs
    if !flag(tests)
       buildable: False
                      
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         RDFQueryTest
    Main-Is:        tests/RDFQueryTest.hs
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
 Executable         RDFRulesetTest
    Main-Is:        tests/RDFRulesetTest.hs
    if !flag(tests)
       buildable: False
 
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         VarBindingTest
    Main-Is:        tests/VarBindingTest.hs
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
 Executable         LookupMapTest
    Main-Is:        tests/LookupMapTest.hs
    if !flag(tests)
       buildable: False
 
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
 Executable         QNameTest
    Main-Is:        tests/QNameTest.hs
    if !flag(tests)
       buildable: False
+
+   if flag(hpc)
+      ghc-options: -fhpc
+
+   ghc-options:
+      -Wall -fno-warn-orphans
 
  -- we do not have the data files to run this test
  Executable         SwishTest

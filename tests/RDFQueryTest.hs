@@ -27,15 +27,12 @@ import Swish.RDF.RDFQuery
     , rdfQuerySubs, rdfQueryBackSubs
     , rdfQuerySubsAll
     , rdfQuerySubsBlank, rdfQueryBackSubsBlank
-    , rdfFindArcs, rdfSubjEq, rdfPredEq, rdfObjEq, rdfFindPredVal
-    , rdfFindValSubj, rdfFindPredVal, rdfFindPredInt, rdfFindList
     -- debug
-    , rdfQuerySubs2
     )
 
 import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding, nullRDFVarBinding
-    , RDFVarBindingModify, RDFVarBindingFilter
+    ( RDFVarBinding
+    , RDFVarBindingFilter
     , rdfVarBindingUriRef, rdfVarBindingBlank
     , rdfVarBindingLiteral
     , rdfVarBindingUntypedLiteral, rdfVarBindingTypedLiteral
@@ -44,72 +41,48 @@ import Swish.RDF.RDFVarBinding
     )
 
 import Swish.RDF.RDFGraph
-    ( Arc(..), arcSubj
-    , RDFGraph, RDFLabel(..)
-    , isLiteral, isBlank, isQueryVar, makeBlank
-    , setArcs, getArcs, addArc, add, delete, extract, labels, merge
-    , allLabels, remapLabels
-    , mapnode, maplist
-    , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
+    ( RDFGraph, RDFLabel(..)
+    , merge
     )
 
 import Swish.RDF.VarBinding
-    ( VarBinding(..), nullVarBinding
-    , boundVars, subBinding, makeVarBinding
-    , applyVarBinding, joinVarBindings
+    ( VarBinding(..)
+    , makeVarBinding
+    , joinVarBindings
     , VarBindingModify(..)
-    , vbmCompatibility, vbmCompose
-    , findCompositions, findComposition
-    , VarBindingFilter(..)
     , makeVarFilterModify
-    , makeVarTestFilter, makeVarCompareFilter
-    , varBindingId, varFilterDisjunction, varFilterConjunction
-    , varFilterEQ, varFilterNE
+    , varBindingId
+    , varFilterNE
     )
 
 import Swish.Utils.Namespace
     ( Namespace(..)
-    , makeNamespaceQName
     , ScopedName(..)
-    , getQName
     , makeScopedName
     )
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
-    , namespaceXSD
-    , namespaceLang, langName
+    , langName
     , swishName
     , rdf_type, rdf_XMLLiteral
-    , xsd_boolean, xsd_integer
     )
 
-import Swish.RDF.N3Parser
-    ( ParseResult(..), parseN3fromString )
+import Swish.RDF.N3Parser (parseN3fromString)
 
-import Swish.Utils.QName
-    ( QName(..) )
-
-import Swish.Utils.ListHelpers
-    ( equiv )
+import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
-    , assertBool, assertEqual, assertString
-    , runTestTT, runTestText, putTextToHandle )
-
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn )
-
-import Data.Maybe
-    ( isJust, fromJust )
+    ( Test(TestCase,TestList)
+    , assertBool, assertEqual
+    , runTestTT )
 
 ------------------------------------------------------------
 --  misc helpers
 ------------------------------------------------------------
 
 newtype Set a = Set [a] deriving Show
+
 instance (Eq a) => Eq (Set a) where
     Set v1 == Set v2 = v1 `equiv` v2
 
@@ -149,58 +122,60 @@ testEqv lab a1 a2 =
 --  test1:  simple query qith URI, literal and blank nodes.
 ------------------------------------------------------------
 
+prefix1 :: String
 prefix1 =
     "@prefix ex: <http://example.org/> . \n" ++
     " \n"
 
-graph1    = graphFromString graph1str
-graph1str = prefix1 ++
-    "ex:s1  ex:p  ex:o1 . \n"  ++
-    "ex:s2  ex:p  \"lit1\" . \n" ++
-    "[ ex:p ex:o3 ] . \n"
+graph1 :: RDFGraph
+graph1 = graphFromString $ prefix1 ++
+         "ex:s1  ex:p  ex:o1 . \n"  ++
+         "ex:s2  ex:p  \"lit1\" . \n" ++
+         "[ ex:p ex:o3 ] . \n"
 
-query11    = graphFromString query11str
-query11str = prefix1 ++
-    "?s  ex:p  ?o . \n"
+query11 :: RDFGraph
+query11    = graphFromString $ prefix1 ++
+             "?s  ex:p  ?o . \n"
 
-result11    = graphFromString result11str
-result11str = prefix1 ++
-    "?s  ex:r  ?o . \n"
+result11 :: RDFGraph
+result11    = graphFromString $ prefix1 ++
+              "?s  ex:r  ?o . \n"
 
-result11a = prefix1 ++
-    "ex:s1  ex:r  ex:o1 . \n"
+result11a, result11b, result11c :: String
 
-result11b = prefix1 ++
-    "ex:s2  ex:r  \"lit1\" . \n"
+result11a = prefix1 ++ "ex:s1  ex:r  ex:o1 . \n"
+result11b = prefix1 ++ "ex:s2  ex:r  \"lit1\" . \n"
+result11c = prefix1 ++ "[ ex:r ex:o3 ] . \n"
 
-result11c = prefix1 ++
-    "[ ex:r ex:o3 ] . \n"
+var11 :: [RDFVarBinding]
+var11 = rdfQueryFind query11 graph1
 
-var11         = rdfQueryFind query11 graph1
-testQuery11   = test "testQuery11" (not $ null var11)
-res11         = rdfQuerySubs var11 result11
-testResult11  = testEq "testResult11" 3 (length res11)
-testResult11a = testGr "testResult11a" result11a res11
-testResult11b = testGr "testResult11b" result11b res11
-testResult11c = testGr "testResult11c" result11c res11
+res11 :: [RDFGraph]
+res11 = rdfQuerySubs var11 result11
 
-test1 = TestList
-    [ testQuery11,   testResult11
-    , testResult11a, testResult11b, testResult11c
-    ]
-
+test1 :: Test
+test1 = 
+  TestList
+  [ test "testQuery11" (not $ null var11)
+  , testEq "testResult11" 3 (length res11)
+  , testGr "testResult11a" result11a res11
+  , testGr "testResult11b" result11b res11
+  , testGr "testResult11c" result11c res11
+  ]
+  
 ------------------------------------------------------------
 --  test2:  a range of more complex queries based on a
 --  single relationship graph.
 ------------------------------------------------------------
 
+prefix2 :: String
 prefix2 =
     "@prefix pers: <urn:pers:> . \n"      ++
     "@prefix rel:  <urn:rel:> . \n"       ++
     " \n"
 
-graph2    = graphFromString graph2str
-graph2str = prefix2 ++
+graph2 :: RDFGraph
+graph2 = graphFromString $ prefix2 ++
     "pers:St1 rel:wife     pers:Do1 ; \n" ++
     "         rel:daughter pers:Ma2 ; \n" ++
     "         rel:daughter pers:An2 . \n" ++
@@ -222,85 +197,81 @@ graph2str = prefix2 ++
     "         rel:son      pers:Ha4 ; \n" ++
     "         rel:son      pers:El4 . \n"
 
-query21    = graphFromString query21str
-query21str = prefix2 ++
+query21 :: RDFGraph
+query21 = graphFromString $ prefix2 ++
     "?a rel:wife ?b . \n"
 
-result21    = graphFromString result21str
-result21str = prefix2 ++
+result21 :: RDFGraph
+result21 = graphFromString $ prefix2 ++
     "?b rel:husband ?a . \n"
 
-result21a = prefix2 ++
-    "pers:Do1 rel:husband pers:St1 . \n"
+result21a, result21b, result21c, result21d,
+  result21e, result21f :: String
 
-result21b = prefix2 ++
-    "pers:Ma2 rel:husband pers:Pa2 . \n"
+result21a = prefix2 ++ "pers:Do1 rel:husband pers:St1 . \n"
+result21b = prefix2 ++ "pers:Ma2 rel:husband pers:Pa2 . \n"
+result21c = prefix2 ++ "pers:Ri2 rel:husband pers:Br2 . \n"
+result21d = prefix2 ++ "pers:Ma3 rel:husband pers:Gr3 . \n"
+result21e = prefix2 ++ "pers:Jo3 rel:husband pers:Si3 . \n"
+result21f = prefix2 ++ "pers:Su3 rel:husband pers:Al3 . \n"
 
-result21c = prefix2 ++
-    "pers:Ri2 rel:husband pers:Br2 . \n"
-
-result21d = prefix2 ++
-    "pers:Ma3 rel:husband pers:Gr3 . \n"
-
-result21e = prefix2 ++
-    "pers:Jo3 rel:husband pers:Si3 . \n"
-
-result21f = prefix2 ++
-    "pers:Su3 rel:husband pers:Al3 . \n"
-
+var21 :: [RDFVarBinding]
 var21         = rdfQueryFind query21 graph2
-testQuery21   = test "testQuery21" (not $ null var21)
-res21         = rdfQuerySubs var21 result21
-testResult21  = testEq "testResult21" 6 (length res21)
-testResult21a = testGr "testResult21a" result21a res21
-testResult21b = testGr "testResult21b" result21b res21
-testResult21c = testGr "testResult21c" result21c res21
-testResult21d = testGr "testResult21d" result21d res21
-testResult21e = testGr "testResult21e" result21e res21
-testResult21f = testGr "testResult21f" result21f res21
 
-query22    = graphFromString query22str
-query22str = prefix2 ++
+res21 :: [RDFGraph]
+res21         = rdfQuerySubs var21 result21
+
+query22 :: RDFGraph
+query22    = graphFromString $ prefix2 ++
     "?a rel:son ?b . \n" ++
     "?b rel:son ?c . \n"
 
-result22    = graphFromString result22str
-result22str = prefix2 ++
+result22 :: RDFGraph
+result22    = graphFromString $ prefix2 ++
     "?a rel:grandparent ?c . \n"
 
+result22a :: String
 result22a = prefix2 ++
     "pers:Pa2 rel:grandparent pers:Ro4 . \n"
 
+result22b :: String
 result22b = prefix2 ++
     "pers:Pa2 rel:grandparent pers:Ol4 . \n"
 
+result22c :: String
 result22c = prefix2 ++
     "pers:Pa2 rel:grandparent pers:Lo4 . \n"
 
+result22d :: String
 result22d = prefix2 ++
     "pers:Pa2 rel:grandparent pers:Ha4 . \n"
 
+result22e :: String
 result22e = prefix2 ++
     "pers:Pa2 rel:grandparent pers:El4 . \n"
 
+var22 :: [RDFVarBinding]
 var22         = rdfQueryFind query22 graph2
-testQuery22   = test "testQuery22" (not $ null var22)
-res22         = rdfQuerySubs var22 result22
-testResult22  = testEq "testResult22" 5 (length res22)
-testResult22a = testGr "testResult22a" result22a res22
-testResult22b = testGr "testResult22b" result22b res22
-testResult22c = testGr "testResult22c" result22c res22
-testResult22d = testGr "testResult22d" result22d res22
-testResult22e = testGr "testResult22e" result22e res22
 
-query23    = graphFromString query23str
-query23str = prefix2 ++
+res22 :: [RDFGraph]
+res22         = rdfQuerySubs var22 result22
+
+query23 :: RDFGraph
+query23    = graphFromString $ prefix2 ++
     "?a rel:son ?b . \n" ++
     "?a rel:son ?c . \n"
 
-result23    = graphFromString result23str
-result23str = prefix2 ++
+result23 :: RDFGraph
+result23    = graphFromString $ prefix2 ++
     "?b rel:brother ?c . \n"
+
+result23a, result23b, result23c, result23d,
+  result23e, result23f, result23g, result23h,
+  result23i, result23j, result23k, result23l,
+  result23m, result23n, result23o, result23p,
+  result23q, result23r, result23s, result23t,
+  result23u, result23v, result23w, result23x,
+  result23y, result23z :: String
 
 result23a = prefix2 ++
     "pers:Gr3 rel:brother pers:Gr3 . \n"
@@ -380,69 +351,35 @@ result23y = prefix2 ++
 result23z = prefix2 ++
     "pers:El4 rel:brother pers:Ha4 . \n"
 
-var23         = rdfQueryFind query23 graph2
-testQuery23   = test "testQuery23" (not $ null var23)
-res23         = rdfQuerySubs var23 result23
-testResult23  = testEq "testResult23" 26 (length res23)
-testResult23a = testGr "testResult23a" result23a res23
-testResult23b = testGr "testResult23b" result23b res23
-testResult23c = testGr "testResult23c" result23c res23
-testResult23d = testGr "testResult23d" result23d res23
-testResult23e = testGr "testResult23e" result23e res23
-testResult23f = testGr "testResult23f" result23f res23
-testResult23g = testGr "testResult23g" result23g res23
-testResult23h = testGr "testResult23h" result23h res23
-testResult23i = testGr "testResult23i" result23i res23
-testResult23j = testGr "testResult23j" result23j res23
-testResult23k = testGr "testResult23k" result23k res23
-testResult23l = testGr "testResult23l" result23l res23
-testResult23m = testGr "testResult23m" result23m res23
-testResult23n = testGr "testResult23n" result23n res23
-testResult23o = testGr "testResult23o" result23o res23
-testResult23p = testGr "testResult23p" result23p res23
-testResult23q = testGr "testResult23q" result23q res23
-testResult23r = testGr "testResult23r" result23r res23
-testResult23s = testGr "testResult23s" result23s res23
-testResult23t = testGr "testResult23t" result23t res23
-testResult23u = testGr "testResult23u" result23u res23
-testResult23v = testGr "testResult23v" result23v res23
-testResult23w = testGr "testResult23w" result23w res23
-testResult23x = testGr "testResult23x" result23x res23
-testResult23y = testGr "testResult23y" result23y res23
-testResult23z = testGr "testResult23z" result23z res23
+var23 :: [RDFVarBinding]
+var23 = rdfQueryFind query23 graph2
+
+res23 :: [RDFGraph]
+res23 = rdfQuerySubs var23 result23
 
 -- apply filtering to result:
-filter23 = varFilterNE (Var "b") (Var "c") :: RDFVarBindingFilter
+
+filter23 :: RDFVarBindingFilter
+filter23 = varFilterNE (Var "b") (Var "c")
+
+var23F :: [RDFVarBinding]
 var23F   = rdfQueryFilter filter23 var23
+
+res23F :: [RDFGraph]
 res23F   = rdfQuerySubs var23F result23
-testResult23F  = testEq "testResult23" 16 (length res23F)
-testResult23bF = testGr "testResult23b" result23b res23F
-testResult23cF = testGr "testResult23c" result23c res23F
-testResult23dF = testGr "testResult23d" result23d res23F
-testResult23eF = testGr "testResult23e" result23e res23F
-testResult23gF = testGr "testResult23g" result23g res23F
-testResult23hF = testGr "testResult23h" result23h res23F
-testResult23iF = testGr "testResult23i" result23i res23F
-testResult23jF = testGr "testResult23j" result23j res23F
-testResult23lF = testGr "testResult23l" result23l res23F
-testResult23mF = testGr "testResult23m" result23m res23F
-testResult23nF = testGr "testResult23n" result23n res23F
-testResult23oF = testGr "testResult23o" result23o res23F
-testResult23sF = testGr "testResult23s" result23s res23F
-testResult23vF = testGr "testResult23v" result23v res23F
-testResult23wF = testGr "testResult23w" result23w res23F
-testResult23zF = testGr "testResult23z" result23z res23F
 
-
-query24    = graphFromString query24str
-query24str = prefix2 ++
+query24 :: RDFGraph
+query24    = graphFromString $ prefix2 ++
     "?a rel:daughter ?b . \n" ++
     "?a rel:daughter ?c . \n"
 
-result24    = graphFromString result24str
-result24str = prefix2 ++
+result24 :: RDFGraph
+result24    = graphFromString $ prefix2 ++
     "?b rel:sister ?c . \n"
 
+result24a, result24b, result24c, result24d,
+  result24e, result24f :: String
+ 
 result24a = prefix2 ++
     "pers:Ma2 rel:sister pers:Ma2 . \n"
 
@@ -461,28 +398,23 @@ result24e = prefix2 ++
 result24f = prefix2 ++
     "pers:Rh4 rel:sister pers:Rh4 . \n"
 
-var24         = rdfQueryFind query24 graph2
-testQuery24   = test "testQuery24" (not $ null var24)
-res24         = rdfQuerySubs var24 result24
-testResult24  = testEq "testResult24" 6 (length res24)
-testResult24a = testGr "testResult24a" result24a res24
-testResult24b = testGr "testResult24b" result24b res24
-testResult24c = testGr "testResult24c" result24c res24
-testResult24d = testGr "testResult24d" result24d res24
-testResult24e = testGr "testResult24e" result24e res24
-testResult24f = testGr "testResult24f" result24f res24
+var24 :: [RDFVarBinding]
+var24 = rdfQueryFind query24 graph2
 
+res24 :: [RDFGraph]
+res24 = rdfQuerySubs var24 result24
 
-query25    = graphFromString query25str
-query25str = prefix2 ++
+query25 :: RDFGraph
+query25    = graphFromString $ prefix2 ++
     "?a rel:son      ?b . \n" ++
     "?a rel:daughter ?c . \n"
 
-result25    = graphFromString result25str
-result25str = prefix2 ++
+result25 :: RDFGraph
+result25    = graphFromString $ prefix2 ++
     "?b rel:sister  ?c . \n" ++
     "?c rel:brother ?b . \n"
 
+result25a, result25b :: String
 result25a = prefix2 ++
     "pers:Wi3 rel:sister  pers:Ma3 . \n" ++
     "pers:Ma3 rel:brother pers:Wi3 . \n"
@@ -491,63 +423,110 @@ result25b = prefix2 ++
     "pers:Ro4 rel:sister  pers:Rh4 . \n" ++
     "pers:Rh4 rel:brother pers:Ro4 . \n"
 
-var25         = rdfQueryFind query25 graph2
-testQuery25   = test "testQuery25" (not $ null var25)
-res25         = rdfQuerySubs var25 result25
-testResult25  = testEq "testResult25" 2 (length res25)
-testResult25a = testGr "testResult25a" result25a res25
-testResult25b = testGr "testResult25b" result25b res25
+var25 :: [RDFVarBinding]
+var25 = rdfQueryFind query25 graph2
 
-test2 = TestList
-    [ testQuery21,   testResult21
-    , testResult21a, testResult21b, testResult21c
-    , testResult21d, testResult21e, testResult21f
-    , testQuery22,   testResult22
-    , testResult22a, testResult22b, testResult22c
-    , testResult22d, testResult22e
-    , testQuery23,   testResult23
-    , testResult23a, testResult23b, testResult23c
-    , testResult23d, testResult23e, testResult23f
-    , testResult23g, testResult23h, testResult23i
-    , testResult23j, testResult23k, testResult23l
-    , testResult23m, testResult23n, testResult23o
-    , testResult23p, testResult23q, testResult23r
-    , testResult23s, testResult23t, testResult23u
-    , testResult23v, testResult23w, testResult23x
-    , testResult23y, testResult23z
-    , testResult23F
-    , testResult23bF, testResult23cF
-    , testResult23dF, testResult23eF
-    , testResult23gF, testResult23hF, testResult23iF
-    , testResult23jF, testResult23lF
-    , testResult23mF, testResult23nF, testResult23oF
-    , testResult23sF
-    , testResult23vF, testResult23wF
-    , testResult23zF
-    , testQuery24,   testResult24
-    , testResult24a, testResult24b, testResult24c
-    , testResult24d, testResult24e, testResult24f
-    ]
+res25 :: [RDFGraph]
+res25 = rdfQuerySubs var25 result25
+
+test2 :: Test
+test2 =
+  TestList
+  [ test "testQuery21" (not $ null var21)
+  , testEq "testResult21" 6 (length res21)
+  , testGr "testResult21a" result21a res21
+  , testGr "testResult21b" result21b res21
+  , testGr "testResult21c" result21c res21
+  , testGr "testResult21d" result21d res21
+  , testGr "testResult21e" result21e res21
+  , testGr "testResult21f" result21f res21
+  , test "testQuery22" (not $ null var22)
+  , testEq "testResult22" 5 (length res22)
+  , testGr "testResult22a" result22a res22
+  , testGr "testResult22b" result22b res22
+  , testGr "testResult22c" result22c res22
+  , testGr "testResult22d" result22d res22
+  , testGr "testResult22e" result22e res22
+  , test "testQuery23" (not $ null var23)
+  , testEq "testResult23" 26 (length res23)
+  , testGr "testResult23a" result23a res23
+  , testGr "testResult23b" result23b res23
+  , testGr "testResult23c" result23c res23
+  , testGr "testResult23d" result23d res23
+  , testGr "testResult23e" result23e res23
+  , testGr "testResult23f" result23f res23
+  , testGr "testResult23g" result23g res23
+  , testGr "testResult23h" result23h res23
+  , testGr "testResult23i" result23i res23
+  , testGr "testResult23j" result23j res23
+  , testGr "testResult23k" result23k res23
+  , testGr "testResult23l" result23l res23
+  , testGr "testResult23m" result23m res23
+  , testGr "testResult23n" result23n res23
+  , testGr "testResult23o" result23o res23
+  , testGr "testResult23p" result23p res23
+  , testGr "testResult23q" result23q res23
+  , testGr "testResult23r" result23r res23
+  , testGr "testResult23s" result23s res23
+  , testGr "testResult23t" result23t res23
+  , testGr "testResult23u" result23u res23
+  , testGr "testResult23v" result23v res23
+  , testGr "testResult23w" result23w res23
+  , testGr "testResult23x" result23x res23
+  , testGr "testResult23y" result23y res23
+  , testGr "testResult23z" result23z res23
+  , testEq "testResult23" 16 (length res23F)
+  , testGr "testResult23b" result23b res23F
+  , testGr "testResult23c" result23c res23F
+  , testGr "testResult23d" result23d res23F
+  , testGr "testResult23e" result23e res23F
+  , testGr "testResult23g" result23g res23F
+  , testGr "testResult23h" result23h res23F
+  , testGr "testResult23i" result23i res23F
+  , testGr "testResult23j" result23j res23F
+  , testGr "testResult23l" result23l res23F
+  , testGr "testResult23m" result23m res23F
+  , testGr "testResult23n" result23n res23F
+  , testGr "testResult23o" result23o res23F
+  , testGr "testResult23s" result23s res23F
+  , testGr "testResult23v" result23v res23F
+  , testGr "testResult23w" result23w res23F
+  , testGr "testResult23z" result23z res23F
+  , test "testQuery24" (not $ null var24)
+  , testEq "testResult24" 6 (length res24)
+  , testGr "testResult24a" result24a res24
+  , testGr "testResult24b" result24b res24
+  , testGr "testResult24c" result24c res24
+  , testGr "testResult24d" result24d res24
+  , testGr "testResult24e" result24e res24
+  , testGr "testResult24f" result24f res24
+    
+  , test "testQuery25" (not $ null var25)
+  , testEq "testResult25" 2 (length res25)
+  , testGr "testResult25a" result25a res25
+  , testGr "testResult25b" result25b res25
+  ]
 
 ------------------------------------------------------------
 --  test handling of unsubstituted variables, and
 --  rdfQuerySubsAll, rdfQuerySubsBlank
 ------------------------------------------------------------
 
-graph3    = graphFromString graph3str
-graph3str = prefix2 ++
+graph3 :: RDFGraph
+graph3 = graphFromString $ prefix2 ++
     "pers:Pa2 rel:grandparent pers:Ro4 . \n" ++
     "pers:Pa2 rel:grandparent pers:Ol4 . \n"
 
-query31    = graphFromString query31str
-query31str = prefix2 ++
+query31 :: RDFGraph
+query31 = graphFromString $ prefix2 ++
     "?a rel:grandparent ?c . \n"
 
-result31    = graphFromString result31str
-result31str = prefix2 ++
+result31 :: RDFGraph
+result31 = graphFromString $ prefix2 ++
     "?a rel:son ?b . \n" ++
     "?b rel:son ?c . \n"
 
+result31a, result31b :: String
 result31a = prefix2 ++
     "pers:Pa2 rel:son ?b . \n" ++
     "?b rel:son pers:Ro4 . \n"
@@ -556,28 +535,28 @@ result31b = prefix2 ++
     "pers:Pa2 rel:son ?b . \n" ++
     "?b rel:son pers:Ol4 . \n"
 
-var31          = rdfQueryFind query31 graph3
-testQuery31    = test "testQuery31" (not $ null var31)
-res31pairs     = rdfQuerySubsAll var31 result31
-(res31,res31v) = unzip res31pairs
-testUnsubs31   = testEq "testUnsubs31" 2 (length res31v)
-testUnsubs31a  = testEq "testUnsubs31a" [(Var "b")] (head res31v)
-testUnsubs31b  = testEq "testUnsubs31a" [(Var "b")] (head . tail $ res31v)
-testResult31   = testEq "testResult31" 2 (length res31)
-testResult31a  = testGr "testResult31a" result31a res31
-testResult31b  = testGr "testResult31b" result31b res31
+var31 :: [RDFVarBinding]
+var31 = rdfQueryFind query31 graph3
 
-query32    = graphFromString query32str
-query32str = prefix2 ++
+res31pairs :: [(RDFGraph, [RDFLabel])]
+res31pairs = rdfQuerySubsAll var31 result31
+
+res31 :: [RDFGraph]
+res31v :: [[RDFLabel]]
+(res31,res31v) = unzip res31pairs
+
+query32 :: RDFGraph
+query32 = graphFromString $ prefix2 ++
     "?a rel:grandparent ?c . \n"
 
-result32    = graphFromString result32str
-result32str = prefix2 ++
+result32 :: RDFGraph
+result32 = graphFromString $ prefix2 ++
     "?a rel:wife _:b  . \n" ++
     "?d rel:any  _:b0 . \n" ++
     "?a rel:son ?b . \n"    ++
     "?b rel:son ?c . \n"
 
+result32a, result32b :: String
 result32a = prefix2 ++
     "pers:Pa2 rel:wife _:b      . \n" ++
     "_:d0     rel:any  _:b0     . \n" ++
@@ -590,22 +569,27 @@ result32b = prefix2 ++
     "pers:Pa2 rel:son  _:b1     . \n" ++
     "_:b1     rel:son  pers:Ol4 . \n"
 
-res32          = rdfQuerySubsBlank var31 result32
-testResult32   = testEq "testResult32" 2 (length res32)
-testResult32a  = testGr "testResult32a" result32a res32
-testResult32b  = testGr "testResult32b" result32b res32
+res32, res33 :: [RDFGraph]
+res32 = rdfQuerySubsBlank var31 result32
+res33 = rdfQuerySubs var31 result32
 
-res33          = rdfQuerySubs var31 result32
-testResult33   = testEq "testResult33" 0 (length res33)
+test3 :: Test
+test3 = 
+  TestList
+  [ test "testQuery31" (not $ null var31)
+  , testEq "testUnsubs31" 2 (length res31v)
+  , testEq "testUnsubs31a" [(Var "b")] (head res31v)
+  , testEq "testUnsubs31a" [(Var "b")] (head . tail $ res31v)
+  , testEq "testResult31" 2 (length res31)
+  , testGr "testResult31a" result31a res31
+  , testGr "testResult31b" result31b res31
+  , testEq "testResult32" 2 (length res32)
+  , testGr "testResult32a" result32a res32
+  , testGr "testResult32b" result32b res32
+  , testEq "testResult33" 0 (length res33)
+  ]
 
-test3 = TestList
-    [ testQuery31
-    , testUnsubs31, testUnsubs31a, testUnsubs31b
-    , testResult31, testResult31a, testResult31b
-    , testResult32, testResult32a, testResult32b
-    , testResult33
-    ]
-
+{-
 --  Debug sequence for rdfQuerySubsBlank
 --  (using internals of rdfQuerySubsBlank implementation)
 --  res32 = rdfQuerySubsBlank (fromJust var31) result32
@@ -613,131 +597,129 @@ d1 = result32
 d2 = rdfQuerySubs2 (head $ var31) d1
 d3 = allLabels isBlank (fst d2)
 d4 = remapLabels (snd d2) d3 makeBlank (fst d2)
+-}
 
 ------------------------------------------------------------
 --  test4:  test of backward-chaining query
 ------------------------------------------------------------
 
+prefix4 :: String
 prefix4 =
     "@prefix pers: <urn:pers:> . \n"      ++
     "@prefix rel:  <urn:rel:> . \n"       ++
     " \n"
 
-graph41    = graphFromString graph41str
-graph41str = prefix4 ++
+graph41 :: RDFGraph
+graph41 = graphFromString $ prefix4 ++
     "pers:St1 rel:wife     pers:Do1 . \n"
 
-query41    = graphFromString query41str
-query41str = prefix4 ++
+query41 :: RDFGraph
+query41 = graphFromString $ prefix4 ++
     "?a rel:wife ?b . \n"
 
-result41    = graphFromString result41str
-result41str = prefix4 ++
+result41 :: RDFGraph
+result41 = graphFromString $ prefix4 ++
     "?b rel:husband ?a . \n"
 
+result41a :: String
 result41a = prefix4 ++
     "pers:Do1 rel:husband pers:St1 . \n"
 
-var41          = rdfQueryBack query41 graph41
-testQuery41    = test "testQuery41" (not $ null var41)
-testQuery41a   = testEq "testQuery41a" 1 (length var41)
-res41          = rdfQueryBackSubs var41 result41
-testResult41   = testEq "testResult41" 1 (length res41)
-testResult41a  = testGr "testResult41a" result41a (fst $ unzip $ head res41)
-testUnbound41a = testLs "testUnbound41a" [] (snd $ head $ head res41)
+var41 :: [[RDFVarBinding]]
+var41 = rdfQueryBack query41 graph41
 
-graph42    = graphFromString graph42str
-graph42str = prefix4 ++
+res41 :: [[(RDFGraph, [RDFLabel])]]
+res41 = rdfQueryBackSubs var41 result41
+
+graph42 :: RDFGraph
+graph42 = graphFromString $ prefix4 ++
     "pers:Pa2 rel:grandparent pers:Ro4 . \n"
 
-query42    = graphFromString query42str
-query42str = prefix4 ++
+query42 :: RDFGraph
+query42 = graphFromString $ prefix4 ++
     "?a rel:grandparent ?c . \n"
 
-result42    = graphFromString result42str
-result42str = prefix4 ++
+result42 :: RDFGraph
+result42 = graphFromString $ prefix4 ++
     "?a rel:son ?b . \n" ++
     "?b rel:son ?c . \n"
 
+result42a :: String
 result42a = prefix4 ++
     "pers:Pa2 rel:son ?b       . \n" ++
     "?b       rel:son pers:Ro4 . \n"
 
-var42          = rdfQueryBack query42 graph42
-testQuery42    = test "testQuery42" (not $ null var42)
-testQuery42a   = testEq "testQuery42a" 1 (length var42)
-res42          = rdfQueryBackSubs var42 result42
-testResult42   = testEq "testResult42" 1 (length res42)
-testResult42a  = testGr "testResult42a" result42a (fst $ unzip $ head res42)
-testUnbound42a = testLs "testUnbound42a" [(Var "b")] (snd $ head $ head res42)
+var42 :: [[RDFVarBinding]]
+var42 = rdfQueryBack query42 graph42
 
+res42 :: [[(RDFGraph, [RDFLabel])]]
+res42 = rdfQueryBackSubs var42 result42
 
-graph43    = graphFromString graph43str
-graph43str = prefix4 ++
+graph43 :: RDFGraph
+graph43 = graphFromString $ prefix4 ++
     "pers:Gr3 rel:brother pers:La3 . \n"
 
-query43    = graphFromString query43str
-query43str = prefix4 ++
+query43 :: RDFGraph
+query43 = graphFromString $ prefix4 ++
     "?b rel:brother ?c . \n"
 
-result43    = graphFromString result43str
-result43str = prefix4 ++
+result43 :: RDFGraph
+result43 = graphFromString $ prefix4 ++
     "?a rel:son ?b . \n" ++
     "?a rel:son ?c . \n"
 
+result43a :: String
 result43a = prefix4 ++
     "?a rel:son pers:Gr3 . \n" ++
     "?a rel:son pers:La3 . \n"
 
-var43          = rdfQueryBack query43 graph43
-testQuery43    = test "testQuery43" (not $ null var43)
-testQuery43a   = testEq "testQuery43a" 1 (length var43)
-res43          = rdfQueryBackSubs var43 result43
-testResult43   = testEq "testResult43" 1 (length res43)
-testResult43a  = testGr "testResult43a" result43a (fst $ unzip $ head res43)
-testUnbound43a = testLs "testUnbound43a" [(Var "a")] (snd $ head $ head res43)
+var43 :: [[RDFVarBinding]]
+var43 = rdfQueryBack query43 graph43
 
+res43 :: [[(RDFGraph, [RDFLabel])]]
+res43 = rdfQueryBackSubs var43 result43
 
-graph44    = graphFromString graph44str
-graph44str = prefix4 ++
+graph44 :: RDFGraph
+graph44 = graphFromString $ prefix4 ++
     "pers:Pa2 rel:grandson pers:Ro4 . \n"
 
-query44    = graphFromString query44str
-query44str = prefix4 ++
+query44 :: RDFGraph
+query44 = graphFromString $ prefix4 ++
     "?a rel:grandson ?b . \n" ++
     "?c rel:grandson ?d . \n"
 
-result44    = graphFromString result44str
-result44str = prefix4 ++
+result44 :: RDFGraph
+result44 = graphFromString $ prefix4 ++
     "?a rel:son      ?m . \n" ++
     "?m rel:son      ?b . \n" ++
     "?c rel:daughter ?n . \n" ++
     "?n rel:son      ?d . \n"
 
+result44a, result44b :: String
 result44a = prefix4 ++
     "pers:Pa2 rel:son ?m       . \n" ++
     "?m       rel:son pers:Ro4 . \n" ++
     "?c rel:daughter ?n . \n" ++
     "?n rel:son      ?d . \n"
-unbound44a = [(Var "m"),(Var "c"),(Var "n"),(Var "d")]
 
 result44b = prefix4 ++
     "?a rel:son      ?m . \n" ++
     "?m rel:son      ?b . \n" ++
     "pers:Pa2 rel:daughter ?n .       \n" ++
     "?n       rel:son      pers:Ro4 . \n"
+
+unbound44a, unbound44b :: [RDFLabel]
+unbound44a = [(Var "m"),(Var "c"),(Var "n"),(Var "d")]
 unbound44b = [(Var "a"),(Var "m"),(Var "b"),(Var "n")]
 
-var44          = rdfQueryBack query44 graph44
-testQuery44    = test "testQuery44" (not $ null var44)
-testQuery44a   = testEq "testQuery44a"   2 (length var44)
-res44          = rdfQueryBackSubs var44 result44
-testResult44   = testEq "testResult44"   2 (length res44)
+var44 :: [[RDFVarBinding]]
+var44 = rdfQueryBack query44 graph44
+
+res44 :: [[(RDFGraph, [RDFLabel])]]
+res44 = rdfQueryBackSubs var44 result44
+
+res44_1, res44_2 :: [(RDFGraph, [RDFLabel])]
 [res44_1,res44_2] = res44
-testResult44a  = testGr "testResult44a"  result44a  (fst $ unzip res44_2)
-testUnbound44a = testLs "testUnbound44a" unbound44a (snd $ head res44_2)
-testResult44b  = testGr "testResult44b"  result44b  (fst $ unzip res44_1)
-testUnbound44b = testLs "testUnbound44b" unbound44b (snd $ head res44_1)
 
 --  test45:  multiple substitutions used together
 --
@@ -746,42 +728,44 @@ testUnbound44b = testLs "testUnbound44b" unbound44b (snd $ head res44_1)
 --  (b1 brother c1, b2 brother c2) if
 --      (?a daughter b1, ?a son c1) && (?a daughter b2, ?a son c2)
 
-graph45    = graphFromString graph45str
-graph45str = prefix4 ++
+graph45 :: RDFGraph
+graph45 = graphFromString $ prefix4 ++
     "pers:Rh4 rel:brother pers:Ro4 . \n" ++
     "pers:Ma3 rel:brother pers:Wi3 . \n"
 
-query45    = graphFromString query45str
-query45str = prefix4 ++
+query45 :: RDFGraph
+query45 = graphFromString $ prefix4 ++
     "?b rel:brother ?c . \n"
 
-result45    = graphFromString result45str
-result45str = prefix4 ++
+result45 :: RDFGraph
+result45 = graphFromString $ prefix4 ++
     "?a rel:daughter ?b . \n" ++
     "?a rel:son      ?c . \n"
 
+result45a1, result45a2 :: String
 result45a1 = prefix4 ++
     "?a rel:daughter pers:Rh4 . \n" ++
     "?a rel:son      pers:Ro4 . \n"
-unbound45a1 = [(Var "a")]
 
 result45a2 = prefix4 ++
     "?a rel:daughter pers:Ma3 . \n" ++
     "?a rel:son      pers:Wi3 . \n"
+
+unbound45a1, unbound45a2 :: [RDFLabel]
+unbound45a1 = [(Var "a")]
 unbound45a2 = [(Var "a")]
 
-var45          = rdfQueryBack query45 graph45
-testQuery45    = test "testQuery45" (not $ null var45)
-testQuery45a   = testEq "testQuery45a"   1 (length var45)
-res45          = rdfQueryBackSubs var45 result45
-testResult45   = testEq "testResult45"   1 (length res45)
+var45 :: [[RDFVarBinding]]
+var45 = rdfQueryBack query45 graph45
+
+res45 :: [[(RDFGraph, [RDFLabel])]]
+res45 = rdfQueryBackSubs var45 result45
+
+res45_1 :: [(RDFGraph, [RDFLabel])]
 [res45_1] = res45
-testResult45_1 = testEq "testResult45_1" 2 (length res45_1)
+
+res45_11, res45_12 :: (RDFGraph, [RDFLabel])
 [res45_11,res45_12] = res45_1
-testResult45a1  = testGr "testResult45a1"  result45a1  [fst res45_11]
-testUnbound45a1 = testLs "testUnbound45a1" unbound45a1 (snd res45_11)
-testResult45a2  = testGr "testResult45a2"  result45a2  [fst res45_12]
-testUnbound45a2 = testLs "testUnbound45a2" unbound45a2 (snd res45_12)
 
 --  test46:  multiple ways to get solution
 --
@@ -790,45 +774,44 @@ testUnbound45a2 = testLs "testUnbound45a2" unbound45a2 (snd res45_12)
 --  a stepBrother b if
 --      (_:c1 son a, _:c1 stepSon b) || (_:c2 stepSon a, _:c2 son b)
 
-graph46    = graphFromString graph46str
-graph46str = prefix4 ++
+graph46 :: RDFGraph
+graph46 = graphFromString $ prefix4 ++
     "pers:Gr3 rel:stepbrother pers:St3 . \n"
 
-query46    = graphFromString query46str
-query46str = prefix4 ++
+query46 :: RDFGraph
+query46 = graphFromString $ prefix4 ++
     "?b rel:stepbrother ?c . \n" ++
     "?c rel:stepbrother ?b . \n"
 
-result46    = graphFromString result46str
-result46str = prefix4 ++
+result46 :: RDFGraph
+result46 = graphFromString $ prefix4 ++
     "?a rel:son     ?b . \n" ++
     "?a rel:stepson ?c . \n"
 
+result46a, result46b :: String
 result46a = prefix4 ++
     "?a rel:son     pers:St3 . \n" ++
     "?a rel:stepson pers:Gr3 . \n"
-unbound46a = [(Var "a")]
-
 result46b = prefix4 ++
     "?a rel:son     pers:Gr3 . \n" ++
     "?a rel:stepson pers:St3 . \n"
+
+unbound46a, unbound46b :: [RDFLabel]
+unbound46a = [(Var "a")]
 unbound46b = [(Var "a")]
 
-var46          = rdfQueryBack query46 graph46
-testQuery46    = test "testQuery46" (not $ null var46)
-testQuery46a   = testEq "testQuery46a"   2 (length var46)
-res46          = rdfQueryBackSubs var46 result46
-testResult46   = testEq "testResult46"   2 (length res46)
+var46 :: [[RDFVarBinding]]
+var46 = rdfQueryBack query46 graph46
+
+res46 :: [[(RDFGraph, [RDFLabel])]]
+res46 = rdfQueryBackSubs var46 result46
+
+res46_1, res46_2 :: [(RDFGraph, [RDFLabel])]
 [res46_1,res46_2] = res46
-testResult46_1 = testEq "testResult46_1" 1 (length res46_1)
-testResult46_2 = testEq "testResult46_2" 1 (length res46_2)
+
+res46_11, res46_21 :: (RDFGraph, [RDFLabel])
 [res46_11] = res46_1
 [res46_21] = res46_2
-testResult46a  = testGr "testResult46a"  result46a  [fst res46_11]
-testUnbound46a = testLs "testUnbound46a" unbound46a (snd res46_11)
-testResult46b  = testGr "testResult46b"  result46b  [fst res46_21]
-testUnbound46b = testLs "testUnbound46b" unbound46b (snd res46_21)
-
 
 --  test47:  multiple ways to multiple solutions
 --
@@ -840,92 +823,89 @@ testUnbound46b = testLs "testUnbound46b" unbound46b (snd res46_21)
 --      ((_:e stepSon a, _:e son b) && (_:f son a, _:f stepSon b)) ||
 --      ((_:e stepSon a, _:e son b) && (_:f stepSon a, _:f son b))
 
-graph47    = graphFromString graph47str
-graph47str = prefix4 ++
+graph47 :: RDFGraph
+graph47 = graphFromString $ prefix4 ++
     "pers:Gr3 rel:stepbrother pers:St3 . \n" ++
     "pers:St3 rel:stepbrother pers:Gr3 . \n"
 
-query47    = graphFromString query47str
-query47str = prefix4 ++
+query47 :: RDFGraph
+query47 = graphFromString $ prefix4 ++
     "?b rel:stepbrother ?c . \n" ++
     "?c rel:stepbrother ?b . \n"
 
-result47    = graphFromString result47str
-result47str = prefix4 ++
+result47 :: RDFGraph
+result47 = graphFromString $ prefix4 ++
     "?a rel:son     ?b . \n" ++
     "?a rel:stepson ?c . \n"
+
+result47a1, result47a2,
+  result47b1, result47b2,
+  result47c1, result47c2,
+  result47d1, result47d2 :: String
 
 result47a1 = prefix4 ++
     "?a rel:son     pers:St3 . \n" ++
     "?a rel:stepson pers:Gr3 . \n"
-unbound47a1 = [(Var "a")]
 
 result47a2 = prefix4 ++
     "?a rel:son     pers:Gr3 . \n" ++
     "?a rel:stepson pers:St3 . \n"
-unbound47a2 = [(Var "a")]
 
 result47b1 = prefix4 ++
     "?a rel:stepson pers:St3 . \n" ++
     "?a rel:son     pers:Gr3 . \n"
-unbound47b1 = [(Var "a")]
 
 result47b2 = prefix4 ++
     "?a rel:stepson pers:St3 . \n" ++
     "?a rel:son     pers:Gr3 . \n"
-unbound47b2 = [(Var "a")]
 
 result47c1 = prefix4 ++
     "?a rel:son     pers:St3 . \n" ++
     "?a rel:stepson pers:Gr3 . \n"
-unbound47c1 = [(Var "a")]
 
 result47c2 = prefix4 ++
     "?a rel:son     pers:St3 . \n" ++
     "?a rel:stepson pers:Gr3 . \n"
-unbound47c2 = [(Var "a")]
 
 result47d1 = prefix4 ++
     "?a rel:stepson pers:St3 . \n" ++
     "?a rel:son     pers:Gr3 . \n"
-unbound47d1 = [(Var "a")]
 
 result47d2 = prefix4 ++
     "?a rel:son     pers:St3 . \n" ++
     "?a rel:stepson pers:Gr3 . \n"
+
+unbound47a1, unbound47a2,
+  unbound47b1, unbound47b2,
+  unbound47c1, unbound47c2,
+  unbound47d1, unbound47d2 :: [RDFLabel]
+
+unbound47a1 = [(Var "a")]
+unbound47a2 = [(Var "a")]
+unbound47b1 = [(Var "a")]
+unbound47b2 = [(Var "a")]
+unbound47c1 = [(Var "a")]
+unbound47c2 = [(Var "a")]
+unbound47d1 = [(Var "a")]
 unbound47d2 = [(Var "a")]
 
-var47          = rdfQueryBack query47 graph47
-testQuery47    = test "testQuery47" (not $ null var47)
-testQuery47a   = testEq "testQuery47a"   4 (length var47)
-res47          = rdfQueryBackSubs var47 result47
-testResult47   = testEq "testResult47"   4 (length res47)
+var47 :: [[RDFVarBinding]]
+var47 = rdfQueryBack query47 graph47
+
+res47 :: [[(RDFGraph, [RDFLabel])]]
+res47 = rdfQueryBackSubs var47 result47
+
+res47_1, res47_2, res47_3, res47_4 :: [(RDFGraph, [RDFLabel])]
 [res47_1,res47_2,res47_3,res47_4] = res47
-testResult47_1 = testEq "testResult47_1" 2 (length res47_1)
-testResult47_2 = testEq "testResult47_2" 2 (length res47_2)
-testResult47_3 = testEq "testResult47_3" 2 (length res47_3)
-testResult47_4 = testEq "testResult47_4" 2 (length res47_4)
+
+res47_11, res47_12,
+  res47_21, res47_22, 
+  res47_31, res47_32, 
+  res47_41, res47_42 :: (RDFGraph, [RDFLabel])
 [res47_11,res47_12] = res47_1
 [res47_21,res47_22] = res47_2
 [res47_31,res47_32] = res47_3
 [res47_41,res47_42] = res47_4
-testResult47a1  = testGr "testResult47a1"  result47a1  [fst res47_11]
-testUnbound47a1 = testLs "testUnbound47a1" unbound47a1 (snd res47_11)
-testResult47a2  = testGr "testResult47a2"  result47a2  [fst res47_12]
-testUnbound47a2 = testLs "testUnbound47a2" unbound47a2 (snd res47_12)
-testResult47b1  = testGr "testResult47b1"  result47b1  [fst res47_21]
-testUnbound47b1 = testLs "testUnbound47b1" unbound47b1 (snd res47_21)
-testResult47b2  = testGr "testResult47b2"  result47b2  [fst res47_22]
-testUnbound47b2 = testLs "testUnbound47b2" unbound47b2 (snd res47_22)
-testResult47c1  = testGr "testResult47c1"  result47c1  [fst res47_31]
-testUnbound47c1 = testLs "testUnbound47c1" unbound47c1 (snd res47_31)
-testResult47c2  = testGr "testResult47c2"  result47c2  [fst res47_32]
-testUnbound47c2 = testLs "testUnbound47c2" unbound47c2 (snd res47_32)
-testResult47d1  = testGr "testResult47d1"  result47d1  [fst res47_41]
-testUnbound47d1 = testLs "testUnbound47d1" unbound47d1 (snd res47_41)
-testResult47d2  = testGr "testResult47d2"  result47d2  [fst res47_42]
-testUnbound47d2 = testLs "testUnbound47d2" unbound47d2 (snd res47_42)
-
 
 --  test48:  redundant multiple ways to get solution
 --
@@ -934,45 +914,44 @@ testUnbound47d2 = testLs "testUnbound47d2" unbound47d2 (snd res47_42)
 --  (a brother b) if
 --      (_:c1 son a, _:c1 son b) || (_:c2 son b, _:c2 son a)
 
-graph48    = graphFromString graph48str
-graph48str = prefix4 ++
+graph48 :: RDFGraph
+graph48    = graphFromString $ prefix4 ++
     "pers:Gr3 rel:brother pers:La3 . \n"
 
-query48    = graphFromString query48str
-query48str = prefix4 ++
+query48 :: RDFGraph
+query48    = graphFromString $ prefix4 ++
     "?b rel:brother ?c . \n" ++
     "?c rel:brother ?b . \n"
 
-result48    = graphFromString result48str
-result48str = prefix4 ++
+result48 :: RDFGraph
+result48    = graphFromString $ prefix4 ++
     "?a rel:son ?b . \n" ++
     "?a rel:son ?c . \n"
 
+result48a, result48b :: String
 result48a = prefix4 ++
     "?a rel:son pers:La3 . \n" ++
     "?a rel:son pers:Gr3 . \n"
-unbound48a = [(Var "a")]
-
 result48b = prefix4 ++
     "?a rel:son pers:Gr3 . \n" ++
     "?a rel:son pers:La3 . \n"
+    
+unbound48a, unbound48b :: [RDFLabel]
+unbound48a = [(Var "a")]
 unbound48b = [(Var "a")]
 
-var48          = rdfQueryBack query48 graph48
-testQuery48    = test "testQuery48" (not $ null var48)
-testQuery48a   = testEq "testQuery48a"   2 (length var48)
-res48          = rdfQueryBackSubs var48 result48
-testResult48   = testEq "testResult48"   2 (length res48)
+var48 :: [[RDFVarBinding]]
+var48 = rdfQueryBack query48 graph48
+
+res48 :: [[(RDFGraph, [RDFLabel])]]
+res48 = rdfQueryBackSubs var48 result48
+
+res48_1, res48_2 :: [(RDFGraph, [RDFLabel])]
 [res48_1,res48_2] = res48
-testResult48_1 = testEq "testResult48_1" 1 (length res48_1)
-testResult48_2 = testEq "testResult48_2" 1 (length res48_2)
+
+res48_11, res48_21 :: (RDFGraph, [RDFLabel])
 [res48_11] = res48_1
 [res48_21] = res48_2
-testResult48a  = testGr "testResult48a"  result48a  [fst res48_11]
-testUnbound48a = testLs "testUnbound48a" unbound48a (snd res48_11)
-testResult48b  = testGr "testResult48b"  result48b  [fst res48_21]
-testUnbound48b = testLs "testUnbound48b" unbound48b (snd res48_21)
-
 
 -- test49: goal not satisfiable by rule
 --
@@ -980,24 +959,24 @@ testUnbound48b = testLs "testUnbound48b" unbound48b (snd res48_21)
 --
 --  (a bar b) cannot be deduced directly
 
-graph49    = graphFromString graph49str
-graph49str = prefix4 ++
+graph49 :: RDFGraph
+graph49 = graphFromString $ prefix4 ++
     "pers:Gr3 rel:foo pers:La3 . \n"
 
-query49    = graphFromString query49str
-query49str = prefix4 ++
+query49 :: RDFGraph
+query49 = graphFromString $ prefix4 ++
     "?a rel:bar ?a . \n"
 
-result49    = graphFromString result49str
-result49str = prefix4 ++
+result49 :: RDFGraph
+result49 = graphFromString $ prefix4 ++
     "?a rel:foo ?b . \n" ++
     "?b rel:foo ?a . \n"
 
-var49          = rdfQueryBack query49 graph49
-testQuery49    = test "testQuery49" (null var49)
-testQuery49a   = testEq "testQuery49a"   0 (length var49)
-res49          = rdfQueryBackSubs var49 result49
-testResult49   = testEq "testResult49"   0 (length res49)
+var49 :: [[RDFVarBinding]]
+var49 = rdfQueryBack query49 graph49
+
+res49 :: [[(RDFGraph, [RDFLabel])]]
+res49 = rdfQueryBackSubs var49 result49
 
 --  test50:  back-chaining with filter
 --
@@ -1006,92 +985,145 @@ testResult49   = testEq "testResult49"   0 (length res49)
 --  (a brother b) if
 --      (_:c1 son a, _:c1 son b) || (_:c2 son b, _:c2 son a)
 
-graph50    = graphFromString graph50str
-graph50str = prefix4 ++
+graph50 :: RDFGraph
+graph50 = graphFromString $ prefix4 ++
     "pers:Gr3 rel:brother pers:Gr3 . \n"
 
-query50    = graphFromString query50str
-query50str = prefix4 ++
+query50 :: RDFGraph
+query50 = graphFromString $ prefix4 ++
     "?b rel:brother ?c . \n" ++
     "?c rel:brother ?b . \n"
 
-result50    = graphFromString result50str
-result50str = prefix4 ++
+result50 :: RDFGraph
+result50 = graphFromString $ prefix4 ++
     "?a rel:son ?b . \n" ++
     "?a rel:son ?c . \n"
 
+result50a, result50b :: String
 result50a = prefix4 ++
     "?a rel:son pers:Gr3 . \n" ++
     "?a rel:son pers:Gr3 . \n"
-unbound50a = [(Var "a")]
 
 result50b = prefix4 ++
     "?a rel:son pers:Gr3 . \n" ++
     "?a rel:son pers:Gr3 . \n"
+
+unbound50a, unbound50b :: [RDFLabel]
+unbound50a = [(Var "a")]
 unbound50b = [(Var "a")]
 
-var50          = rdfQueryBack query50 graph50
-testQuery50    = test "testQuery50" (not $ null var50)
-testQuery50a   = testEq "testQuery50a"   2 (length var50)
-res50          = rdfQueryBackSubs var50 result50
-testResult50   = testEq "testResult50"   2 (length res50)
+var50 :: [[RDFVarBinding]]
+var50 = rdfQueryBack query50 graph50
+
+res50 :: [[(RDFGraph, [RDFLabel])]]
+res50 = rdfQueryBackSubs var50 result50
+
+res50_1, res50_2 :: [(RDFGraph, [RDFLabel])]
 [res50_1,res50_2] = res50
-testResult50_1 = testEq "testResult50_1" 1 (length res50_1)
-testResult50_2 = testEq "testResult50_2" 1 (length res50_2)
+
+res50_11, res50_21 :: (RDFGraph, [RDFLabel])
 [res50_11] = res50_1
 [res50_21] = res50_2
-testResult50a  = testGr "testResult50a"  result50a  [fst res50_11]
-testUnbound50a = testLs "testUnbound50a" unbound50a (snd res50_11)
-testResult50b  = testGr "testResult50b"  result50b  [fst res50_21]
-testUnbound50b = testLs "testUnbound50b" unbound50b (snd res50_21)
 
-filter50       = varFilterNE (Var "b") (Var "c") :: RDFVarBindingFilter
-var50F         = rdfQueryBackFilter filter50 var50
-res50F         = rdfQueryBackSubs var50F result50
-testResult50F  = testEq "testResult50F" 0 (length res50F)
+filter50 :: RDFVarBindingFilter
+filter50 = varFilterNE (Var "b") (Var "c")
 
+var50F :: [[RDFVarBinding]]
+var50F = rdfQueryBackFilter filter50 var50
+
+res50F :: [[(RDFGraph, [RDFLabel])]]
+res50F = rdfQueryBackSubs var50F result50
 
 --  Backward substitution query test suite
 
-test4 = TestList
-    [ testQuery41, testQuery41a, testResult41
-    , testResult41a, testUnbound41a
-    , testQuery42, testQuery42a, testResult42
-    , testResult42a, testUnbound42a
-    , testQuery43, testQuery43a, testResult43
-    , testResult43a, testUnbound43a
-    , testQuery44, testQuery44a, testResult44
-    , testResult44a, testUnbound44a
-    , testResult44b, testUnbound44b
-    , testQuery45, testQuery45a, testResult45
-    , testResult45_1
-    , testResult45a1, testUnbound45a1
-    , testResult45a2, testUnbound45a2
-    , testQuery46, testQuery46a, testResult46
-    , testResult46_1, testResult46_2
-    , testResult46a, testUnbound46a
-    , testResult46b, testUnbound46b
-    , testQuery47, testQuery47a, testResult47
-    , testResult47_1, testResult47_2, testResult47_3, testResult47_4
-    , testResult47a1, testUnbound47a1
-    , testResult47a2, testUnbound47a2
-    , testResult47b1, testUnbound47b1
-    , testResult47b2, testUnbound47b2
-    , testResult47c1, testUnbound47c1
-    , testResult47c2, testUnbound47c2
-    , testResult47d1, testUnbound47d1
-    , testResult47d2, testUnbound47d2
-    , testQuery48, testQuery48a, testResult48
-    , testResult48_1, testResult48_2
-    , testResult48a, testUnbound48a
-    , testResult48b, testUnbound48b
-    , testQuery49, testQuery49a, testResult49
-    , testQuery50, testQuery50a, testResult50
-    , testResult50_1, testResult50_2
-    , testResult50a, testUnbound50a
-    , testResult50b, testUnbound50b
-    , testResult50F
-    ]
+test4 :: Test
+test4 = 
+  TestList
+  [ test "testQuery41" (not $ null var41)
+  , testEq "testQuery41a" 1 (length var41)
+  , testEq "testResult41" 1 (length res41)
+  , testGr "testResult41a" result41a (fst $ unzip $ head res41)
+  , testLs "testUnbound41a" [] (snd $ head $ head res41)
+  , test "testQuery42" (not $ null var42)
+  , testEq "testQuery42a" 1 (length var42)
+  , testEq "testResult42" 1 (length res42)
+  , testGr "testResult42a" result42a (fst $ unzip $ head res42)
+  , testLs "testUnbound42a" [(Var "b")] (snd $ head $ head res42)
+  , test "testQuery43" (not $ null var43)
+  , testEq "testQuery43a" 1 (length var43)
+  , testEq "testResult43" 1 (length res43)
+  , testGr "testResult43a" result43a (fst $ unzip $ head res43)
+  , testLs "testUnbound43a" [(Var "a")] (snd $ head $ head res43)
+  , test "testQuery44" (not $ null var44)
+  , testEq "testQuery44a"   2 (length var44)
+  , testEq "testResult44"   2 (length res44)
+  , testGr "testResult44a"  result44a  (fst $ unzip res44_2)
+  , testLs "testUnbound44a" unbound44a (snd $ head res44_2)
+  , testGr "testResult44b"  result44b  (fst $ unzip res44_1)
+  , testLs "testUnbound44b" unbound44b (snd $ head res44_1)
+  , test "testQuery45" (not $ null var45)
+  , testEq "testQuery45a"   1 (length var45)
+  , testEq "testResult45"   1 (length res45)
+  , testEq "testResult45_1" 2 (length res45_1)
+  , testGr "testResult45a1"  result45a1  [fst res45_11]
+  , testLs "testUnbound45a1" unbound45a1 (snd res45_11)
+  , testGr "testResult45a2"  result45a2  [fst res45_12]
+  , testLs "testUnbound45a2" unbound45a2 (snd res45_12)
+  , test "testQuery46" (not $ null var46)
+  , testEq "testQuery46a"   2 (length var46)
+  , testEq "testResult46"   2 (length res46)
+  , testEq "testResult46_1" 1 (length res46_1)
+  , testEq "testResult46_2" 1 (length res46_2)
+  , testGr "testResult46a"  result46a  [fst res46_11]
+  , testLs "testUnbound46a" unbound46a (snd res46_11)
+  , testGr "testResult46b"  result46b  [fst res46_21]
+  , testLs "testUnbound46b" unbound46b (snd res46_21)
+  , test "testQuery47" (not $ null var47)
+  , testEq "testQuery47a"   4 (length var47)
+  , testEq "testResult47"   4 (length res47)
+  , testEq "testResult47_1" 2 (length res47_1)
+  , testEq "testResult47_2" 2 (length res47_2)
+  , testEq "testResult47_3" 2 (length res47_3)
+  , testEq "testResult47_4" 2 (length res47_4)
+  , testGr "testResult47a1"  result47a1  [fst res47_11]
+  , testLs "testUnbound47a1" unbound47a1 (snd res47_11)
+  , testGr "testResult47a2"  result47a2  [fst res47_12]
+  , testLs "testUnbound47a2" unbound47a2 (snd res47_12)
+  , testGr "testResult47b1"  result47b1  [fst res47_21]
+  , testLs "testUnbound47b1" unbound47b1 (snd res47_21)
+  , testGr "testResult47b2"  result47b2  [fst res47_22]
+  , testLs "testUnbound47b2" unbound47b2 (snd res47_22)
+  , testGr "testResult47c1"  result47c1  [fst res47_31]
+  , testLs "testUnbound47c1" unbound47c1 (snd res47_31)
+  , testGr "testResult47c2"  result47c2  [fst res47_32]
+  , testLs "testUnbound47c2" unbound47c2 (snd res47_32)
+  , testGr "testResult47d1"  result47d1  [fst res47_41]
+  , testLs "testUnbound47d1" unbound47d1 (snd res47_41)
+  , testGr "testResult47d2"  result47d2  [fst res47_42]
+  , testLs "testUnbound47d2" unbound47d2 (snd res47_42)
+  , test "testQuery48" (not $ null var48)
+  , testEq "testQuery48a"   2 (length var48)
+  , testEq "testResult48"   2 (length res48)
+  , testEq "testResult48_1" 1 (length res48_1)
+  , testEq "testResult48_2" 1 (length res48_2)
+  , testGr "testResult48a"  result48a  [fst res48_11]
+  , testLs "testUnbound48a" unbound48a (snd res48_11)
+  , testGr "testResult48b"  result48b  [fst res48_21]
+  , testLs "testUnbound48b" unbound48b (snd res48_21)
+  , test "testQuery49" (null var49)
+  , testEq "testQuery49a"   0 (length var49)
+  , testEq "testResult49"   0 (length res49)
+  , test "testQuery50" (not $ null var50)
+  , testEq "testQuery50a"   2 (length var50)
+  , testEq "testResult50"   2 (length res50)
+  , testEq "testResult50_1" 1 (length res50_1)
+  , testEq "testResult50_2" 1 (length res50_2)
+  , testGr "testResult50a"  result50a  [fst res50_11]
+  , testLs "testUnbound50a" unbound50a (snd res50_11)
+  , testGr "testResult50b"  result50b  [fst res50_21]
+  , testLs "testUnbound50b" unbound50b (snd res50_21)
+  , testEq "testResult50F" 0 (length res50F)
+  ]
 
 ------------------------------------------------------------
 --  Instance query test suite
@@ -1120,20 +1152,21 @@ test4 = TestList
 --      match without any variable substitutions, indicating that it is
 --      a subgraph
 
-graph61    = graphFromString graph61str
-graph61str = prefix4 ++
+graph61 :: RDFGraph
+graph61 = graphFromString $ prefix4 ++
     "pers:Gr3 rel:brother pers:La3 . \n" ++
     "pers:Gr3 rel:brother pers:Si3 . \n"
 
-query61    = graphFromString query61str
-query61str = prefix4 ++
+query61 :: RDFGraph
+query61 = graphFromString $ prefix4 ++
     "?b rel:brother ?c . \n"
 
-result61    = graphFromString result61str
-result61str = prefix4 ++
+result61 :: RDFGraph
+result61 = graphFromString $ prefix4 ++
     "?a rel:son ?b . \n" ++
     "?a rel:son ?c . \n"
 
+result61a, result63a :: String
 result61a = prefix4 ++
     "_:a1 rel:son pers:Gr3 . \n" ++
     "_:a1 rel:son pers:La3 . \n" ++
@@ -1147,38 +1180,55 @@ result63a = prefix4 ++
     "pers:Pa2 rel:son pers:Si3 . \n"
 
 --  1. Backchain query with blank substutions
+
+var61 :: [[RDFVarBinding]]
 var61          = rdfQueryBack query61 graph61
-testQuery61    = test   "testQuery61" (not $ null var61)
-testQuery61a   = testEq "testQuery61a" 1 (length var61)
+
+res61 :: [[RDFGraph]]
 res61          = rdfQueryBackSubsBlank var61 result61
-testResult61   = testEq "testResult61" 1 (length res61)
+
+res61a1, res61a2, res61a :: RDFGraph
 [[res61a1,res61a2]] = res61
-res61a         = merge res61a1 res61a2
-testResult61a  = testGr "testResult61a" result61a [res61a]
+res61a = merge res61a1 res61a2
+
 --  2. Instance query against 'graph2'
-var62          = rdfQueryInstance res61a graph2
-testQuery62    = test   "testQuery62" (not $ null var62)
-testQuery62a   = testEq "testQuery62a" 1 (length var62)
+
+var62 :: [RDFVarBinding]
+var62 = rdfQueryInstance res61a graph2
+
 --  3. Substitute into instance query graph
-res63          = rdfQuerySubs var62 res61a
-testQuery63    = test   "testQuery63" (not $ null res63)
-testQuery63a   = testEq "testQuery63a" 1 (length res63)
-[res63a]       = res63
-testResult63a  = testGr "testResult63a" result63a [res63a]
+
+res63 :: [RDFGraph]
+res63 = rdfQuerySubs var62 res61a
+
+res63a :: RDFGraph
+[res63a] = res63
+
 --  4. Repeat instance query against 'graph2'
 --     Query bindings should be null.
-var64          = rdfQueryInstance res63a graph2
-testQuery64    = test   "testQuery64" (not $ null var64)
-testQuery64a   = testEq "testQuery64a" 1 (length var64)
-[var64a]       = var64
-testQuery64b   = test   "testQuery64b" (null $ vbEnum var64a)
 
-test6 = TestList
-    [ testQuery61, testQuery61a, testResult61, testResult61a
-    , testQuery62, testQuery62a
-    , testQuery63, testQuery63a, testResult63a
-    , testQuery64, testQuery64a, testQuery64b
-    ]
+var64 :: [RDFVarBinding]
+var64 = rdfQueryInstance res63a graph2
+
+var64a :: RDFVarBinding
+[var64a] = var64
+
+test6 :: Test
+test6 = 
+  TestList
+  [ test   "testQuery61" (not $ null var61)
+  , testEq "testQuery61a" 1 (length var61)
+  , testEq "testResult61" 1 (length res61)
+  , testGr "testResult61a" result61a [res61a]
+  , test   "testQuery62" (not $ null var62)
+  , testEq "testQuery62a" 1 (length var62)
+  , test   "testQuery63" (not $ null res63)
+  , testEq "testQuery63a" 1 (length res63)
+  , testGr "testResult63a" result63a [res63a]
+  , test   "testQuery64" (not $ null var64)
+  , testEq "testQuery64a" 1 (length var64)
+  , test   "testQuery64b" (null $ vbEnum var64a)
+  ]    
 
 ------------------------------------------------------------
 --  Specific test cases
@@ -1195,38 +1245,53 @@ rdfQueryBackModify ::
 rdfQueryBackModify qbm qbss = concatMap (rdfQueryBackModify1 qbm) qbss
 -}
 
-baseex   = "http://example.org/"
-baserdf  = nsURI namespaceRDF
-q_dattyp = (makeScopedName "" baseex "datatype")
+baseex :: String
+baseex = "http://example.org/"
 
+baserdf :: String
+baserdf  = nsURI namespaceRDF
+
+q_dattyp :: ScopedName
+q_dattyp = makeScopedName "" baseex "datatype"
+
+v_a, v_b, v_c, v_x, v_y, v_z :: RDFLabel
 v_a   = Var "a"
 v_b   = Var "b"
 v_c   = Var "c"
 v_x   = Var "x"
 v_y   = Var "y"
 v_z   = Var "z"
-u_s   = Res (makeScopedName "" baseex "s")
-u_o   = Res (makeScopedName "" baseex "o")
-u_p   = Res (makeScopedName "" baseex "p")
-u_p1  = Res (makeScopedName "" baseex "p1")
-u_p2a = Res (makeScopedName "" baseex "p2a")
-u_p2b = Res (makeScopedName "" baseex "p2b")
-u_m1  = Res (makeScopedName "" baserdf "_1")
-u_m2  = Res (makeScopedName "" baserdf "_2")
+
+u_s, u_o, u_p, u_p1, u_p2a, u_p2b, u_m1, u_m2,
+  u_rt, u_xt, u_dt :: RDFLabel
+u_s   = Res $ makeScopedName "" baseex "s"
+u_o   = Res $ makeScopedName "" baseex "o"
+u_p   = Res $ makeScopedName "" baseex "p"
+u_p1  = Res $ makeScopedName "" baseex "p1"
+u_p2a = Res $ makeScopedName "" baseex "p2a"
+u_p2b = Res $ makeScopedName "" baseex "p2b"
+u_m1  = Res $ makeScopedName "" baserdf "_1"
+u_m2  = Res $ makeScopedName "" baserdf "_2"
 u_rt  = Res rdf_type
 u_xt  = Res rdf_XMLLiteral
 u_dt  = Res q_dattyp
+
+l_1, l_2, l_3, l_4, l_5 :: RDFLabel
 l_1   = Lit "l1" Nothing
 l_2   = Lit "l2" (Just $ langName "fr")
 l_3   = Lit "l3" (Just q_dattyp)
 l_4   = Lit "l4" (Just q_dattyp) -- was: (Lang "fr")
 l_5   = Lit "l5" (Just rdf_XMLLiteral)
+
+b_1, b_2, b_3, b_l1, b_l2 :: RDFLabel
 b_1   = Blank "1"
 b_2   = Blank "2"
 b_3   = Blank "3"
 b_l1  = Blank "l1"
 b_l2  = Blank "l2"
 
+vbss01a, vbss01b, vbss01c, vbss01d, vbss01e, vbss01f,
+  vbss01g, vbss01h, vbss01i :: [RDFVarBinding]
 vbss01a =               -- ?a is uri, ?b is uri
     [ makeVarBinding [ (v_a,u_s), (v_b,u_p),  (v_c,u_o) ]
     , makeVarBinding [ (v_a,u_s), (v_b,u_p),  (v_c,b_1) ]
@@ -1275,6 +1340,7 @@ vbss01i =               -- ?c is not datatyped with ?x
     , makeVarBinding [ (v_a,b_3), (v_b,u_p),  (v_c,l_5), (v_x,u_xt) ]
     ]
 
+vbss01 :: [[RDFVarBinding]]
 vbss01  = [ vbss01a     -- ?a is uri, ?b is uri
           , vbss01b     -- ?c is blank
           , vbss01c     -- ?c is literal
@@ -1286,54 +1352,7 @@ vbss01  = [ vbss01a     -- ?a is uri, ?b is uri
           , vbss01i     -- ?c is not datatyped with ?x
           ]
 
-testBackMod01 = testEq "testBackMod01" vbss01 $
-                rdfQueryBackModify varBindingId vbss01
-
-testBackMod02 = testEq "testBackMod02" [vbss01a,vbss01b,vbss01c,vbss01d] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingUriRef v_a)
-                    vbss01
-
-testBackMod03 = testEq "testBackMod03" [vbss01f,vbss01i] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingBlank v_a)
-                    vbss01
-
-testBackMod04 = testEq "testBackMod04" vbss01 $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingUriRef v_b)
-                    vbss01
-
-testBackMod05 = testEq "testBackMod05"
-                [vbss01c,vbss01d,vbss01e,vbss01f,vbss01h,vbss01i] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingLiteral v_c)
-                    vbss01
-
-testBackMod06 = testEq "testBackMod06" [vbss01d] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingUntypedLiteral v_c)
-                    vbss01
-
-testBackMod07 = testEq "testBackMod07" [vbss01e,vbss01f,vbss01h,vbss01i] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingTypedLiteral v_c)
-                    vbss01
-
-testBackMod08 = testEq "testBackMod08" [vbss01f] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingXMLLiteral v_c)
-                    vbss01
-
-testBackMod09 = testEq "testBackMod09" [vbss01g] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingMemberProp v_b)
-                    vbss01
-
-testBackMod10 = testEq "testBackMod10" [vbss01h] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingDatatyped v_x v_c)
-                    vbss01
+vbss02a, vbss02b, vbss02c, vbss02d :: [RDFVarBinding]
 
 vbss02a = [ makeVarBinding [ (v_x,u_s), (v_a,u_p1),  (v_b,b_l1) ]
           , makeVarBinding [ (v_x,u_s), (v_a,u_p2a), (v_b,b_l2) ]
@@ -1363,22 +1382,17 @@ vbss02d = [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
           , makeVarBinding [ (v_x,b_l2), (v_a,u_rt),  (v_b,u_xt) ]
           ]
 
+vbss02 :: [[RDFVarBinding]]
 vbss02  = [ vbss02a
           , vbss02b
           , vbss02c
           , vbss02d
           ]
 
-testBackMod20 = testEq "testBackMod20" vbss02 $
-                rdfQueryBackModify varBindingId vbss02
-
-testBackMod21 = testEq "testBackMod21" [vbss02d] $
-                rdfQueryBackModify
-                    (makeVarFilterModify $ rdfVarBindingUriRef v_a)
-                    vbss02
-
 --  Variable binding modifier that adds new bindings, if certain
 --  others are present.
+
+vbm22 :: VarBindingModify RDFLabel RDFLabel
 vbm22 = VarBindingModify
         { vbmName  = swishName "vbm22"
         , vbmApply = concatMap apply1
@@ -1395,6 +1409,7 @@ vbm22 = VarBindingModify
                 nvb = makeVarBinding [(v_y,b)]
         apply2 _ _ _ _ = []
 
+vbss02dy :: [[RDFVarBinding]]
 vbss02dy = sequence
     [ [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1), (v_y,u_p1)  ]
       , makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1), (v_y,b_l1)  ]
@@ -1413,24 +1428,24 @@ vbss02dy = sequence
       ]
     ]
 
-testBackMod22 = testEq "testBackMod22" vbss02dy $
-                rdfQueryBackModify vbm22 vbss02
-
-
 --  simplified version of above for debugging --
 
+vbss03a :: [RDFVarBinding]
 vbss03a = [ makeVarBinding [ (v_x,u_s), (v_a,u_p1),  (v_b,b_l1) ]
           , makeVarBinding [ (v_b,b_l1) ]
           ]
 
+vbss03b :: [RDFVarBinding]
 vbss03b = [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
           , makeVarBinding [ (v_x,u_s),  (v_a,u_p2a), (v_b,b_l2) ]
           ]
 
+vbss03 :: [[RDFVarBinding]]
 vbss03  = [ vbss03a
           , vbss03b
           ]
 
+vbss03by :: [[RDFVarBinding]]
 vbss03by = sequence
     [ [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1), (v_y,u_p1)  ]
       , makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1), (v_y,b_l1)  ]
@@ -1440,38 +1455,83 @@ vbss03by = sequence
       ]
     ]
 
-testBackMod30 = testEq "testBackMod30" vbss03by $
-                rdfQueryBackModify vbm22 vbss03
-
+test7 :: Test
 test7 = TestList
-    [ testBackMod01, testBackMod02, testBackMod03, testBackMod04
-    , testBackMod05, testBackMod06, testBackMod07, testBackMod08
-    , testBackMod09, testBackMod10
-    , testBackMod20, testBackMod21, testBackMod22
-    , testBackMod30
+    [ testEq "testBackMod01" vbss01 $
+                rdfQueryBackModify varBindingId vbss01
+    , testEq "testBackMod02" [vbss01a,vbss01b,vbss01c,vbss01d] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingUriRef v_a)
+                    vbss01
+    , testEq "testBackMod03" [vbss01f,vbss01i] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingBlank v_a)
+                    vbss01
+    , testEq "testBackMod04" vbss01 $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingUriRef v_b)
+                    vbss01
+    , testEq "testBackMod05"
+                [vbss01c,vbss01d,vbss01e,vbss01f,vbss01h,vbss01i] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingLiteral v_c)
+                    vbss01
+    , testEq "testBackMod06" [vbss01d] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingUntypedLiteral v_c)
+                    vbss01
+    , testEq "testBackMod07" [vbss01e,vbss01f,vbss01h,vbss01i] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingTypedLiteral v_c)
+                    vbss01
+    , testEq "testBackMod08" [vbss01f] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingXMLLiteral v_c)
+                    vbss01
+    , testEq "testBackMod09" [vbss01g] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingMemberProp v_b)
+                    vbss01
+    , testEq "testBackMod10" [vbss01h] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingDatatyped v_x v_c)
+                    vbss01
+    , testEq "testBackMod20" vbss02 $
+                rdfQueryBackModify varBindingId vbss02
+    , testEq "testBackMod21" [vbss02d] $
+                rdfQueryBackModify
+                    (makeVarFilterModify $ rdfVarBindingUriRef v_a)
+                    vbss02
+    , testEq "testBackMod22" vbss02dy $
+                rdfQueryBackModify vbm22 vbss02
+    , testEq "testBackMod30" vbss03by $
+                rdfQueryBackModify vbm22 vbss03
     ]
 
 ------------------------------------------------------------
 --  Test simple value and list queries
 ------------------------------------------------------------
 
+{-
+TODO: for now remove this from the test since it uses :-
+
+namespacetest, namespacelist :: Namespace
 namespacetest    =
     Namespace   "test"   "urn:test:"
 namespacelist    =
     Namespace   "list"   "urn:list:"
 
+qntest, qnlist :: String -> ScopedName
 qntest loc = ScopedName namespacetest loc
 qnlist loc = ScopedName namespacelist loc
 
+prefixlist :: String
 prefixlist =
     "@prefix rdf  : <" ++ nsURI namespaceRDF ++ "> . \n"  ++
     "@prefix xsd  : <" ++ nsURI namespaceXSD ++ "> . \n"  ++
     "@prefix test : <" ++ nsURI namespacetest ++ "> . \n" ++
     "@prefix list : <" ++ nsURI namespacelist ++ "> . \n" ++
     " \n"
-
-{-
-TODO: for now remove this from the test since it uses :-
 
 graphlist    = graphFromString graphliststr
 graphliststr = prefixlist ++
@@ -1488,7 +1548,6 @@ graphliststr = prefixlist ++
     "  test:q \"3\" . "                            ++
     "list:three :- (list:_1 list:_2 list:_3) . \n" ++
     "list:empty :- () . \n"
--}
 
 testC1  = Res (qntest "C1")
 testabc = [ Res (qntest "a"),Res (qntest "b"),Res (qntest "c") ]
@@ -1507,7 +1566,6 @@ test1fp = [ Lit "1" (Just xsd_integer)
 list01 = [Res (qnlist "_1"),Res (qnlist "_2"),Res (qnlist "_3")]
 list02 = []
 
-{-
 testVal01  = testEqv "testVal01" testabc $
                 rdfFindValSubj res_rdf_type testC1 graphlist
 testVal02  = testEqv "testVal02" testi12 $
@@ -1571,6 +1629,7 @@ tl3  = queryList graphlist th3
 --  and useful expressions for interactive use
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
   [ test1
   , test2
@@ -1581,8 +1640,10 @@ allTests = TestList
 --  , test8
   ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+{-
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     runTestText (putTextToHandle h False) t
@@ -1591,6 +1652,7 @@ tf = runTestFile
 tt = runTestTT
 
 shres32 = TestCase $ assertString (show res32)
+-}
 
 --------------------------------------------------------------------------------
 --

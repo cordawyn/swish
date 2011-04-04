@@ -10,8 +10,8 @@
 --  Stability   :  provisional
 --  Portability :  H98
 --
---  This module contains test cases for thje funtion for accessing built-in
---  variable binding modifiers.
+--  This module contains test cases for accessing built-in variable
+--  binding modifiers.
 --
 --------------------------------------------------------------------------------
 
@@ -29,9 +29,8 @@ import Swish.RDF.RDFDatatypeXsdInteger
     )
 
 import Swish.RDF.Ruleset
-    ( Ruleset(..)
-    , getContextAxiom, getMaybeContextAxiom
-    , getContextRule,  getMaybeContextRule
+    ( getMaybeContextAxiom
+    , getMaybeContextRule
     )
 
 import Swish.Utils.Namespace
@@ -52,25 +51,19 @@ import Swish.Utils.ListHelpers
     ( equiv )
 
 import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
+    ( Test(TestCase,TestList)
     , Assertion
-    , assertBool, assertEqual, assertString, assertFailure
+    , assertBool, assertEqual, assertFailure
     , runTestTT, runTestText, putTextToHandle
     )
 
 import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn
+    ( IOMode(WriteMode)
+    , openFile, hClose
     )
 
-import Control.Monad
-    ( unless )
-
-import Data.List
-    ( sort, union, intersect )
-
-import Data.Maybe
-    ( isJust, fromJust, fromMaybe )
+import Control.Monad (unless)
+import Data.Maybe (isJust)
 
 
 ------------------------------------------------------------
@@ -158,6 +151,9 @@ testMaybeEqv lab a1 a2 =
 --  Test finding built-in variable binding modifiers
 ------------------------------------------------------------
 
+testVarMod01, testVarMod02, testVarMod03, testVarMod04, 
+  testVarMod05, testVarMod06, testVarMod07 :: Test
+
 testVarMod01 = testJust "testVarMod01" $
     findRDFOpenVarBindingModifier (swishName "rdfVarBindingUriRef")
 testVarMod02 = testJust "testVarMod02" $
@@ -173,6 +169,7 @@ testVarMod06 = testJust "testVarMod06" $
 testVarMod07 = testJust "testVarMod07" $
     findRDFOpenVarBindingModifier (ScopedName namespaceXsdInteger "ge")
 
+testVarModSuite :: Test
 testVarModSuite = TestList
     [ testVarMod01, testVarMod02, testVarMod03, testVarMod04
     , testVarMod05, testVarMod06, testVarMod07
@@ -182,8 +179,10 @@ testVarModSuite = TestList
 --  Test finding built-in datatypes
 ------------------------------------------------------------
 
+testDatatype01 :: Test
 testDatatype01 = testJust "testDatatype01" $ findRDFDatatype typeNameXsdInteger
 
+testDatatypeSuite :: Test
 testDatatypeSuite = TestList
     [ testDatatype01
     ]
@@ -192,9 +191,11 @@ testDatatypeSuite = TestList
 --  Test finding built-in rulesets
 ------------------------------------------------------------
 
+testRuleset01 :: Test
 testRuleset01 = testJust "testRuleset01" $
     mapFindMaybe scopeRDF rdfRulesetMap
 
+testRulesetSuite :: Test
 testRulesetSuite = TestList
     [ testRuleset01
     ]
@@ -202,6 +203,8 @@ testRulesetSuite = TestList
 ------------------------------------------------------------
 --  Test finding arbitrary axioms and rules
 ------------------------------------------------------------
+
+testFindAxiom01, testFindAxiom02, testFindAxiom03 :: Test
 
 testFindAxiom01 = testJust "testFindAxiom01" $
     getMaybeContextAxiom (ScopedName scopeRDF "a1") allRulesets
@@ -211,9 +214,12 @@ testFindAxiom03 = testJust "testFindAxiom03" $
     getMaybeContextAxiom (ScopedName (namespaceXsdType "integer") "dt")
         allRulesets
 
+testFindAxiomSuite :: Test
 testFindAxiomSuite = TestList
     [ testFindAxiom01, testFindAxiom02, testFindAxiom03
     ]
+
+testFindRule01, testFindRule02, testFindRule03, testFindRule04 :: Test
 
 testFindRule01 = testJust "testFindRule01" $
     getMaybeContextRule (ScopedName scopeRDF "r1") allRulesets
@@ -225,6 +231,7 @@ testFindRule04 = testJust "testFindRule04" $
     getMaybeContextRule (ScopedName (namespaceXsdType "integer") "Abs")
         allRulesets
 
+testFindRuleSuite :: Test
 testFindRuleSuite = TestList
     [ testFindRule01, testFindRule02, testFindRule03, testFindRule04
     ]
@@ -233,6 +240,7 @@ testFindRuleSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
     [ testVarModSuite
     , testDatatypeSuite
@@ -241,14 +249,19 @@ allTests = TestList
     , testFindRuleSuite
     ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+runTestFile :: Test -> IO ()
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
+    _ <- runTestText (putTextToHandle h False) t
     hClose h
+    
+{-
 tf = runTestFile
 tt = runTestTT
+-}
 
 --------------------------------------------------------------------------------
 --

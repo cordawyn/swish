@@ -350,34 +350,34 @@ dg1 = toRDFGraph [arc ds1 dp1 do1]
 
 dg2 :: RDFGraph
 dg2 = toRDFGraph
-      [ arc a1 b1 c1
-      , arc a2 b2 c2
-      , arc a3 b3 c3
-      , arc a4 b4 c4
-      , arc a5 b5 c5
+      [ arc xa1 xb1 xc1
+      , arc xa2 xb2 xc2
+      , arc xa3 xb3 xc3
+      , arc xa4 xb4 xc4
+      , arc xa5 xb5 xc5
       ]
   where
     -- the document base is set to file:///dev/null to begin with
     mU = Res . makeUriScopedName 
-    a1 = mU "file:///dev/a1"
-    b1 = mU "file:///dev/b1"
-    c1 = mU "file:///dev/c1"
-    a2 = mU "http://example.org/ns/a2"
-    b2 = mU "http://example.org/ns/b2"
-    c2 = mU "http://example.org/ns/c2"
-    a3 = mU "http://example.org/ns/foo/a3"
-    b3 = mU "http://example.org/ns/foo/b3"
-    c3 = mU "http://example.org/ns/foo/c3"
+    xa1 = mU "file:///dev/a1"
+    xb1 = mU "file:///dev/b1"
+    xc1 = mU "file:///dev/c1"
+    xa2 = mU "http://example.org/ns/a2"
+    xb2 = mU "http://example.org/ns/b2"
+    xc2 = mU "http://example.org/ns/c2"
+    xa3 = mU "http://example.org/ns/foo/a3"
+    xb3 = mU "http://example.org/ns/foo/b3"
+    xc3 = mU "http://example.org/ns/foo/c3"
     
     ns4 = Namespace "" "http://example.org/ns/foo/bar#"
     ns5 = Namespace "" "http://example.org/ns2#"
     mUN a b = Res (ScopedName a b)
-    a4 = mUN ns4 "a4"
-    b4 = mUN ns4 "b4"
-    c4 = mUN ns4 "c4"
-    a5 = mUN ns5 "a5"
-    b5 = mUN ns5 "b5"
-    c5 = mUN ns5 "c5"
+    xa4 = mUN ns4 "a4"
+    xb4 = mUN ns4 "b4"
+    xc4 = mUN ns4 "c4"
+    xa5 = mUN ns5 "a5"
+    xb5 = mUN ns5 "b5"
+    xc5 = mUN ns5 "c5"
 
 nslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace

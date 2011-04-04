@@ -3,9 +3,12 @@ syntax: glob
 *~
 *.hi
 *.o
+*.tix
 
 syntax: regexp
 (.*/)?\#[^/]*\#$
 
 ^dist/
+^.hpc/
+^prof/
 

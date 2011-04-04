@@ -18,66 +18,73 @@ module Main where
 
 import Swish.RDF.GraphPartition
     ( PartitionedGraph(..), getArcs
-    , GraphPartition(..), node, toArcs
+    , GraphPartition(..), node
     , partitionGraph, comparePartitions
     )
 
-import Swish.RDF.GraphClass
-    ( Label(..)
-    , Arc(..), arcSubj, arcPred, arcObj, arc, arcToTriple, arcFromTriple
-    -- , hasLabel, arcLabels
-    )
+import Swish.RDF.GraphClass (Arc(..))
 
-import Swish.RDF.GraphMem
-    -- ( GraphMem(..)
-    -- , setArcs, getArcs, add, delete, extract, labels
-    ( LabelMem(..)
-    , labelIsVar, labelHash
-    )
+import Swish.RDF.GraphMem (LabelMem(..))
 
-import Swish.Utils.TestHelpers
-    ( test, testEq, 
-    --     WNH FIX testNe, 
-    testLe, testGe, testElem
-    , testJust, testNothing
-    , testEqv, 
-    --   WNH FIXtestNotEqv, 
-    testEqv2, testHasEqv, testMaybeEqv
-    )
+import Swish.Utils.ListHelpers (equiv)
 
-import Swish.Utils.ListHelpers
-    ( equiv )
+import Test.HUnit (Test(TestCase, TestList),
+                   assertEqual, assertBool,
+                   runTestTT)
 
-import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
-    , Assertion
-    , assertBool, assertEqual, assertString, assertFailure
-    , runTestTT, runTestText, putTextToHandle
-    )
+------------------------------------------------------------
+--  Test case helpers
+------------------------------------------------------------
 
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn
-    )
+testEq :: (Eq a, Show a) => String -> a -> a -> Test
+testEq lab a1 a2 =
+    TestCase ( assertEqual ("testEq:"++lab) a1 a2 )
 
-import Control.Monad
-    ( unless )
+testNe :: (Eq a, Show a) => String -> a -> a -> Test
+testNe lab a1 a2 =
+    TestCase ( assertBool ("testNe:"++lab) (a1 /= a2) )
 
-import Data.List
-    ( sort, union, intersect )
+-- Compare lists and lists of lists and Maybe lists for set equivalence:
 
-import Data.Maybe
-    ( isJust, fromJust, fromMaybe )
+data ListTest a = ListTest [a]
+
+instance (Eq a) => Eq (ListTest a) where
+    (ListTest a1) == (ListTest a2) = a1 `equiv` a2
+
+instance (Show a) => Show (ListTest a) where
+    show (ListTest a) = show a
+
+data MaybeListTest a = MaybeListTest (Maybe [a])
+
+instance (Eq a) => Eq (MaybeListTest a) where
+    MaybeListTest (Just a1) == MaybeListTest (Just a2) = a1 `equiv` a2
+    MaybeListTest Nothing   == MaybeListTest Nothing   = True
+    _                       == _                       = False
+
+instance (Show a) => Show (MaybeListTest a) where
+    show (MaybeListTest a) = show a
+
+testEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
+testEqv lab a1 a2 =
+    TestCase ( assertEqual ("testEqv:"++lab) (ListTest a1) (ListTest a2) )
+
+testNotEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
+testNotEqv lab a1 a2 =
+    TestCase ( assertBool ("testEqv:"++lab) (ListTest a1 /= ListTest a2) )
 
 ------------------------------------------------------------
 --  Basic GraphPartition tests
 ------------------------------------------------------------
+
+gp1, gp2, gp3, gp4, gp5 :: PartitionedGraph LabelMem
 
 gp1 = PartitionedGraph [ p11 ]
 gp2 = PartitionedGraph [ p11, p12 ]
 gp3 = PartitionedGraph [ p11, p13 ]
 gp4 = PartitionedGraph [ p11, p14 ]
 gp5 = PartitionedGraph [ p11, p12, p15 ]
+
+p11, p12, p13, p14, p15 :: GraphPartition LabelMem
 
 p11 = PartSub (LF "s1") [ (LF "p11",PartObj (LF "o11")) ]
 p12 = PartSub (LF "s2") [ (LF "p21",PartObj (LF "o21"))
@@ -95,6 +102,8 @@ p15 = PartSub (LF "s3") [ (LF "p31",PartObj (LF "o31"))
                         , (LF "p32",PartObj (LF "s2"))
                         , (LF "p33",PartObj (LF "s3"))
                         ]
+
+ga1, ga2, ga3, ga4, ga5 :: [Arc LabelMem]
 
 ga1 =
     [ Arc (LF "s1") (LF "p11") (LF "o11")
@@ -131,15 +140,19 @@ ga5 =
     , Arc (LF "s3") (LF "p33") (LF "s3")
     ]
 
+testBasic01, testBasic02, testBasic03, testBasic04, testBasic05 :: Test 
+
 testBasic01 = testEq "testBasic01" gp1 gp1
 testBasic02 = testEq "testBasic02" gp2 gp2
 testBasic03 = testEq "testBasic03" gp3 gp3
 testBasic04 = testEq "testBasic04" gp4 gp4
 testBasic05 = testEq "testBasic05" gp5 gp5
-{-     WNH FIX 
+
+testBasic06, testBasic07 :: Test
 testBasic06 = testNe "testBasic06" gp2 gp3
 testBasic07 = testNe "testBasic07" gp3 gp4
--}
+
+testBasic11, testBasic12, testBasic13, testBasic14, testBasic15 :: Test 
 
 testBasic11 = testEq "testBasic11"
         "PartitionedGraph [(!s1 !p11 !o11)]"
@@ -174,29 +187,35 @@ testBasic15 = testEq "testBasic15"
         )
         (show gp5)
 
+testBasic21, testBasic22, testBasic23, testBasic24, testBasic25 :: Test 
+
 testBasic21 = testEq "testBasic21" (LF "s1") (node p11)
 testBasic22 = testEq "testBasic22" (LF "s2") (node p12)
 testBasic23 = testEq "testBasic23" (LF "s3") (node p13)
 testBasic24 = testEq "testBasic24" (LF "s3") (node p14)
 testBasic25 = testEq "testBasic25" (LF "s3") (node p15)
 
+testBasic31, testBasic32, testBasic33, testBasic34, testBasic35,
+  testBasic36, testBasic37, testBasic38 :: Test 
+
 testBasic31 = testEq "testBasic31" ga1 (getArcs gp1)
 testBasic32 = testEq "testBasic32" ga2 (getArcs gp2)
 testBasic33 = testEq "testBasic33" ga3 (getArcs gp3)
 testBasic34 = testEq "testBasic34" ga4 (getArcs gp4)
 testBasic35 = testEq "testBasic35" ga5 (getArcs gp5)
---     WNH FIX testBasic36 = testNotEqv "testBasic36" (getArcs gp2) (getArcs gp3)
+testBasic36 = testNotEqv "testBasic36" (getArcs gp2) (getArcs gp3)
 testBasic37 = testEqv    "testBasic37" (getArcs gp3) (getArcs gp4)
 testBasic38 = testEqv    "testBasic38" (getArcs gp3) (getArcs gp5)
 
+testBasicSuite :: Test
 testBasicSuite = TestList
     [ testBasic01
     , testBasic02
     , testBasic03
     , testBasic04
     , testBasic05
-    --   WNH FIX, testBasic06
-    --   WNH FIX, testBasic07
+    , testBasic06
+    , testBasic07
     , testBasic11
     , testBasic12
     , testBasic13
@@ -212,7 +231,7 @@ testBasicSuite = TestList
     , testBasic33
     , testBasic34
     , testBasic35
-    -- WNH FIX, testBasic36
+    , testBasic36
     , testBasic37
     , testBasic38
     ]
@@ -220,6 +239,8 @@ testBasicSuite = TestList
 ------------------------------------------------------------
 --  Creating GraphPartition tests
 ------------------------------------------------------------
+
+pa1, pa2, pa3, pa4, pa5, pa6 :: [Arc LabelMem]
 
 pa1 =
     [ Arc (LF "s1") (LF "p") (LF "o11")
@@ -283,6 +304,9 @@ pa6 =
     , Arc (LV "b5c") (LF "p") (LV "b5a")
     ]
 
+pp1, pp2f, pp2r, pp3f, pp3r, pp4f, pp4r, pp5f, pp5r,
+  pp6f, pp6r :: PartitionedGraph LabelMem
+
 pp1  = PartitionedGraph [ ps1 ]
 pp2f = PartitionedGraph [ ps1,  ps2f ]
 pp2r = PartitionedGraph [ ps2r, ps1 ]
@@ -294,6 +318,9 @@ pp5f = PartitionedGraph [ ps1,  ps2f, pb3af, pb5a1 ]
 pp5r = PartitionedGraph [ ps2r, ps1,  pb3ar, pb5c3 ]
 pp6f = PartitionedGraph [ ps1,  ps2f, pb3bf, pb5b2 ]
 pp6r = PartitionedGraph [ ps2r, ps1,  pb5b2, pb3br ]
+
+ps1, ps2f, ps2r, pb3f, pb3r, pb3af, pb3ar,
+  pb4af, pb4ar :: GraphPartition LabelMem
 
 ps1  = PartSub (LF "s1") [ (LF "p",PartObj (LF "o11")) ]
 ps2f = PartSub (LF "s2") [ (LF "p1",PartObj (LF "o21"))
@@ -327,9 +354,14 @@ pb4af = PartSub (LV "b4") [ (LF "p",PartObj (LF "s2"))
 pb4ar = PartSub (LV "b4") [ (LF "p",PartObj (LV "b3"))
                           , (LF "p",PartObj (LF "s2"))
                           ]
+        
+pb5a1, pb5b1, pb5c1 :: GraphPartition LabelMem
+
 pb5a1 = PartSub (LV "b5a") [ (LF "p",pb5b1) ]
 pb5b1 = PartSub (LV "b5b") [ (LF "p",pb5c1) ]
 pb5c1 = PartSub (LV "b5c") [ (LF "p",PartObj (LV "b5a")) ]
+
+pb3bf, pb3br, pb4bf, pb4br :: GraphPartition LabelMem
 
 pb3bf = PartSub (LV "b3") [ (LF "p",PartObj (LF "o31"))
                           , (LF "p",PartObj (LF "s2"))
@@ -349,13 +381,21 @@ pb4br = PartSub (LV "b4") [ (LF "p",PartObj (LV "b5b"))
                           , (LF "p",PartObj (LV "b3"))
                           , (LF "p",PartObj (LF "s2"))
                           ]
+
+pb5a2, pb5b2, pb5c2 :: GraphPartition LabelMem
+
 pb5a2 = PartSub (LV "b5a") [ (LF "p",PartObj (LV "b5b")) ]
 pb5b2 = PartSub (LV "b5b") [ (LF "p",pb5c2) ]
 pb5c2 = PartSub (LV "b5c") [ (LF "p",pb5a2) ]
 
+pb5a3, pb5b3, pb5c3 :: GraphPartition LabelMem
+
 pb5a3 = PartSub (LV "b5a") [ (LF "p",pb5b3) ]
 pb5b3 = PartSub (LV "b5b") [ (LF "p",PartObj (LV "b5c")) ]
 pb5c3 = PartSub (LV "b5c") [ (LF "p",pb5a3) ]
+
+testPartition11, testPartition12, testPartition13, testPartition14, testPartition15, 
+  testPartition16 :: Test
 
 testPartition11 = testEq "testPartition11" pp1  (partitionGraph pa1)
 testPartition12 = testEq "testPartition12" pp2f (partitionGraph pa2)
@@ -364,12 +404,18 @@ testPartition14 = testEq "testPartition15" pp4f (partitionGraph pa4)
 testPartition15 = testEq "testPartition14" pp5f (partitionGraph pa5)
 testPartition16 = testEq "testPartition16" pp6f (partitionGraph pa6)
 
+testPartition21, testPartition22, testPartition23, testPartition24, testPartition25, 
+  testPartition26 :: Test
+
 testPartition21 = testEq "testPartition21" pp1  (partitionGraph $ reverse pa1)
 testPartition22 = testEq "testPartition22" pp2r (partitionGraph $ reverse pa2)
 testPartition23 = testEq "testPartition23" pp3r (partitionGraph $ reverse pa3)
 testPartition24 = testEq "testPartition24" pp4r (partitionGraph $ reverse pa4)
 testPartition25 = testEq "testPartition25" pp5r (partitionGraph $ reverse pa5)
 testPartition26 = testEq "testPartition26" pp6r (partitionGraph $ reverse pa6)
+
+testPartition31, testPartition32, testPartition33, testPartition34, testPartition35, 
+  testPartition36 :: Test
 
 testPartition31 = testEqv "testPartition31" pa1  (getArcs pp1)
 testPartition32 = testEqv "testPartition32" pa2  (getArcs pp2f)
@@ -378,12 +424,18 @@ testPartition34 = testEqv "testPartition35" pa4  (getArcs pp4f)
 testPartition35 = testEqv "testPartition34" pa5  (getArcs pp5f)
 testPartition36 = testEqv "testPartition36" pa6  (getArcs pp6f)
 
+testPartition41, testPartition42, testPartition43, testPartition44, testPartition45, 
+  testPartition46 :: Test
+
 testPartition41 = testEqv "testPartition41" pa1  (getArcs pp1 )
 testPartition42 = testEqv "testPartition42" pa2  (getArcs pp2r)
 testPartition43 = testEqv "testPartition43" pa3  (getArcs pp3r)
 testPartition44 = testEqv "testPartition44" pa4  (getArcs pp4r)
 testPartition45 = testEqv "testPartition45" pa5  (getArcs pp5r)
 testPartition46 = testEqv "testPartition46" pa6  (getArcs pp6r)
+
+testPartition51, testPartition52, testPartition53, testPartition54, testPartition55, 
+  testPartition56, testPartition57, testPartition58, testPartition59 :: Test
 
 testPartition51 = testEqv "testPartition51" []   (comparePartitions pp1  pp1)
 testPartition52 = testEqv "testPartition52" []   (comparePartitions pp2f pp2r)
@@ -401,6 +453,7 @@ testPartition59 = testEqv "testPartition59"
         [(Nothing,Just $ PartSub (LV "b4") [(LF "p",PartObj (LV "b5b"))])]
         (comparePartitions pp5f pp6f)
 
+testPartitionSuite :: Test
 testPartitionSuite = TestList
     [ testPartition11
     , testPartition12
@@ -442,8 +495,12 @@ testPartitionSuite = TestList
 --  GraphPartition compare test with partial matching
 ------------------------------------------------------------
 
+pgc1a, pgc1b :: PartitionedGraph LabelMem
+
 pgc1a = PartitionedGraph [ c11, c12a ]
 pgc1b = PartitionedGraph [ c11, c12b ]
+
+c11, c12a, c12b, c13a, c13b :: GraphPartition LabelMem
 
 c11  = PartSub (LF "s1") [ (LF "p11",PartObj (LF "o11")) ]
 c12a = PartSub (LF "s2") [ (LF "p21",c13a)
@@ -458,11 +515,13 @@ c13a = PartSub (LV "b3") [ (LF "p31",PartObj (LF "o31"))
 c13b = PartSub (LV "b3") [ (LF "p31",PartObj (LF "o31"))
                          , (LF "p33",PartObj (LF "o33b"))
                          ]
+       
+testCompare01 :: Test
 testCompare01 = testEqv "testCompare01"
         [(Just (PartObj (LF "o33a")),Just (PartObj (LF "o33b")))]
         (comparePartitions pgc1a pgc1b)
 
-
+testCompareSuite :: Test
 testCompareSuite = TestList
     [ testCompare01
     ]
@@ -471,20 +530,24 @@ testCompareSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
     [ testBasicSuite
     , testPartitionSuite
     , testCompareSuite
     ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
 
+{-
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     runTestText (putTextToHandle h False) t
     hClose h
 tf = runTestFile
 tt = runTestTT
+-}
 
 --------------------------------------------------------------------------------
 --

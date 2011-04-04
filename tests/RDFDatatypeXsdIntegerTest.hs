@@ -29,15 +29,12 @@ import Swish.RDF.RDFVarBinding
     ( RDFVarBinding )
 
 import Swish.RDF.RDFRuleset
-    ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
+    ( RDFRule 
     , makeRDFGraphFromN3String
-    , makeRDFFormula
     )
 
 import Swish.RDF.RDFDatatype
-    ( RDFDatatype
-    , RDFDatatypeVal
-    , RDFDatatypeMod
+    ( RDFDatatypeMod
     , applyRDFDatatypeMod
     )
 
@@ -45,17 +42,10 @@ import Swish.RDF.RDFGraph
     ( RDFLabel(..), RDFGraph
     )
 
-import Swish.RDF.ClassRestrictionRule
-    ( ClassRestriction(..), ClassRestrictionFn
-    , makeDatatypeRestriction, makeDatatypeRestrictionFn
-    , makeRDFClassRestrictionRules
-    , makeRDFDatatypeRestrictionRules
-    , falseGraph, falseGraphStr
-    )
+import Swish.RDF.ClassRestrictionRule (falseGraphStr)
 
 import Swish.RDF.Datatype
-    ( Datatype(..)
-    , typeName, typeRules, typeMkRules
+    ( typeName, typeRules, typeMkRules
     , getTypeAxiom, getTypeRule
     , DatatypeVal(..)
     , getDTMod
@@ -66,73 +56,42 @@ import Swish.RDF.Datatype
 
 import Swish.RDF.Ruleset
     ( Ruleset(..)
-    , getRulesetAxiom, getRulesetRule
+    , getRulesetRule
     )
 
 import Swish.RDF.Rule
-    ( Expression(..), Formula(..), Rule(..)
-    , nullScope, nullFormula, nullRule
+    ( Formula(..), Rule(..)
+    , nullFormula, nullRule
     )
 
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    , makeVarBinding
-    , VarBindingModify(..)
-    )
+import Swish.RDF.VarBinding (makeVarBinding)
 
 import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
-    , getScopePrefix, getScopeURI
-    , getQName, getScopedNameURI
     , makeScopedName
-    , matchName
     )
 
-import Swish.RDF.Vocabulary
-    ( namespaceNull
-    , namespaceRDF
-    , namespaceRDFS
-    , namespaceXSD
-    , namespaceMATH
-    , namespaceXsdType
-    , namespaceDefault
-    , scopeRDF
-    , scopeRDFS
-    , scopeRDFD
-    )
-
-import Swish.Utils.QName
-    ( QName(..)
-    )
+import Swish.RDF.Vocabulary (namespaceDefault)
 
 import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    , mapFind, mapFindMaybe
+    ( LookupMap(..)
+    , mapFindMaybe
     )
 
 import Swish.Utils.ListHelpers
     ( equiv )
 
 import Test.HUnit
-    ( Test(TestCase,TestList,TestLabel)
+    ( Test(TestCase,TestList)
     , Assertion
-    , assertBool, assertEqual, assertString, assertFailure
-    , runTestTT, runTestText, putTextToHandle
+    , assertBool, assertEqual, assertFailure
+    , runTestTT
     )
 
-import System.IO
-    ( Handle, IOMode(WriteMode)
-    , openFile, hClose, hPutStr, hPutStrLn
-    )
+import Control.Monad (unless)
 
-import Control.Monad ( unless )
-
-import Data.List
-    ( sort, union, intersect )
-
-import Data.Maybe
-    ( isJust, fromJust, fromMaybe )
+import Data.Maybe (isJust, fromMaybe)
 
 
 ------------------------------------------------------------
@@ -220,10 +179,17 @@ testMaybeEqv lab a1 a2 =
 --  Misc values
 ------------------------------------------------------------
 
-xsd_int_name nam  = (ScopedName namespaceXsdInteger nam)
+xsd_int_name :: String -> ScopedName
+xsd_int_name nam  = ScopedName namespaceXsdInteger nam
 
+axiomXsdIntegerDT :: ScopedName
 axiomXsdIntegerDT       = xsd_int_name "dt"
 
+ruleXsdIntegerAbs, ruleXsdIntegerNeg, ruleXsdIntegerSum,
+  ruleXsdIntegerDiff, ruleXsdIntegerProd, ruleXsdIntegerDivMod,
+  ruleXsdIntegerPower, ruleXsdIntegerEq, ruleXsdIntegerNe, 
+  ruleXsdIntegerLt, ruleXsdIntegerLe, ruleXsdIntegerGt,
+  ruleXsdIntegerGe :: ScopedName
 ruleXsdIntegerAbs       = xsd_int_name "Abs"
 ruleXsdIntegerNeg       = xsd_int_name "Neg"
 ruleXsdIntegerSum       = xsd_int_name "Sum"
@@ -242,72 +208,77 @@ ruleXsdIntegerGe        = xsd_int_name "Ge"
 --  Basic rdfDatatypeXsdInteger tests
 ------------------------------------------------------------
 
+getXsdIntegerAxiom :: ScopedName -> Formula RDFGraph
 getXsdIntegerAxiom scopnam =
     fromMaybe nullFormula $ getTypeAxiom scopnam rdfDatatypeXsdInteger
 
+getXsdIntegerRule :: ScopedName -> Rule RDFGraph
 getXsdIntegerRule scopnam =
     fromMaybe nullRule $ getTypeRule scopnam rdfDatatypeXsdInteger
 
+getXsdIntegerDTmod :: ScopedName -> DatatypeMod Integer RDFLabel RDFLabel
 getXsdIntegerDTmod scopnam =
     fromMaybe nullDatatypeMod $ getDTMod scopnam rdfDatatypeValXsdInteger
 
-testDatatype01 = testEq  "testDatatype01" typeNameXsdInteger $
-                    typeName rdfDatatypeXsdInteger
-testDatatype02 = testEq  "testDatatype02" namespaceXsdInteger $
-                    rsNamespace (typeRules rdfDatatypeXsdInteger)
-testDatatype03 = testEqv "testDatatype03" axiomsXsdInteger $
-                    rsAxioms (typeRules rdfDatatypeXsdInteger)
-testDatatype04 = testEqv "testDatatype04" rulesXsdInteger $
-                    rsRules (typeRules rdfDatatypeXsdInteger)
-testDatatype05 = testEq "testDatatype05" axiomXsdIntegerDT $
-                    formName (getXsdIntegerAxiom axiomXsdIntegerDT)
-testDatatype06 = testEq "testDatatype06" ruleXsdIntegerAbs $
-                    ruleName (getXsdIntegerRule ruleXsdIntegerAbs)
-
-testDatatypeSuite = TestList
-    [ testDatatype01, testDatatype02, testDatatype03, testDatatype04
-    , testDatatype05, testDatatype06
-    ]
-
+testDatatypeSuite :: Test
+testDatatypeSuite = 
+  TestList
+  [ testEq  "testDatatype01" typeNameXsdInteger $
+    typeName rdfDatatypeXsdInteger
+  , testEq  "testDatatype02" namespaceXsdInteger $
+    rsNamespace (typeRules rdfDatatypeXsdInteger)
+  , testEqv "testDatatype03" axiomsXsdInteger $
+    rsAxioms (typeRules rdfDatatypeXsdInteger)
+  , testEqv "testDatatype04" rulesXsdInteger $
+    rsRules (typeRules rdfDatatypeXsdInteger)
+  , testEq "testDatatype05" axiomXsdIntegerDT $
+    formName (getXsdIntegerAxiom axiomXsdIntegerDT)
+  , testEq "testDatatype06" ruleXsdIntegerAbs $
+    ruleName (getXsdIntegerRule ruleXsdIntegerAbs)
+  ]
+  
 ------------------------------------------------------------
 --  Basic rdfDatatypeValXsdInteger tests
 ------------------------------------------------------------
 
-testDatatypeVal01 = testEq  "testDatatypeVal01" (Just 123) $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) "123"
-testDatatypeVal02 = testEq  "testDatatypeVal02" (Just 0) $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) "0"
-testDatatypeVal03 = testEq  "testDatatypeVal03" (Just 456) $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) "+000456"
-testDatatypeVal04 = testEq  "testDatatypeVal04" (Just (-987)) $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) "-0987"
-testDatatypeVal05 = testEq  "testDatatypeVal05" Nothing $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) "11x2"
-testDatatypeVal06 = testEq  "testDatatypeVal06" Nothing $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) " 321"
-testDatatypeVal07 = testEq  "testDatatypeVal07" Nothing $
-                        mapL2V (tvalMap rdfDatatypeValXsdInteger) "321 "
+testDatatypeValSuite :: Test
+testDatatypeValSuite = 
+  TestList
+  [ testEq  "testDatatypeVal01" (Just 123) $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) "123"
+  , testEq  "testDatatypeVal02" (Just 0) $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) "0"
+  , testEq  "testDatatypeVal03" (Just 456) $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) "+000456"
+  , testEq  "testDatatypeVal04" (Just (-987)) $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) "-0987"
+  , testEq  "testDatatypeVal05" Nothing $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) "11x2"
+  , testEq  "testDatatypeVal06" Nothing $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) " 321"
+  , testEq  "testDatatypeVal07" Nothing $
+       mapL2V (tvalMap rdfDatatypeValXsdInteger) "321 "
 
-testDatatypeVal11 = testEq  "testDatatypeVal11" (Just "123") $
-                        mapV2L (tvalMap rdfDatatypeValXsdInteger) 123
-testDatatypeVal12 = testEq  "testDatatypeVal12" (Just "-987") $
-                        mapV2L (tvalMap rdfDatatypeValXsdInteger) (-987)
+  , testEq  "testDatatypeVal11" (Just "123") $
+       mapV2L (tvalMap rdfDatatypeValXsdInteger) 123
+  , testEq  "testDatatypeVal12" (Just "-987") $
+       mapV2L (tvalMap rdfDatatypeValXsdInteger) (-987)
 
-testDatatypeVal21 = testElem "testDatatypeVal21" dmodXsdIntegerAbs $
-                    map dmName (tvalMod rdfDatatypeValXsdInteger)
-testDatatypeVal22 = testEq "testDatatypeVal22" dmodXsdIntegerAbs $
-                    dmName (getXsdIntegerDTmod dmodXsdIntegerAbs)
-
-testDatatypeValSuite = TestList
-    [ testDatatypeVal01, testDatatypeVal02, testDatatypeVal03, testDatatypeVal04
-    , testDatatypeVal05, testDatatypeVal06, testDatatypeVal07
-    , testDatatypeVal11, testDatatypeVal12
-    , testDatatypeVal21, testDatatypeVal22
-    ]
+  , testElem "testDatatypeVal21" dmodXsdIntegerAbs $
+       map dmName (tvalMod rdfDatatypeValXsdInteger)
+  , testEq "testDatatypeVal22" dmodXsdIntegerAbs $
+       dmName (getXsdIntegerDTmod dmodXsdIntegerAbs)
+  ]
 
 ------------------------------------------------------------
 --  Variable binding modifier tests
 ------------------------------------------------------------
+
+dmodXsdIntegerAbs, dmodXsdIntegerNeg, dmodXsdIntegerSum, 
+  dmodXsdIntegerDiff, dmodXsdIntegerProd, dmodXsdIntegerDivMod, 
+  dmodXsdIntegerPower, dmodXsdIntegerEq, dmodXsdIntegerNe, 
+  dmodXsdIntegerLt, dmodXsdIntegerLe, dmodXsdIntegerGt, 
+  dmodXsdIntegerGe :: ScopedName
 
 dmodXsdIntegerAbs    = xsd_int_name "abs"
 dmodXsdIntegerNeg    = xsd_int_name "neg"
@@ -323,12 +294,6 @@ dmodXsdIntegerLe     = xsd_int_name "le"
 dmodXsdIntegerGt     = xsd_int_name "gt"
 dmodXsdIntegerGe     = xsd_int_name "ge"
 
-testVmod2 = testVmodN [(Var "a"),(Var "b")]
-
-testVmod3 = testVmodN [(Var "a"),(Var "b"),(Var "c")]
-
-testVmod4 = testVmodN [(Var "a"),(Var "b"),(Var "c"),(Var "d")]
-
 testVmodN :: [RDFLabel]
     -> String -> Maybe (RDFDatatypeMod Integer)
     -> [RDFVarBinding] -> [RDFVarBinding]
@@ -336,13 +301,29 @@ testVmodN :: [RDFLabel]
 testVmodN vars lab (Just dmod) ibinds obinds =
     testEqv lab obinds $
         applyRDFDatatypeMod rdfDatatypeValXsdInteger dmod vars ibinds
-testVmodN vars lab Nothing ibinds obinds = TestCase $
+testVmodN _ lab Nothing _ _ = TestCase $
     assertFailure $ "testVmodN:"++lab++", null variable binding modifier"
 
+testVmod2, testVmod3, testVmod4 :: 
+  String -> Maybe (RDFDatatypeMod Integer)
+  -> [RDFVarBinding] -> [RDFVarBinding]
+  -> Test
+testVmod2 = testVmodN [(Var "a"),(Var "b")]
+testVmod3 = testVmodN [(Var "a"),(Var "b"),(Var "c")]
+testVmod4 = testVmodN [(Var "a"),(Var "b"),(Var "c"),(Var "d")]
+
 --  make various kinds of RDF variable bindings
+
+rdfVR :: (String, ScopedName) -> (RDFLabel, RDFLabel)
 rdfVR (v,u) = (Var v,Res u)                     -- (Variable,Resource)
+
+rdfVB :: (String, String) -> (RDFLabel, RDFLabel)
 rdfVB (v,b) = (Var v,Blank b)                   -- (Variable,Blank)
+
+rdfVL :: (String, String) -> (RDFLabel, RDFLabel)
 rdfVL (v,l) = (Var v,Lit l Nothing)             -- (Variable,Untyped literal)
+
+rdfVI :: (String, String) -> (RDFLabel, RDFLabel)
 rdfVI (v,l) = (Var v,Lit l (Just typeNameXsdInteger))
                                                 -- (Variable,Integer literal)
 
@@ -360,6 +341,7 @@ makeBVL nls = makeVarBinding $ map rdfVL nls
 
 --  Test null modifier
 
+testVarModify00 :: Test
 testVarModify00 = testVmod2  "testVarModify00"
                     (Just nullDatatypeMod)
                     [makeBVI [("a","123")]]
@@ -367,6 +349,10 @@ testVarModify00 = testVmod2  "testVarModify00"
 
 --  Tests for xsd_integer:abs
 
+testVarModifyAbs01, testVarModifyAbs02, testVarModifyAbs03,
+  testVarModifyAbs04, testVarModifyAbs05, testVarModifyAbs06,
+  testVarModifyAbs07, testVarModifyAbs08, testVarModifyAbs09,
+  testVarModifyAbs10 :: Test
 testVarModifyAbs01 = testVmod2  "testVarModifyAbs01"
                     (getDTMod dmodXsdIntegerAbs rdfDatatypeValXsdInteger)
                     [makeBVI [("b","123")]]
@@ -419,6 +405,9 @@ testVarModifyAbs10 = testVmod2  "testVarModifyAbs10"
 
 --  Tests for xsd_integer:neg
 
+testVarModifyNeg01, testVarModifyNeg02, testVarModifyNeg03,
+  testVarModifyNeg04, testVarModifyNeg05 :: Test
+
 testVarModifyNeg01 = testVmod2  "testVarModifyNeg01"
                     (getDTMod dmodXsdIntegerNeg rdfDatatypeValXsdInteger)
                     [makeBVI [("a","123"),("b","-123")]]
@@ -446,6 +435,9 @@ testVarModifyNeg05 = testVmod2  "testVarModifyNeg05"
 
 --  Tests for xsd_integer:sum
 
+testVarModifySum01, testVarModifySum02, testVarModifySum03,
+  testVarModifySum04, testVarModifySum05 :: Test
+
 testVarModifySum01 = testVmod3  "testVarModifySum01"
                     (getDTMod dmodXsdIntegerSum rdfDatatypeValXsdInteger)
                     [makeBVI [("a","33"),("b","22"),("c","11")]]
@@ -472,6 +464,9 @@ testVarModifySum05 = testVmod3  "testVarModifySum05"
                     []
 
 --  Tests for xsd_integer:diff
+
+testVarModifyDiff01, testVarModifyDiff02, testVarModifyDiff03,
+  testVarModifyDiff04, testVarModifyDiff05 :: Test
 
 testVarModifyDiff01 = testVmod3  "testVarModifyDiff01"
                     (getDTMod dmodXsdIntegerDiff rdfDatatypeValXsdInteger)
@@ -502,6 +497,10 @@ testVarModifyDiff05 = testVmod3  "testVarModifyDiff05"
 --
 --  Note:   product can also be used to test if a value is
 --          an exact multiple of some other.
+
+testVarModifyProd01, testVarModifyProd02, testVarModifyProd03,
+  testVarModifyProd04, testVarModifyProd05,
+  testVarModifyProd06 :: Test
 
 testVarModifyProd01 = testVmod3  "testVarModifyProd01"
                     (getDTMod dmodXsdIntegerProd rdfDatatypeValXsdInteger)
@@ -537,6 +536,10 @@ testVarModifyProd06 = testVmod3  "testVarModifyProd06"
 --
 --  Note:   truncates downwards, so remainder is same sign as divisor
 --          cf. Haskell divMod function.
+
+testVarModifyDivMod01, testVarModifyDivMod02, testVarModifyDivMod03,
+  testVarModifyDivMod04, testVarModifyDivMod05,
+  testVarModifyDivMod06, testVarModifyDivMod07 :: Test
 
 testVarModifyDivMod01 = testVmod4  "testVarModifyDivMod01"
                     (getDTMod dmodXsdIntegerDivMod rdfDatatypeValXsdInteger)
@@ -574,6 +577,11 @@ testVarModifyDivMod07 = testVmod4  "testVarModifyDivMod07"
                     []
 
 --  Tests for xsd_integer:power
+
+testVarModifyPower01, testVarModifyPower02, testVarModifyPower03,
+  testVarModifyPower04, testVarModifyPower05,
+  testVarModifyPower06, testVarModifyPower07,
+  testVarModifyPower08 :: Test
 
 testVarModifyPower01 = testVmod3  "testVarModifyPower01"
                     (getDTMod dmodXsdIntegerPower rdfDatatypeValXsdInteger)
@@ -617,6 +625,9 @@ testVarModifyPower08 = testVmod3  "testVarModifyPower08"
 
 --  Tests for xsd_integer:eq
 
+testVarModifyEq01, testVarModifyEq02, testVarModifyEq03,
+  testVarModifyEq04, testVarModifyEq05 :: Test
+
 testVarModifyEq01 = testVmod2  "testVarModifyEq01"
                     (getDTMod dmodXsdIntegerEq rdfDatatypeValXsdInteger)
                     [makeBVI [("a","100"),("b","100")]]
@@ -643,6 +654,9 @@ testVarModifyEq05 = testVmod2  "testVarModifyEq05"
                     []
 
 --  Tests for xsd_integer:ne
+
+testVarModifyNe01, testVarModifyNe02, testVarModifyNe03,
+  testVarModifyNe04, testVarModifyNe05 :: Test
 
 testVarModifyNe01 = testVmod2  "testVarModifyNe01"
                     (getDTMod dmodXsdIntegerNe rdfDatatypeValXsdInteger)
@@ -671,6 +685,9 @@ testVarModifyNe05 = testVmod2  "testVarModifyNe05"
 
 --  Tests for xsd_integer:lt
 
+testVarModifyLt01, testVarModifyLt02, testVarModifyLt03,
+  testVarModifyLt04, testVarModifyLt05 :: Test
+
 testVarModifyLt01 = testVmod2  "testVarModifyLt01"
                     (getDTMod dmodXsdIntegerLt rdfDatatypeValXsdInteger)
                     [makeBVI [("a","100"),("b","100")]]
@@ -697,6 +714,9 @@ testVarModifyLt05 = testVmod2  "testVarModifyLt05"
                     []
 
 --  Tests for xsd_integer:le
+
+testVarModifyLe01, testVarModifyLe02, testVarModifyLe03,
+  testVarModifyLe04, testVarModifyLe05 :: Test
 
 testVarModifyLe01 = testVmod2  "testVarModifyLe01"
                     (getDTMod dmodXsdIntegerLe rdfDatatypeValXsdInteger)
@@ -725,6 +745,9 @@ testVarModifyLe05 = testVmod2  "testVarModifyLe05"
 
 --  Tests for xsd_integer:gt
 
+testVarModifyGt01, testVarModifyGt02, testVarModifyGt03,
+  testVarModifyGt04, testVarModifyGt05 :: Test
+
 testVarModifyGt01 = testVmod2  "testVarModifyGt01"
                     (getDTMod dmodXsdIntegerGt rdfDatatypeValXsdInteger)
                     [makeBVI [("a","100"),("b","100")]]
@@ -751,6 +774,9 @@ testVarModifyGt05 = testVmod2  "testVarModifyGt05"
                     []
 
 --  Tests for xsd_integer:ge
+
+testVarModifyGe01, testVarModifyGe02, testVarModifyGe03,
+  testVarModifyGe04, testVarModifyGe05 :: Test
 
 testVarModifyGe01 = testVmod2  "testVarModifyGe01"
                     (getDTMod dmodXsdIntegerGe rdfDatatypeValXsdInteger)
@@ -779,6 +805,7 @@ testVarModifyGe05 = testVmod2  "testVarModifyGe05"
 
 --  Full suite for variable binding modifier tests
 
+testVarModifySuite :: Test
 testVarModifySuite = TestList
     [ testVarModify00
     , testVarModifyAbs01,    testVarModifyAbs02,    testVarModifyAbs03
@@ -817,10 +844,12 @@ testVarModifySuite = TestList
 --  Test rules defined for datatype
 ------------------------------------------------------------
 
+mkGraph :: String -> RDFGraph
 mkGraph grstr = makeRDFGraphFromN3String (prefixXsdInteger++base++grstr)
     where
         base = "@prefix : <"++nsURI namespaceDefault++"> . \n"
 
+testRuleFwd :: String -> Maybe (Rule RDFGraph) -> String -> [String] -> Test
 testRuleFwd lab (Just rule) antstr constrs =
     let
         antgr  = mkGraph antstr
@@ -830,6 +859,7 @@ testRuleFwd lab (Just rule) antstr constrs =
 testRuleFwd lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleFwd:"++lab++", null rule supplied"
 
+testRuleBwd :: String -> Maybe (Rule RDFGraph) -> String -> [[String]] -> Test
 testRuleBwd lab (Just rule) antstr prestrss =
     let
         antgr   = mkGraph antstr
@@ -839,6 +869,7 @@ testRuleBwd lab (Just rule) antstr prestrss =
 testRuleBwd lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleBwd:"++lab++", null rule supplied"
 
+testRuleChk :: String -> Maybe (Rule RDFGraph) -> String -> String -> Test
 testRuleChk lab (Just rule) antstr constr =
     let
         antgr = mkGraph antstr
@@ -848,10 +879,17 @@ testRuleChk lab (Just rule) antstr constr =
 testRuleChk lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleChk:"++lab++", null rule supplied"
 
-xsdIntRules = (typeRules rdfDatatypeXsdInteger)
+xsdIntRules :: Ruleset RDFGraph
+xsdIntRules = typeRules rdfDatatypeXsdInteger
 
+{-
+axdt :: Maybe (Formula RDFGraph)
 axdt        = getRulesetAxiom axiomXsdIntegerDT      xsdIntRules
+-}
 
+ruleabs, ruleneg, rulesum, rulediff, ruleprod,
+  ruledivmod, rulepower, ruleeq, rulene, rulelt, rulele,
+  rulegt, rulege :: Maybe (Rule RDFGraph)
 ruleabs     = getRulesetRule  ruleXsdIntegerAbs      xsdIntRules
 ruleneg     = getRulesetRule  ruleXsdIntegerNeg      xsdIntRules
 rulesum     = getRulesetRule  ruleXsdIntegerSum      xsdIntRules
@@ -870,29 +908,40 @@ rulege      = getRulesetRule  ruleXsdIntegerGe       xsdIntRules
 
 -- abs
 
+abs01inp :: String
 abs01inp =
         "_:a a xsd_integer:Abs ; "
     +++ "  rdf:_2 \"1\"^^xsd:integer . "
+    
+abs01fwd :: [String]
 abs01fwd =
     [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
-abs01bwd = []
-testRuleFwdAbs01 = testRuleFwd "testRuleFwdAbs01" ruleabs abs01inp abs01fwd
-testRuleBwdAbs01 = testRuleBwd "testRuleBwdAbs01" ruleabs abs01inp abs01bwd
 
+abs01bwd :: [[String]]
+abs01bwd = []
+
+abs02inp :: String
 abs02inp =
         "_:a a xsd_integer:Abs ; "
     +++ "  rdf:_2 \"-1\"^^xsd:integer . "
+    
+abs02fwd :: [String]
 abs02fwd =
     [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
+
+abs02bwd :: [[String]]
 abs02bwd =
     []
-testRuleFwdAbs02 = testRuleFwd "testRuleFwdAbs02" ruleabs abs02inp abs02fwd
-testRuleBwdAbs02 = testRuleBwd "testRuleBwdAbs02" ruleabs abs02inp abs02bwd
 
+abs03inp :: String
 abs03inp =
         "_:a a xsd_integer:Abs ; "
     +++ "  rdf:_1 \"1\"^^xsd:integer . "
+
+abs03fwd :: [String]
 abs03fwd = []
+
+abs03bwd :: [[String]]
 abs03bwd =
     [ [ "_:a a xsd_integer:Abs . "
       , "_:a rdf:_2 \"1\"^^xsd:integer . "
@@ -901,58 +950,70 @@ abs03bwd =
       , "_:a rdf:_2 \"-1\"^^xsd:integer . "
       ]
     ]
-testRuleFwdAbs03 = testRuleFwd "testRuleFwdAbs03" ruleabs abs03inp abs03fwd
-testRuleBwdAbs03 = testRuleBwd "testRuleBwdAbs03" ruleabs abs03inp abs03bwd
 
+abs04inp :: String
 abs04inp =
         "_:a a xsd_integer:Abs ; "
     +++ "  rdf:_1 \"-1\"^^xsd:integer . "
+
+abs04fwd :: [String]
 abs04fwd =
     [ falseGraphStr
     ]
+
+abs04bwd :: [[String]]
 abs04bwd =
     [ [ falseGraphStr
       ]
     ]
-testRuleFwdAbs04 = testRuleFwd "testRuleFwdAbs04" ruleabs abs04inp abs04fwd
-testRuleBwdAbs04 = testRuleBwd "testRuleBwdAbs04" ruleabs abs04inp abs04bwd
 
 -- neg
 
+neg01inp :: String
 neg01inp =
         "_:a a xsd_integer:Neg ; "
     +++ "  rdf:_2 \"1\"^^xsd:integer . "
+    
+neg01fwd :: [String]
 neg01fwd =
     [ "_:a rdf:_1 \"-1\"^^xsd:integer . " ]
+
+neg01bwd :: [[String]]
 neg01bwd =
     [ [ "_:a a xsd_integer:Neg . "
       , "_:a rdf:_1 \"-1\"^^xsd:integer . "
       ]
     ]
-testRuleFwdNeg01 = testRuleFwd "testRuleFwdNeg01" ruleneg neg01inp neg01fwd
-testRuleBwdNeg01 = testRuleBwd "testRuleBwdNeg01" ruleneg neg01inp neg01bwd
 
+neg02inp :: String
 neg02inp =
         "_:a a xsd_integer:Neg ; "
     +++ "  rdf:_2 \"-2\"^^xsd:integer . "
+    
+neg02fwd :: [String]
 neg02fwd =
     [ "_:a rdf:_1 \"2\"^^xsd:integer . " ]
+
+neg02bwd :: [[String]]
 neg02bwd =
     [ [ "_:a a xsd_integer:Neg . "
       , "_:a rdf:_1 \"2\"^^xsd:integer . "
       ]
     ]
-testRuleFwdNeg02 = testRuleFwd "testRuleFwdNeg02" ruleneg neg02inp neg02fwd
-testRuleBwdNeg02 = testRuleBwd "testRuleBwdNeg02" ruleneg neg02inp neg02bwd
 
 -- sum
 
+sum01inp :: String
 sum01inp =
         "_:a a xsd_integer:Sum ; "
     +++ "  rdf:_2 \"31\"^^xsd:integer ; "
     +++ "  rdf:_3 \"20\"^^xsd:integer . "
+
+sum01fwd :: [String]
 sum01fwd =
     [ "_:a rdf:_1 \"51\"^^xsd:integer . " ]
+
+sum01bwd :: [[String]]
 sum01bwd =
     [ [ "_:a a xsd_integer:Sum . "
       , "_:a rdf:_1 \"51\"^^xsd:integer . "
@@ -963,15 +1024,18 @@ sum01bwd =
       , "_:a rdf:_3 \"20\"^^xsd:integer . "
       ]
     ]
-testRuleFwdSum01 = testRuleFwd "testRuleFwdSum01" rulesum sum01inp sum01fwd
-testRuleBwdSum01 = testRuleBwd "testRuleBwdSum01" rulesum sum01inp sum01bwd
 
+sum02inp :: String
 sum02inp =
         "_:a a xsd_integer:Sum ; "
     +++ "  rdf:_1 \"52\"^^xsd:integer ; "
     +++ "  rdf:_3 \"21\"^^xsd:integer . "
+    
+sum02fwd :: [String]    
 sum02fwd =
     [ "_:a rdf:_2 \"31\"^^xsd:integer . " ]
+
+sum02bwd :: [[String]]
 sum02bwd =
     [ [ "_:a a xsd_integer:Sum . "
       , "_:a rdf:_1 \"52\"^^xsd:integer . "
@@ -982,15 +1046,18 @@ sum02bwd =
       , "_:a rdf:_3 \"21\"^^xsd:integer . "
       ]
     ]
-testRuleFwdSum02 = testRuleFwd "testRuleFwdSum02" rulesum sum02inp sum02fwd
-testRuleBwdSum02 = testRuleBwd "testRuleBwdSum02" rulesum sum02inp sum02bwd
 
+sum03inp :: String
 sum03inp =
         "_:a a xsd_integer:Sum ; "
     +++ "  rdf:_1 \"53\"^^xsd:integer ; "
     +++ "  rdf:_2 \"32\"^^xsd:integer . "
+
+sum03fwd :: [String]
 sum03fwd =
     [ "_:a rdf:_3 \"21\"^^xsd:integer . " ]
+
+sum03bwd :: [[String]]
 sum03bwd =
     [ [ "_:a a xsd_integer:Sum . "
       , "_:a rdf:_1 \"53\"^^xsd:integer . "
@@ -1001,17 +1068,20 @@ sum03bwd =
       , "_:a rdf:_3 \"21\"^^xsd:integer . "
       ]
     ]
-testRuleFwdSum03 = testRuleFwd "testRuleFwdSum03" rulesum sum03inp sum03fwd
-testRuleBwdSum03 = testRuleBwd "testRuleBwdSum03" rulesum sum03inp sum03bwd
 
 -- diff
 
+diff01inp :: String
 diff01inp =
         "_:a a xsd_integer:Diff ; "
     +++ "  rdf:_2 \"222\"^^xsd:integer ; "
     +++ "  rdf:_3 \"333\"^^xsd:integer . "
+    
+diff01fwd :: [String]
 diff01fwd =
     [ "_:a rdf:_1 \"-111\"^^xsd:integer . " ]
+
+diff01bwd :: [[String]]
 diff01bwd =
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
@@ -1022,15 +1092,18 @@ diff01bwd =
       , "_:a rdf:_3 \"333\"^^xsd:integer . "
       ]
     ]
-testRuleFwdDiff01 = testRuleFwd "testRuleFwdDiff01" rulediff diff01inp diff01fwd
-testRuleBwdDiff01 = testRuleBwd "testRuleBwdDiff01" rulediff diff01inp diff01bwd
 
+diff02inp :: String
 diff02inp =
         "_:a a xsd_integer:Diff ; "
     +++ "  rdf:_1 \"-111\"^^xsd:integer ; "
     +++ "  rdf:_3 \"333\"^^xsd:integer . "
+
+diff02fwd :: [String]
 diff02fwd =
     [ "_:a rdf:_2 \"222\"^^xsd:integer . " ]
+
+diff02bwd :: [[String]]
 diff02bwd =
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
@@ -1041,15 +1114,18 @@ diff02bwd =
       , "_:a rdf:_3 \"333\"^^xsd:integer . "
       ]
     ]
-testRuleFwdDiff02 = testRuleFwd "testRuleFwdDiff02" rulediff diff02inp diff02fwd
-testRuleBwdDiff02 = testRuleBwd "testRuleBwdDiff02" rulediff diff02inp diff02bwd
 
+diff03inp :: String
 diff03inp =
         "_:a a xsd_integer:Diff ; "
     +++ "  rdf:_1 \"-111\"^^xsd:integer ; "
     +++ "  rdf:_2 \"222\"^^xsd:integer . "
+
+diff03fwd :: [String]
 diff03fwd =
     [ "_:a rdf:_3 \"333\"^^xsd:integer . " ]
+
+diff03bwd :: [[String]]
 diff03bwd =
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
@@ -1060,17 +1136,20 @@ diff03bwd =
       , "_:a rdf:_3 \"333\"^^xsd:integer . "
       ]
     ]
-testRuleFwdDiff03 = testRuleFwd "testRuleFwdDiff03" rulediff diff03inp diff03fwd
-testRuleBwdDiff03 = testRuleBwd "testRuleBwdDiff03" rulediff diff03inp diff03bwd
 
 -- prod
 
+prod01inp :: String
 prod01inp =
         "_:a a xsd_integer:Prod ; "
     +++ "  rdf:_2 \"222\"^^xsd:integer ; "
     +++ "  rdf:_3 \"3\"^^xsd:integer . "
+
+prod01fwd :: [String]
 prod01fwd =
     [ "_:a rdf:_1 \"666\"^^xsd:integer . " ]
+
+prod01bwd :: [[String]]
 prod01bwd =
     [ [ "_:a a xsd_integer:Prod . "
       , "_:a rdf:_1 \"666\"^^xsd:integer . "
@@ -1081,15 +1160,18 @@ prod01bwd =
       , "_:a rdf:_3 \"3\"^^xsd:integer . "
       ]
     ]
-testRuleFwdProd01 = testRuleFwd "testRuleFwdProd01" ruleprod prod01inp prod01fwd
-testRuleBwdProd01 = testRuleBwd "testRuleBwdProd01" ruleprod prod01inp prod01bwd
 
+prod02inp :: String
 prod02inp =
         "_:a a xsd_integer:Prod ; "
     +++ "  rdf:_1 \"666\"^^xsd:integer ; "
     +++ "  rdf:_3 \"3\"^^xsd:integer . "
+
+prod02fwd :: [String]
 prod02fwd =
     [ "_:a rdf:_2 \"222\"^^xsd:integer . " ]
+
+prod02bwd :: [[String]]
 prod02bwd =
     [ [ "_:a a xsd_integer:Prod . "
       , "_:a rdf:_1 \"666\"^^xsd:integer . "
@@ -1100,15 +1182,18 @@ prod02bwd =
       , "_:a rdf:_3 \"3\"^^xsd:integer . "
       ]
     ]
-testRuleFwdProd02 = testRuleFwd "testRuleFwdProd02" ruleprod prod02inp prod02fwd
-testRuleBwdProd02 = testRuleBwd "testRuleBwdProd02" ruleprod prod02inp prod02bwd
 
+prod03inp :: String
 prod03inp =
         "_:a a xsd_integer:Prod ; "
     +++ "  rdf:_1 \"666\"^^xsd:integer ; "
     +++ "  rdf:_2 \"222\"^^xsd:integer . "
+
+prod03fwd :: [String]
 prod03fwd =
     [ "_:a rdf:_3 \"3\"^^xsd:integer . " ]
+
+prod03bwd :: [[String]]
 prod03bwd =
     [ [ "_:a a xsd_integer:Prod . "
       , "_:a rdf:_1 \"666\"^^xsd:integer . "
@@ -1119,19 +1204,22 @@ prod03bwd =
       , "_:a rdf:_3 \"3\"^^xsd:integer . "
       ]
     ]
-testRuleFwdProd03 = testRuleFwd "testRuleFwdProd03" ruleprod prod03inp prod03fwd
-testRuleBwdProd03 = testRuleBwd "testRuleBwdProd03" ruleprod prod03inp prod03bwd
 
 -- divmod
 
+divmod01inp :: String
 divmod01inp =
         "_:a a xsd_integer:DivMod ; "
     +++ "  rdf:_3 \"33\"^^xsd:integer ; "
     +++ "  rdf:_4 \"5\"^^xsd:integer . "
+
+divmod01fwd :: [String]
 divmod01fwd =
     [     "_:a rdf:_1 \"6\"^^xsd:integer . "
       +++ "_:a rdf:_2 \"3\"^^xsd:integer . "
     ]
+
+divmod01bwd :: [[String]]
 divmod01bwd =
     [ {- "_:a a xsd_integer:DivMod . "
       , "_:a rdf:_1 \"6\"^^xsd:integer . "
@@ -1139,247 +1227,314 @@ divmod01bwd =
       , "_:a rdf:_4 \"5\"^^xsd:integer . "
       -}
     ]
-testRuleFwdDivMod01 = testRuleFwd "testRuleFwdDivMod01" ruledivmod divmod01inp divmod01fwd
-testRuleBwdDivMod01 = testRuleBwd "testRuleBwdDivMod01" ruledivmod divmod01inp divmod01bwd
 
+divmod02inp :: String
 divmod02inp =
         "_:a a xsd_integer:DivMod ; "
     +++ "  rdf:_1 \"6\"^^xsd:integer ; "
     +++ "  rdf:_2 \"3\"^^xsd:integer ; "
     +++ "  rdf:_4 \"5\"^^xsd:integer . "
+
+divmod02fwd :: [String]
 divmod02fwd =
     [ ]
+
+divmod02bwd :: [[String]]
 divmod02bwd =
     [ {- "_:a a xsd_integer:DivMod . "
       , "_:a rdf:_3 \"33\"^^xsd:integer . "
       , "_:a rdf:_4 \"5\"^^xsd:integer . "
       -}
     ]
-testRuleFwdDivMod02 = testRuleFwd "testRuleFwdDivMod02" ruledivmod divmod02inp divmod02fwd
-testRuleBwdDivMod02 = testRuleBwd "testRuleBwdDivMod02" ruledivmod divmod02inp divmod02bwd
 
+divmod03inp :: String
 divmod03inp =
         "_:a a xsd_integer:DivMod ; "
     +++ "  rdf:_3 \"-33\"^^xsd:integer ; "
     +++ "  rdf:_4 \"5\"^^xsd:integer . "
+
+divmod03fwd :: [String]
 divmod03fwd =
     [     "_:a rdf:_1 \"-7\"^^xsd:integer . "
       +++ "_:a rdf:_2 \"2\"^^xsd:integer . "
     ]
+
+divmod03bwd :: [[String]]
 divmod03bwd =
     [ ]
-testRuleFwdDivMod03 = testRuleFwd "testRuleFwdDivMod03" ruledivmod divmod03inp divmod03fwd
-testRuleBwdDivMod03 = testRuleBwd "testRuleBwdDivMod03" ruledivmod divmod03inp divmod03bwd
 
 -- power
 
+power01inp :: String
 power01inp =
         "_:a a xsd_integer:Power ; "
     +++ "  rdf:_2 \"2\"^^xsd:integer ; "
     +++ "  rdf:_3 \"5\"^^xsd:integer . "
+
+power01fwd :: [String]
 power01fwd =
     [ "_:a rdf:_1 \"32\"^^xsd:integer . " ]
+
+power01bwd :: [[String]]
 power01bwd =
     [ ]
-testRuleFwdPower01 = testRuleFwd "testRuleFwdPower01" rulepower power01inp power01fwd
-testRuleBwdPower01 = testRuleBwd "testRuleBwdPower01" rulepower power01inp power01bwd
 
+power02inp :: String
 power02inp =
         "_:a a xsd_integer:Power ; "
     +++ "  rdf:_2 \"111\"^^xsd:integer ; "
     +++ "  rdf:_3 \"0\"^^xsd:integer . "
+
+power02fwd :: [String]
 power02fwd =
     [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
+
+power02bwd :: [[String]]
 power02bwd =
     [ ]
-testRuleFwdPower02 = testRuleFwd "testRuleFwdPower02" rulepower power02inp power02fwd
-testRuleBwdPower02 = testRuleBwd "testRuleBwdPower02" rulepower power02inp power02bwd
 
+power03inp :: String
 power03inp =
         "_:a a xsd_integer:Power ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer ; "
     +++ "  rdf:_3 \"-33\"^^xsd:integer . "
+
+power03fwd :: [String]
 power03fwd =
     [ falseGraphStr ]
+
+power03bwd :: [[String]]
 power03bwd =
     [ [ falseGraphStr ]
     ]
-testRuleFwdPower03 = testRuleFwd "testRuleFwdPower03" rulepower power03inp power03fwd
-testRuleBwdPower03 = testRuleBwd "testRuleBwdPower03" rulepower power03inp power03bwd
 
 -- eq
 
+eq01inp :: String
 eq01inp =
         "_:a a xsd_integer:Eq ; "
     +++ "  rdf:_1 \"11\"^^xsd:integer ; "
     +++ "  rdf:_2 \"11\"^^xsd:integer . "
-eq01fwd = [ ]
-eq01bwd = [ ]
-testRuleFwdEq01 = testRuleFwd "testRuleFwdEq01" ruleeq eq01inp eq01fwd
-testRuleBwdEq01 = testRuleBwd "testRuleBwdEq01" ruleeq eq01inp eq01bwd
 
+eq01fwd :: [String]
+eq01fwd = [ ]
+
+eq01bwd :: [[String]]
+eq01bwd = [ ]
+
+eq02inp :: String
 eq02inp =
         "_:a a xsd_integer:Eq ; "
     +++ "  rdf:_1 \"21\"^^xsd:integer ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer . "
-eq02fwd = [ falseGraphStr ]
-eq02bwd = [ [falseGraphStr] ]
-testRuleFwdEq02 = testRuleFwd "testRuleFwdEq02" ruleeq eq02inp eq02fwd
-testRuleBwdEq02 = testRuleBwd "testRuleBwdEq02" ruleeq eq02inp eq02bwd
 
+eq02fwd :: [String]
+eq02fwd = [ falseGraphStr ]
+
+eq02bwd :: [[String]]
+eq02bwd = [ [falseGraphStr] ]
+
+eq03inp :: String
 eq03inp =
         "_:a a xsd_integer:Eq ; "
     +++ "  rdf:_1 \"31\"^^xsd:integer ; "
     +++ "  rdf:_2 \"-32\"^^xsd:integer . "
+
+eq03fwd :: [String]
 eq03fwd = [ falseGraphStr ]
+
+eq03bwd :: [[String]]
 eq03bwd = [ [falseGraphStr] ]
-testRuleFwdEq03 = testRuleFwd "testRuleFwdEq03" ruleeq eq03inp eq03fwd
-testRuleBwdEq03 = testRuleBwd "testRuleBwdEq03" ruleeq eq03inp eq03bwd
 
 -- ne
 
+ne01inp :: String
 ne01inp =
         "_:a a xsd_integer:Ne ; "
     +++ "  rdf:_1 \"11\"^^xsd:integer ; "
     +++ "  rdf:_2 \"11\"^^xsd:integer . "
-ne01fwd = [ falseGraphStr ]
-ne01bwd = [ [falseGraphStr] ]
-testRuleFwdNe01 = testRuleFwd "testRuleFwdNe01" rulene ne01inp ne01fwd
-testRuleBwdNe01 = testRuleBwd "testRuleBwdNe01" rulene ne01inp ne01bwd
 
+ne01fwd :: [String]
+ne01fwd = [ falseGraphStr ]
+
+ne01bwd :: [[String]]
+ne01bwd = [ [falseGraphStr] ]
+
+ne02inp :: String
 ne02inp =
         "_:a a xsd_integer:Ne ; "
     +++ "  rdf:_1 \"21\"^^xsd:integer ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer . "
-ne02fwd = [ ]
-ne02bwd = [ ]
-testRuleFwdNe02 = testRuleFwd "testRuleFwdNe02" rulene ne02inp ne02fwd
-testRuleBwdNe02 = testRuleBwd "testRuleBwdNe02" rulene ne02inp ne02bwd
 
+ne02fwd :: [String]
+ne02fwd = [ ]
+
+ne02bwd :: [[String]]
+ne02bwd = [ ]
+
+ne03inp :: String
 ne03inp =
         "_:a a xsd_integer:Ne ; "
     +++ "  rdf:_1 \"31\"^^xsd:integer ; "
     +++ "  rdf:_2 \"-32\"^^xsd:integer . "
+
+ne03fwd :: [String]
 ne03fwd = [ ]
+
+ne03bwd :: [[String]]
 ne03bwd = [ ]
-testRuleFwdNe03 = testRuleFwd "testRuleFwdNe03" rulene ne03inp ne03fwd
-testRuleBwdNe03 = testRuleBwd "testRuleBwdNe03" rulene ne03inp ne03bwd
 
 -- lt
 
+lt01inp :: String
 lt01inp =
         "_:a a xsd_integer:Lt ; "
     +++ "  rdf:_1 \"11\"^^xsd:integer ; "
     +++ "  rdf:_2 \"11\"^^xsd:integer . "
-lt01fwd = [ falseGraphStr ]
-lt01bwd = [ [falseGraphStr] ]
-testRuleFwdLt01 = testRuleFwd "testRuleFwdLt01" rulelt lt01inp lt01fwd
-testRuleBwdLt01 = testRuleBwd "testRuleBwdLt01" rulelt lt01inp lt01bwd
 
+lt01fwd :: [String]
+lt01fwd = [ falseGraphStr ]
+
+lt01bwd :: [[String]]
+lt01bwd = [ [falseGraphStr] ]
+
+lt02inp :: String
 lt02inp =
         "_:a a xsd_integer:Lt ; "
     +++ "  rdf:_1 \"21\"^^xsd:integer ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer . "
-lt02fwd = [ ]
-lt02bwd = [ ]
-testRuleFwdLt02 = testRuleFwd "testRuleFwdLt02" rulelt lt02inp lt02fwd
-testRuleBwdLt02 = testRuleBwd "testRuleBwdLt02" rulelt lt02inp lt02bwd
 
+lt02fwd :: [String]
+lt02fwd = [ ]
+
+lt02bwd :: [[String]]
+lt02bwd = [ ]
+
+lt03inp :: String
 lt03inp =
         "_:a a xsd_integer:Lt ; "
     +++ "  rdf:_1 \"31\"^^xsd:integer ; "
     +++ "  rdf:_2 \"-32\"^^xsd:integer . "
+
+lt03fwd :: [String]
 lt03fwd = [ falseGraphStr ]
+
+lt03bwd :: [[String]]
 lt03bwd = [ [falseGraphStr] ]
-testRuleFwdLt03 = testRuleFwd "testRuleFwdLt03" rulelt lt03inp lt03fwd
-testRuleBwdLt03 = testRuleBwd "testRuleBwdLt03" rulelt lt03inp lt03bwd
 
 -- le
 
+le01inp :: String
 le01inp =
         "_:a a xsd_integer:Le ; "
     +++ "  rdf:_1 \"11\"^^xsd:integer ; "
     +++ "  rdf:_2 \"11\"^^xsd:integer . "
-le01fwd = [ ]
-le01bwd = [ ]
-testRuleFwdLe01 = testRuleFwd "testRuleFwdLe01" rulele le01inp le01fwd
-testRuleBwdLe01 = testRuleBwd "testRuleBwdLe01" rulele le01inp le01bwd
 
+le01fwd :: [String]
+le01fwd = [ ]
+
+le01bwd :: [[String]]
+le01bwd = [ ]
+
+le02inp :: String
 le02inp =
         "_:a a xsd_integer:Le ; "
     +++ "  rdf:_1 \"21\"^^xsd:integer ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer . "
-le02fwd = [ ]
-le02bwd = [ ]
-testRuleFwdLe02 = testRuleFwd "testRuleFwdLe02" rulele le02inp le02fwd
-testRuleBwdLe02 = testRuleBwd "testRuleBwdLe02" rulele le02inp le02bwd
 
+le02fwd :: [String]
+le02fwd = [ ]
+
+le02bwd :: [[String]]
+le02bwd = [ ]
+
+le03inp :: String
 le03inp =
         "_:a a xsd_integer:Le ; "
     +++ "  rdf:_1 \"31\"^^xsd:integer ; "
     +++ "  rdf:_2 \"-32\"^^xsd:integer . "
+
+le03fwd :: [String]
 le03fwd = [ falseGraphStr ]
+
+le03bwd :: [[String]]
 le03bwd = [ [falseGraphStr] ]
-testRuleFwdLe03 = testRuleFwd "testRuleFwdLe03" rulele le03inp le03fwd
-testRuleBwdLe03 = testRuleBwd "testRuleBwdLe03" rulele le03inp le03bwd
 
 -- gt
 
+gt01inp :: String
 gt01inp =
         "_:a a xsd_integer:Gt ; "
     +++ "  rdf:_1 \"11\"^^xsd:integer ; "
     +++ "  rdf:_2 \"11\"^^xsd:integer . "
-gt01fwd = [ falseGraphStr ]
-gt01bwd = [ [falseGraphStr] ]
-testRuleFwdGt01 = testRuleFwd "testRuleFwdGt01" rulegt gt01inp gt01fwd
-testRuleBwdGt01 = testRuleBwd "testRuleBwdGt01" rulegt gt01inp gt01bwd
 
+gt01fwd :: [String]
+gt01fwd = [ falseGraphStr ]
+
+gt01bwd :: [[String]]
+gt01bwd = [ [falseGraphStr] ]
+
+gt02inp :: String
 gt02inp =
         "_:a a xsd_integer:Gt ; "
     +++ "  rdf:_1 \"21\"^^xsd:integer ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer . "
-gt02fwd = [ falseGraphStr ]
-gt02bwd = [ [falseGraphStr] ]
-testRuleFwdGt02 = testRuleFwd "testRuleFwdGt02" rulegt gt02inp gt02fwd
-testRuleBwdGt02 = testRuleBwd "testRuleBwdGt02" rulegt gt02inp gt02bwd
 
+gt02fwd :: [String]
+gt02fwd = [ falseGraphStr ]
+
+gt02bwd :: [[String]]
+gt02bwd = [ [falseGraphStr] ]
+
+gt03inp :: String
 gt03inp =
         "_:a a xsd_integer:Gt ; "
     +++ "  rdf:_1 \"31\"^^xsd:integer ; "
     +++ "  rdf:_2 \"-32\"^^xsd:integer . "
+
+gt03fwd :: [String]
 gt03fwd = [ ]
+
+gt03bwd :: [[String]]
 gt03bwd = [ ]
-testRuleFwdGt03 = testRuleFwd "testRuleFwdGt03" rulegt gt03inp gt03fwd
-testRuleBwdGt03 = testRuleBwd "testRuleBwdGt03" rulegt gt03inp gt03bwd
 
 -- ge
 
+ge01inp :: String
 ge01inp =
         "_:a a xsd_integer:Ge ; "
     +++ "  rdf:_1 \"11\"^^xsd:integer ; "
     +++ "  rdf:_2 \"11\"^^xsd:integer . "
-ge01fwd = [ ]
-ge01bwd = [ ]
-testRuleFwdGe01 = testRuleFwd "testRuleFwdGe01" rulege ge01inp ge01fwd
-testRuleBwdGe01 = testRuleBwd "testRuleBwdGe01" rulege ge01inp ge01bwd
 
+ge01fwd :: [String]
+ge01fwd = [ ]
+
+ge01bwd :: [[String]]
+ge01bwd = [ ]
+
+ge02inp :: String
 ge02inp =
         "_:a a xsd_integer:Ge ; "
     +++ "  rdf:_1 \"21\"^^xsd:integer ; "
     +++ "  rdf:_2 \"22\"^^xsd:integer . "
-ge02fwd = [ falseGraphStr ]
-ge02bwd = [ [falseGraphStr] ]
-testRuleFwdGe02 = testRuleFwd "testRuleFwdGe02" rulege ge02inp ge02fwd
-testRuleBwdGe02 = testRuleBwd "testRuleBwdGe02" rulege ge02inp ge02bwd
 
+ge02fwd :: [String]
+ge02fwd = [ falseGraphStr ]
+
+ge02bwd :: [[String]]
+ge02bwd = [ [falseGraphStr] ]
+
+ge03inp :: String
 ge03inp =
         "_:a a xsd_integer:Ge ; "
     +++ "  rdf:_1 \"31\"^^xsd:integer ; "
     +++ "  rdf:_2 \"-32\"^^xsd:integer . "
+
+ge03fwd :: [String]
 ge03fwd = [ ]
+
+ge03bwd :: [[String]]
 ge03bwd = [ ]
-testRuleFwdGe03 = testRuleFwd "testRuleFwdGe03" rulege ge03inp ge03fwd
-testRuleBwdGe03 = testRuleBwd "testRuleBwdGe03" rulege ge03inp ge03bwd
 
 -- Test cases from design notes
 
@@ -1395,6 +1550,7 @@ pvRules = typeMkRules rdfDatatypeXsdInteger gr
     where
         gr = (mkGraph pvRulesStr)
 
+pvRulesStr :: String
 pvRulesStr =
         ":PassengerVehicle a rdfd:GeneralRestriction ; "
     +++ "  rdfd:onProperties (:totalCapacity :seatedCapacity :standingCapacity) ; "
@@ -1406,6 +1562,7 @@ pvRulesStr =
 
 --  Now the test cases that use the rules created above.
 
+pvRule0, pvRule1 :: Maybe (Rule RDFGraph)
 pvRule0 = mapFindMaybe
             (ScopedName namespaceDefault "PassengerVehicle")
             (LookupMap pvRules)
@@ -1413,12 +1570,17 @@ pvRule1 = mapFindMaybe
             (ScopedName namespaceDefault "PassengerVehicle1")
             (LookupMap pvRules)
 
+pv01inp :: String
 pv01inp =
         "_:a a :PassengerVehicle ; "
     +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
     +++ "  :standingCapacity \"20\"^^xsd:integer . "
+
+pv01fwd :: [String]
 pv01fwd =
     [ "_:a :totalCapacity \"50\"^^xsd:integer . " ]
+
+pv01bwd :: [[String]]
 pv01bwd =
     [ [ "_:a a :PassengerVehicle . "
       , "_:a :totalCapacity \"50\"^^xsd:integer . "
@@ -1429,9 +1591,8 @@ pv01bwd =
       , "_:a :standingCapacity \"20\"^^xsd:integer . "
       ]
     ]
-testRuleFwdPv01 = testRuleFwd "testRuleFwdPv01" pvRule0 pv01inp pv01fwd
-testRuleBwdPv01 = testRuleBwd "testRuleBwdPv01" pvRule0 pv01inp pv01bwd
 
+pv02inp :: String
 pv02inp =
         "_:a a :PassengerVehicle ; "
     +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
@@ -1439,10 +1600,14 @@ pv02inp =
     +++ "_:b a :PassengerVehicle ; "
     +++ "  :standingCapacity \"20\"^^xsd:integer ; "
     +++ "  :totalCapacity \"52\"^^xsd:integer . "
+
+pv02fwd :: [String]
 pv02fwd =
     [ "_:a :standingCapacity \"21\"^^xsd:integer . "
     , "_:b :seatedCapacity \"32\"^^xsd:integer . "
     ]
+
+pv02bwd :: [[String]]
 pv02bwd =
     [ [ "_:a a :PassengerVehicle . "
       , "_:a :standingCapacity \"21\"^^xsd:integer . "
@@ -1473,100 +1638,177 @@ pv02bwd =
       , "_:b :standingCapacity \"20\"^^xsd:integer . "
       ]
     ]
-testRuleFwdPv02 = testRuleFwd "testRuleFwdPv02" pvRule0 pv02inp pv02fwd
-testRuleBwdPv02 = testRuleBwd "testRuleBwdPv02" pvRule0 pv02inp pv02bwd
 
+pv03inp :: String
 pv03inp =
         "_:a a :PassengerVehicle ; "
     +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
     +++ "  :standingCapacity \"23\"^^xsd:integer ; "
     +++ "  :totalCapacity \"53\"^^xsd:integer . "
-pv03fwd = []
-testRuleFwdPv03 = testRuleFwd "testRuleFwdPv03" pvRule0 pv03inp pv03fwd
 
+pv03fwd :: [String]
+pv03fwd = []
+
+pv04inp :: String
 pv04inp =
         "_:a a :PassengerVehicle ; "
     +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
     +++ "  :standingCapacity \"20\"^^xsd:integer ; "
     +++ "  :totalCapacity \"54\"^^xsd:integer . "
+
+pv04fwd :: [String]
 pv04fwd =
     [     "_:a :standingCapacity \"24\"^^xsd:integer . "
       +++ "_:a :seatedCapacity \"34\"^^xsd:integer . "
       +++ "_:a :totalCapacity \"50\"^^xsd:integer . "
     ]
-testRuleFwdPv04 = testRuleFwd "testRuleFwdPv04" pvRule0 pv04inp pv04fwd
 
+pv05inp :: String
 pv05inp =
         "_:a a :PassengerVehicle1 ; "
     +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
     +++ "  :standingCapacity \"25\"^^xsd:integer ; "
     +++ "  :totalCapacity \"55\"^^xsd:integer . "
-pv05fwd = []
-testRuleFwdPv05 = testRuleFwd "testRuleFwdPv05" pvRule1 pv05inp pv05fwd
 
+pv05fwd :: [String]
+pv05fwd = []
+
+pv06inp :: String
 pv06inp =
         "_:a a :PassengerVehicle1 ; "
     +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
     +++ "  :standingCapacity \"20\"^^xsd:integer ; "
     +++ "  :totalCapacity \"56\"^^xsd:integer . "
+
+pv06fwd :: [String]
 pv06fwd =
     [ falseGraphStr
     ]
+
+pv06bwd :: [[String]]
 pv06bwd =
     [ [ falseGraphStr
       ]
     ]
-testRuleFwdPv06 = testRuleFwd "testRuleFwdPv06" pvRule1 pv06inp pv06fwd
-testRuleBwdPv06 = testRuleBwd "testRuleBwdPv06" pvRule1 pv06inp pv06bwd
 
+pv07inp :: String
 pv07inp =
         "_:a a :PassengerVehicle ; "
     +++ "  :totalCapacity \"57\"^^xsd:integer . "
+
+pv07fwd :: [String]
 pv07fwd = []
+
+-- how come this isn't [[String]] ?
+pv07bwd :: [String]
 pv07bwd = []
-testRuleFwdPv07 = testRuleFwd "testRuleFwdPv07" pvRule0 pv07inp pv07fwd
-testRuleBwdPv07 = testRuleFwd "testRuleBwdPv07" pvRule0 pv07inp pv07bwd
 
 --  Full suite for datatype rule tests
 
+testDatatypeRuleSuite :: Test
 testDatatypeRuleSuite = TestList
-    [ testRuleFwdAbs01, testRuleFwdAbs02, testRuleFwdAbs03, testRuleFwdAbs04
-    , testRuleFwdNeg01, testRuleFwdNeg02
-    , testRuleFwdSum01, testRuleFwdSum02, testRuleFwdSum03
-    , testRuleFwdDiff01, testRuleFwdDiff02, testRuleFwdDiff03
-    , testRuleFwdProd01, testRuleFwdProd02, testRuleFwdProd03
-    , testRuleFwdDivMod01, testRuleFwdDivMod02, testRuleFwdDivMod03
-    , testRuleFwdPower01, testRuleFwdPower02, testRuleFwdPower03
-    , testRuleFwdEq01, testRuleFwdEq02, testRuleFwdEq03
-    , testRuleFwdNe01, testRuleFwdNe02, testRuleFwdNe03
-    , testRuleFwdLt01, testRuleFwdLt02, testRuleFwdLt03
-    , testRuleFwdLe01, testRuleFwdLe02, testRuleFwdLe03
-    , testRuleFwdGt01, testRuleFwdGt02, testRuleFwdGt03
-    , testRuleFwdGe01, testRuleFwdGe02, testRuleFwdGe03
+  [ testRuleFwd "testRuleFwdAbs01" ruleabs abs01inp abs01fwd
+  , testRuleFwd "testRuleFwdAbs02" ruleabs abs02inp abs02fwd
+  , testRuleFwd "testRuleFwdAbs03" ruleabs abs03inp abs03fwd
+  , testRuleFwd "testRuleFwdAbs04" ruleabs abs04inp abs04fwd
+  , testRuleFwd "testRuleFwdNeg01" ruleneg neg01inp neg01fwd
+  , testRuleFwd "testRuleFwdNeg02" ruleneg neg02inp neg02fwd
+  , testRuleFwd "testRuleFwdSum01" rulesum sum01inp sum01fwd
+  , testRuleFwd "testRuleFwdSum02" rulesum sum02inp sum02fwd
+  , testRuleFwd "testRuleFwdSum03" rulesum sum03inp sum03fwd
+  , testRuleFwd "testRuleFwdDiff01" rulediff diff01inp diff01fwd
+  , testRuleFwd "testRuleFwdDiff02" rulediff diff02inp diff02fwd
+  , testRuleFwd "testRuleFwdDiff03" rulediff diff03inp diff03fwd
+  , testRuleFwd "testRuleFwdProd01" ruleprod prod01inp prod01fwd
+  , testRuleFwd "testRuleFwdProd02" ruleprod prod02inp prod02fwd
+  , testRuleFwd "testRuleFwdProd03" ruleprod prod03inp prod03fwd
+  , testRuleFwd "testRuleFwdDivMod01" ruledivmod divmod01inp divmod01fwd
+  , testRuleFwd "testRuleFwdDivMod02" ruledivmod divmod02inp divmod02fwd
+  , testRuleFwd "testRuleFwdDivMod03" ruledivmod divmod03inp divmod03fwd
+  , testRuleFwd "testRuleFwdPower01" rulepower power01inp power01fwd
+  , testRuleFwd "testRuleFwdPower02" rulepower power02inp power02fwd
+  , testRuleFwd "testRuleFwdPower03" rulepower power03inp power03fwd
+  , testRuleFwd "testRuleFwdEq01" ruleeq eq01inp eq01fwd
+  , testRuleFwd "testRuleFwdEq02" ruleeq eq02inp eq02fwd
+  , testRuleFwd "testRuleFwdEq03" ruleeq eq03inp eq03fwd
+  , testRuleFwd "testRuleFwdNe01" rulene ne01inp ne01fwd
+  , testRuleFwd "testRuleFwdNe02" rulene ne02inp ne02fwd
+  , testRuleFwd "testRuleFwdNe03" rulene ne03inp ne03fwd
+  , testRuleFwd "testRuleFwdLt01" rulelt lt01inp lt01fwd
+  , testRuleFwd "testRuleFwdLt02" rulelt lt02inp lt02fwd
+  , testRuleFwd "testRuleFwdLt03" rulelt lt03inp lt03fwd
+  , testRuleFwd "testRuleFwdLe01" rulele le01inp le01fwd
+  , testRuleFwd "testRuleFwdLe02" rulele le02inp le02fwd
+  , testRuleFwd "testRuleFwdLe03" rulele le03inp le03fwd
+  , testRuleFwd "testRuleFwdGt01" rulegt gt01inp gt01fwd
+  , testRuleFwd "testRuleFwdGt02" rulegt gt02inp gt02fwd
+  , testRuleFwd "testRuleFwdGt03" rulegt gt03inp gt03fwd
+  , testRuleFwd "testRuleFwdGe01" rulege ge01inp ge01fwd
+  , testRuleFwd "testRuleFwdGe02" rulege ge02inp ge02fwd
+  , testRuleFwd "testRuleFwdGe03" rulege ge03inp ge03fwd
+                                      
     -- backard chaining tests
-    , testRuleBwdAbs01, testRuleBwdAbs02, testRuleBwdAbs03, testRuleBwdAbs04
-    , testRuleBwdNeg01, testRuleBwdNeg02
-    , testRuleBwdSum01, testRuleBwdSum02, testRuleBwdSum03
-    , testRuleBwdDiff01, testRuleBwdDiff02, testRuleBwdDiff03
-    , testRuleBwdProd01, testRuleBwdProd02, testRuleBwdProd03
-    , testRuleBwdDivMod01, testRuleBwdDivMod02, testRuleBwdDivMod03
-    , testRuleBwdPower01, testRuleBwdPower02, testRuleBwdPower03
-    , testRuleBwdEq01, testRuleBwdEq02, testRuleBwdEq03
-    , testRuleBwdNe01, testRuleBwdNe02, testRuleBwdNe03
-    , testRuleBwdLt01, testRuleBwdLt02, testRuleBwdLt03
-    , testRuleBwdLe01, testRuleBwdLe02, testRuleBwdLe03
-    , testRuleBwdGt01, testRuleBwdGt02, testRuleBwdGt03
-    , testRuleBwdGe01, testRuleBwdGe02, testRuleBwdGe03
+  , testRuleBwd "testRuleBwdAbs01" ruleabs abs01inp abs01bwd
+  , testRuleBwd "testRuleBwdAbs02" ruleabs abs02inp abs02bwd
+  , testRuleBwd "testRuleBwdAbs03" ruleabs abs03inp abs03bwd
+  , testRuleBwd "testRuleBwdAbs04" ruleabs abs04inp abs04bwd
+  , testRuleBwd "testRuleBwdNeg01" ruleneg neg01inp neg01bwd
+  , testRuleBwd "testRuleBwdNeg02" ruleneg neg02inp neg02bwd
+  , testRuleBwd "testRuleBwdSum01" rulesum sum01inp sum01bwd
+  , testRuleBwd "testRuleBwdSum02" rulesum sum02inp sum02bwd
+  , testRuleBwd "testRuleBwdSum03" rulesum sum03inp sum03bwd
+  , testRuleBwd "testRuleBwdDiff01" rulediff diff01inp diff01bwd
+  , testRuleBwd "testRuleBwdDiff02" rulediff diff02inp diff02bwd
+  , testRuleBwd "testRuleBwdDiff03" rulediff diff03inp diff03bwd
+  , testRuleBwd "testRuleBwdProd01" ruleprod prod01inp prod01bwd
+  , testRuleBwd "testRuleBwdProd02" ruleprod prod02inp prod02bwd
+  , testRuleBwd "testRuleBwdProd03" ruleprod prod03inp prod03bwd
+  , testRuleBwd "testRuleBwdDivMod01" ruledivmod divmod01inp divmod01bwd
+  , testRuleBwd "testRuleBwdDivMod02" ruledivmod divmod02inp divmod02bwd
+  , testRuleBwd "testRuleBwdDivMod03" ruledivmod divmod03inp divmod03bwd
+  , testRuleBwd "testRuleBwdPower01" rulepower power01inp power01bwd
+  , testRuleBwd "testRuleBwdPower02" rulepower power02inp power02bwd
+  , testRuleBwd "testRuleBwdPower03" rulepower power03inp power03bwd
+  , testRuleBwd "testRuleBwdEq01" ruleeq eq01inp eq01bwd
+  , testRuleBwd "testRuleBwdEq02" ruleeq eq02inp eq02bwd
+  , testRuleBwd "testRuleBwdEq03" ruleeq eq03inp eq03bwd
+  , testRuleBwd "testRuleBwdNe01" rulene ne01inp ne01bwd
+  , testRuleBwd "testRuleBwdNe02" rulene ne02inp ne02bwd
+  , testRuleBwd "testRuleBwdNe03" rulene ne03inp ne03bwd
+  , testRuleBwd "testRuleBwdLt01" rulelt lt01inp lt01bwd
+  , testRuleBwd "testRuleBwdLt02" rulelt lt02inp lt02bwd
+  , testRuleBwd "testRuleBwdLt03" rulelt lt03inp lt03bwd
+  , testRuleBwd "testRuleBwdLe01" rulele le01inp le01bwd
+  , testRuleBwd "testRuleBwdLe02" rulele le02inp le02bwd
+  , testRuleBwd "testRuleBwdLe03" rulele le03inp le03bwd
+  , testRuleBwd "testRuleBwdGt01" rulegt gt01inp gt01bwd
+  , testRuleBwd "testRuleBwdGt02" rulegt gt02inp gt02bwd
+  , testRuleBwd "testRuleBwdGt03" rulegt gt03inp gt03bwd
+  , testRuleBwd "testRuleBwdGe01" rulege ge01inp ge01bwd
+  , testRuleBwd "testRuleBwdGe02" rulege ge02inp ge02bwd
+  , testRuleBwd "testRuleBwdGe03" rulege ge03inp ge03bwd
+
     -- test cases from design notes
-    , testRuleFwdPv01, testRuleFwdPv02, testRuleFwdPv03, testRuleFwdPv04
-    , testRuleFwdPv05, testRuleFwdPv06, testRuleFwdPv07
-    , testRuleBwdPv01, testRuleBwdPv02, testRuleBwdPv06, testRuleBwdPv07
-    ]
+  , testRuleFwd "testRuleFwdPv01" pvRule0 pv01inp pv01fwd
+  , testRuleFwd "testRuleFwdPv02" pvRule0 pv02inp pv02fwd
+  , testRuleFwd "testRuleFwdPv03" pvRule0 pv03inp pv03fwd
+  , testRuleFwd "testRuleFwdPv04" pvRule0 pv04inp pv04fwd
+  , testRuleFwd "testRuleFwdPv05" pvRule1 pv05inp pv05fwd
+  , testRuleFwd "testRuleFwdPv06" pvRule1 pv06inp pv06fwd
+  , testRuleFwd "testRuleFwdPv07" pvRule0 pv07inp pv07fwd
+
+  , testRuleBwd "testRuleBwdPv01" pvRule0 pv01inp pv01bwd
+  , testRuleBwd "testRuleBwdPv02" pvRule0 pv02inp pv02bwd
+  , testRuleBwd "testRuleBwdPv06" pvRule1 pv06inp pv06bwd
+  , testRuleFwd "testRuleBwdPv07" pvRule0 pv07inp pv07bwd
+    
+  ]
 
 ------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
+allTests :: Test
 allTests = TestList
     [ testDatatypeSuite
     , testDatatypeValSuite
@@ -1574,7 +1816,10 @@ allTests = TestList
     , testDatatypeRuleSuite
     ]
 
-main = runTestTT allTests
+main :: IO ()
+main = runTestTT allTests >> return ()
+
+{-
 trules = runTestTT testDatatypeRuleSuite
 
 runTestFile t = do
@@ -1583,6 +1828,7 @@ runTestFile t = do
     hClose h
 tf = runTestFile
 tt = runTestTT
+-}
 
 --------------------------------------------------------------------------------
 --
