@@ -1,44 +1,16 @@
-
-parser-update branch
-
-  - updating the N3 Parser to better match the latest specification;
-    this is not backwards compatible with the syntax supported by
-    Swish in version 0.2.1 (e.g. no ":-"), so there are a number
-    of changes to the test suite
-
-  - the new specification is not fully supported yet; in particular
-
-    - @keywords, @forSome, @forAll are not supported
-
-    - string literals are not parsed correctly, embarassingly enough
-
-    - the N3 Formatter hasn't yet been updated to match the new
-      syntax, in particular the output may include use of the
-      now-removed :- symbol.
-
-    - the test suite has been cleaned to pass with the new code but
-      it has not been re-worked or extended to properly test the new
-      parser
-
-    - the parser is *significantly* slower than the old version
-
-    - output using the "[..]" and "(..)" syntaxes is now supported,
-      but formatting is not ideal.
-
-  - Initial support for NTriples has been added
-
-  - I plan to move to using Text rather than String, which will mean
-    changing from Parsec to attoparsec-text (probably).
-
-Thoughts:
-
-  - need to remove the use of :- in N3Formatter; should probably aim to
-    create turtle-compatible output where possible, with flags to control
-    the use of existential statements (@forSome), a la cwm
-
 0.2.1 to 0.3.0.0:
 
-  - removed modules, wither because un-needed or replaced
+  - Renamed module hierarchy from
+
+      Swish.HaskellRDF.*
+      Swish.HaskellUtils.*
+
+    to
+
+      Swish.RDF.*
+      Swish.Utils.*
+
+  - removed modules, either because un-needed or replaced
     by other libraries:
 
     *) replaced with Data.Traversable instances
@@ -54,14 +26,24 @@ Thoughts:
 
       Swish.HaskellRDF.ParsecLanguage
 
+    *) Replaced with Data.List.sort as only used the 
+       stableQuickSort routine
+
+      Swish.HaskellRDF.Sort.*
+
+    *) Replaced use with simple parsec parser
+
+      Swish.HaskellRDF.Dfa.Dfa
+
+    *) Replaced with 'Either String'
+
+      Swish.HaskellUtils.ErrorM
+
     *) Un-needed 
 
       Swish.HaskellRDF.Parse
       Swish.HaskelUtils.AccumulateM
-
-    *) Either un-needed or now hidden
-
-      Swish.HaskellRDF.Sort.*
+      Swish.HaskellUtils.TestHelpers
 
   - removed Either String instance from ErrorM
 
@@ -73,4 +55,40 @@ Thoughts:
     because of a removed module or missing data files.
 
   - updated Haddock documentation to build
+
+  - added the following flags
+
+      tests   - compile tests or not?
+      hpc     - compile tests with -hpc?
+
+  - support for the NTriples format has been added (e.g. the -nt
+    flag in Swish)
+
+  - the N3 parser and formatter have been re-written to better
+    match the latest specification. Some previously valid N3 files
+    will likely no-linger parse since support for constructs like
+    'this' and ':-' have been removed.
+
+    The N3 parser does not handle @forAll statements and ignores any
+    @forSome statements. It is also slower than the original parser.
+
+    The formatter has been updated to make better use of the '[]', 
+    '()' and '{}' syntactic short cuts.
+
+    Strings containing "unexpected" escape combinations - such as \a -
+    may not be handled correctluy.
+
+  - change in behavior of Swish command-line tool when given
+    invalid arguments as it now errors out if given an invalid
+    argument before processing any input.
+
+
+Thoughts:
+
+  - need to remove the use of :- in N3Formatter; should probably aim to
+    create turtle-compatible output where possible, with flags to control
+    the use of existential statements (@forSome), a la cwm
+
+  - I plan to move to using Text rather than String, which will mean
+    changing from Parsec to attoparsec-text (probably).
 
