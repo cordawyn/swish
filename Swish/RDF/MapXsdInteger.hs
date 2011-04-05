@@ -24,8 +24,6 @@ import Swish.RDF.Datatype
     ( DatatypeMap(..)
     )
 
-import Text.ParserCombinators.Parsec
-
 ------------------------------------------------------------
 --  Implementation of DatatypeMap for xsd:integer
 ------------------------------------------------------------
@@ -42,29 +40,28 @@ mapXsdInteger = DatatypeMap
     , mapV2L = Just . show
     }
 
--- previously there was a regular expression used to check
--- the string before parsing; this has been replaced by a
--- simple parsec parser.
--- 
+-- basic little parser for integer values;
+-- do we need to bother about rejecting 
+-- input like "-000" or "+0"?
+--
 fromString :: String -> Maybe Integer
-fromString input =
-  case runParser intVal "" "" input of
-    Right ival -> Just ival
-    Left _     -> Nothing
-  
-leadingSign :: CharParser st Integer
-leadingSign = 
-  (char '-' >> return (-1)) <|> 
-  (char '+' >> return 1) <|>
-  return 1
+fromString ('-':xs) = fs False xs
+fromString ('+':xs) = fs True xs
+fromString xs       = fs True xs
 
-intVal :: CharParser st Integer
-intVal = do
-  sign <- leadingSign
-  aval <- many1 (oneOf "0123456789")
-  notFollowedBy anyChar
-  return $ sign * read aval
-    
+fs :: Bool -> String -> Maybe Integer
+fs _ [] = Nothing
+fs f is = 
+  let val = go is []
+      
+      go [] ys = Just $ read $ reverse ys
+      go (x:xs) ys | x `elem` ['0'..'9'] = go xs (x:ys)
+                   | otherwise           = Nothing
+        
+   in case f of
+    True -> val
+    False -> fmap ((-1) *) val
+
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
