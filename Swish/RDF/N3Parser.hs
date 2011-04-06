@@ -35,18 +35,25 @@
 --  Several items seem to be allowed (from looking at N3 test suites and files
 --  'in the wild') that are not given supported by the N3 grammar [1]. We try
 --  to support these, including
---    a) ":" and "base:" as valid QNames (ie a blank local component)
---    b) true and false as well as @true/@false
---    c) use of lower-case characters for \u and \U escape codes
+--
+--    - \"@:@\" and \"@base:@\" as valid QNames (ie a blank local component)
+--
+--    - @true@ and @false@ as well as @\@true@ and @\@false@
+--
+--    - use of lower-case characters for @\\u@ and @\\U@ escape codes
 --
 --  No performance testing has been applied.
 --
 --  Not all N3 grammar elements are supported, including:
---    - @forSome (we read it in but ignore the arguments)
---    - @forAll  (this causes a parse error)
+--
+--    - @\@forSome@ (we read it in but ignore the arguments)
+--
+--    - @\@forAll@  (this causes a parse error)
+--
 --    - formulae are lightly tested
+--
 --    - string support is incomplete (e.g. unrecognized escape characters
---      such as \q are probably handled incorrectly)
+--      such as @\\q@ are probably handled incorrectly)
 --
 --------------------------------------------------------------------------------
 
@@ -184,7 +191,8 @@ setSName nam snam st =  st { syntaxUris=s' }
 setSUri :: String -> String -> N3State -> N3State
 setSUri nam suri = setSName nam (makeScopedName "" suri "")
 
--- | The list of tokens that can be used without an @ sign
+-- | Set the list of tokens that can be used without needing the leading 
+-- \@ symbol.
 setKeywordsList :: [String] -> N3State -> N3State
 setKeywordsList ks st = st { keywordsList = ks, allowLocalNames = True }
 
@@ -542,7 +550,7 @@ addPrefix p = updateState . setPrefix (fromMaybe "" p) . getScopedNameURI'
 
 {-|
 Update the set of keywords that can be given without
-an @ sign.
+an \@ sign.
 -}
 updateKeywordsList :: [String] -> N3Parser ()
 updateKeywordsList = updateState . setKeywordsList
@@ -1060,7 +1068,10 @@ universal ::=		|	 "@forAll"  symbol_csl
 TODO: what needs to be done to support universal quantification
 -}
 universal :: N3Parser ()
-universal = try (atWord "forAll") *> unexpected "universal (@forAll) currently unsupported." -- *> symbolCsl
+universal = 
+  try (atWord "forAll") *> 
+  unexpected "universal (@forAll) currently unsupported." 
+  -- will be something like: *> symbolCsl
 
 {-
 

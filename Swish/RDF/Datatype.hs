@@ -15,14 +15,14 @@
 --  manipulate datatypes.  It is designed as a basis for handling datatyped
 --  RDF literals, but the functions in this module are more generic.
 --
+--------------------------------------------------------------------------------
+
 --  Testing note:  this module supports a number of specific datatypes.
 --  It is intended that functionality in this module will be tested via
 --  modules "Swish.RDF.RDFDatatype", 
 --  "Swish.RDF.ClassRestrictionRule" and
 --  "Swish.RDF.RDFDatatypeXsdInteger".
 --  See also module ClassRestrictionRuleTest for test cases.
---
---------------------------------------------------------------------------------
 
 module Swish.RDF.Datatype
     ( Datatype(..)
@@ -97,9 +97,6 @@ import Control.Monad( join, liftM )
 --  is used only in implementations of the datatype.
 --  Users see just the datatype name and associated ruleset.
 --
---  Note, the 'forall' is used in the sense of existentially quantified:
---  see the Glasgow Haskell Compiler (GHC) user guide, section 7.3.12
---
 data Datatype ex lb vn = forall vt . Datatype (DatatypeVal ex vt lb vn)
 
 instance LookupEntryClass
@@ -132,7 +129,7 @@ getTypeAxiom nam dt = getRulesetAxiom nam (typeRules dt)
 getTypeRule :: ScopedName -> Datatype ex lb vn -> Maybe (Rule ex)
 getTypeRule  nam dt = getRulesetRule  nam (typeRules dt)
 
--- |Get cacnonical form of datatype value
+-- |Get canonical form of datatype value
 typeMkCanonicalForm :: Datatype ex lb vn -> String -> Maybe String
 typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 
@@ -146,12 +143,12 @@ typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 --  A datatype is specified with respect to (polymophic in) a given
 --  type of (syntactic) expression with which it may be used, and
 --  a value type (whos existence is hidden as an existential type
---  within DatatypeMap
+--  within `DatatypeMap`.
 --
 --  (I tried hiding the value type with an internal existential
 --  declaration, but that wouldn't wash.  Hence this two-part
---  structure with Datatype (above) in which the internal detail
---  of the value type is hidden from users of the Datatype class.)
+--  structure with `Datatype` in which the internal detail
+--  of the value type is hidden from users of the `Datatype` class.)
 --
 --  The datatype characteristic functions have two goals:
 --
@@ -162,7 +159,7 @@ typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 --      means of which provide additional base functionality to
 --      applications based on RDF inference.
 --
---  Datatype-specific inferences are provided using the DatatypeRel
+--  Datatype-specific inferences are provided using the `DatatypeRel`
 --  structure for a datatype, which allows a number of named relations
 --  to be defined on datatype values, and provides mechanisms to
 --  calculate missing values in a partially-specified member of
@@ -744,15 +741,15 @@ selv _  vbind = [vbind]
 --  Each list of values returned corresponds to a set of values that
 --  satisfy the relation, consistent with the values supplied.
 --
---  Functions are described as tuple consisting of
+--  Functions are described as tuple consisting of:
 --
---  (a) a predicate that the argument is required to satisfy
+--    (a) a predicate that the argument is required to satisfy
 --
---  (b) a function to apply,
+--    (b) a function to apply,
 --
---  (c) a function to apply function (b) to a list of arguments
+--    (c) a function to apply function (b) to a list of arguments
 --
---  (d) argument list index values to which the function is applied.
+--    (d) argument list index values to which the function is applied.
 --
 --  Each supplied argument is of the form @Maybe a@, where the argument
 --  has value type a.  @Nothing@ indicates arguments of unknown value.

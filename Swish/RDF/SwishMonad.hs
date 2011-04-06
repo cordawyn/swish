@@ -83,7 +83,12 @@ import System.IO (hPutStrLn, stderr)
 --  Uses StateT Monad transformer:
 --  See example by Mark Carroll at http://www.haskell.org/hawiki/MonadState
 
-data SwishFormat = N3 | NT -- | RDF
+{-|
+The supported input and output formats.
+-}
+data SwishFormat = 
+  N3  -- ^ N3 format
+  | NT -- ^ NTriples format
     deriving Eq
 
 instance Show SwishFormat where
@@ -92,16 +97,15 @@ instance Show SwishFormat where
   -- show RDF = "RDF/XML"
 
 data SwishState = SwishState
-    { format    :: SwishFormat
-    , base      :: Maybe QName      -- base to use rather than file name
-    , graph     :: RDFGraph         -- current graph
-    , graphs    :: NamedGraphMap    -- script processor named graphs
-    , rules     :: RDFRuleMap       -- script processor named rules
-    , rulesets  :: RDFRulesetMap    -- script processor rulesets
-    , infomsg   :: Maybe String     -- information message, or Nothing
-    , errormsg  :: Maybe String     -- error message, or Nothing
-    , exitcode  :: SwishStatus      -- current status message
-    -- , banner    :: Bool             -- display banner
+    { format    :: SwishFormat      -- ^ format to use for I/O
+    , base      :: Maybe QName      -- ^ base to use rather than file name
+    , graph     :: RDFGraph         -- ^ current graph
+    , graphs    :: NamedGraphMap    -- ^ script processor named graphs
+    , rules     :: RDFRuleMap       -- ^ script processor named rules
+    , rulesets  :: RDFRulesetMap    -- ^ script processor rulesets
+    , infomsg   :: Maybe String     -- ^ information message, or Nothing
+    , errormsg  :: Maybe String     -- ^ error message, or Nothing
+    , exitcode  :: SwishStatus      -- ^ current status message
     }
 
 -- | Status of the processor

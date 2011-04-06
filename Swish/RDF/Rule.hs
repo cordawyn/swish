@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98
+--  Portability :  MultiParamTypeClasses
 --
 --  This module defines a framework for defining inference rules
 --  over some expression form.  It is intended to be used with
@@ -37,14 +37,6 @@ import Swish.Utils.LookupMap
 
 import Swish.Utils.ShowM
     ( ShowM(..) )
-
-{- in Prelude????
-import List
-    ( union, intersect )
-
-import Maybe
-    ( isJust, fromJust )
--}
 
 ------------------------------------------------------------
 --  Expressions
@@ -92,8 +84,7 @@ nullFormula = Formula
 -- testf1 = Formula "f1" ('f',1)
 -- testf2 = Formula "f2" ('f',2)
 
--- |showsFormulae
---  Return a displayable form of a list of labelled formulae
+-- |Return a displayable form of a list of labelled formulae
 showsFormulae :: (ShowM ex) => String -> [Formula ex] -> String -> ShowS
 showsFormulae _       []     _     = id
 showsFormulae newline [f]    after = showsFormula  newline f .
@@ -102,8 +93,7 @@ showsFormulae newline (f:fs) after = showsFormula  newline f .
                                      showString    newline .
                                      showsFormulae newline fs after
 
--- |showsFormula
---  Create a displayable form of a labelled formula
+-- |Create a displayable form of a labelled formula
 showsFormula :: (ShowM ex) => String -> Formula ex -> ShowS
 showsFormula newline f =
     showsWidth 16 ("["++show (formName f)++"] ") .

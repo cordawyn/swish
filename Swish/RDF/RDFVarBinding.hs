@@ -10,12 +10,12 @@
 --  Stability   :  provisional
 --  Portability :  H98
 --
---  This module instantiates the VarBinding types and methods for use
+--  This module instantiates the `VarBinding` types and methods for use
 --  with RDF graph labels.
 --
---  See module RDFQueryTest for test cases.
---
 --------------------------------------------------------------------------------
+
+--  See module RDFQueryTest for test cases.
 
 module Swish.RDF.RDFVarBinding
     ( RDFVarBinding, nullRDFVarBinding
@@ -54,8 +54,7 @@ import Swish.Utils.LookupMap
 ------------------------------------------------------------
 
 -- |@RDFVarBinding@ is the specific type type of a variable
---  binding value used with RDF graph queries, returned by
---  'RDFVarBindingFind' and used by 'RDFVarBindingSubs'
+--  binding value used with RDF graph queries. 
 type RDFVarBinding  = VarBinding RDFLabel RDFLabel
 
 -- | maps no query variables.

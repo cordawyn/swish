@@ -195,15 +195,17 @@ explainStep rules prev step =
             ]
         require b s = if b then Nothing else Just s
 
--- |showsProof
---  Create a displayable form of a proof, returned as a ShowS value.
+-- |Create a displayable form of a proof, returned as a `ShowS` value.
 --
 --  This function is intended to allow the calling function some control
 --  of multiline displays by providing:
+--
 --  (1) the first line of the proof is not preceded by any text, so
 --      it may be appended to some preceding text on the same line,
+--
 --  (2) the supplied newline string is used to separate lines of the
 --      formatted text, and may include any desired indentation, and
+--
 --  (3) no newline is output following the final line of text.
 showsProof :: (ShowM ex) => String -> Proof ex -> ShowS
 showsProof newline proof =
@@ -219,13 +221,11 @@ showsProof newline proof =
             showString    (newline ++ "Proof:" ++ newline) .
             showsSteps    newline (proofChain  proof)
 
--- |showProof
---  Returns a simple string representation of a proof.
+-- |Returns a simple string representation of a proof.
 showProof :: (ShowM ex) => String -> Proof ex -> String
 showProof newline proof = showsProof newline proof ""
 
--- |showsSteps
---  Create a displayable form of a list of labelled proof steps
+-- |Create a displayable form of a list of labelled proof steps
 showsSteps :: (ShowM ex) => String -> [Step ex] -> ShowS
 showsSteps _       []     = id
 showsSteps newline [s]    = showsStep  newline s
@@ -233,8 +233,7 @@ showsSteps newline (s:ss) = showsStep  newline s .
                             showString newline .
                             showsSteps newline ss
 
--- |showsStep
---  Create a displayable form of a labelled proof step.
+-- |Create a displayable form of a labelled proof step.
 showsStep :: (ShowM ex) => String -> Step ex -> ShowS
 showsStep newline s = showsFormula newline (stepCon s) .
                       showString newline .
@@ -243,16 +242,14 @@ showsStep newline s = showsFormula newline (stepCon s) .
         rulename = show . ruleName $ stepRule s
         antnames = showNames $ map (show . formName) (stepAnt s)
 
--- |showNames
---  Return a string containing a list of names.
+-- |Return a string containing a list of names.
 showNames :: [String] -> String
 showNames []      = "<nothing>"
 showNames [n]     = showName n
 showNames [n1,n2] = showName n1 ++ " and " ++ showName n2
 showNames (n1:ns) = showName n1 ++ ", " ++ showNames ns
 
--- |showNames
---  Return a string representing a single name.
+-- |Return a string representing a single name.
 showName :: String -> String
 showName n = "["++n++"]"
 

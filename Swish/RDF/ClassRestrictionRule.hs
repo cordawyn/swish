@@ -9,7 +9,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  Uses MultiParamTypeClasses LANGUAGE pragma
+--  Portability :  MultiParamTypeClasses
 --
 --  This module implements an inference rule based on a restruction on class
 --  membership of one or more values.

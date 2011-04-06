@@ -131,11 +131,11 @@ input file path is relative then the working directory is used
 to convert it into an absolute path.
 
 If the input represents a directory then it *must* end in 
-the directory separator - e.g. "/foo/bar/" rather than "/foo/bar"
+the directory separator - e.g. @\"\/foo\/bar\/\"@ rather than 
+@\"\/foo\/bar\"@
 for Posix systems.
 
 This has not been tested on Windows.
-
 -}
 qnameFromFilePath :: FilePath -> IO QName
 qnameFromFilePath = fmap qnameFromURI . filePathToURI

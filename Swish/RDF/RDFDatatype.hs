@@ -8,7 +8,7 @@
 --
 --  Maintainer  :  Graham Klyne
 --  Stability   :  provisional
---  Portability :  H98 + existential types
+--  Portability :  H98
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate RDF datatypes.
@@ -97,12 +97,6 @@ type RDFApplyModifier = ApplyModifier RDFLabel RDFLabel
 
 -- |Create an 'RDFOpenVarBindingModify' value.
 --
---  [@dtval@]   is an 'RDFDatatype' value containing details of the datatype
---          for which a variable binding modifier is created.
---
---  [@dtmod@]   is the data value modifier value that defines the calculations
---          that are used to implement a variable binding modifier.
---
 --  The key purpose of this function is to lift the supplied
 --  variable constraint functions from operating on data values directly
 --  to a corresponding list of functions that operate on values contained
@@ -112,18 +106,24 @@ type RDFApplyModifier = ApplyModifier RDFLabel RDFLabel
 --  accepted.
 --
 makeRdfDtOpenVarBindingModify ::
-    RDFDatatypeVal vt -> RDFDatatypeMod vt -> RDFOpenVarBindingModify
+    RDFDatatypeVal vt
+    -- ^ is an 'RDFDatatype' value containing details of the datatype
+    --   for which a variable binding modifier is created.
+    -> RDFDatatypeMod vt 
+    -- ^ is the data value modifier value that defines the calculations
+    --   that are used to implement a variable binding modifier.
+    -> RDFOpenVarBindingModify
 makeRdfDtOpenVarBindingModify dtval dtmod =
     dmAppf dtmod (dmName dtmod) $ map (makeRDFModifierFn dtval) (dmModf dtmod)
 
 -- |Create all RDFOpenVarBindingModify values for a given datatype value.
 --  See 'makeRdfDtOpenVarBindingModify'.
 --
---  [@dtval@]   is an 'RDFDatatype' value containing details of the datatype
---          for which variable binding modifiers are created.
---
 makeRdfDtOpenVarBindingModifiers ::
-    RDFDatatypeVal vt -> [RDFOpenVarBindingModify]
+    RDFDatatypeVal vt 
+    -- ^  is an 'RDFDatatype' value containing details of the datatype
+    --    for which variable binding modifiers are created.
+    -> [RDFOpenVarBindingModify]
 makeRdfDtOpenVarBindingModifiers dtval =
     map (makeRdfDtOpenVarBindingModify dtval) (tvalMod dtval)
 

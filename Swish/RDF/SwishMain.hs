@@ -29,27 +29,27 @@
 --  some broader utility is not ruled out).  As such, it is part of
 --  another experiment along the lines described in [3].
 --
---  [1] Semantic web: <http://www.w3.org/2001/sw/>
+--  (1) Semantic web: <http://www.w3.org/2001/sw/>
 --
---  [2] CWM:          <http://www.w3.org/2000/10/swap/doc/cwm.html>
+--  (2) CWM:          <http://www.w3.org/2000/10/swap/doc/cwm.html>
 --
---  [3] Motivation:   <http://www.w3.org/2000/10/swap/doc/Motivation.html>
+--  (3) Motivation:   <http://www.w3.org/2000/10/swap/doc/Motivation.html>
 --
---  [4] Notation 3:   <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
---                    <http://www.w3.org/DesignIssues/Notation3.html>
+--  (4) Notation 3:   <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
 --
---  [5] RDF:          <http://www.w3.org/RDF/>
+--  (5) RDF:          <http://www.w3.org/RDF/>
 --
+--------------------------------------------------------------------------------
+
 --  TODO:
 --
 --  * Add RDF/XML input and output
 --
 --  * Add Turtle and related formats for input and output
 --
---------------------------------------------------------------------------------
 
 module Swish.RDF.SwishMain (
-  SwishStatus(..),
+  SwishStatus(..), SwishAction,
   runSwish,
   runSwishActions,
   displaySwishHelp,
@@ -149,6 +149,7 @@ usageText =
     , "    or not they are equivalent."
     ]
 
+-- | Write out the help for Swish
 displaySwishHelp :: IO ()
 displaySwishHelp = mapM_ putStrLn usageText
 
@@ -161,9 +162,8 @@ displaySwishHelp = mapM_ putStrLn usageText
 --  of the computation.
 --
         
--- Return any arguments that need processing immediately, namely                     
--- help and quiet. Should return a typed structure rather than
--- strings
+-- | Return any arguments that need processing immediately, namely                     
+-- the \"help\", \"quiet\" and \"version\" options.
 --
 splitArguments :: [String] -> ([String], [String])
 splitArguments = partitionEithers . map splitArgument
@@ -175,8 +175,14 @@ splitArgument "-v" = Left "-v"
 splitArgument "-q" = Left "-q"
 splitArgument x    = Right x
 
-type SwishAction = (Maybe String, Maybe String -> SwishStateIO ())
+-- | Represent an Swish action, with an optional argument and
+-- the Swish routine to act on that argument.
+-- 
+-- At present this type is a black box to external modules.
+newtype SwishAction = SA (Maybe String, Maybe String -> SwishStateIO ())
 
+-- | Given a list of command-line arguments create the list of actions
+-- to perform or a string and status value indicating an input error.
 validateCommands :: [String] -> Either (String, SwishStatus) [SwishAction]
 validateCommands args = 
   let (ls, rs) = partitionEithers (map validateCommand args)
@@ -193,7 +199,7 @@ validateCommand cmd =
       arg        = drop 1 more
       marg       = if null arg then Nothing else Just arg
       
-      wrap f = Right (marg, f)
+      wrap f = Right $ SA (marg, f)
   in case nam of
     "-nt"   -> wrap $ swishFormat NT
     "-n3"   -> wrap $ swishFormat N3
@@ -206,17 +212,19 @@ validateCommand cmd =
     "-s"    -> wrap swishScript
     _       -> Left ("Invalid command line argument: "++cmd, SwishArgumentError)
 
+-- | Execute the given set of actions.
 swishCommands :: [SwishAction] -> SwishStateIO ()
 swishCommands = mapM_ swishCommand
 
+-- | Execute an action.
 swishCommand :: SwishAction -> SwishStateIO ()
-swishCommand (marg, act) = act marg
+swishCommand (SA (marg,act)) = act marg
 
 validateBase :: Maybe String -> Either (String, SwishStatus) SwishAction
-validateBase Nothing  = Right (Nothing, swishBase Nothing)
+validateBase Nothing  = Right $ SA (Nothing, swishBase Nothing)
 validateBase (Just b) =
   case parseURI b of
-    Just _ -> Right (Nothing, swishBase (Just (qnameFromURI b)))
+    Just _ -> Right $ SA (Nothing, swishBase (Just (qnameFromURI b)))
     _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
   
 ------------------------------------------------------------
@@ -226,6 +234,10 @@ validateBase (Just b) =
 -- this ignores the "flags" options, namely
 --    -q / -h / -? / -v
 
+-- | Parse and run the given string as if given at the command
+-- line. The \"quiet\", \"version\" and \"help\" options are
+-- ignored.
+--
 runSwish :: String -> IO ExitCode
 runSwish cmdline = do
   let args = breakAll isSpace cmdline
@@ -244,6 +256,7 @@ runSwish cmdline = do
           putStrLn $ "Swish exit: " ++ show ec
           return $ ExitFailure $ fromEnum ec
 
+-- | Execute the given set of actions.
 runSwishActions :: [SwishAction] -> IO SwishStatus
 runSwishActions acts = exitcode `liftM` execStateT (swishCommands acts) emptyState
 

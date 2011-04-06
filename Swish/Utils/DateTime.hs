@@ -10,7 +10,8 @@
 --  Stability   :  provisional
 --  Portability :  H98
 --
---  This Module defines a collection of date/time manipulation functions.
+--  This Module defines a collection of date/time manipulation functions. It
+--  should probably be replaced by standard modules from Hackage. 
 --
 --  Date/time value manipulation.
 --

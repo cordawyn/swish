@@ -21,7 +21,8 @@ Description:        Swish is a framework, written in the purely functional
                     .
                     Swish is a work-in-progress, and currently incorporates:
                     .
-                    * Notation3 input and output.
+                    * Notation3 and NTriples input and output. The N3 support is
+                      incomplete (no handling of @forAll@).
                     .
                     * RDF graph isomorphism testing and merging.
                     .

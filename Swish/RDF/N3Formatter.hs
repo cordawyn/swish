@@ -26,16 +26,13 @@
 -- (2) <http://www.w3.org/2000/10/swap/Primer.html>
 --     Notation 3 Primer by Sean Palmer
 --
---
 --  TODO:
 --
 --   * Initial prefix list to include nested formulae;
 --      then don't need to update prefix list for these.
 --
---   * blank nodes used just once, can be expanded inline using
---     [...] syntax.
---
---   * generate multi-line literals when appropriate
+--   * correct output of strings containing unsupported escape
+--     characters (such as @\\q@)
 --
 --   * more flexible terminator generation for formatted formulae
 --     (for inline blank nodes.)
@@ -45,9 +42,9 @@
 {-
 TODO:
 
-*) base issues
-
-do not have test failures for these
+The code used to determine whether a blank node can be written
+using the "[]" short form could probably take advantage of the
+GraphPartition module.
 
 -}
 
