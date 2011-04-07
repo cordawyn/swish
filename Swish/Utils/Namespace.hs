@@ -7,9 +7,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  TypeSynonymInstances, MultiParamTypeClasses
 --
 --  This module defines algebraic datatypes for namespaces and scoped names.
 --
@@ -37,11 +37,6 @@ import Swish.Utils.QName
 
 import Swish.Utils.LookupMap
     ( LookupEntryClass(..) )
-
-{- in Prelude???
-import Maybe
-    ( Maybe(..), fromJust )
--}
 
 ------------------------------------------------------------
 --  Namespace, having a prefix and a URI

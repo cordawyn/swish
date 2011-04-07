@@ -7,9 +7,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  MultiParamTypeClasses, TypeSynonymInstances
 --
 --  This module defines functions for representing and manipulating query
 --  binding variable sets.  This is the key data that mediates between
@@ -275,15 +275,16 @@ vbmCompatibility vbm vars = find compat (vbmUsage vbm)
 
 -- |Variable binding usage compatibility test.
 --
---  bvars   are variables supplied with bindings
---  vocab   are variables returned with bindings by a modifier
---  ovars   are variables assigned new bindings by a modifier
---
---  Returns True if the supplied variable bindings can be compatibly
+--  Returns @True@ if the supplied variable bindings can be compatibly
 --  processed by a variable binding usage with supplied vocabulary and
 --  usage pattern.
 --
-vbmCompatibleVars :: (Eq a) => [a] -> [a] -> [a] -> Bool
+vbmCompatibleVars ::
+  (Eq a) 
+  => [a] -- ^ variables supplied with bindings
+  -> [a] -- ^ variables returned with bindings by a modifier
+  -> [a] -- ^ variables assigned new bindings by a modifier
+  -> Bool
 vbmCompatibleVars bvars vocab ovars =
     null (ivars `intersect` ovars) &&       -- ivars and ovars don't overlap
     null ((vocab \\ ovars) \\ ivars)        -- ovars and ivars cover vocab

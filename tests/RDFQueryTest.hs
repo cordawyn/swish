@@ -6,9 +6,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98 + multi-parameter classes
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  H98
 --
 --  This module defines test cases for querying an RDF graph to obtain
 --  a set of variable substitutions, and to apply a set of variable

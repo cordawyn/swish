@@ -7,9 +7,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98 + multi-parameter classes
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  FlexibleInstances, UndecidableInstances
 --
 --  This module instantiates the 'Proof' framework for
 --  constructing proofs over RDFGraph expressions.

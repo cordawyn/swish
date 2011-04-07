@@ -7,9 +7,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances
 --
 --  This module defines a memory-based RDF graph instance.
 --
@@ -102,32 +102,35 @@ import Data.List
 import Data.Ord (comparing)
 
 -----------------------------------------------------------
---  RDF graph node values
-------------------------------------------------------------
+-- | RDF graph node values
 --
---  cf. http://www.w3.org/TR/rdf-concepts/#section-Graph-syntax
+--  cf. <http://www.w3.org/TR/rdf-concepts/#section-Graph-syntax>
 --
 --  This is extended from the RDF abstract graph syntax in the
 --  following ways:
+--
 --  (a) a graph can be part of a resource node or blank node
 --      (cf. Notation3 formulae)
---  (b) a "variable" node option is distinguished from a
+--
+--  (b) a \"variable\" node option is distinguished from a
 --      blank node.
 --      I have found this useful for encoding and handling
 --      queries, even though query variables can be expressed
 --      as blank nodes.
---  (c) a "NoNode" option is defined.
---      This might otherwise be handled by Maybe (RDFLabel g)
+--
+--  (c) a \"NoNode\" option is defined.
+--      This might otherwise be handled by @Maybe (RDFLabel g)@.
+--
 
 -- TODO: should Lit be split up so that can easily differentiate between
 -- a type and a language tag
 
 data RDFLabel =
-      Res ScopedName                    -- resource
-    | Lit String (Maybe ScopedName)     -- literal [type/language]
-    | Blank String                      -- blank node
-    | Var String                        -- variable (not used in ordinary graphs)
-    | NoNode                            -- no node  (not used in ordinary graphs)
+      Res ScopedName                    -- ^ resource
+    | Lit String (Maybe ScopedName)     -- ^ literal [type/language]
+    | Blank String                      -- ^ blank node
+    | Var String                        -- ^ variable (not used in ordinary graphs)
+    | NoNode                            -- ^ no node  (not used in ordinary graphs)
 
 instance Eq RDFLabel where
     (==) = labelEq
@@ -170,9 +173,11 @@ instance Label RDFLabel where
     makeLabel  loc          = Blank loc
     labelHash seed lb       = hash seed (showCanon lb)
 
---  Get canonical string for RDF label.
+-- | Get the canonical string for RDF label.
+--
 --  Used for hashing, so that equivalent labels always return
 --  the same hash value.
+    
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++getScopedNameURI sn++">"
 showCanon (Lit st (Just nam))
@@ -181,7 +186,7 @@ showCanon (Lit st (Just nam))
 showCanon s                  = show s
 
 
--- Define equality of nodes possibly based on different graph types.
+-- | Define equality of nodes possibly based on different graph types.
 --
 -- The version of equality defined here is not strictly RDF abstract syntax
 -- equality, but my interpretation of equivalence for the purposes of
@@ -292,15 +297,11 @@ makeBlank :: RDFLabel -> RDFLabel
 makeBlank  (Var loc)    = Blank loc
 makeBlank  lb           = lb
 
----------------------------------------------------------
---  RDF Triple (statement)
----------------------------------------------------------
+-- | RDF Triple (statement)
 
 type RDFTriple = Arc RDFLabel
 
----------------------------------------------------------
---  Namespace prefix list entry
----------------------------------------------------------
+-- | Namespace prefix list entry
 
 type NamespaceMap = LookupMap Namespace
 
@@ -315,9 +316,7 @@ type RevNamespaceMap = LookupMap RevNamespace
 emptyNamespaceMap :: NamespaceMap
 emptyNamespaceMap = LookupMap []
 
----------------------------------------------------------
---  Graph formula entry
----------------------------------------------------------
+-- | Graph formula entry
 
 data LookupFormula lb gr = Formula
     { formLabel :: lb
@@ -385,9 +384,7 @@ formulaEntryMapM f (Formula k gr) =
     
 -}
 
----------------------------------------------------------
---  Memory-based graph with namespaces and subgraphs
----------------------------------------------------------
+-- | Memory-based graph with namespaces and subgraphs
 
 data NSGraph lb = NSGraph
     { namespaces :: NamespaceMap
@@ -481,11 +478,6 @@ toNSGraph arcs =
         , formulae   = LookupMap []
         }
 
----------------------------------------------------------
---  Merge RDF graphs, renaming bnodes in the second graph
---  as necessary
----------------------------------------------------------
-
 -- |Merge RDF graphs, renaming blank and query variable nodes as
 --  needed to neep variable nodes from the two graphs distinct in
 --  the resulting graph.
@@ -509,7 +501,7 @@ allLabels p gr = filter p (unionNodes p (formulaNodes p gr) (labels gr) )
 allNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
 allNodes p = unionNodes p [] . nodes
 
---  List all nodes in graph formulae satisfying a supplied predicate
+-- | List all nodes in graph formulae satisfying a supplied predicate
 formulaNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
 formulaNodes p gr = foldl (unionNodes p) fkeys (map (allLabels p) fvals)
     where
@@ -521,13 +513,9 @@ formulaNodes p gr = foldl (unionNodes p) fkeys (map (allLabels p) fvals)
         -- fkeys :: (Label lb) => [lb]
         fkeys = filter p $ mapKeys fm
 
---  Helper to filter variable nodes and merge with those found so far
+-- | Helper to filter variable nodes and merge with those found so far
 unionNodes :: (Label lb) => (lb -> Bool) -> [lb] -> [lb] -> [lb]
 unionNodes p ls1 ls2 = ls1 `union` filter p ls2
-
----------------------------------------------------------
---  Remap selected nodes in a graph
----------------------------------------------------------
 
 -- |Remap selected nodes in graph:
 --
@@ -556,7 +544,8 @@ remapLabelList ::
     -> [(lb,lb)]
 remapLabelList remap avoid = maplist remap avoid id []
 
---  Remap a single graph node.
+-- | Remap a single graph node.
+--
 --  If the node is not one of those to be remapped,
 --  the supplied value is returned unchanged.
 mapnode ::
@@ -564,7 +553,7 @@ mapnode ::
 mapnode dupbn allbn cnvbn nv =
     mapFind nv nv (LookupMap (maplist dupbn allbn cnvbn []))
 
---  Construct a list of (oldnode,newnode) values to be used for
+-- | Construct a list of (oldnode,newnode) values to be used for
 --  graph label remapping.  The function operates recursiovely, adding
 --  new nodes generated to the mapping list (mapbn') and also to the
 --  list of nodes to be avoided (allbn').
@@ -612,9 +601,7 @@ trybnodes :: (Label lb) => (String,Int) -> [lb]
 trybnodes (nr,nx) = [ makeLabel (nr++show n) | n <- iterate (+1) nx ]
 -}
 
----------------------------------------------------------
---  Memory-based RDF graph type and graph class functions
----------------------------------------------------------
+-- | Memory-based RDF graph type
 
 type RDFGraph = NSGraph RDFLabel
 

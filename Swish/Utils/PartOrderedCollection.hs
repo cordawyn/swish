@@ -6,17 +6,17 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
 --  Portability :  H98
 --
 --  This module provides methods to support operations on partially ordered
 --  collections.  The partial ordering relationship is represented by
---  Maybe Ordering.
+--  Maybe `Ordering`.
 --
---  Thanks to members of the haskell-cafe mailing list:
---    Robert <rvollmert-lists@gmx.net>
---    Tom Pledger <Tom.Pledger@peace.com>
+--  Thanks to members of the haskell-cafe mailing list -
+--    Robert (rvollmert-lists@gmx.net) and
+--    Tom Pledger (Tom.Pledger@peace.com) -
 --  who suggested key ideas on which some of the code in this module is based.
 --
 --------------------------------------------------------------------------------

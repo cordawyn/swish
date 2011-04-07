@@ -7,11 +7,11 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  FlexibleInstances and MultiParamTypeClasses
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  FlexibleInstances, MultiParamTypeClasses
 --
---  SwishMonad:  Composed state and IO monad for Swish
+--  Composed state and IO monad for Swish
 --
 --------------------------------------------------------------------------------
 
@@ -76,13 +76,6 @@ import Control.Monad.State (StateT(..), modify)
 
 import System.IO (hPutStrLn, stderr)
 
-------------------------------------------------------------
---  State and state monad for Swish program
-------------------------------------------------------------
---
---  Uses StateT Monad transformer:
---  See example by Mark Carroll at http://www.haskell.org/hawiki/MonadState
-
 {-|
 The supported input and output formats.
 -}
@@ -96,6 +89,8 @@ instance Show SwishFormat where
   show NT  = "Ntriples"
   -- show RDF = "RDF/XML"
 
+-- | The State for a Swish \"program\".
+  
 data SwishState = SwishState
     { format    :: SwishFormat      -- ^ format to use for I/O
     , base      :: Maybe QName      -- ^ base to use rather than file name
@@ -140,7 +135,6 @@ emptyState = SwishState
     , infomsg   = Nothing
     , errormsg  = Nothing
     , exitcode  = SwishSuccess
-    -- , banner = True
     }
 
 setFormat :: SwishFormat -> SwishState -> SwishState
@@ -213,11 +207,7 @@ setVerbose :: Bool -> SwishState -> SwishState
 setVerbose f state = state { banner = f }
 -}
 
-------------------------------------------------------------
---  Data types for Swish script dictionaries
-------------------------------------------------------------
---
---  The graphs dictionary contains named graphs and/or lists
+-- | The graphs dictionary contains named graphs and/or lists
 --  of graphs that are created and used by script statements.
 
 data NamedGraph = NamedGraph
@@ -232,9 +222,7 @@ instance LookupEntryClass NamedGraph ScopedName [RDFGraph]
 
 type NamedGraphMap = LookupMap NamedGraph
 
-------------------------------------------------------------
---  Report error and set exit status code
-------------------------------------------------------------
+-- | Report error and set exit status code
 
 swishError :: String -> SwishStatus -> SwishStateIO ()
 swishError msg sts = do
@@ -242,9 +230,7 @@ swishError msg sts = do
   -- when (sts == 4) $ reportLine "Use 'Swish -h' or 'Swish -?' for help\n"
   modify $ setStatus sts
 
-------------------------------------------------------------
---  Output text to the standard error stream
-------------------------------------------------------------
+-- | Output text to the standard error stream
 --
 --  Each string in the supplied list is a line of text to
 --  be displayed.

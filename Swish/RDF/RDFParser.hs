@@ -7,7 +7,7 @@
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
---  Stability   :  provisional
+--  Stability   :  experimental
 --  Portability :  H98
 --
 --  Support for the RDF Parsing modules.

@@ -6,8 +6,8 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
 --  Portability :  H98
 --
 --  SwishCommands:  functions to deal with indivudual Swish command options.

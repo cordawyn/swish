@@ -7,8 +7,8 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
 --  Portability :  MultiParamTypeClasses
 --
 --  This module defines a framework for defining inference rules
@@ -72,6 +72,7 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
     newEntry (_,form) = form
     keyVal form = (formName form, form)
 
+-- | The namespace @http://id.ninebynine.org/2003/Ruleset/null@
 nullScope :: Namespace
 nullScope = Namespace "null" "http://id.ninebynine.org/2003/Ruleset/null"
 

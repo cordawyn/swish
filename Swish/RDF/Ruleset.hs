@@ -7,9 +7,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  MultiParamTypeClasses
 --
 --  This module defines a ruleset data type, used to collect information
 --  about a ruleset that may contribute torwards inferences in RDF;
@@ -45,9 +45,7 @@ import Swish.Utils.LookupMap
 import Data.Maybe
     ( fromMaybe, listToMaybe, mapMaybe )
 
-------------------------------------------------------------
---  Ruleset, having namespace, axioms and rules
-------------------------------------------------------------
+-- | Ruleset, having namespace, axioms and rules
 
 data Ruleset ex = Ruleset
     { rsNamespace :: Namespace
@@ -81,9 +79,7 @@ getRulesetAxioms = rsAxioms
 getRulesetRules :: Ruleset ex -> [Rule ex]
 getRulesetRules = rsRules
 
-------------------------------------------------------------
---  Find a named axiom or rule in a ruleset or proof context
-------------------------------------------------------------
+-- | Find a named axiom or rule in a ruleset or proof context
 
 getRulesetAxiom :: ScopedName -> Ruleset ex -> Maybe (Formula ex)
 getRulesetAxiom nam rset =

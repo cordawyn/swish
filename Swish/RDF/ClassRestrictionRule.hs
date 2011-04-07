@@ -7,8 +7,8 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
 --  Portability :  MultiParamTypeClasses
 --
 --  This module implements an inference rule based on a restruction on class

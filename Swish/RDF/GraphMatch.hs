@@ -7,9 +7,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  Uses FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses pragmas
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses
 --
 --  This module contains graph-matching logic.
 --
@@ -45,7 +45,8 @@ import qualified Data.List
 --  Label index value type
 --------------------------
 --
---  LabelIndex is a unique value assigned to each label, such that
+
+-- | LabelIndex is a unique value assigned to each label, such that
 --  labels with different values are definitely different values
 --  in the graph;  e.g. do not map to each other in the graph
 --  bijection.  The first member is a generation counter that
@@ -77,7 +78,7 @@ instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
     => Eq (GenLabelEntry lb lv) where
     (==) = entryEq
 
---  Type for label->index lookup table
+-- | Type for label->index lookup table
 data (Label lb, Eq lv, Show lv) => GenLabelMap lb lv =
     LabelMap Int (LookupMap (GenLabelEntry lb lv))
 
@@ -100,7 +101,8 @@ emptyMap = LabelMap 1 $ makeLookupMap []
 --  Equivalence class type
 --------------------------
 --
---  Type for equivalence class description
+
+-- | Type for equivalence class description
 --  (An equivalence class is a collection of labels with
 --  the same LabelIndex value.)
 
@@ -126,7 +128,7 @@ ecRemoveLabel (lv,ls) l = (lv,Data.List.delete l ls)
 --  Augmented graph label value - for graph matching
 ------------------------------------------------------------
 --
---  This instance of class label adds a graph identifier to
+-- | This instance of class label adds a graph identifier to
 --  each variable label, so that variable labels from
 --  different graphs are always seen as distinct values.
 --
@@ -169,31 +171,25 @@ instance (Label lb) => Ord (ScopedLabel lb) where
             EQ -> compare l1 l2
             GT -> GT
 
---------------
---  graphMatch
---------------
---
---  Graph matching function accepting two lists of arcs and
+-- QUS: why doesn't this return Maybe (LabelMap (ScopedLabel lb)) ?
+
+-- | Graph matching function accepting two lists of arcs and
 --  returning a node map if successful
 --
---  matchable
---          is a function that tests for additional constraints
---          that may prevent the matching of a supplied pair
---          of nodes.  Returns True if the supplied nodes may be
---          matched.  (Used in RDF graph matching for checking
---          that formula assignments are compatible.)
---  gs1     is the first of two graphs to be compared,
---          supplied as a list of arcs.
---  gs2     is the second of two graphs to be compared,
---          supplied as a list of arcs.
---
---  returns a label map that maps each label to an equivalence
---          class identifier, or Nothing if the graphs cannot be
---          matched.
-
 graphMatch :: (Label lb) =>
-    (lb -> lb -> Bool) -> [Arc lb] -> [Arc lb]
+    (lb -> lb -> Bool)
+    -- ^ a function that tests for additional constraints
+    --   that may prevent the matching of a supplied pair
+    --   of nodes.  Returns `True` if the supplied nodes may be
+    --   matched.  (Used in RDF graph matching for checking
+    --   that formula assignments are compatible.)
+    -> [Arc lb] -- ^ the first graph to be compared, as a list of arcs
+    -> [Arc lb] -- ^ the second graph to be compared, as a list of arcs
     -> (Bool,LabelMap (ScopedLabel lb))
+    -- ^ If the first element is `True` then the secondelement maps each label
+    --   to an equivalence class identifier, otherwise it is just
+    --   `emptyMap`.
+    --
 graphMatch matchable gs1 gs2 =
     let
         sgs1    = {- trace "sgs1 " $ -} map (makeScopedArc 1) gs1
@@ -212,47 +208,57 @@ graphMatch matchable gs1 gs2 =
     in
         if length ec1 /= length ec2 then (False,emptyMap) else match
 
---  Recursive graph matching function
+-- | Recursive graph matching function
+--
 --  This function assumes that no variable label appears in both graphs.
---  (Function graphMatch, which calls this, ensures that all variable
+--  (Function `graphMatch`, which calls this, ensures that all variable
 --  labels are distinct.)
 --
---  matchable
---          is a function that tests for additional constraints
---          that may prevent the matching of a supplied pair
---          of nodes.  Returns True if the supplied nodes may be
---          matched.
---  guessed is True if a guess has been used before trying this comparison,
---          False if nodes are being matched without any guesswork.
---  gs1     is the first of two lists of arcs (triples) to be compared
---  gs2     is the second of two lists of arcs (triples) to be compared
---  lmap    is the map so far used to map label values to equivalence
---          class values
---  ecpairs list of pairs of corresponding equivalence classes of nodes
---          from gs1 and gs2 that have not been confirmed in 1:1
---          correspondence with each other.
---          Each pair of equivalence classes contains nodes that must
---          be placed in 1:1 correspondence with each other.
+--  TODO:
 --
---  returns a pair (match,map), where 'match' is Tue if the supplied
---          sets of arcs can be matched, in which case 'map' is a
---          corresponding map from labels to equivalence class identifiers.
---          When 'match' is False, 'map' is the most detailed equivalence
---          class map obtained before a mismatch was detected or a guess
---          was required -- this is intended to help identify where the
---          graph mismatch may be.
+--    * replace Equivalence class pair by @(index,[lb],[lb])@ ?
 --
--- [[[TODO:  replace Equivalence class pair by (index,[lb],[lb]) ?]]]
--- [[[TODO:  possible optimization:  the graphMapEq test should be
---           needed only if graphMatch2 has been used to guess a
---           mapping;  either (a) supply flag saying guess has been
---           used, or (b) move test to graphMatch2 and use different
---           test to prevent rechecking for each guess used.]]]
+--    * possible optimization:  the `graphMapEq` test should be
+--      needed only if `graphMatch2` has been used to guess a
+--      mapping;  either: 
+--          a) supply flag saying guess has been used, or
+--          b) move test to `graphMatch2` and use different
+--             test to prevent rechecking for each guess used.
+--
 
-graphMatch1 :: (Label lb) =>  Bool -> (lb -> lb -> Bool)
-    -> [Arc lb] -> [Arc lb]
-    -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
-    -> (Bool,LabelMap lb)
+graphMatch1 :: 
+  (Label lb) 
+  => Bool
+  -- ^ `True` if a guess has been used before trying this comparison,
+  --   `False` if nodes are being matched without any guesswork
+  -> (lb -> lb -> Bool)
+  -- ^ Test for additional constraints that may prevent the matching
+  --  of a supplied pair of nodes.  Returns `True` if the supplied
+  --  nodes may be matched.
+  -> [Arc lb] 
+  -- ^ (@gs1@ argument)
+  --   first of two lists of arcs (triples) to be compared
+  -> [Arc lb]
+  -- ^ (@gs2@ argument)
+  --   secind of two lists of arcs (triples) to be compared
+  -> LabelMap lb
+  -- ^ the map so far used to map label values to equivalence class
+  --   values
+  -> [(EquivalenceClass lb,EquivalenceClass lb)]
+  -- ^ (the @ecpairs@ argument) list of pairs of corresponding
+  --   equivalence classes of nodes from @gs1@ and @gs2@ that have not
+  --   been confirmed in 1:1 correspondence with each other.  Each
+  --   pair of equivalence classes contains nodes that must be placed
+  --   in 1:1 correspondence with each other.
+  --
+  -> (Bool,LabelMap lb)
+  -- ^ the pair @(match, map)@ where @match@ is @True@ if the supplied
+  --   sets of arcs can be matched, in which case @map@ is a
+  --   corresponding map from labels to equivalence class identifiers.
+  --   When @match@ is @False@, @map@ is the most detailed equivalence
+  --   class map obtained before a mismatch was detected or a guess
+  --   was required -- this is intended to help identify where the
+  --   graph mismatch may be.
 graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
     let
         (secs,mecs) = partition uniqueEc ecpairs
@@ -300,7 +306,8 @@ graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
         if fst match2 then match2 else (False,lmap)
 -}
 
---  Auxiliary graph matching function
+-- | Auxiliary graph matching function
+--
 --  This function is called when deterministic decomposition of node
 --  mapping equivalence classes has run its course.
 --
@@ -349,16 +356,8 @@ graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
         assert (ev1==ev2) "GraphMatch2: Equivalence class value mismatch" $
         try glp
 
-----------------------
---  LabelMap functions
-----------------------
-
-----------------
---  showLabelMap
-----------------
+-- | Returns a string representation  of a LabelMap value
 --
---  Returns a string representation  of a LabelMap value
-
 showLabelMap :: (Label lb) => LabelMap lb -> String
 showLabelMap (LabelMap gn lmap) =
     "LabelMap gen="++ Prelude.show gn ++", map="++
@@ -366,47 +365,31 @@ showLabelMap (LabelMap gn lmap) =
     where
         es = listLookupMap lmap
 
------------------
---  mapLabelIndex
------------------
+-- | Map a label to its corresponding label index value in the supplied LabelMap
 --
---  Map a label to its corresponding label index value in the supplied LabelMap
-
 mapLabelIndex :: (Label lb) => LabelMap lb -> lb -> LabelIndex
 mapLabelIndex (LabelMap _ lxms) lb = mapFind nullLabelVal lb lxms
 
---------------
---  labelMatch
---------------
---
---  Confirm that a given pair of labels are matchable, and are
+-- | Confirm that a given pair of labels are matchable, and are
 --  mapped to the same value by the supplied label map
-
+--
 labelMatch :: (Label lb)
     =>  (lb -> lb -> Bool) -> LabelMap lb -> lb -> lb -> Bool
 labelMatch matchable lmap l1 l2 =
     matchable l1 l2 && (mapLabelIndex lmap l1 == mapLabelIndex lmap l1)
 
----------------
---  newLabelMap
----------------
---
---  Replace selected values in a label map with new values from the supplied
+-- | Replace selected values in a label map with new values from the supplied
 --  list of labels and new label index values.  The generation number is
 --  supplied from the current label map.  The generation number in the
 --  resulting label map is incremented.
-
+--
 newLabelMap :: (Label lb) => LabelMap lb -> [(lb,Int)] -> LabelMap lb
 newLabelMap (LabelMap g f) [] = LabelMap (g+1) f -- new generation
 newLabelMap lmap (lv:lvs)     = setLabelHash (newLabelMap lmap lvs) lv
 
-----------------
---  setLabelHash
-----------------
---
---  setLabelHash replaces a label and its associated value in a label map
+-- | Replace a label and its associated value in a label map
 --  with a new value using the supplied hash value and the current
---  LabelMap generation number.  If the key is not found, then no change
+--  `LabelMap` generation number.  If the key is not found, then no change
 --  is made to the label map.
 
 setLabelHash :: (Label lb)
@@ -414,31 +397,24 @@ setLabelHash :: (Label lb)
 setLabelHash  (LabelMap g lmap) (lb,lh) =
     LabelMap g ( mapReplaceAll lmap $ newEntry (lb,(g,lh)) )
 
---------------------
---  newGenerationMap
---------------------
+-- | Increment the generation of the label map.
 --
---  Increment generation of label map.
 --  Returns a new label map identical to the supplied value
 --  but with an incremented generation number.
-
+--
 newGenerationMap :: (Label lb) => LabelMap lb -> LabelMap lb
 newGenerationMap (LabelMap g lvs) = LabelMap (g+1) lvs
 
-------------------
---  assignLabelMap
-------------------
---
---  Scan label list, assigning initial label map values,
+-- | Scan label list, assigning initial label map values,
 --  adding new values to the label map supplied.
 --
 --  Label map values are assigned on the basis of the
 --  label alone, without regard for it's connectivity in
---  the graph.  (cf. reClassify)
+--  the graph.  (cf. `reclassify`).
 --
 --  All variable node labels are assigned the same initial
 --  value, as they may be matched with each other.
-
+--
 assignLabelMap :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
 assignLabelMap ns lmap = foldl (flip assignLabelMap1) lmap ns
 
@@ -456,27 +432,19 @@ hashVal :: (Label lb) => Int -> lb -> Int
 hashVal seed lab =
     if labelIsVar lab then hash seed "???" else labelHash seed lab
 
-----------------------
---  equivalenceClasses
-----------------------
---
---  lmap    label map
---  ls      list of nodes to be reclassified
---
---  return  list of equivalence classes of the supplied labels under
---          the supplied label map.
-
-equivalenceClasses :: (Label lb) => LabelMap lb -> [lb] -> [EquivalenceClass lb]
+equivalenceClasses :: 
+  (Label lb) 
+  => LabelMap lb -- ^ label map
+  -> [lb]        -- ^ list of nodes to be reclassified
+  -> [EquivalenceClass lb]
+  -- ^ the equivalence classes of the supplied labels under the
+  --   supplied label map
 equivalenceClasses lmap ls =
     pairGroup $ map labelPair ls
     where
         labelPair l = (mapLabelIndex lmap l,l)
 
---------------
---  reclassify
---------------
---
---  Reclassify labels
+-- | Reclassify labels
 --
 --  Examines the supplied label equivalence classes (based on the supplied
 --  label map), and evaluates new equivalence subclasses based on node
@@ -486,33 +454,38 @@ equivalenceClasses lmap ls =
 --  Note, assumes that all all equivalence classes supplied are
 --  non-singletons;  i.e. contain more than one label.
 --
---  gs1     is the first of two lists of arcs (triples) to perform a
---          basis for reclassifying the labels in the first equivalence
---          class in each pair of 'ecpairs'.
---  gs2     is the second of two lists of arcs (triples) to perform a
---          basis for reclassifying the labels in the second equivalence
---          class in each pair of 'ecpairs'.
---  lmap    is a label map used for classification of the labels in
---          the supplied equivalence classes.
---  ecpairs a list of pairs of corresponding equivalence classes of
---          nodes from gs1 and gs2 that have not been confirmed
---          in 1:1 correspondence with each other.
---
---  return  a quadruple of:
---          (a) a revised label map reflecting the reclassification,
---          (b) a new list of equivalence class pairs based on the
---          new node map, and
---          (c) if the reclassification partitions any of the
---          supplied equivalence classes then True, else False.
---          any of the supplied equivalence classes
---          (d) if reclassification results in each equivalence class
---          being split same-sized equivalence classes in the two graphs,
---          then True, otherwise False.
+reclassify :: 
+  (Label lb) 
+  => [Arc lb] 
+  -- ^ (the @gs1@ argument) the first of two lists of arcs (triples) to perform a
+  --   basis for reclassifying the labels in the first equivalence
+  --   class in each pair of @ecpairs@.
+  -> [Arc lb]
+  -- ^ (the @gs2@ argument) the second of two lists of arcs (triples) to perform a
+  --   basis for reclassifying the labels in the second equivalence
+  --   class in each pair of the @ecpairs@ argument
+  -> LabelMap lb 
+  -- ^ the label map used for classification of the labels in
+  --   the supplied equivalence classes
+  -> [(EquivalenceClass lb,EquivalenceClass lb)]
+  -- ^ (the @ecpairs@ argument) a list of pairs of corresponding equivalence classes of
+  --   nodes from @gs1@ and @gs2@ that have not been confirmed
+  --   in 1:1 correspondence with each other.
+  -> (LabelMap lb,[(EquivalenceClass lb,EquivalenceClass lb)],Bool,Bool)
+  -- ^ The output tuple consists of:
+  --
+  --  1) a revised label map reflecting the reclassification
+  --
+  --  2) a new list of equivalence class pairs based on the
+  --   new node map
+  --
+  --  3) if the reclassification partitions any of the
+  --     supplied equivalence classes then `True`, else `False`
+  --
+  --  4) if reclassification results in each equivalence class
+  --     being split same-sized equivalence classes in the two graphs,
+  --     then `True`, otherwise `False`.
 
-reclassify :: (Label lb) =>
-    [Arc lb] -> [Arc lb]
-    -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
-    -> (LabelMap lb,[(EquivalenceClass lb,EquivalenceClass lb)],Bool,Bool)
 reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
     assert (gen1==gen2) "Label map generation mismatch"
       (LabelMap gen1 lm',ecpairs',newPart,matchPart)
@@ -534,23 +507,18 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         remapEc ec = pairGroup $ map (newIndex lm') $ pairUngroup ec
         newIndex x (_,lab) = (mapFind nullLabelVal lab x,lab)
 
----------------
---  remapLabels
----------------
---
---  Calculate a new index value for a supplied list of labels based on the
+-- | Calculate a new index value for a supplied list of labels based on the
 --  supplied label map and adjacency calculations in the supplied graph
 --
---  gs      is a list of Arcs used for adjacency calculations when remapping
---  lmap    is a label map used for obtaining current label index values
---  ls      is a list of graph labels for which new mappings are to be
---          created and returned.
---  return  a new label map containing recalculated label index values
---          for the labels in ls.  The label map generation number is
---          incremented by 1 from the supplied 'lmap' value.
-
-remapLabels :: (Label lb) =>
-    [Arc lb] -> LabelMap lb -> [lb] -> LabelMap lb
+remapLabels :: 
+  (Label lb) 
+  => [Arc lb] -- ^ arcs used for adjacency calculations when remapping
+  -> LabelMap lb -- ^ the current label index values
+  -> [lb] -- ^ the graph labels for which new mappings are to be created
+  -> LabelMap lb
+  -- ^ the updated label map containing recalculated label index values
+  -- for the given graph labels. The label map generation number is
+  -- incremented by 1.
 remapLabels gs lmap@(LabelMap gen _) ls =
     LabelMap gen' (LookupMap newEntries)
     where
@@ -562,15 +530,7 @@ remapLabels gs lmap@(LabelMap gen _) ls =
         mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
         sigsOver l          = select (hasLabel l) gs (arcSignatures lmap gs)
 
------------------------------
---  Graph auxiliary functions
------------------------------
-
----------------
---  graphLabels
----------------
---
---  Return list of distinct labels used in a graph
+-- | Return list of distinct labels used in a graph
 
 graphLabels :: (Label lb) => [Arc lb] -> [lb]
 graphLabels gs = nub $ concatMap arcLabels gs
@@ -585,19 +545,15 @@ graphLabels1 [] ls     = ls
 
 -- addSetElem ::  lb -> [lb] -> [lb]
 
------------------
---  arcSignatures
------------------
+-- | Calculate a signature value for each arc that can be used in constructing an
+--   adjacency based value for a node.  The adjacancy value for a label is obtained
+--   by summing the signatures of all statements containing that label.
 --
---  Calculate a signature value for each arc that can be used in constructing an
---  adjacency based value for a node.  The adjacancy value for a label is obtained
---  by summing the signatures of all statements containing that label.
---
---  lmap    is a label map used for obtaining current label index values
---  gs      is the list of arcs for which signaturews are calculated
---  return  a list of signature values in correspondence with gs
-
-arcSignatures :: (Label lb) => LabelMap lb -> [Arc lb] -> [Int]
+arcSignatures :: 
+  (Label lb) 
+  => LabelMap lb -- ^ the current label index values
+  -> [Arc lb] -- ^ calculate signatures for these arcs
+  -> [Int] -- ^ the signatures of the arcs
 arcSignatures lmap gs =
     map (sigCalc . arcToTriple) gs
     where
@@ -608,30 +564,22 @@ arcSignatures lmap gs =
         labelVal         = mapLabelIndex lmap
         labelVal2        = uncurry (*) . labelVal
 
-------------
---  graphMap
-------------
---
---  Return new graph that is supplied graph with every node/arc
+-- | Return a new graph that is supplied graph with every node/arc
 --  mapped to a new value according to the supplied function.
 --
 --  Used for testing for graph equivalence under a supplied
 --  label mapping;  e.g.
 --
---    if ( graphMap nodeMap gs1 ) `equiv` ( graphMap nodeMap gs2 ) then (same)
-
+--  >  if ( graphMap nodeMap gs1 ) `equiv` ( graphMap nodeMap gs2 ) then (same)
+--
 graphMap :: (Label lb) => LabelMap lb -> [Arc lb] -> [Arc LabelIndex]
 graphMap = map . fmap . mapLabelIndex  -- graphMapStmt
 
---------------
---  graphMapEq
---------------
---
---  Compare a pair of graphs for equivalence under a given mapping
---  function.
+-- | Compare a pair of graphs for equivalence under a given mapping
+--   function.
 --
 --  This is used to perform the ultimate test that two graphs are
---  indeed equivalent:  guesswork in graphMatch2 means that it is
+--  indeed equivalent:  guesswork in `graphMatch2` means that it is
 --  occasionally possible to construct a node mapping that generates
 --  the required singleton equivalence classes, but does not fully
 --  reflect the topology of the graphs.

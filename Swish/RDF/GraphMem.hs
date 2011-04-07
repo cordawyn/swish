@@ -9,9 +9,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  DeriveFunctor, DeriveFoldable, DeriveTraversable, FlexibleInstances, MultiParamTypeClasses
 --
 --  This module defines a simple memory-based graph instance.
 --
@@ -40,9 +40,7 @@ import Data.Ord (comparing)
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
------------------------------------------------------
---  Memory-based graph type and graph class functions
------------------------------------------------------
+-- | Memory-based graph type 
 
 data GraphMem lb = GraphMem { arcs :: [Arc lb] }
                    deriving (Functor, F.Foldable, T.Traversable)
@@ -67,31 +65,23 @@ toGraph :: (Label lb) => [Arc lb] -> GraphMem lb
 toGraph as = GraphMem { arcs=nub as }
 -}
 
------------
---  graphEq
------------
---
---  Return Boolean graph equality
+-- |  Return Boolean graph equality
 
 graphEq :: (Label lb) => GraphMem lb -> GraphMem lb -> Bool
 graphEq g1 g2 = fst ( matchGraphMem g1 g2 )
 
------------------
---  matchGraphMem
------------------
---
---  GraphMem matching function accepting GraphMem value and returning
+-- | GraphMem matching function accepting GraphMem value and returning
 --  node map if successful
 --
---  g1      is the first of two graphs to be compared
---  g2      is the second of two graphs to be compared
---
---  returns a label map that maps each label to an equivalence
---          class identifier, or Nothing if the graphs cannot be
---          matched.
-
-matchGraphMem :: (Label lb) => GraphMem lb -> GraphMem lb
-                            -> (Bool,LabelMap (ScopedLabel lb))
+matchGraphMem ::
+  (Label lb)
+  => GraphMem lb 
+  -> GraphMem lb
+  -> (Bool,LabelMap (ScopedLabel lb))
+  -- ^ if the first element is @True@ then the second value is a label
+  --   map that maps each label to an equivalence-class identifier,
+  --   otherwise `emptyMap`.
+  --
 matchGraphMem g1 g2 =
     let
         gs1     = arcs g1
@@ -103,12 +93,8 @@ matchGraphMem g1 g2 =
     in
         graphMatch matchable gs1 gs2
 
----------------
---  graphBiject
----------------
---
---  Return bijection between two graphs, or empty list
 {-
+-- |  Return bijection between two graphs, or empty list
 graphBiject :: (Label lb) => GraphMem lb -> GraphMem lb -> [(lb,lb)]
 graphBiject g1 g2 = if null lmap then [] else zip (sortedls g1) (sortedls g2)
     where
@@ -122,9 +108,7 @@ graphBiject g1 g2 = if null lmap then [] else zip (sortedls g1) (sortedls g2)
             | otherwise = compare g1 g2
 -}
 
-------------------------------------------------------------
---  Minimal graph label value - for testing
-------------------------------------------------------------
+-- |  Minimal graph label value - for testing
 
 data LabelMem
     = LF String

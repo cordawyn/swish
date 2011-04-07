@@ -7,11 +7,11 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98 + ????
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  TypeSynonymInstances
 --
---  This module defines a ShowM class instance for RDFGraph, to be
+--  This module defines a `ShowM` class instance for `RDFGraph`, to be
 --  used when displaying RDF Graph values as part of a proof sequence,
 --  etc.
 --

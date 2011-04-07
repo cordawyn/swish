@@ -1,16 +1,19 @@
-Name:                swish
-Version:             0.3.0.0
-Stability:           experimental
-License:             LGPL
-License-file:        LICENSE 
-Author:              Graham Klyne - GK@ninebynine.org
-Copyright:           (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011 Doug Burke; All rights reserved.
-Maintainer:          dburke@cfa.harvard.edu
-Homepage:            https://bitbucket.org/doug_burke/swish
-Bug-reports:         https://bitbucket.org/doug_burke/swish/issues
+Name:               swish
+Version:            0.3.0.0
+Stability:          experimental
+License:            LGPL
+License-file:       LICENSE 
+Author:             Graham Klyne - GK@ninebynine.org
+Copyright:          (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011 Doug Burke; All rights reserved.
+Maintainer:         dburke@cfa.harvard.edu
+Category:           Semantic Web
+Synopsis:           A semantic web toolkit. 
 
-Category:            Semantic Web
-Synopsis:            A semantic web toolkit. 
+Tested-With:        GHC==6.12.3
+Cabal-Version:      >= 1.6
+Homepage:           https://bitbucket.org/doug_burke/swish/wiki/Home
+Bug-reports:        https://bitbucket.org/doug_burke/swish/issues
+
 Description:        Swish is a framework, written in the purely functional 
                     programming language Haskell, for performing deductions in 
                     RDF data using a variety of techniques. Swish is conceived 
@@ -40,7 +43,7 @@ Description:        Swish is a framework, written in the purely functional
                     .
                     * Complete, ready-to-run, command-line and script-driven programs.
                     .
-                    ChangeLog:
+                    Major Changes:
                     .
                     [Version 0.3.0.0] is an attempt to update 
                     version 0.2.1 (<http://hackage.haskell.org/package/swish-0.2.1/>)
@@ -58,11 +61,12 @@ Description:        Swish is a framework, written in the purely functional
                       - CWM: <http://www.w3.org/2000/10/swap/doc/cwm.html>
                     .
 
-Tested-With:         GHC==6.12.3
-Build-Type:          Simple
-Data-Files:          README
+Build-Type:         Simple
+Data-Files:         README
 
-Cabal-Version:       >= 1.6
+Source-repository head
+  type:     mercurial
+  location: https://bitbucket.org/doug_burke/swish
 
 Flag  tests
   Description: Build the test programs.
@@ -71,6 +75,7 @@ Flag  tests
 Flag  hpc
   Description: Use Hpc for the tests
   Default:     False
+
 
 Library
    Build-Depends:

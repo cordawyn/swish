@@ -7,7 +7,7 @@
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
---  Stability   :  provisional
+--  Stability   :  experimental
 --  Portability :  H98
 --
 --  This Module implements a NTriples parser (see [1]), returning a

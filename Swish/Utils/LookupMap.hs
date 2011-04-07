@@ -9,9 +9,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98, class dependencies
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  A lot of LANGUAGE extensions...
 --
 --  This module defines a lookup table format and associated functions
 --  used by the graph matching code.
@@ -125,7 +125,7 @@ that if they do not need the constraint.
 emptyLookupMap :: (LookupEntryClass a k v) => LookupMap a
 emptyLookupMap = LookupMap []
 
--- |Function to create a 'LookupMap' from a list of entries.
+-- |Function to create a `LookupMap` from a list of entries.
 --
 --  Currently, this is trivial but future versions could be
 --  more substantial.
@@ -270,7 +270,8 @@ mapAddIfNew emap e = if mapContains emap (entryKey e)
                         then emap
                         else mapCons e emap
 
--- ADelete supplied key value from the lookup map.
+-- |Delete supplied key value from the lookup map.
+--
 --  This function assumes exactly one occurrence.
 --
 mapDelete :: (LookupEntryClass a k v) =>
@@ -410,10 +411,10 @@ mapTranslateVals f = fmap (vmap f)
 mapTranslateEntries :: (a1 -> a2) -> LookupMap a1 -> LookupMap a2
 mapTranslateEntries = fmap
 
--- |A monadic form of 'mapTranslateEntries'
+-- |A monadic form of `mapTranslateEntries`.
 --
--- Since 'LookupMap' now has a 'Data.Traversable.Traversable' instance
--- this is just 'Data.Traversable.mapM'.
+-- Since `LookupMap` now has a `Data.Traversable.Traversable` instance
+-- this is just `T.mapM`.
 --
 mapTranslateEntriesM :: (Monad m)
     => (a1 -> m a2) -> LookupMap a1 -> m (LookupMap a2)

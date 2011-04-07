@@ -9,9 +9,9 @@
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
 --  License     :  GPL V2
 --
---  Maintainer  :  Graham Klyne
---  Stability   :  provisional
---  Portability :  H98
+--  Maintainer  :  Douglas Burke
+--  Stability   :  experimental
+--  Portability :  DeriveFunctor, DeriveFoldable, DeriveTraversable, MultiParamTypeClasses
 --
 --  This module defines a Labelled Directed Graph and Label classes,
 --  and the Arc datatype.
