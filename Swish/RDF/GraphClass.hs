@@ -162,10 +162,12 @@ instance Ord lb => Ord (Arc lb) where
       cp = compare p1 p2
       co = compare o1 o2
 
+  {- not needed
   (Arc s1 p1 o1) <= (Arc s2 p2 o2)
     | s1 /= s2 = s1 <= s2
     | p1 /= p2 = p1 <= p2
     | otherwise = o1 <= o2
+  -}
 
 instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =

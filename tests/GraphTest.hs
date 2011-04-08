@@ -19,13 +19,13 @@ module Main where
 import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
         assertEqual, runTestTT )
-import Data.List( elemIndex )
-import Data.Maybe( fromJust )
+import Data.List (sort, elemIndex)
+import Data.Maybe (fromJust)
 
 import Swish.Utils.ListHelpers
 import Swish.Utils.MiscHelpers
 import Swish.RDF.GraphClass (Arc(..), LDGraph(..),
-                             Label(..),
+                             Label(..), arc,
                              arcFromTriple,arcToTriple)
 import Swish.RDF.GraphMem
 import Swish.RDF.GraphMatch
@@ -48,6 +48,8 @@ default ( Int )
 -- Define some common values
 ------------------------------------------------------------
 
+type Statement = Arc LabelMem
+
 base1, base2, base3, base4 :: String
 
 base1 = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
@@ -59,16 +61,13 @@ base4 = "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 --  Set, get graph arcs as lists of triples
 ------------------------------------------------------------
 
-setArcsT :: (Swish.RDF.GraphClass.LDGraph lg lb) =>
+setArcsT :: (LDGraph lg lb) =>
             [(lb, lb, lb)] -> lg lb -> lg lb
 setArcsT a = setArcs $ map arcFromTriple a
 
-getArcsT :: (Swish.RDF.GraphClass.LDGraph lg lb) =>
+getArcsT :: (LDGraph lg lb) =>
             lg lb -> [(lb, lb, lb)]
 getArcsT g = map arcToTriple $ getArcs g
-
-toStatement :: a -> a -> a -> Arc a
-toStatement s p o = Arc s p o
 
 ------------------------------------------------------------
 --  Test class helper
@@ -218,7 +217,7 @@ lab2f = LF "lab2"
 lab2v = LV "lab2"
 
 gr1 :: GraphMem LabelMem
-gr1 = GraphMem { arcs=[]::[Arc LabelMem] }
+gr1 = GraphMem { arcs=[]::[Statement] }
 
 ga1 :: [(LabelMem, LabelMem, LabelMem)]
 ga1 =
@@ -238,7 +237,7 @@ ga1 =
     (lab1v,lab2f,lab2v)
     ]
 
-gs4 :: Arc LabelMem -> Bool
+gs4 :: Statement -> Bool
 gs4 (Arc _ _ (LV "lab2")) = True
 gs4 (Arc _ _  _         ) = False
 
@@ -253,7 +252,7 @@ ga4 =
     ]
 
 gr2 :: GraphMem LabelMem
-gr2 = GraphMem { arcs=[]::[Arc LabelMem] }
+gr2 = GraphMem { arcs=[]::[Statement] }
 
 ga2 :: [(LabelMem, LabelMem, LabelMem)]
 ga2 =
@@ -265,7 +264,7 @@ ga2 =
     ]
 
 gr3 :: GraphMem LabelMem
-gr3 = GraphMem { arcs=[]::[Arc LabelMem] }
+gr3 = GraphMem { arcs=[]::[Statement] }
 
 ga3 :: [(LabelMem, LabelMem, LabelMem)]
 ga3 =
@@ -463,12 +462,13 @@ testLabelOrdSuite = TestList
 -- Statement construction and equality tests
 ------------------------------------------------------------
 
-type Statement = Arc LabelMem
-
 testStmtEq :: String -> Bool -> Statement -> Statement -> Test
 testStmtEq lab eq t1 t2 =
     TestCase ( assertEqual ("testStmtEq:"++lab) eq (t1==t2) )
 
+-- String argument is no longer needed, due to refactoring of
+-- tlist, but left in
+--
 slist :: [(String, LabelMem)]
 slist =
   [
@@ -487,31 +487,30 @@ olist =
     ("l1",l1), ("l4",l4), ("l7",l7), ("l8",l8), ("l10",l10)
   ]
 
-tlist :: [(String, Arc LabelMem)]
+tlist :: [(String, Statement)]
 tlist =
-  [ (lab s p o,trp s p o) | s <- slist, p <- plist, o <- olist ]
+  [ t s p o | (_,s) <- slist, (_,p) <- plist, (_,o) <- olist ]
     where
-    lab (s,_) (p,_) (o,_) = s++"."++p++"."++o
-    trp (_,s) (_,p) (_,o) = Arc s p o
+      t s p o = let a = Arc s p o in (show a, a)
 
 stmteqlist :: [(String, String)]
 stmteqlist =
   [
-    ("s6.p1.l1", "s7.p1.l1"),
-    ("s6.p1.l4", "s7.p1.l4"),
-    ("s6.p1.l7", "s7.p1.l7"),
-    ("s6.p1.l7", "s7.p1.l8"),
-    ("s6.p1.l8", "s7.p1.l7"),
-    ("s6.p1.l8", "s7.p1.l8"),
-    ("s6.p1.l10","s7.p1.l10"),
-    ("s6.p1.o1", "s7.p1.o1"),
-    ("s6.p1.o4", "s7.p1.o4"),
-    ("s6.p1.o5", "s7.p1.o5"),
-    ("s1.p1.l7", "s1.p1.l8"),
-    ("s4.p1.l7", "s4.p1.l8"),
-    ("s5.p1.l7", "s5.p1.l8"),
-    ("s6.p1.l7", "s6.p1.l8"),
-    ("s7.p1.l7", "s7.p1.l8")
+    ("(s6,p1,l1)", "(s7,p1,l1)"),
+    ("(s6,p1,l4)", "(s7,p1,l4)"),
+    ("(s6,p1,l7)", "(s7,p1,l7)"),
+    ("(s6,p1,l7)", "(s7,p1,l8)"),
+    ("(s6,p1,l8)", "(s7,p1,l7)"),
+    ("(s6,p1,l8)", "(s7,p1,l8)"),
+    ("(s6,p1,l10)","(s7,p1,l10)"),
+    ("(s6,p1,o1)", "(s7,p1,o1)"),
+    ("(s6,p1,o4)", "(s7,p1,o4)"),
+    ("(s6,p1,o5)", "(s7,p1,o5)"),
+    ("(s1,p1,l7)", "(s1,p1,l8)"),
+    ("(s4,p1,l7)", "(s4,p1,l8)"),
+    ("(s5,p1,l7)", "(s5,p1,l8)"),
+    ("(s6,p1,l7)", "(s6,p1,l8)"),
+    ("(s7,p1,l7)", "(s7,p1,l8)")
   ]
 
 testStmtEqSuite :: Test
@@ -617,25 +616,28 @@ testLabelMapSuite = TestList
 --  Graph matching support
 ------------------------------------------------------------
 
-t01, t02, t03, t04, t05, t06 :: Arc LabelMem
-t01 = toStatement s1 p1 o1
-t02 = toStatement s2 p1 o2
-t03 = toStatement s3 p1 o3
-t04 = toStatement s1 p1 l1
-t05 = toStatement s2 p1 l4
-t06 = toStatement s3 p1 l10
+t01, t02, t03, t04, t05, t06 :: Statement
+t01 = arc s1 p1 o1
+t02 = arc s2 p1 o2
+t03 = arc s3 p1 o3
+t04 = arc s1 p1 l1
+t05 = arc s2 p1 l4
+t06 = arc s3 p1 l10
 
-t10, t11, t12 :: Arc LabelMem
-t10 = toStatement s1 p1 b1
-t11 = toStatement b1 p2 b2
-t12 = toStatement b2 p3 o1
+tOrder16 :: [Statement]
+tOrder16 = [t04, t01, t05, t02, t06, t03]
+  
+t10, t11, t12 :: Statement
+t10 = arc s1 p1 b1
+t11 = arc b1 p2 b2
+t12 = arc b2 p3 o1
 
-t20, t21, t22 :: Arc LabelMem
-t20 = toStatement s1 p1 b3
-t21 = toStatement b3 p2 b4
-t22 = toStatement b4 p3 o1
+t20, t21, t22 :: Statement
+t20 = arc s1 p1 b3
+t21 = arc b3 p2 b4
+t22 = arc b4 p3 o1
 
-as1, as2, as4, as5, as6 :: [Arc LabelMem]
+as1, as2, as4, as5, as6 :: [Statement]
 as1 = [t01]
 as2 = [t01,t02,t03,t04,t05,t06]
 as4 = [t01,t02,t03,t04,t05,t06,t10,t11,t12]
@@ -718,6 +720,9 @@ testGraphMatchSupportSuite = TestList
   , testGraphLabels16
   , testAssignLabelMap05
   , testAssignLabelMap06
+    -- implicitly tested elsewhere but included here for completeness
+  , testeq "O16-identity" tOrder16 $ sort tOrder16
+  , testeq "O16-compare"  tOrder16 $ sort [t01,t02,t03,t04,t05,t06]
   ]
 
 ------------------------------------------------------------
@@ -1207,22 +1212,22 @@ p115  = LV "p115"
 
 t10102, t10203, t10304, t10405, t10501, t10106,
   t10207, t10308, t10409, t10510, t10607,
-  t10708, t10809, t10910, t11006 :: Arc LabelMem
-t10102 = toStatement v101 p101 v102
-t10203 = toStatement v102 p102 v103
-t10304 = toStatement v103 p103 v104
-t10405 = toStatement v104 p104 v105
-t10501 = toStatement v105 p105 v101
-t10106 = toStatement v101 p106 v106
-t10207 = toStatement v102 p107 v107
-t10308 = toStatement v103 p108 v108
-t10409 = toStatement v104 p109 v109
-t10510 = toStatement v105 p110 v110
-t10607 = toStatement v106 p111 v107
-t10708 = toStatement v107 p112 v108
-t10809 = toStatement v108 p113 v109
-t10910 = toStatement v109 p114 v110
-t11006 = toStatement v110 p115 v106
+  t10708, t10809, t10910, t11006 :: Statement
+t10102 = arc v101 p101 v102
+t10203 = arc v102 p102 v103
+t10304 = arc v103 p103 v104
+t10405 = arc v104 p104 v105
+t10501 = arc v105 p105 v101
+t10106 = arc v101 p106 v106
+t10207 = arc v102 p107 v107
+t10308 = arc v103 p108 v108
+t10409 = arc v104 p109 v109
+t10510 = arc v105 p110 v110
+t10607 = arc v106 p111 v107
+t10708 = arc v107 p112 v108
+t10809 = arc v108 p113 v109
+t10910 = arc v109 p114 v110
+t11006 = arc v110 p115 v106
 
 --  Graph pattern 2:
 --  pentangle-in-pentangle, corresponding vertices linked downward
@@ -1260,22 +1265,22 @@ p215  = LV "p215"
 
 t20102, t20203, t20304, t20405, t20501, t20601,
   t20702, t20803, t20904, t21005, t20607,
-  t20708, t20809, t20910, t21006 :: Arc LabelMem
-t20102 = toStatement v201 p201 v202
-t20203 = toStatement v202 p202 v203
-t20304 = toStatement v203 p203 v204
-t20405 = toStatement v204 p204 v205
-t20501 = toStatement v205 p205 v201
-t20601 = toStatement v206 p206 v201
-t20702 = toStatement v207 p207 v202
-t20803 = toStatement v208 p208 v203
-t20904 = toStatement v209 p209 v204
-t21005 = toStatement v210 p210 v205
-t20607 = toStatement v206 p211 v207
-t20708 = toStatement v207 p212 v208
-t20809 = toStatement v208 p213 v209
-t20910 = toStatement v209 p214 v210
-t21006 = toStatement v210 p215 v206
+  t20708, t20809, t20910, t21006 :: Statement
+t20102 = arc v201 p201 v202
+t20203 = arc v202 p202 v203
+t20304 = arc v203 p203 v204
+t20405 = arc v204 p204 v205
+t20501 = arc v205 p205 v201
+t20601 = arc v206 p206 v201
+t20702 = arc v207 p207 v202
+t20803 = arc v208 p208 v203
+t20904 = arc v209 p209 v204
+t21005 = arc v210 p210 v205
+t20607 = arc v206 p211 v207
+t20708 = arc v207 p212 v208
+t20809 = arc v208 p213 v209
+t20910 = arc v209 p214 v210
+t21006 = arc v210 p215 v206
 
 --  Graph pattern 3:
 --  star-in-pentangle, corresponding vertices linked toward star
@@ -1317,22 +1322,22 @@ p315  = LV "p315"
 
 t30102, t30203, t30304, t30405, t30501, t30106,
   t30207, t30308, t30409, t30510, t30608,
-  t30709, t30810, t30906, t31007 :: Arc LabelMem
-t30102 = toStatement v301 p301 v302
-t30203 = toStatement v302 p302 v303
-t30304 = toStatement v303 p303 v304
-t30405 = toStatement v304 p304 v305
-t30501 = toStatement v305 p305 v301
-t30106 = toStatement v301 p306 v306
-t30207 = toStatement v302 p307 v307
-t30308 = toStatement v303 p308 v308
-t30409 = toStatement v304 p309 v309
-t30510 = toStatement v305 p310 v310
-t30608 = toStatement v306 p311 v308
-t30709 = toStatement v307 p312 v309
-t30810 = toStatement v308 p313 v310
-t30906 = toStatement v309 p314 v306
-t31007 = toStatement v310 p315 v307
+  t30709, t30810, t30906, t31007 :: Statement
+t30102 = arc v301 p301 v302
+t30203 = arc v302 p302 v303
+t30304 = arc v303 p303 v304
+t30405 = arc v304 p304 v305
+t30501 = arc v305 p305 v301
+t30106 = arc v301 p306 v306
+t30207 = arc v302 p307 v307
+t30308 = arc v303 p308 v308
+t30409 = arc v304 p309 v309
+t30510 = arc v305 p310 v310
+t30608 = arc v306 p311 v308
+t30709 = arc v307 p312 v309
+t30810 = arc v308 p313 v310
+t30906 = arc v309 p314 v306
+t31007 = arc v310 p315 v307
 
 --  Graph pattern 4:
 --  pentangle-in-pentangle, corresponding vertices linked upward
@@ -1372,22 +1377,22 @@ p415  = LV "p415"
 
 t40102, t40203, t40304, t40405, t40501, t40106,
   t40207, t40308, t40409, t40510, t41009,
-  t40908, t40807, t40706, t40610:: Arc LabelMem
-t40102 = toStatement v401 p401 v402
-t40203 = toStatement v402 p402 v403
-t40304 = toStatement v403 p403 v404
-t40405 = toStatement v404 p404 v405
-t40501 = toStatement v405 p405 v401
-t40106 = toStatement v401 p406 v406
-t40207 = toStatement v402 p407 v407
-t40308 = toStatement v403 p408 v408
-t40409 = toStatement v404 p409 v409
-t40510 = toStatement v405 p410 v410
-t41009 = toStatement v410 p411 v409
-t40908 = toStatement v409 p412 v408
-t40807 = toStatement v408 p413 v407
-t40706 = toStatement v407 p414 v406
-t40610 = toStatement v406 p415 v410
+  t40908, t40807, t40706, t40610:: Statement
+t40102 = arc v401 p401 v402
+t40203 = arc v402 p402 v403
+t40304 = arc v403 p403 v404
+t40405 = arc v404 p404 v405
+t40501 = arc v405 p405 v401
+t40106 = arc v401 p406 v406
+t40207 = arc v402 p407 v407
+t40308 = arc v403 p408 v408
+t40409 = arc v404 p409 v409
+t40510 = arc v405 p410 v410
+t41009 = arc v410 p411 v409
+t40908 = arc v409 p412 v408
+t40807 = arc v408 p413 v407
+t40706 = arc v407 p414 v406
+t40610 = arc v406 p415 v410
 
 --  Graph pattern 5:
 --  Same as pattern 1, except same fixed property in all cases.
@@ -1397,44 +1402,44 @@ p5    = LF "p5"
 
 t50102, t50203, t50304, t50405, t50501, t50106, t50207,
   t50308, t50409, t50510, t50607, t50708, t50809,
-  t50910, t51006 :: Arc LabelMem
-t50102 = toStatement v101 p5 v102
-t50203 = toStatement v102 p5 v103
-t50304 = toStatement v103 p5 v104
-t50405 = toStatement v104 p5 v105
-t50501 = toStatement v105 p5 v101
-t50106 = toStatement v101 p5 v106
-t50207 = toStatement v102 p5 v107
-t50308 = toStatement v103 p5 v108
-t50409 = toStatement v104 p5 v109
-t50510 = toStatement v105 p5 v110
-t50607 = toStatement v106 p5 v107
-t50708 = toStatement v107 p5 v108
-t50809 = toStatement v108 p5 v109
-t50910 = toStatement v109 p5 v110
-t51006 = toStatement v110 p5 v106
+  t50910, t51006 :: Statement
+t50102 = arc v101 p5 v102
+t50203 = arc v102 p5 v103
+t50304 = arc v103 p5 v104
+t50405 = arc v104 p5 v105
+t50501 = arc v105 p5 v101
+t50106 = arc v101 p5 v106
+t50207 = arc v102 p5 v107
+t50308 = arc v103 p5 v108
+t50409 = arc v104 p5 v109
+t50510 = arc v105 p5 v110
+t50607 = arc v106 p5 v107
+t50708 = arc v107 p5 v108
+t50809 = arc v108 p5 v109
+t50910 = arc v109 p5 v110
+t51006 = arc v110 p5 v106
 
 --  Graph pattern 6:
 --  Same as pattern 5, with different variables
 
 t60102, t60203, t60304, t60405, t60501, t60106,
   t60207, t60308, t60409, t60510, t60607, t60708,
-  t60809, t60910, t61006 :: Arc LabelMem
-t60102 = toStatement v201 p5 v202
-t60203 = toStatement v202 p5 v203
-t60304 = toStatement v203 p5 v204
-t60405 = toStatement v204 p5 v205
-t60501 = toStatement v205 p5 v201
-t60106 = toStatement v201 p5 v206
-t60207 = toStatement v202 p5 v207
-t60308 = toStatement v203 p5 v208
-t60409 = toStatement v204 p5 v209
-t60510 = toStatement v205 p5 v210
-t60607 = toStatement v206 p5 v207
-t60708 = toStatement v207 p5 v208
-t60809 = toStatement v208 p5 v209
-t60910 = toStatement v209 p5 v210
-t61006 = toStatement v210 p5 v206
+  t60809, t60910, t61006 :: Statement
+t60102 = arc v201 p5 v202
+t60203 = arc v202 p5 v203
+t60304 = arc v203 p5 v204
+t60405 = arc v204 p5 v205
+t60501 = arc v205 p5 v201
+t60106 = arc v201 p5 v206
+t60207 = arc v202 p5 v207
+t60308 = arc v203 p5 v208
+t60409 = arc v204 p5 v209
+t60510 = arc v205 p5 v210
+t60607 = arc v206 p5 v207
+t60708 = arc v207 p5 v208
+t60809 = arc v208 p5 v209
+t60910 = arc v209 p5 v210
+t61006 = arc v210 p5 v206
 
 --
 
@@ -1550,8 +1555,8 @@ g204 = arcsToGraph
 -- Compare two rings of 5 with one ring of 10
 -- (each node double-connected, but different overall topology)
 
-t10901 :: Arc LabelMem
-t10901 = toStatement v109 p109 v101
+t10901 :: Statement
+t10901 = arc v109 p109 v101
 
 g105 :: GraphMem LabelMem
 g105 = arcsToGraph
@@ -1567,8 +1572,8 @@ g205 = arcsToGraph
 -- Reverse one arc from test 01
 -- (also, rearrange arcs to catch ordering artefacts)
 
-t20201 :: Arc LabelMem
-t20201 = toStatement v202 p201 v201
+t20201 :: Statement
+t20201 = arc v202 p201 v201
 
 g106 :: GraphMem LabelMem
 g106 = arcsToGraph
@@ -1597,11 +1602,11 @@ f02  = LF "f02"
 
 -- Fix one arc from each
 
-f10102, f10501, f21006, f20510 :: Arc LabelMem
-f10102 = toStatement v101 f01 v102
-f10501 = toStatement v105 f01 v101
-f21006 = toStatement v210 f01 v206
-f20510 = toStatement v205 f01 v210
+f10102, f10501, f21006, f20510 :: Statement
+f10102 = arc v101 f01 v102
+f10501 = arc v105 f01 v101
+f21006 = arc v210 f01 v206
+f20510 = arc v205 f01 v210
 
 g107 :: GraphMem LabelMem
 g107 = arcsToGraph
@@ -1629,11 +1634,11 @@ g407 = arcsToGraph
 
 -- Fix two adjacent arcs from each
 
-f10203, f10405, f20910, f20601 :: Arc LabelMem
-f10203 = toStatement v102 f01 v103
-f10405 = toStatement v104 f01 v105
-f20910 = toStatement v209 f01 v210
-f20601 = toStatement v206 f01 v201
+f10203, f10405, f20910, f20601 :: Statement
+f10203 = arc v102 f01 v103
+f10405 = arc v104 f01 v105
+f20910 = arc v209 f01 v210
+f20601 = arc v206 f01 v201
 
 g108 :: GraphMem LabelMem
 g108 = arcsToGraph
@@ -1661,10 +1666,10 @@ g408 = arcsToGraph
 
 -- Fix two adjacent arcs with different properties
 
-g10203, g10102, g10405 :: Arc LabelMem
-g10203 = toStatement v102 f02 v103
-g10102 = toStatement v101 f02 v102
-g10405 = toStatement v104 f02 v105
+g10203, g10102, g10405 :: Statement
+g10203 = arc v102 f02 v103
+g10102 = arc v101 f02 v102
+g10405 = arc v104 f02 v105
 
 g109, g209, g309 :: GraphMem LabelMem
 g109 = arcsToGraph

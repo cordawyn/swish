@@ -133,13 +133,18 @@ testLangEqSuite = TestList
 --  Define some common values
 ------------------------------------------------------------
 
-base1, base2, base3, base4 :: Namespace
+-- TODO: using a base of "" or "?" causes a fromJust failure somewhere
+basee, baseu, base1, base2, base3, base4 :: Namespace
+basee = Namespace ""      "http://example.com/a#"
+baseu = Namespace "?"     "http://example.com/"
 base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
 base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
-qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: ScopedName
+qbes1, qbus1, qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: ScopedName
+qbes1 = ScopedName basee "s1"
+qbus1 = ScopedName baseu "s1"
 qb1s1 = ScopedName base1 "s1"
 qb2s2 = ScopedName base2 "s2"
 qb3s3 = ScopedName base3 "s3"
@@ -147,7 +152,9 @@ qb3   = ScopedName base3 ""
 qb3bm = ScopedName base3 "basemore"
 qb4m  = ScopedName base4 "more"
 
-s1, s2, s3, s4, s5, s6, s7, s8 :: RDFLabel
+es1, us1, s1, s2, s3, s4, s5, s6, s7, s8 :: RDFLabel
+es1 = Res qbes1
+us1 = Res qbus1
 s1 = Res qb1s1 
 s2 = Res qb2s2 
 s3 = Res qb3s3 
@@ -213,10 +220,11 @@ qb1t1, qb1t2 :: ScopedName
 qb1t1 = ScopedName base1 "type1"
 qb1t2 = ScopedName base1 "type2"
 
-l1, l2, l3, l4, l5, l6, l7, l8,
+l1, l2, l2gb, l3, l4, l5, l6, l7, l8,
   l9, l10, l11, l12 :: RDFLabel
 l1  = Lit "l1"  Nothing                
 l2  = Lit "l2"  (Just (langName "en")) 
+l2gb = Lit "l2"  (Just (langName "en-gb")) 
 l3  = Lit "l2"  (Just (langName "fr")) 
 l4  = Lit "l4"  (Just qb1t1)           
 l5  = Lit "l4"  (Just qb1t1)           
@@ -253,12 +261,13 @@ testLabelEq = testCompareEq "testLabelEq:"
 
 nodelist :: [(String, RDFLabel)]
 nodelist =
-  [ ("s1",s1), ("s2",s2), ("s3",s3), ("s4",s4), ("s5",s5)
+  [ ("es1",es1), ("us1",us1)
+  , ("s1",s1), ("s2",s2), ("s3",s3), ("s4",s4), ("s5",s5)
   , ("s6",s6), ("s7",s7), ("s8",s8)
   , ("b1",b1), ("b2",b2), ("b3",b3), ("b4",b4)
   , ("p1",p1), ("p2",p2), ("p3",p3), ("p4",p4)
   , ("o1",o1), ("o2",o2), ("o3",o3), ("o4",o4), ("o5",o5)
-  , ("l1",l1), ("l2",l2), ("l3",l3)
+  , ("l1",l1), ("l2",l2), ("l2gb",l2gb), ("l3",l3)
   , ("l4",l4), ("l5",l5), ("l6",l6)
   , ("l7",l7), ("l8",l8), ("l9",l9)
   , ("l10",l10), ("l11",l11), ("l12",l12)
@@ -473,11 +482,15 @@ testLabelOrd lab order n1 n2 =
 
 nodeorder :: [String]
 nodeorder =
-  -- literals
-  [ "l1"
+  [ 
+    -- literals
+    "l1"
   , "l11", "l12", "l10"
-  , "l2", "l3"
+  , "l2", "l2gb", "l3"
   , "l5", "l6", "l4", "l8", "l9", "l7"
+  -- URIs beginning with ':' and '<'  
+  , "es1"
+  , "us1"
   -- variables
   , "v1", "v2"
   -- URIs
@@ -1059,8 +1072,11 @@ tm72 = arc ba4 p2 o4
 tm73 = arc s4  p2 bn5
 tm74 = arc bn6 p2 o4
 
-gm1, gm11, gm2, gm2f, gm22, gm3, gm3f, gm33,
+gm0, gms, gms2, gm1, gm11, gm2, gm2f, gm22, gm3, gm3f, gm33,
   gm4, gm44 :: RDFGraph
+gm0  = toGraph []
+gms  = toGraph [arc s1 p1 o1, arc o1 p2 s3, arc s2 p3 o4]
+gms2 = toGraph [arc us1 p1 o1, arc p1 p2 es1]
 gm1  = toGraph [tm01,tm02,tm03,tm04,tm05,tm06,tm07,tm08
                ,tm09,tm10,tm11,tm12,tm13,tm14
                ]
@@ -1150,7 +1166,10 @@ gm86a = remapLabels [v1,v2] [v1,v2,b1,b2] makeBlank gm84
 
 testMergeSuite :: Test
 testMergeSuite = TestList
-  [ testMerge "01" gm1 gm1 gm11
+  [ testMerge "00" gm0 gm0 gm0
+  , testMerge "0s" gms gms gms
+  , testMerge "0s2" gms2 gms2 gms2
+  , testMerge "01" gm1 gm1 gm11
   , testMerge "02" gm2 gm2 gm22
   , testMerge "03" gm3 gm3 gm33
   , testMerge "04" gm4 gm4 gm44

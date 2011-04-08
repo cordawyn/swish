@@ -153,13 +153,16 @@ instance Ord RDFLabel where
     compare (Blank _)      (Res _)        = GT
     -- .. else use show string comparison
     compare l1 l2 = comparing show l1 l2
+    
+    {- <= is not used if compare is provided
     -- Similarly for <=
     (Res qn1)   <= (Res qn2)      = qn1 <= qn2
     (Blank ln1) <= (Blank ln2)    = ln1 <= ln2
     (Res _)     <= (Blank _)      = True
     (Blank _)   <= (Res _)        = False
     l1 <= l2                      = show l1 <= show l2
-
+    -}
+    
 instance Label RDFLabel where
     labelIsVar (Blank _)    = True
     labelIsVar (Var _)      = True
