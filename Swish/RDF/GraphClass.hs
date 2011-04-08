@@ -27,7 +27,7 @@ module Swish.RDF.GraphClass
     , Label(..)
     , Arc(..), arcSubj, arcPred, arcObj, arc, arcToTriple, arcFromTriple
     , Selector
-    , hasLabel, arcLabels
+    , hasLabel, arcLabels -- , arcNodes
     )
 where
 
@@ -36,39 +36,57 @@ import qualified Data.Traversable as T
 
 import Data.List (union, (\\))
 
---------------------------------
---  Labelled Directed Graph class
---------------------------------
+-- | Labelled Directed Graph class
 --
---  Minimum required implementation:  setArcs, getArcs
+--  Minimum required implementation:  `setArcs`, `getArcs` and `containedIn`.
 --
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
 --  the constraint on the label type seems to prevent that.
 --  So I've just declared specific instances to be Functors.
+--
 class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     where
     --  empty graph
     --  emptyGr     :: lg lb    [[[TODO?]]]
     --  component-level operations
-    setArcs     :: [Arc lb] -> lg lb -> lg lb       -- setarcs [arcs] in g2 -> g3
-    getArcs     :: lg lb -> [Arc lb]                -- g1 -> [arcs]
-    --  extract arcs from a graph
-    extract     :: Selector lb -> lg lb -> lg lb    -- select f1 from g2 -> g3
+      
+    -- | Replace the existing arcs in the graph.
+    setArcs     :: [Arc lb] -> lg lb -> lg lb
+    
+    -- | Extract all the arcs from a graph
+    getArcs     :: lg lb -> [Arc lb]
+    
+    -- | Extract those arcs that match the given `Selector`.
+    extract     :: Selector lb -> lg lb -> lg lb
     extract sel = update (filter sel)
-    --  graph-level operations
-    add         :: lg lb -> lg lb -> lg lb          -- g1 + g2 -> g3
+    
+    -- | Add the two graphs
+    add         :: lg lb -> lg lb -> lg lb
     add    addg = update (union (getArcs addg))
-    delete      :: lg lb -> lg lb -> lg lb          -- g2 - g1 -> g3
+    
+    -- | Remove those arcs in the first graph from the second
+    -- graph
+    delete :: lg lb  -- ^ g1
+              -> lg lb -- ^ g2
+              -> lg lb -- ^ g2 - g1 -> g3
     delete delg = update (\\ getArcs delg)
-    --  enumerate distinct labels contained in a graph
-    labels      :: lg lb -> [lb]      -- g1 -> [labels]
+    
+    -- | Enumerate the distinct labels contained in a graph;
+    -- that is, any label that appears in the subject,
+    -- predicate or object position of an `Arc`.
+    labels      :: lg lb -> [lb]
     labels g    = foldl union [] (map arcLabels (getArcs g))
-    --  enumerate distinct labels contained in a graph
-    nodes       :: lg lb -> [lb]      -- g1 -> [labels]
+    
+    -- | Enumerate the distinct nodes contained in a graph;
+    -- that is, any label that appears in the subject
+    -- or object position of an `Arc`.
+    nodes       :: lg lb -> [lb]
     nodes g     = foldl union [] (map arcNodes (getArcs g))
-    --  test for graph containment in another
-    containedIn :: lg lb -> lg lb -> Bool           -- g1 <= g2?
-    -- g1 update arcs in a graph using a supplied function:
+    
+    -- | Test for graph containment in another.
+    containedIn :: lg lb -> lg lb -> Bool 
+    
+    -- | Update the arcs in a graph using a supplied function.
     update      :: ( [Arc lb] -> [Arc lb] ) -> lg lb -> lg lb
     update f g  = setArcs ( f (getArcs g) ) g
 
@@ -76,9 +94,7 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
 replaceArcs :: (LDGraph lg lb) => lg lb -> [Arc lb] -> lg lb
 replaceArcs gr as = update (const as) gr
 
----------------
---  Label class
----------------
+-- | Label class
 --
 --  A label may have a fixed binding, which means that the label identifies (is) a
 --  particular graph node, and different such labels are always distinct nodes.
@@ -93,16 +109,23 @@ replaceArcs gr as = update (const as) gr
 --  with fixed labels.
 
 class (Eq lb, Show lb, Ord lb) => Label lb where
-    labelIsVar  :: lb -> Bool           -- does this node have a variable binding?
-    labelHash   :: Int -> lb -> Int     -- calculate hash of label using supplied seed
-    getLocal    :: lb -> String         -- extract local id from variable node
-    makeLabel   :: String -> lb         -- make label value given local id
-    -- compare     :: lb -> lb -> Ordering
-    -- compare l1 l2 = compare (show l1) (show l2)
+  
+  -- | Does this node have a variable binding?
+  labelIsVar  :: lb -> Bool           
+    
+  -- | Calculate the hash of the label using the supplied seed.
+  labelHash   :: Int -> lb -> Int     
+    
+  -- | Extract the local id from a variable node.                 
+  getLocal    :: lb -> String
+    
+  -- | Make a label value from a local id.  
+  makeLabel   :: String -> lb
+    
+  -- compare     :: lb -> lb -> Ordering
+  -- compare l1 l2 = compare (show l1) (show l2)
 
-------------
---  Arc type
-------------
+-- | Arc type
 
 data Arc lb = Arc { asubj, apred, aobj :: lb }
     deriving (Eq, Functor, F.Foldable, T.Traversable)
@@ -116,7 +139,11 @@ arcPred = apred
 arcObj :: Arc lb -> lb
 arcObj = aobj
 
-arc :: lb -> lb -> lb -> Arc lb
+-- | Create an arc.
+arc :: lb      -- ^ The subject of the arc.
+       -> lb   -- ^ The predicate of the arc.
+       -> lb   -- ^ The object of the arc.
+       -> Arc lb
 arc = Arc
 
 arcToTriple :: Arc lb -> (lb,lb,lb)
@@ -147,11 +174,13 @@ instance (Show lb) => Show (Arc lb) where
 type Selector lb = Arc lb -> Bool
 
 hasLabel :: (Eq lb) => lb -> Arc lb -> Bool
-hasLabel lbv (Arc lb1 lb2 lb3) = lbv `elem` [lb1, lb2, lb3]
+hasLabel lbv lb = lbv `elem` arcLabels lb
 
+-- | Return all the labels in an arc.
 arcLabels :: Arc lb -> [lb]
 arcLabels (Arc lb1 lb2 lb3) = [lb1,lb2,lb3]
 
+-- | Return just the subject and object labels in the arc.
 arcNodes :: Arc lb -> [lb]
 arcNodes (Arc lb1 _ lb3) = [lb1,lb3]
 
