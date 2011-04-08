@@ -891,9 +891,9 @@ formulaContent = do
   updateState $ updateGraph $ setFormula (Formula bNode (graphState fstate'))
   return bNode
   
--- need to work out what is going on here
+-- need to work out what is going on here; needed for script handling
 subgraph :: RDFLabel -> N3Parser RDFGraph
-subgraph = undefined
+subgraph _ = unexpected "Support for subgraphs has been temporarily removed."
 
 {-
 subgraph :: RDFLabel -> N3Parser RDFGraph

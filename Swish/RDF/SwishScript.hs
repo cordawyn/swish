@@ -64,7 +64,8 @@ import Swish.RDF.N3Parser
     ( parseAnyfromString
     , parseN3      
     , N3Parser, N3State(..)
-    , whiteSpace, symbol, eof, identLetter
+    , whiteSpace, symbol, lexeme
+    , eof, identLetter
     , getPrefix
     , subgraph
     , n3symbol -- was uriRef2,
@@ -120,15 +121,16 @@ import Control.Monad (unless, when, liftM)
 import qualified System.IO.Error as IO
 
 ------------------------------------------------------------
---  Parser for Swish script processor
-------------------------------------------------------------
 --
---  The parser is based on the Notation3 parser, and uses many
+--  The parser used to be based on the Notation3 parser, and used many
 --  of the same syntax productions, but the top-level productions used
---  are quite different.
+--  are quite different. With the parser re-write it's less clear
+--  what is going on.
 --
 -- NOTE: during the parser re-write we strip out some of this functionality
 -- 
+
+-- | Parser for Swish script processor
 parseScriptFromString :: Maybe QName -> String -> Either String [SwishStateIO ()]
 parseScriptFromString = parseAnyfromString script 
 
@@ -148,31 +150,35 @@ isymbol s = symbol s >> return ()
 
 command :: N3Parser (SwishStateIO ())
 command =
-        do  { try $ isymbol "@prefix"
-            ; getPrefix
-            ; return $ return ()
-            }
-    <|> nameItem
-    <|> readGraph
-    <|> writeGraph
-    <|> mergeGraphs
-    <|> compareGraphs
-    <|> assertEquiv
-    <|> assertMember
-    <|> defineRule
-    <|> defineRuleset
-    <|> defineConstraints
-    <|> checkProofCmd
-    <|> fwdChain
-    <|> bwdChain
-    <?>
-        "script command"
+  prefixLine
+  <|> nameItem
+  <|> readGraph
+  <|> writeGraph
+  <|> mergeGraphs
+  <|> compareGraphs
+  <|> assertEquiv
+  <|> assertMember
+  <|> defineRule
+  <|> defineRuleset
+  <|> defineConstraints
+  <|> checkProofCmd
+  <|> fwdChain
+  <|> bwdChain
+  <?> "script command"
+
+prefixLine :: N3Parser (SwishStateIO ())
+prefixLine = do
+  try $ isymbol "@prefix"
+  getPrefix
+  whiteSpace
+  isymbol "."
+  return $ return ()
 
 nameItem :: N3Parser (SwishStateIO ())
 nameItem =
         --  name :- graph
         --  name :- ( graph* )
-        do  { u <- n3symbol
+        do  { u <- lexeme n3symbol
             ; isymbol ":-"
             ; g <- graphOrList
             ; return $ ssAddGraph u g
@@ -182,8 +188,8 @@ readGraph :: N3Parser (SwishStateIO ())
 readGraph =
         --  @read name  [ <uri> ]
         do  { commandName "@read"
-            ; n <- n3symbol
-            ; u <- option "" lexUriRef
+            ; n <- lexeme n3symbol
+            ; u <- option "" $ lexUriRef
             ; return $ ssRead n (if null u then Nothing else Just u)
             }
 
@@ -191,7 +197,7 @@ writeGraph :: N3Parser (SwishStateIO ())
 writeGraph =
         --  @write name [ <uri> ] ; Comment
         do  { commandName "@write"
-            ; n <- n3symbol
+            ; n <- lexeme n3symbol
             ; let gs = ssGetList n :: SwishStateIO (Either String [RDFGraph])
             ; u <- option "" lexUriRef
             ; isymbol ";"
@@ -214,8 +220,8 @@ compareGraphs :: N3Parser (SwishStateIO ())
 compareGraphs =
         --  @compare  name name
         do  { commandName "@compare"
-            ; n1 <- n3symbol
-            ; n2 <- n3symbol
+            ; n1 <- lexeme n3symbol
+            ; n2 <- lexeme n3symbol
             ; return $ ssCompare n1 n2
             }
 
@@ -223,8 +229,8 @@ assertEquiv :: N3Parser (SwishStateIO ())
 assertEquiv =
         --  @asserteq name name ; Comment
         do  { commandName "@asserteq"
-            ; n1 <- n3symbol
-            ; n2 <- n3symbol
+            ; n1 <- lexeme n3symbol
+            ; n2 <- lexeme n3symbol
             ; isymbol ";"
             ; c <- restOfLine
             ; return $ ssAssertEq n1 n2 c
@@ -234,8 +240,8 @@ assertMember :: N3Parser (SwishStateIO ())
 assertMember =
         --  @assertin name name ; Comment
         do  { commandName "@assertin"
-            ; n1 <- n3symbol
-            ; n2 <- n3symbol
+            ; n1 <- lexeme n3symbol
+            ; n2 <- lexeme n3symbol
             ; isymbol ";"
             ; c <- restOfLine
             ; return $ ssAssertIn n1 n2 c
@@ -245,7 +251,7 @@ defineRule :: N3Parser (SwishStateIO ())
 defineRule =
         --  @rule name :- ( name* ) => name [ | ( (name var*)* ) ]
         do  { commandName "@rule"
-            ; rn <- n3symbol
+            ; rn <- lexeme n3symbol
             ; isymbol ":-"
             ; ags <- graphOrList
             ; isymbol "=>"
@@ -258,7 +264,7 @@ defineRuleset :: N3Parser (SwishStateIO ())
 defineRuleset =
         --  @ruleset name :- ( name* ) ; ( name* )
         do  { commandName "@ruleset"
-            ; sn <- n3symbol
+            ; sn <- lexeme n3symbol
             ; isymbol ":-"
             ; ags <- nameList
             ; isymbol ";"
@@ -270,7 +276,7 @@ defineConstraints :: N3Parser (SwishStateIO ())
 defineConstraints =
         --  @constraints pref :- ( name* ) | ( name* )
         do  { commandName "@constraints"
-            ; sn <- n3symbol
+            ; sn <- lexeme n3symbol
             ; isymbol ":-"
             ; cgs <- graphOrList
             ; isymbol "|"
@@ -285,7 +291,7 @@ checkProofCmd =
         --    @step name ( name* ) => name  # rule-name, antecedents, consequent
         --    @result name
         do  { commandName "@proof"
-            ; pn  <- n3symbol
+            ; pn  <- lexeme n3symbol
             ; sns <- nameList
             ; commandName "@input"
             ; igf <- formulaExpr
@@ -300,7 +306,7 @@ checkStep ::
                 -> SwishStateIO (Either String RDFProofStep))
 checkStep =
         do  { commandName "@step"
-            ; rn   <- n3symbol
+            ; rn   <- lexeme n3symbol
             ; agfs <- formulaList
             ; isymbol "=>"
             ; cgf  <- formulaExpr
@@ -312,11 +318,11 @@ fwdChain =
         --  #   ruleset rule (antecedents) => result
         --  @fwdchain pref name ( name* ) => name
         do  { commandName "@fwdchain"
-            ; sn  <- n3symbol
-            ; rn  <- n3symbol
+            ; sn  <- lexeme n3symbol
+            ; rn  <- lexeme n3symbol
             ; ags <- graphOrList
             ; isymbol "=>"
-            ; cn  <- n3symbol
+            ; cn  <- lexeme n3symbol
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
             ; return $ ssFwdChain sn rn ags cn prefs
@@ -327,11 +333,11 @@ bwdChain =
         --  #   ruleset rule consequent <= (antecedent-alts)
         --  @bwdchain pref name graph <= name
         do  { commandName "@bwdchain"
-            ; sn  <- n3symbol
-            ; rn  <- n3symbol
+            ; sn  <- lexeme n3symbol
+            ; rn  <- lexeme n3symbol
             ; cg  <- graphExpr
             ; isymbol "<="
-            ; an  <- n3symbol
+            ; an  <- lexeme n3symbol
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
             ; return $ ssBwdChain sn rn cg an prefs
@@ -358,14 +364,14 @@ restOfLine =
 nameList :: N3Parser [ScopedName]
 nameList =
         do  { isymbol "("
-            ; ns <- many n3symbol
+            ; ns <- many (lexeme n3symbol)
             ; isymbol ")"
             ; return ns
             }
 
 nameOrList :: N3Parser [ScopedName]
 nameOrList =
-        do  { n <- n3symbol
+        do  { n <- lexeme n3symbol
             ; return [n]
             }
     <|>
@@ -411,7 +417,7 @@ graphOrList =
 
 formulaExpr :: N3Parser (SwishStateIO (Either String RDFFormula))
 formulaExpr =
-        do  { n <- n3symbol
+        do  { n <- lexeme n3symbol
             ; namedGraph n
             }
     <?> "Formula (name or named graph)"
@@ -444,13 +450,13 @@ varModList =
             ; return vms
             }
     <|>
-        do  { vm <- varMod
+        do  { vm <- lexeme varMod
             ; return [vm]
             }
 
 varMod :: N3Parser (ScopedName,[RDFLabel])
 varMod =
-        do  { rn  <- n3symbol
+        do  { rn  <- lexeme n3symbol
             ; vns <- many quickVariable
             ; return (rn,vns)
             }

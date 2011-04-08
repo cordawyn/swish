@@ -416,7 +416,7 @@ setFormula f g = g { formulae=mapReplaceOrAdd f (formulae g) }
 instance (Label lb) => LDGraph NSGraph lb where
     getArcs      = statements 
     setArcs as g = g { statements=as }
-    containedIn = undefined -- TODO: should there be one defined?
+    containedIn = error "containedIn for LDGraph NSGraph lb is undefined!" -- TODO: should there be one defined?
 
 -- Optimized method to add arc .. don't check for duplicates.
 addArc :: (Label lb) => Arc lb -> NSGraph lb -> NSGraph lb
