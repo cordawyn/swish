@@ -141,7 +141,6 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 
 import Data.Char (isSpace, chr) 
 
-
 ----------------------------------------------------------------------
 --  Set up token parsers
 ----------------------------------------------------------------------

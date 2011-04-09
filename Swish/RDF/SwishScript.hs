@@ -118,6 +118,8 @@ import Control.Monad.State
 
 import Control.Monad (unless, when, liftM)
 
+import Data.List (isPrefixOf)
+
 import qualified System.IO.Error as IO
 
 ------------------------------------------------------------
@@ -455,11 +457,10 @@ varModList =
             }
 
 varMod :: N3Parser (ScopedName,[RDFLabel])
-varMod =
-        do  { rn  <- lexeme n3symbol
-            ; vns <- many $ lexeme quickVariable
-            ; return (rn,vns)
-            }
+varMod = do
+  rn  <- lexeme n3symbol
+  vns <- many $ lexeme quickVariable
+  return (rn,vns)
 
 ----------------------------------------------------------------------
 --  SwishState helper functions
@@ -917,11 +918,11 @@ getResourceData muri =
             ; return $ Right dat
             }
     fromUri = fromFile
-    fromFile uri =
-        do  { dat <- lift $ readFile uri
-            ; return $ Right dat
-            }
-
+    fromFile uri | "file://" `isPrefixOf` uri = do
+      dat <- lift $ readFile $ drop 7 uri
+      return $ Right dat
+                 | otherwise = error $ "Unsupported file name for read: " ++ uri
+                               
 --  Temporary implementation:  just write local file
 --  (Need to add logic to separate filenames from URIs, and
 --  attempt HTTP PUT, or similar.)
@@ -939,8 +940,9 @@ putResourceData muri gsh =
         }
     where
         toStdout  = putStrLn gstr
-        toUri uri = writeFile uri gstr
-        gstr = gsh ""
+        toUri uri | "file://" `isPrefixOf` uri = writeFile (drop 7 uri) gstr
+                  | otherwise = error $ "Unsupported file name for write: " ++ uri
+        gstr = gsh "\n"
 
 --------------------------------------------------------------------------------
 --
