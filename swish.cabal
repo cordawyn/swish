@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.3.0.1
+Version:            0.3.0.2
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -46,7 +46,8 @@ Description:        Swish is a framework, written in the purely functional
                     Major Changes:
                     .
                     [Version 0.3.0.1] updates the Swish script parser to work with the
-                    changes in 0.3.0.0. Several example scripts are installed in the
+                    changes in 0.3.0.0 (reported by Rick Murphy).
+                    Several example scripts are installed in the
                     @scripts/@ directory, although only @VehicleCapacity.ss@ works
                     with this release.
                     .
