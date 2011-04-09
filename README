@@ -1,0 +1,10 @@
+This is an update to Swish [1,2] so that it builds with a recent
+Haskell platform (although it has not been tested against ghc-7 and
+the 2011.2.0.0 Haskell Platform releases).
+
+For more information on this release see [3].
+
+ [1] http://www.ninebynine.org/Software/Swish-0.2.0.html
+ [2] http://www.ninebynine.org/RDFNotes/Swish/Intro.html
+ [2] https://bitbucket.org/doug_burke/swish/wiki/Home
+

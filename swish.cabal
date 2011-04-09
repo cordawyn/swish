@@ -27,7 +27,7 @@ Description:        Swish is a framework, written in the purely functional
                     Swish is a work-in-progress, and currently incorporates:
                     .
                     * Notation3 and NTriples input and output. The N3 support is
-                      incomplete (no handling of @forAll@).
+                      incomplete (no handling of @\@forAll@).
                     .
                     * RDF graph isomorphism testing and merging.
                     .
@@ -44,6 +44,11 @@ Description:        Swish is a framework, written in the purely functional
                     * Complete, ready-to-run, command-line and script-driven programs.
                     .
                     Major Changes:
+                    .
+                    [Version 0.3.0.1] updates the Swish script parser to work with the
+                    changes in 0.3.0.0. Several example scripts are installed in the
+                    @scripts/@ directory, although only @VehicleCapacity.ss@ works
+                    with this release.
                     .
                     [Version 0.3.0.0] is an attempt to update 
                     version 0.2.1 (<http://hackage.haskell.org/package/swish-0.2.1/>)
@@ -63,6 +68,7 @@ Description:        Swish is a framework, written in the purely functional
 
 Build-Type:         Simple
 Data-Files:         README
+                    scripts/*.ss
 
 Source-repository head
   type:     mercurial
@@ -75,7 +81,6 @@ Flag  tests
 Flag  hpc
   Description: Use Hpc for the tests
   Default:     False
-
 
 Library
    Build-Depends:
