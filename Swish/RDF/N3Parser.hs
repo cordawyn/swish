@@ -891,22 +891,16 @@ formulaContent = do
   updateState $ updateGraph $ setFormula (Formula bNode (graphState fstate'))
   return bNode
   
--- need to work out what is going on here; needed for script handling
-subgraph :: RDFLabel -> N3Parser RDFGraph
-subgraph _ = unexpected "Support for subgraphs has been temporarily removed."
-
-{-
 subgraph :: RDFLabel -> N3Parser RDFGraph
 subgraph this = do
   pstate <- getState
   let fstate = pstate { graphState = emptyRDFGraph, thisNode = this }
   setState fstate       -- switch new state into parser
-  statements            -- parse statements of formula
+  statementsOptional    -- parse statements of formula
   fstate' <- getState
   let nstate = pstate { nodeGen = nodeGen fstate' }
   setState nstate       -- swap back state, with updated nodeGen
   return (graphState fstate')
--}
 
 statementList :: N3Parser ()
 statementList = ignore $ sepEndBy (lexeme statement) fullStop

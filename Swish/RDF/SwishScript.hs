@@ -212,7 +212,7 @@ mergeGraphs =
         do  { commandName "@merge"
             ; gs <- graphList
             ; isymbol "=>"
-            ; n <- n3symbol
+            ; n <- lexeme n3symbol
             ; return $ ssMerge n gs
             }
 
@@ -457,7 +457,7 @@ varModList =
 varMod :: N3Parser (ScopedName,[RDFLabel])
 varMod =
         do  { rn  <- lexeme n3symbol
-            ; vns <- many quickVariable
+            ; vns <- many $ lexeme quickVariable
             ; return (rn,vns)
             }
 
