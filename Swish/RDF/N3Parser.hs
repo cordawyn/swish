@@ -401,10 +401,12 @@ operatorLabel snam = (Res . flip getPrefixScopedName snam) <$> getState
 
 -- Add statement to graph in N3 parser state
 
-addStatement :: RDFLabel -> RDFLabel -> RDFLabel -> N3Parser ()
+type AddStatement = RDFLabel -> N3Parser ()
+
+addStatement :: RDFLabel -> RDFLabel -> AddStatement
 addStatement s p o = updateState (updateGraph (addArc (arc s p o) ))
 
-addStatementRev :: RDFLabel -> RDFLabel -> RDFLabel -> N3Parser ()
+addStatementRev :: RDFLabel -> RDFLabel -> AddStatement
 addStatementRev o p s = addStatement s p o
 
 {-
@@ -696,13 +698,6 @@ symbolCsl = sepBy (lexeme n3symbol) comma
 {-
 qname ::=	(([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*)?:)?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
 
-Turtle appears to support ':' as a valid qname, which is not
-supported by the above production. Let's support and see
-what happens. This support may be removed since, if we allow
-white space between : and prefix or local name then statements like
-   : a : b : c .
-are not parseable.
-
 TODO:
   Note that, for now, we explicitly handle blank nodes
   (of the form _:name) direcly in pathItem'.
@@ -979,20 +974,23 @@ propertylisttail ::=		|	 ";"  propertylist
 
 -}
 
+-- it's probably important that bNode is created *after*
+-- processing the plist (mainly for the assumptions made by
+-- formatting the output as N3; e.g. list/sequence ordering)
+--
 propertyListBNode :: N3Parser RDFLabel
 propertyListBNode = do
   plist <- sepEndBy ((,) <$> lexeme verb <*> objectList) semiColon
   bNode <- newBlankNode
-  let addList (vrb,items) = mapM_ (addItem vrb) items
-      addItem (True,vrb) obj  = addStatement bNode vrb obj
-      addItem (_,vrb)    subj = addStatement subj vrb bNode
-  
+  let addList ((addFunc,vrb),items) = mapM_ (addFunc bNode vrb) items
   forM_ plist addList
   return bNode
 
 propertyListWith :: RDFLabel -> N3Parser ()
 propertyListWith subj = 
-  ignore $ sepEndBy (lexeme verb >>= objectListWith subj) semiColon
+  let -- term = lexeme verb >>= objectListWith subj
+      term = lexeme verb >>= \(addFunc, vrb) -> objectListWith (addFunc subj vrb)
+  in ignore $ sepEndBy term semiColon
   
 {-
 object ::=		|	expression
@@ -1000,7 +998,16 @@ objecttail ::=		|	 ","  object objecttail
 		|	void
 
 We change the production rule from objecttail to objectlist for lists of
-objects (may change back)
+objects (may change back).
+
+May be an optimisation needed in the case of
+
+ :s :p :o1 , .. , :o<large number>.
+
+Is parsec creating the list of actions, using sepBy1
+in objectListWith, and then evaluating them all once the list
+has been created?
+
 -}
 
 object :: N3Parser RDFLabel
@@ -1009,14 +1016,12 @@ object = lexeme expression
 objectList :: N3Parser [RDFLabel]
 objectList = sepBy1 object comma
 
-objectWith :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
-objectWith subj (flag,vrb) = object >>= addFunc subj vrb
-  where
-    addFunc = if flag then addStatement else addStatementRev
+objectWith :: AddStatement -> N3Parser ()
+objectWith addFunc = object >>= addFunc 
 
-objectListWith :: RDFLabel -> (Bool, RDFLabel) -> N3Parser ()
-objectListWith subj vrb =
-  ignore $ sepBy1 (objectWith subj vrb) comma
+objectListWith :: AddStatement -> N3Parser ()
+objectListWith addFunc =
+  ignore $ sepBy1 (objectWith addFunc) comma
 
 {-
 objectList1 :: N3Parser [RDFLabel]
@@ -1033,11 +1038,11 @@ verb ::=		|	 "<="
 		|	expression
 -}
 
-verb :: N3Parser (Bool, RDFLabel)
+verb :: N3Parser (RDFLabel -> RDFLabel -> AddStatement, RDFLabel)
 verb = 
   -- we check reverse first so that <= is tried before looking for a URI via expression rule
-  (,) False <$> verbReverse
-  <|> (,) True <$> verbForward
+  (,) addStatementRev <$> verbReverse
+  <|> (,) addStatement <$> verbForward
   <?> "verb"
 
 -- those verbs for which subject is on the right and object on the left
