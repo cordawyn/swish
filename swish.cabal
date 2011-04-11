@@ -75,8 +75,8 @@ Source-repository head
   type:     mercurial
   location: https://bitbucket.org/doug_burke/swish
 
-Flag  profile
-  Description: Enable profiling
+Flag  developer
+  Description: Turn on developer flags
   Default:     False
 
 Flag  tests
@@ -154,7 +154,8 @@ Library
    ghc-options:
       -Wall -fno-warn-orphans
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
 Executable         BuiltInMapTest
@@ -165,7 +166,8 @@ Executable         BuiltInMapTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -180,7 +182,8 @@ Executable         GraphPartitionTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -194,7 +197,8 @@ Executable         GraphTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -208,7 +212,8 @@ Executable         NTTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -222,7 +227,8 @@ Executable         N3ParserTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -236,7 +242,8 @@ Executable         N3FormatterTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -250,7 +257,8 @@ Executable         RDFDatatypeXsdIntegerTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -264,7 +272,8 @@ Executable         RDFGraphTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -278,7 +287,8 @@ Executable         RDFProofContextTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -292,7 +302,8 @@ Executable         RDFProofTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -306,7 +317,8 @@ Executable         RDFQueryTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -320,7 +332,8 @@ Executable         RDFRulesetTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -334,7 +347,8 @@ Executable         VarBindingTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -348,7 +362,8 @@ Executable         LookupMapTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -362,7 +377,8 @@ Executable         QNameTest
    if flag(hpc)
       ghc-options: -fhpc
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
    ghc-options:
@@ -379,6 +395,7 @@ Executable         Swish
    ghc-options:
       -Wall -fno-warn-orphans
 
-   if flag(profile)
+   if flag(developer)
+      ghc-options: -Werror
       ghc-prof-options: -auto-all
 
