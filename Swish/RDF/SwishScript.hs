@@ -469,6 +469,21 @@ varMod = do
 --  The functions below operate in the SwishStateIO monad, and are used
 --  to assemble an executable version of the parsed script.
 
+-- | Return a message to the user. At present the message begins with '# '
+-- but this may be removed.
+--
+ssReport :: 
+  String  -- ^ message contents
+  -> SwishStateIO ()
+-- ssReport msg = lift $ putStrLn $ "# " ++ msg
+ssReport msg = modify $ setInfo $ "# " ++ msg
+
+ssReportLabel :: 
+  String     -- ^ label for the message
+  -> String  -- ^ message contents
+  -> SwishStateIO ()
+ssReportLabel lbl msg = ssReport $ lbl ++ ": " ++ msg
+
 ssAddReturnFormula ::
     ScopedName -> SwishStateIO (Either String RDFGraph)
     -> SwishStateIO (Either String RDFFormula)
@@ -585,7 +600,8 @@ ssMerge ::
 ssMerge nam gfs =
     let errmsg = "Graph merge not defined: "++show nam++"; "
     in
-        do  { esg <- sequence gfs       -- [Either String RDFGraph]
+        do  { ssReportLabel "Merge" (show nam)
+            ; esg <- sequence gfs       -- [Either String RDFGraph]
             ; let egs = sequence esg    -- Either String [RDFGraph]
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
@@ -597,7 +613,8 @@ ssMerge nam gfs =
 
 ssCompare :: ScopedName -> ScopedName -> SwishStateIO ()
 ssCompare n1 n2 =
-        do  { g1 <- ssGetGraph n1
+        do  { ssReportLabel "Compare" (show n1 ++ " " ++ show n2)
+            ; g1 <- ssGetGraph n1
             ; g2 <- ssGetGraph n2
             ; when (g1 /= g2) (modify $ setStatus SwishGraphCompareError)
             }
@@ -606,7 +623,8 @@ ssAssertEq :: ScopedName -> ScopedName -> String -> SwishStateIO ()
 ssAssertEq n1 n2 comment =
     let er1 = ":\n  Graph or list compare not performed:  invalid graph/list."
     in
-        do  { g1 <- ssGetList n1
+        do  { ssReportLabel "AssertEq" comment
+            ; g1 <- ssGetList n1
             ; g2 <- ssGetList n2
             ; case (g1,g2) of
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
@@ -622,7 +640,8 @@ ssAssertIn n1 n2 comment =
     let er1 = ":\n  Membership test not performed:  invalid graph."
         er2 = ":\n  Membership test not performed:  invalid list."
     in
-        do  { g1 <- ssGetGraph n1
+        do  { ssReportLabel "AssertIn" comment
+            ; g1 <- ssGetGraph n1
             ; g2 <- ssGetList  n2
             ; case (g1,g2) of
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
