@@ -405,6 +405,9 @@ g1_31 = toGraph [arc u1 u1 u1]
 g1b :: RDFGraph
 g1b = toGraph [t01b]
 
+g1b_1 :: RDFGraph
+g1b_1 = toGraph [arc b1 p1 o1]
+
 g2 :: RDFGraph
 g2 = toGraph [t01,t02,t03]
 
@@ -412,11 +415,13 @@ g3 :: RDFGraph
 g3 = toGraph [t01,t04]
 
 g4 :: RDFGraph
-g4 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t05]
-        }
+g4 = toGraph [t01,t05]
+
+g4_1 :: RDFGraph
+g4_1 = toGraph [arc b1 p1 o1, arc b2 p2 o2]
+
+g4_2 :: RDFGraph
+g4_2 = toGraph [arc b1 res_rdf_type o1, arc b2 res_rdf_type o2]
 
 g5 :: RDFGraph
 g5 = NSGraph
@@ -941,8 +946,7 @@ simpleN3Graph_g1_03 =
     "@prefix : <" ++ nsURI base1 ++ "> .\n" ++
     " :s1 :p1 :o1 . "
 
---  Turtle supports ':' but (apparently) not N3, but try
---  and support it.
+--  Check we can handle ':' and 'prefix:' forms.
 --
 simpleN3Graph_g1_03_1 :: String
 simpleN3Graph_g1_03_1 =
@@ -965,6 +969,11 @@ simpleN3Graph_g1_05 :: String
 simpleN3Graph_g1_05 =
     "@base <" ++ nsURI base1 ++ "> .\n" ++
     " _:b1 _:b2 _:b3 . "
+
+simpleN3Graph_g1_05_1 :: String
+simpleN3Graph_g1_05_1 =
+    commonPrefixes ++
+    " _:b1 base1:p1 base1:o1 . "
 
 --  Single statement with junk following
 simpleN3Graph_g1_06 :: String
@@ -994,6 +1003,22 @@ simpleN3Graph_g4 =
     commonPrefixes ++
     " base1:s1 base1:p1 base1:o1 . \n" ++
     " base2:s2 base1:p1 _:b1 . \n"
+
+simpleN3Graph_g4_1 :: String
+simpleN3Graph_g4_1 =
+    commonPrefixes ++
+    " _:b1 base1:p1 base1:o1._:b2 base2:p2 base2:o2."
+
+simpleN3Graph_g4_2 :: String
+simpleN3Graph_g4_2 =
+    commonPrefixes ++
+    " _:foo1 a base1:o1. _:bar2 a base2:o2."
+
+-- same graph as g4_2
+simpleN3Graph_g4_3 :: String
+simpleN3Graph_g4_3 =
+    commonPrefixes ++
+    " [] a base1:o1.[a base2:o2]."
 
 --  Graph with literal and nodeid
 simpleN3Graph_g5 :: String
@@ -1162,10 +1187,14 @@ simpleTestSuite = TestList
   , parseTest "simpleTest013_2" simpleN3Graph_g1_03_2 g1_31  noError
   , parseTest "simpleTest014" simpleN3Graph_g1_04 g1  noError
   , parseTest "simpleTest015" simpleN3Graph_g1_05 g1b noError
+  , parseTest "simpleTest015_1" simpleN3Graph_g1_05_1 g1b_1 noError
   , parseTest "simpleTest016" simpleN3Graph_g1_06 emptyRDFGraph emsg16
   , parseTest "simpleTest03"  simpleN3Graph_g2    g2  noError
   , parseTest "simpleTest04"  simpleN3Graph_g3    g3  noError
   , parseTest "simpleTest05"  simpleN3Graph_g4    g4  noError
+  , parseTest "simpleTest05_1"  simpleN3Graph_g4_1    g4_1  noError
+  , parseTest "simpleTest05_2"  simpleN3Graph_g4_2    g4_2  noError
+  , parseTest "simpleTest05_3"  simpleN3Graph_g4_3    g4_2  noError
   , parseTest "simpleTest06"  simpleN3Graph_g5    g5  noError
   , parseTest "simpleTest07"  simpleN3Graph_g6    g6  noError
   , parseTest "simpleTest08"  simpleN3Graph_g7    g7  noError
