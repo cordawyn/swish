@@ -45,6 +45,12 @@ Description:        Swish is a framework, written in the purely functional
                     .
                     Major Changes:
                     .
+                    [Version 0.3.0.2] Bugfix: stop losing triples with a bnode subject when
+                    using the N3Formatter; this also makes the @scripts/SwishTest.ss@ test
+                    pass again. Several commands in Swish scripts now create screen
+                    output (mainly to check what it is doing). Added the @developer@
+		    flag for building.
+                    .
                     [Version 0.3.0.1] updates the Swish script parser to work with the
                     changes in 0.3.0.0 (reported by Rick Murphy).
                     Several example scripts are installed in the
