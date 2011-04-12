@@ -107,7 +107,7 @@ import Swish.Utils.ListHelpers
 import Text.ParserCombinators.Parsec
     ( (<?>), (<|>)
     , many, manyTill, option, sepBy, between, try, notFollowedBy
-    , string, char, anyChar
+    , string, anyChar
     , getState
     )
 
@@ -356,9 +356,15 @@ commandName cmd = try $
             ; whiteSpace
             }
 
+-- taken ftom NTParser
+eoln :: N3Parser ()
+-- eoln = ignore (newline <|> (lineFeed *> optional newline))
+eoln = (try (string "\r\n") <|> string "\r" <|> string "\n") >> return ()
+       <?> "new line"
+
 restOfLine :: N3Parser String
 restOfLine =
-        do  { s <- manyTill anyChar (char '\n')
+        do  { s <- manyTill anyChar eoln
             ; whiteSpace
             ; return s
             }
@@ -629,7 +635,7 @@ ssAssertEq n1 n2 comment =
             ; case (g1,g2) of
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
                 (_,Left er) -> modify $ setError (comment++er1++"\n  "++er)
-                (Right gr1,Right gr2) ->
+                (Right gr1,Right gr2) -> 
                     unless (equiv gr1 gr2) $ modify $
                       setError (comment++":\n  Graph "++show n1
                                 ++" differs from "++show n2++".")
