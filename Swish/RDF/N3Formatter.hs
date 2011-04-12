@@ -92,7 +92,7 @@ import Swish.Utils.Namespace
 
 import Data.Char (ord, isDigit)
 
-import Data.List (foldl', delete, groupBy, intercalate, partition, sort)
+import Data.List (foldl', delete, groupBy, partition, sort)
 
 import Text.Printf (printf)
 
@@ -136,7 +136,7 @@ data N3FormatterState = N3FS
     , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
     }
-
+             
 type Formatter a = State N3FormatterState a
 
 emptyN3FS :: NodeGenState -> N3FormatterState
@@ -231,7 +231,7 @@ setObjs os = do
   put $ st { objs = os }
 -}
 
-getBnodesCheck :: Formatter ([RDFLabel])
+getBnodesCheck :: Formatter [RDFLabel]
 getBnodesCheck = bNodesCheck `liftM` get
 
 {-
@@ -455,17 +455,16 @@ formatGraph ind end dobreak dopref gr = do
   setIndent ind
   setLineBreak dobreak
   setGraph gr
+  
   fp <- if dopref
         then formatPrefixes (getNamespaces gr)
         else return $ puts ""
   more <- moreSubjects
-  res  <- if more
-          then do
-            fr <- formatSubjects
-            return $ fp . fr . puts end
-          else return fp
-
-  return res
+  if more
+    then do
+      fr <- formatSubjects
+      return $ fp . fr . puts end
+    else return fp
 
 formatPrefixes :: NamespaceMap -> Formatter ShowS
 formatPrefixes pmap = do
@@ -491,13 +490,19 @@ formatSubjects = do
           fr <- formatSubjects
           return $ puts (prstr ++ " .") . fr
           -- return $ puts (prstr ++ fmstr ++ " .") . fr
-        else return $ puts $ prstr
+        else return $ puts prstr
         -- else return $ puts $ prstr ++ fmstr
            
     else do
-         txt <- nextLine sbstr
-         return $ puts txt
+      txt <- nextLine sbstr
     
+      flagS <- moreSubjects
+      if flagS
+        then do
+          fr <- formatSubjects
+          return $ puts (txt ++ " .") . fr
+        else return $ puts txt
+
 formatProperties :: RDFLabel -> String -> Formatter String
 formatProperties sb sbstr = do
   pr <- nextProperty sb
@@ -578,10 +583,10 @@ the list, in order, so just need to display them surrounded
 by ().
 -}
 insertList :: [RDFLabel] -> Formatter String
-insertList [] = return $ "()" -- not convinced this can happen
+insertList [] = return "()" -- not convinced this can happen
 insertList xs = do
   ls <- mapM (formatLabel ObjContext) xs
-  return $ "( " ++ intercalate " " ls ++ " )"
+  return $ "( " ++ unwords ls ++ " )"
   
   
 {-

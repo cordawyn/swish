@@ -602,7 +602,8 @@ graph_c3    = toGraph [arc s1 p1 b1,
 
 -- bnode graphs
 
-graph_b1, graph_b1rev, graph_b2, graph_b2rev, graph_b3 :: RDFGraph
+graph_b1, graph_b1rev, graph_b2, graph_b2rev, graph_b3, 
+  graph_b4, graph_b5 :: RDFGraph
 graph_b1    = toGraph [arc s1 p1 b1]
 graph_b1rev = toGraph [arc b1 p1 o1]
 graph_b2    = toGraph [arc s1 p1 b1,
@@ -616,6 +617,11 @@ graph_b3    = toGraph [arc s1 p1 b1,
                        arc b1 o2 o3,
                        arc s1 p2 b2,
                        arc s2 p2 o2]
+graph_b4    = toGraph [arc b1 res_rdf_type o1,
+                       arc b2 res_rdf_type o2]
+graph_b5    = toGraph [arc b1 res_rdf_type o1,
+                       arc b2 p2 o2,
+                       arc b3 res_rdf_type o3]
 
 ------------------------------------------------------------
 --  Trivial formatter tests
@@ -813,6 +819,19 @@ simpleN3Graph_b3 =
     "         base2:p2 [] .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
+simpleN3Graph_b4 :: String
+simpleN3Graph_b4 =
+  commonPrefixes ++
+  "[\n a base1:o1\n] .\n" ++ 
+  "[\n a base2:o2\n] .\n"
+
+simpleN3Graph_b5 :: String
+simpleN3Graph_b5 =
+  commonPrefixes ++
+  "[\n a base1:o1\n] .\n" ++ 
+  "[\n base2:p2 base2:o2\n] .\n" ++
+  "[\n a base3:o3\n] .\n"
+
 -- diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
 
 trivialTestSuite :: Test
@@ -838,6 +857,8 @@ trivialTestSuite = TestList
  , formatTest "trivialTestb1" graph_b1 simpleN3Graph_b1
  , formatTest "trivialTestb2" graph_b2 simpleN3Graph_b2
  , formatTest "trivialTestb3" graph_b3 simpleN3Graph_b3
+ , formatTest "trivialTestb4" graph_b4 simpleN3Graph_b4
+ , formatTest "trivialTestb5" graph_b5 simpleN3Graph_b5
  , formatTest "trivialTestb1rev" graph_b1rev simpleN3Graph_b1rev
  , formatTest "trivialTestb2rev" graph_b2rev simpleN3Graph_b2rev
 
