@@ -80,6 +80,8 @@ import Control.Monad (liftM, when)
 
 import System.IO.Error
 
+import Data.Maybe (isJust)
+
 ------------------------------------------------------------
 --  Set file format to supplied value
 ------------------------------------------------------------
@@ -149,24 +151,21 @@ diffGraph gr = do
   let p1 = partitionGraph (getArcs oldGr)
       p2 = partitionGraph (getArcs gr)
       diffs = comparePartitions p1 p2
-  maybehandleclose <- swishWriteFile Nothing
-  case maybehandleclose of
-    Just (h,c) -> do
-      swishOutputDiffs "" h diffs
-      when c (lift $ hClose h)
-   
-    _  -> return ()
+      
+  swishWriteFile (swishOutputDiffs diffs) Nothing
   
 swishOutputDiffs :: (Label lb) =>
-    String -> Handle
-    -> [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
+    [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
+    -> Maybe String 
+    -> Handle
     -> SwishStateIO ()
-swishOutputDiffs fnam hnd diffs = do
+swishOutputDiffs diffs fnam hnd = do
   lift $ hPutStrLn hnd ("Graph differences: "++show (length diffs))
   mapM_ (swishOutputDiff fnam hnd) (zip [1..] diffs)
 
 swishOutputDiff :: (Label lb) =>
-    String -> Handle
+    Maybe String 
+    -> Handle
     -> (Int,(Maybe (GraphPartition lb),Maybe (GraphPartition lb)))
     -> SwishStateIO ()
 swishOutputDiff fnam hnd (diffnum,(part1,part2)) = do
@@ -177,7 +176,10 @@ swishOutputDiff fnam hnd (diffnum,(part1,part2)) = do
   swishOutputPart fnam hnd part2
 
 swishOutputPart :: (Label lb) =>
-    String -> Handle -> Maybe (GraphPartition lb) -> SwishStateIO ()
+    Maybe String 
+    -> Handle 
+    -> Maybe (GraphPartition lb) 
+    -> SwishStateIO ()
 swishOutputPart _ hnd part = 
   let out = maybe "\n(No arcs)" (partitionShowP "\n") part
   in lift $ hPutStrLn hnd out
@@ -190,13 +192,7 @@ swishScript :: Maybe String -> SwishStateIO ()
 swishScript fnam = swishReadScript fnam >>= mapM_ swishCheckResult
 
 swishReadScript :: Maybe String -> SwishStateIO [SwishStateIO ()]
-swishReadScript fnam =
-  let hdlr (h,i) = do
-        res <- swishParseScript fnam i
-        lift $ hClose h
-        return res
-  
-  in swishOpenFile fnam >>= maybe (return []) hdlr
+swishReadScript = swishReadFile swishParseScript []
 
 {-|
 Calculate the base URI to use; it combines the file name
@@ -279,10 +275,8 @@ swishCheckResult swishcommand = do
 ------------------------------------------------------------
 
 swishOutput :: Maybe String -> SwishStateIO ()
-swishOutput fnam = 
-  let hdlr (h,c) = swishOutputGraph fnam h >> when c (lift $ hClose h)
-  in swishWriteFile fnam >>= maybe (return ()) hdlr
-     
+swishOutput = swishWriteFile swishOutputGraph
+   
 swishOutputGraph :: Maybe String -> Handle -> SwishStateIO ()
 swishOutputGraph _ hnd = do
   fmt <- gets format
@@ -304,19 +298,28 @@ swishOutputGraph _ hnd = do
 --  parsing it to an RDF graph value.
 
 swishReadGraph :: Maybe String -> SwishStateIO (Maybe RDFGraph)
-swishReadGraph fnam =
-  let reader (h,i) = do
-        res <- swishParse fnam i
-        lift $ hClose h
+swishReadGraph = swishReadFile swishParse Nothing
+
+-- | Open a file (or stdin), read its contents, and process them.
+--
+swishReadFile :: 
+  (Maybe String -> String -> SwishStateIO a) -- ^ Convert filename and contents into desired value
+  -> a -- ^ the value to use if the file can not be read in
+  -> Maybe String -- ^ the file name or @stdin@ if @Nothing@
+  -> SwishStateIO a
+swishReadFile conv errVal fnam = 
+  let reader (h,f,i) = do
+        res <- conv fnam i
+        when (f) $ lift $ hClose h
         return res
   
-  in swishOpenFile fnam >>= maybe (return Nothing) reader
+  in swishOpenFile fnam >>= maybe (return errVal) reader
 
--- Open and read file, returning its handle and content, or Nothing
+-- | Open and read file, returning its handle and content, or Nothing
 -- WARNING:  the handle must not be closed until input is fully evaluated
 --
-swishOpenFile :: Maybe String -> SwishStateIO (Maybe (Handle,String))
-swishOpenFile Nothing     = readFromHandle stdin "standard input."
+swishOpenFile :: Maybe String -> SwishStateIO (Maybe (Handle, Bool, String))
+swishOpenFile Nothing     = readFromHandle stdin Nothing
 swishOpenFile (Just fnam) = do
   o <- lift $ try $ openFile fnam ReadMode
   case o of
@@ -324,19 +327,20 @@ swishOpenFile (Just fnam) = do
       swishError ("Cannot open file: "++fnam) SwishDataAccessError
       return Nothing
       
-    Right hnd -> readFromHandle hnd ("file: " ++ fnam)
+    Right hnd -> readFromHandle hnd $ Just ("file: " ++ fnam)
 
-readFromHandle :: Handle -> String -> SwishStateIO (Maybe (Handle, String))
-readFromHandle hdl lbl = do
+readFromHandle :: Handle -> Maybe String -> SwishStateIO (Maybe (Handle, Bool, String))
+readFromHandle hdl mlbl = do
   hrd <- lift $ hIsReadable hdl
   if hrd
     then do
       fc <- lift $ hGetContents hdl
-      return $ Just (hdl,fc)
+      return $ Just (hdl, isJust mlbl, fc)
   
     else do
-      -- closing stdin should not be an issue here?
-      lift $ hClose hdl
+      lbl <- case mlbl of
+        Just l  -> lift (hClose hdl) >> return l
+        Nothing -> return "standard input"
       swishError ("Cannot read from " ++ lbl) SwishDataAccessError
       return Nothing
 
@@ -366,13 +370,21 @@ swishParse mfpath inp = do
           return Nothing
     -}
     
---  Open file for writing, returning its handle, or Nothing
+swishWriteFile :: 
+  (Maybe String -> Handle -> SwishStateIO ()) -- ^ given a file name and a handle, write to it
+  -> Maybe String
+  -> SwishStateIO ()
+swishWriteFile conv fnam =  
+  let hdlr (h, c) = conv fnam h >> when (c) (lift $ hClose h)
+  in swishCreateWriteableFile fnam >>= maybe (return ()) hdlr
+   
+-- | Open file for writing, returning its handle, or Nothing
 --  Also returned is a flag indicating whether or not the
 --  handled should be closed when writing is done (if writing
 --  to standard output, the handle should not be closed as the
 --  run-time system should deal with that).
-swishWriteFile :: Maybe String -> SwishStateIO (Maybe (Handle,Bool))
-swishWriteFile Nothing = do
+swishCreateWriteableFile :: Maybe String -> SwishStateIO (Maybe (Handle,Bool))
+swishCreateWriteableFile Nothing = do
   hwt <- lift $ hIsWritable stdout
   if hwt
     then return $ Just (stdout, False)
@@ -380,7 +392,7 @@ swishWriteFile Nothing = do
       swishError ("Cannot write to standard output") SwishDataAccessError
       return Nothing
   
-swishWriteFile (Just fnam) = do
+swishCreateWriteableFile (Just fnam) = do
   o <- lift $ try $ openFile fnam WriteMode
   case o of
     Left _ -> do
