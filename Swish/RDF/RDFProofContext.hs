@@ -302,7 +302,8 @@ rdfgl = makeN3ClosureSimpleRule scopeRDF "gl"
 --  RDF entailment rules (from RDF semantics document section 7.2)
 --
 --  (Note, statements with property rdf:_allocatedTo are introduced to
---  track bnodes introduced according to rule rdflf.)
+--  track bnodes introduced according to rule rdflf [presumably this
+--  is actually rdflg?])
 --
 rdfr1 :: RDFRule
 rdfr1 = makeN3ClosureSimpleRule scopeRDF "r1"
@@ -559,7 +560,8 @@ rdfr2 = makeN3ClosureRule scopeRDF "r2"
 --  RDFS entailment rules (from RDF semantics document section 7.2)
 --
 --  (Note, statements with property rdf:_allocatedTo are introduced to
---  track bnodes introduced according to rule rdflf.)
+--  track bnodes introduced according to rule rdflf [presumably this
+--  is actually rdflg?])
 --
 rdfsr1 :: RDFRule
 rdfsr1 = makeN3ClosureRule scopeRDFS "r1"
