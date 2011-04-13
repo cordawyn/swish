@@ -99,7 +99,7 @@ checkProof1 rules prev (st:steps) res =
     checkStep rules prev st &&
     checkProof1 rules (formExpr (stepCon st):prev) steps res
 
---  A proof step is valid if rule is in list of rules
+-- | A proof step is valid if rule is in list of rules
 --  and the antecedents are sufficient to obtain the conclusion
 --  and the antecedents are in the list of formulae already proven.
 --
@@ -107,7 +107,19 @@ checkProof1 rules prev (st:steps) res =
 --  unique among all rules.  In particular the name of the step rule
 --  being in correspondence with the name of one of the indicated
 --  valid rules of inference.
-checkStep :: (Expression ex) => [Rule ex] -> [ex] -> Step ex -> Bool
+checkStep :: 
+  (Expression ex) 
+  => [Rule ex]   -- ^ rules
+  -> [ex]        -- ^ a ntecedants
+  -> Step ex     -- ^ the step to validate
+  -> Bool        -- ^ @True@ if the step is valid
+
+checkStep rules prev step = maybe True (const False) $ explainStep rules prev step
+
+{-
+
+Is the following an optimisation of the above?
+
 checkStep rules prev step =
     -- Rule name is one of supplied rules, and
     (ruleName srul `elem` map ruleName rules) &&
@@ -122,6 +134,7 @@ checkStep rules prev step =
         sant = map formExpr $ stepAnt step
         --  Consequentent expression from proof step:
         scon = formExpr $ stepCon step
+-}
 
 
 {-
@@ -142,7 +155,8 @@ checkStep rules prev step =
         sbwd = bwdApply srul (formExpr $ stepCon step)
 -}
 
--- |Check proof, and return identification of failing step.
+-- |Check proof. If there is an error then return information
+-- about the failing step.
 explainProof ::
     (Expression ex) => Proof ex -> Maybe String
 explainProof pr =
@@ -160,7 +174,7 @@ explainProof1 rules prev (st:steps) res =
         Nothing -> explainProof1 rules (formExpr (stepCon st):prev) steps res
         Just ex -> Just ("Invalid step: "++show (formName $ stepCon st)++": "++ex)
 
---  A proof step is valid if rule is in list of rules
+-- | A proof step is valid if rule is in list of rules
 --  and the antecedents are sufficient to obtain the conclusion
 --  and the antecedents are in the list of formulae already proven.
 --
@@ -169,9 +183,12 @@ explainProof1 rules prev (st:steps) res =
 --  being in correspondence with the name of one of the indicated
 --  valid rules of inference.
 --
---  Return Nothing if step is OK, or Just string describing failure
---
-explainStep :: (Expression ex) => [Rule ex] -> [ex] -> Step ex -> Maybe String
+explainStep :: 
+  (Expression ex) 
+  => [Rule ex]  -- ^ rules
+  -> [ex]       -- ^ previous
+  -> Step ex    -- ^ step
+  -> Maybe String -- ^ @Nothing@ if step is okay, otherwise a string indicating the error
 explainStep rules prev step =
         if null errors then Nothing else Just $ intercalate ", " errors
     where
@@ -207,7 +224,11 @@ explainStep rules prev step =
 --      formatted text, and may include any desired indentation, and
 --
 --  (3) no newline is output following the final line of text.
-showsProof :: (ShowM ex) => String -> Proof ex -> ShowS
+showsProof :: 
+  (ShowM ex) 
+  => String    -- ^ newline string
+  -> Proof ex 
+  -> ShowS
 showsProof newline proof =
     if null axioms then shProof else shAxioms . shProof
     where
@@ -222,7 +243,11 @@ showsProof newline proof =
             showsSteps    newline (proofChain  proof)
 
 -- |Returns a simple string representation of a proof.
-showProof :: (ShowM ex) => String -> Proof ex -> String
+showProof :: 
+  (ShowM ex) 
+  => String    -- ^ newline string
+  -> Proof ex 
+  -> String
 showProof newline proof = showsProof newline proof ""
 
 -- |Create a displayable form of a list of labelled proof steps
