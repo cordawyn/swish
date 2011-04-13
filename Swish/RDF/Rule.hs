@@ -72,10 +72,11 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
     newEntry (_,form) = form
     keyVal form = (formName form, form)
 
--- | The namespace @http://id.ninebynine.org/2003/Ruleset/null@
+-- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
 nullScope :: Namespace
 nullScope = Namespace "null" "http://id.ninebynine.org/2003/Ruleset/null"
 
+-- | The null formula.
 nullFormula :: Formula ex
 nullFormula = Formula
     { formName = ScopedName nullScope "nullFormula"
@@ -86,7 +87,12 @@ nullFormula = Formula
 -- testf2 = Formula "f2" ('f',2)
 
 -- |Return a displayable form of a list of labelled formulae
-showsFormulae :: (ShowM ex) => String -> [Formula ex] -> String -> ShowS
+showsFormulae :: 
+  (ShowM ex) 
+  => String        -- ^ newline
+  -> [Formula ex]  -- ^ the formulae to show
+  -> String        -- ^ text to be placed after the formulae
+  -> ShowS
 showsFormulae _       []     _     = id
 showsFormulae newline [f]    after = showsFormula  newline f .
                                      showString    after
@@ -95,7 +101,11 @@ showsFormulae newline (f:fs) after = showsFormula  newline f .
                                      showsFormulae newline fs after
 
 -- |Create a displayable form of a labelled formula
-showsFormula :: (ShowM ex) => String -> Formula ex -> ShowS
+showsFormula :: 
+  (ShowM ex) 
+  => String      -- ^ newline
+  -> Formula ex  -- ^ formula
+  -> ShowS
 showsFormula newline f =
     showsWidth 16 ("["++show (formName f)++"] ") .
     showms (newline ++ replicate 16 ' ') (formExpr f)
@@ -160,15 +170,28 @@ instance LookupEntryClass (Rule ex) ScopedName (Rule ex)
 
 type RuleMap ex = LookupMap (Rule ex)
 
-fwdCheckInference :: (Eq ex) => Rule ex -> [ex] -> ex -> Bool
+-- | Checks that consequence is a result of
+-- applying the rule to the antecedants.
+fwdCheckInference :: 
+  (Eq ex) 
+  => Rule ex   -- ^ rule
+  -> [ex]      -- ^ antecedants
+  -> ex        -- ^ consequence
+  -> Bool
 fwdCheckInference rule ante cons =
     cons `elem` fwdApply rule ante
 
-bwdCheckInference :: (Eq ex) => Rule ex -> [ex] -> ex -> Bool
+bwdCheckInference ::
+  (Eq ex) 
+  => Rule ex   -- ^ rule
+  -> [ex]      -- ^ antecedants
+  -> ex        -- ^ consequence
+  -> Bool
 bwdCheckInference rule ante cons = any checkAnts (bwdApply rule cons)
     where
         checkAnts = all (`elem` ante)
 
+-- | The null rule.
 nullRule :: Rule ex
 nullRule = Rule
     { ruleName = ScopedName nullScope "nullRule"

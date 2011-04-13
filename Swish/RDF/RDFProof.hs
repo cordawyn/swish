@@ -157,7 +157,10 @@ makeRDFProof rsets base goal steps = Proof
 --
 --  >  allNodes (not . labelIsVar) graph
 --
-makeRdfInstanceEntailmentRule :: ScopedName -> [RDFLabel] -> RDFRule
+makeRdfInstanceEntailmentRule :: 
+  ScopedName     -- ^ name
+  -> [RDFLabel]  -- ^ vocabulary
+  -> RDFRule
 makeRdfInstanceEntailmentRule name vocab = newrule
     where
         newrule = Rule
