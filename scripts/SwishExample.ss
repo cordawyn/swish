@@ -123,17 +123,37 @@ ex:Input01 :- { ex:foo ex:prop "a" . }
 
 ex:Result :- { ex:foo ex:prop _:a . _:a rdf:type rdfs:Resource . }
 
+# This is the version from
+#    http://www.ninebynine.org/RDFNotes/Swish/Intro.html#ScriptExample
+# which does not work. It appears that ex:Step01c can not be proved,
+# so we split it into two steps in the version below.
+#
+#@proof ex:Proof01 ( rs_rdf:rules rs_rdfs:rules )
+#  @input  ex:Input01
+#  @step   rs_rdfs:r3 ( rs_rdfs:a10 rs_rdfs:a39 )
+#          => ex:Step01a :- { rdfs:Literal rdf:type rdfs:Class . }
+#  @step   rs_rdfs:r8 ( ex:Step01a )
+#          => ex:Step01b :- { rdfs:Literal rdfs:subClassOf rdfs:Resource . }
+#  @step   rs_rdfs:r1 ( ex:Input01 )
+#          => ex:Step01c :- { ex:foo ex:prop _:a . _:a rdf:type rdfs:Literal . }
+#  @step   rs_rdfs:r9 ( ex:Step01b ex:Step01c )
+#          => ex:Step01d :- { _:a rdf:type rdfs:Resource . }
+#  @step   rs_rdf:se  ( ex:Step01c ex:Step01d )   => ex:Result
+#  @result ex:Result
+
 @proof ex:Proof01 ( rs_rdf:rules rs_rdfs:rules )
   @input  ex:Input01
   @step   rs_rdfs:r3 ( rs_rdfs:a10 rs_rdfs:a39 )
           => ex:Step01a :- { rdfs:Literal rdf:type rdfs:Class . }
   @step   rs_rdfs:r8 ( ex:Step01a )
           => ex:Step01b :- { rdfs:Literal rdfs:subClassOf rdfs:Resource . }
-  @step   rs_rdfs:r1 ( ex:Input01 )
-          => ex:Step01c :- { ex:foo ex:prop _:a . _:a rdf:type rdfs:Literal . }
-  @step   rs_rdfs:r9 ( ex:Step01b ex:Step01c )
+  @step   rs_rdf:lg ( ex:Input01 )
+          => ex:Step01c1 :- { ex:foo ex:prop _:a . _:a rdf:_allocatedTo "a" . }
+  @step   rs_rdfs:r1 ( ex:Step01c1 )
+          => ex:Step01c2 :- { _:a rdf:type rdfs:Literal . }
+  @step   rs_rdfs:r9 ( ex:Step01b ex:Step01c2 )
           => ex:Step01d :- { _:a rdf:type rdfs:Resource . }
-  @step   rs_rdf:se  ( ex:Step01c ex:Step01d )   => ex:Result
+  @step   rs_rdf:se  ( ex:Step01c1 ex:Step01c2 ex:Step01d )   => ex:Result
   @result ex:Result
 
 # -- Restriction based datatype inferencing --
