@@ -551,11 +551,10 @@ ssWriteList muri gf comment =
         do  { esgs <- gf
             ; case esgs of
                 Left  er   -> modify $ setError ("Cannot write list: "++er)
+                Right []   -> putResourceData Nothing ("+ Swish: Writing empty list"++) -- include comment?
                 Right [gr] -> ssWriteGraph muri gr comment
-                Right grs  -> sequence_ writegrs where
-                    writegrs = if null grs
-                        then [putResourceData Nothing ("+ Swish: Writing empty list"++)]
-                        else map writegr (zip [(0::Int)..] grs)
+                Right grs  -> mapM_ writegr (zip [(0::Int)..] grs)
+                  where
                     writegr (n,gr) = ssWriteGraph (murin muri n) gr
                         ("["++show n++"] "++comment)
                     murin Nothing    _ = Nothing

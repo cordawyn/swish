@@ -11,7 +11,7 @@
 --  Portability :  H98
 --
 --  This module defines some datatypes and functions that are
---  used to define rules and rulesets over RDF graphs
+--  used to define rules and rulesets over RDF graphs.
 --
 --------------------------------------------------------------------------------
 
@@ -23,12 +23,13 @@ module Swish.RDF.RDFRuleset
     , makeRDFGraphFromN3String
     , makeRDFFormula
     , makeRDFClosureRule
+      -- * Create rules using Notation3 statements
     , makeN3ClosureRule
     , makeN3ClosureSimpleRule
     , makeN3ClosureModifyRule
     , makeN3ClosureAllocatorRule
     , makeNodeAllocTo
-    -- for debugging
+      -- * Debugging
     , graphClosureFwdApply, graphClosureBwdApply
     )
 where
@@ -111,6 +112,7 @@ type RDFRulesetMap  = RulesetMap RDFGraph
 --  Declare null RDF formula
 ------------------------------------------------------------
 
+-- | The null RDF formula.
 nullRDFFormula :: Formula RDFGraph
 nullRDFFormula = Formula
     { formName = ScopedName nullScope "nullRDFGraph"
@@ -162,11 +164,14 @@ makeGraphClosureRule grc = newrule
             , checkInference = fwdCheckInference newrule
             }
 
---  Forward chaining function based on RDF graph closure description
+-- | Forward chaining function based on RDF graph closure description
 --
 --  Note:  antecedents here are presumed to share bnodes.
 --
-graphClosureFwdApply :: GraphClosure RDFLabel -> [RDFGraph] -> [RDFGraph]
+graphClosureFwdApply :: 
+  GraphClosure RDFLabel 
+  -> [RDFGraph] 
+  -> [RDFGraph]
 graphClosureFwdApply grc grs =
     let gr   = if null grs then emptyRDFGraph else foldl1 add grs
         vars = queryFind (ruleAnt grc) gr
@@ -186,7 +191,7 @@ graphClosureFwdApply grc grs =
         if null cons then [] else [foldl1 add cons]
         -- cons {- don't merge results -}
 
---  Backward chaining function based on RDF graph closure description
+-- | Backward chaining function based on RDF graph closure description
 graphClosureBwdApply :: GraphClosure RDFLabel -> RDFGraph -> [[RDFGraph]]
 graphClosureBwdApply grc gr =
     let vars = rdfQueryBackModify (ruleModify grc) $
@@ -241,8 +246,8 @@ makeRDFGraphFromN3String str = case parseN3fromString str of
 
 -- |Create an RDF formula.
 makeRDFFormula ::
-    Namespace
-    -> String -- ^ local name
+    Namespace -- ^ namespace to which the formula is allocated
+    -> String -- ^ local name for the formula in the namespace
     -> String -- ^ graph in Notation 3 format
     -> RDFFormula
 makeRDFFormula scope local gr = Formula
@@ -300,11 +305,6 @@ makeRDFClosureRule sname antgrs congr vmod = makeGraphClosureRule
 --  implementation of most of the inference rules given in the
 --  RDF formal semantics document.
 --
---  scope   is a namespace to which the rule is allocated
---  local   is a local name for the rule in the given namespace
---  ant     is a string containing 
---  con     is a string containing 
---
 makeN3ClosureRule ::
     Namespace -- ^ namespace to which the rule is allocated
     -> String -- ^ local name for the rule in the namespace
@@ -325,7 +325,8 @@ makeN3ClosureRule ::
     --   into an inference process.
     --
     --   If no additional constraints or variable bindings are
-    --   to be applied, use value 'varBindingId'
+    --   to be applied, use a value of 'varBindingId', or use
+    --   'makeN3ClosureSimpleRule'.
     -> RDFRule
 makeN3ClosureRule scope local ant con =
     makeRDFClosureRule (ScopedName scope local) [antgr] congr
@@ -337,7 +338,14 @@ makeN3ClosureRule scope local ant con =
 --  additional node allocations or variable binding constraints.
 --
 makeN3ClosureSimpleRule ::
-    Namespace -> String -> String -> String -> RDFRule
+    Namespace -- ^ namespace to which the rule is allocated
+    -> String -- ^ local name for the rule in the namepace
+    -> String 
+    -- ^ the Notation3 representation
+    --   of the antecedent graph.  (Note: multiple antecedents
+    --   can be handled by combining multiple graphs.)
+    -> String  -- ^ the Notation3 representation of the consequent graph.
+    -> RDFRule
 makeN3ClosureSimpleRule scope local ant con =
     makeN3ClosureRule scope local ant con varBindingId
 
@@ -387,13 +395,6 @@ makeN3ClosureModifyRule scope local ant con vflt vmod =
 --  the variable binding modifier is a function from the variables in
 --  the variables and bnodes contained in the antecedent graph.
 --
---  scope   is a 
---  local   is a 
---  ant     is a string containing 
---  con     is a string containing 
---  vflt    is a 
---  aloc    is a 
---
 makeN3ClosureAllocatorRule ::
     Namespace -- ^ namespace to which the rule is allocated
     -> String -- ^ local name for the rule in the given namespace
@@ -430,7 +431,7 @@ makeN3ClosureAllocatorRule scope local ant con vflt aloc =
 --  Query binding modifier for "allocated to" logic
 ------------------------------------------------------------
 
--- |This function defines a variable binding mofifier that
+-- |This function defines a variable binding modifier that
 --  allocates a new blank node for each value bound to
 --  a query variable, and binds it to another variable
 --  in each query binding.
@@ -457,15 +458,15 @@ makeN3ClosureAllocatorRule scope local ant con vflt aloc =
 --  giving:
 --
 --  >  Jimmy hasFather _:f .
---  >  _:f hasBrother Fred .
---  >  _:f hasBrother Bob .
+--  >  _:f   hasBrother Fred .
+--  >  _:f   hasBrother Bob .
 --
 --  rather than:
 --
 --  >  Jimmy hasFather _:f1 .
---  >  _:f1 hasBrother Fred .
+--  >  _:f1  hasBrother Fred .
 --  >  Jimmy hasFather _:f2 .
---  >  _:f2 hasBrother Bob .
+--  >  _:f2  hasBrother Bob .
 --
 --  This form of constrained allocation of bnodes is also required for
 --  some of the inference patterns described by the RDF formal semantics,
