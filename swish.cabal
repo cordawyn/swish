@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.3.0.2
+Version:            0.3.0.3
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -44,6 +44,10 @@ Description:        Swish is a framework, written in the purely functional
                     * Complete, ready-to-run, command-line and script-driven programs.
                     .
                     Major Changes:
+                    .
+                    [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
+                    proof succeeds. Some small documentation improvements. Very minor
+		    changes to behavior of Swish in several edge cases.
                     .
                     [Version 0.3.0.2] Bugfix: stop losing triples with a bnode subject when
                     using the N3Formatter; this also makes the @scripts/SwishTest.ss@ test
