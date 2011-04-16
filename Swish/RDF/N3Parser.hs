@@ -889,14 +889,6 @@ formulaContent = do
   updateState $ updateGraph $ setFormula (Formula bNode (graphState oldState))
   return bNode
   
-{-
-  fstate' <- getState
-  let nstate = pstate { nodeGen = nodeGen fstate' }
-  setState nstate
-  updateState $ updateGraph $ setFormula (Formula bNode (graphState fstate'))
-  return bNode
--}
-  
 subgraph :: RDFLabel -> N3Parser RDFGraph
 subgraph this = do
   pstate <- getState
@@ -906,13 +898,6 @@ subgraph this = do
   oldState <- restoreState pstate  
   return $ graphState oldState
   
-{-  
-  fstate' <- getState
-  let nstate = pstate { nodeGen = nodeGen fstate' }
-  setState nstate       -- swap back state, with updated nodeGen
-  return (graphState fstate')
--}
-
 statementList :: N3Parser ()
 statementList = ignore $ sepEndBy (lexeme statement) fullStop
 
