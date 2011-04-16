@@ -58,9 +58,7 @@ fs f is =
       go (x:xs) ys | x `elem` ['0'..'9'] = go xs (x:ys)
                    | otherwise           = Nothing
         
-   in case f of
-    True -> val
-    False -> fmap ((-1) *) val
+  in if f then val else fmap ((-1) *) val
 
 --------------------------------------------------------------------------------
 --

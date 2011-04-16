@@ -80,7 +80,7 @@ import Control.Monad (liftM, when)
 
 import System.IO.Error
 
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, fromMaybe)
 
 ------------------------------------------------------------
 --  Set file format to supplied value
@@ -215,7 +215,7 @@ calculateBaseURI ::
   Maybe FilePath -- ^ file name
   -> SwishStateIO QName -- ^ base URI
   
-calculateBaseURI Nothing = maybe defURI id `liftM` gets base
+calculateBaseURI Nothing = fromMaybe defURI `liftM` gets base
     
 calculateBaseURI (Just fnam) = do
   mbase <- gets base
@@ -310,7 +310,7 @@ swishReadFile ::
 swishReadFile conv errVal fnam = 
   let reader (h,f,i) = do
         res <- conv fnam i
-        when (f) $ lift $ hClose h
+        when f $ lift $ hClose h
         return res
   
   in swishOpenFile fnam >>= maybe (return errVal) reader
@@ -363,7 +363,7 @@ swishParse mfpath inp = do
         Right res -> return $ Just res
              
   case fmt of
-    N3 -> readIn (flip parseN3 (Just buri))
+    N3 -> readIn (`parseN3` (Just buri))
     NT -> readIn parseNT
     {-
     _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError >>
@@ -375,7 +375,7 @@ swishWriteFile ::
   -> Maybe String
   -> SwishStateIO ()
 swishWriteFile conv fnam =  
-  let hdlr (h, c) = conv fnam h >> when (c) (lift $ hClose h)
+  let hdlr (h, c) = conv fnam h >> when c (lift $ hClose h)
   in swishCreateWriteableFile fnam >>= maybe (return ()) hdlr
    
 -- | Open file for writing, returning its handle, or Nothing
@@ -389,7 +389,7 @@ swishCreateWriteableFile Nothing = do
   if hwt
     then return $ Just (stdout, False)
     else do
-      swishError ("Cannot write to standard output") SwishDataAccessError
+      swishError "Cannot write to standard output" SwishDataAccessError
       return Nothing
   
 swishCreateWriteableFile (Just fnam) = do

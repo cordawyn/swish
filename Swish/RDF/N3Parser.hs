@@ -865,6 +865,12 @@ statementtail ::=		|	 "."  statementlist
 		|	void
 -}
 
+restoreState :: N3State -> N3Parser N3State
+restoreState origState = do
+  oldState <- getState
+  setState $ origState { nodeGen = nodeGen oldState }
+  return oldState
+
 {-
 We create a subgraph and assign it to a blank node, returning the
 blank node. At present it is a combination of the subgraph and formula
@@ -879,11 +885,17 @@ formulaContent = do
   let fstate = pstate { graphState = emptyRDFGraph, thisNode = bNode }
   setState fstate
   statementList
+  oldState <- restoreState pstate
+  updateState $ updateGraph $ setFormula (Formula bNode (graphState oldState))
+  return bNode
+  
+{-
   fstate' <- getState
   let nstate = pstate { nodeGen = nodeGen fstate' }
   setState nstate
   updateState $ updateGraph $ setFormula (Formula bNode (graphState fstate'))
   return bNode
+-}
   
 subgraph :: RDFLabel -> N3Parser RDFGraph
 subgraph this = do
@@ -891,10 +903,15 @@ subgraph this = do
   let fstate = pstate { graphState = emptyRDFGraph, thisNode = this }
   setState fstate       -- switch new state into parser
   statementsOptional    -- parse statements of formula
+  oldState <- restoreState pstate  
+  return $ graphState oldState
+  
+{-  
   fstate' <- getState
   let nstate = pstate { nodeGen = nodeGen fstate' }
   setState nstate       -- swap back state, with updated nodeGen
   return (graphState fstate')
+-}
 
 statementList :: N3Parser ()
 statementList = ignore $ sepEndBy (lexeme statement) fullStop

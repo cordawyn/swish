@@ -431,7 +431,7 @@ instance F.Foldable NSGraph where
 
 instance T.Traversable NSGraph where
   traverse f (NSGraph ns fml stmts) = 
-    (NSGraph ns) <$> formulaeMapA f fml <*> (T.traverse $ T.traverse f) stmts
+    NSGraph ns <$> formulaeMapA f fml <*> (T.traverse $ T.traverse f) stmts
   
 instance (Label lb) => Eq (NSGraph lb) where
     (==) = grEq
