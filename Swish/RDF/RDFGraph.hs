@@ -557,11 +557,16 @@ mapnode dupbn allbn cnvbn nv =
     mapFind nv nv (LookupMap (maplist dupbn allbn cnvbn []))
 
 -- | Construct a list of (oldnode,newnode) values to be used for
---  graph label remapping.  The function operates recursiovely, adding
---  new nodes generated to the mapping list (mapbn') and also to the
---  list of nodes to be avoided (allbn').
+--  graph label remapping.  The function operates recursively, adding
+--  new nodes generated to the accumulator and also to the
+--  list of nodes to be avoided.
 maplist ::
-    (Label lb) => [lb] -> [lb] -> (lb -> lb) -> [(lb,lb)] -> [(lb,lb)]
+    (Label lb) 
+    => [lb]       -- ^ oldnode values
+    -> [lb]       -- ^ nodes to be avoided
+    -> (lb -> lb) 
+    -> [(lb,lb)]  -- ^ accumulator
+    -> [(lb,lb)]
 maplist []         _     _     mapbn = mapbn
 maplist (dn:dupbn) allbn cnvbn mapbn = maplist dupbn allbn' cnvbn mapbn'
     where

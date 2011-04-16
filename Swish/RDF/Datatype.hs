@@ -766,32 +766,33 @@ selv _  vbind = [vbind]
 --  calculated, then the relation is presumed to be underdetermined,
 --  and @Just []@ is returned.
 --
---  [@fnss@] is a list of argument value predicates and
---          function descriptors.  The predicate indicates any
---          additional constraints on argument values (e.g. the result
---          of abs must be positive).  Use @(const True)@ for the predicate
---          associated with unconstrained relation arguments.
---          For each argument, a list of function descriptors is
---          supplied corresponding to alternative values (e.g. a square
---          relation would offer two alternative values for the root.)
---
---  [@apfn@] is a function that takes an argument value predicate,
---          a function descriptor and applies it to a supplied argument
---          list to return:
---          @Just a@ calculated list of one or more possible argument values,
---          @Just []@ indicating insufficient information provided, or
---          @Nothing@ indicating inconsistent information provided.
---          May be one of 'unaryFnApp', 'binaryFnApp', 'listFnApp' or
---          some other caller-supplied value.
---          The value used must match the type of @fnss@ used.
---
---  Returns a @'DatatypeRelFn' vt@ value that can be used as the
---  'dtRelFunc' component of a 'DatatypeRel' value.
---
-altArgs :: (Eq vt)
-    => DatatypeRelPr vt -> [(vt->Bool,[b])]
-    -> ((vt->Bool)->b->[Maybe vt]->Maybe [vt])
-    -> DatatypeRelFn vt
+altArgs :: 
+  (Eq vt)
+  => DatatypeRelPr vt 
+  -> [(vt->Bool,[b])]
+  -- ^ a list of argument value predicates and
+  --   function descriptors.  The predicate indicates any
+  --   additional constraints on argument values (e.g. the result
+  --   of abs must be positive).  Use @(const True)@ for the predicate
+  --   associated with unconstrained relation arguments.
+  --   For each argument, a list of function descriptors is
+  --   supplied corresponding to alternative values (e.g. a square
+  --   relation would offer two alternative values for the root.)
+
+  -> ((vt->Bool)->b->[Maybe vt]->Maybe [vt])
+  -- ^ a function that takes an argument value predicate,
+  --   a function descriptor and applies it to a supplied argument
+  --   list to return:
+  --   @Just a@ calculated list of one or more possible argument values,
+  --   @Just []@ indicating insufficient information provided, or
+  --   @Nothing@ indicating inconsistent information provided.
+  --   May be one of 'unaryFnApp', 'binaryFnApp', 'listFnApp' or
+  --   some other caller-supplied value.
+
+  -> DatatypeRelFn vt
+  -- ^ The return value can be used as the
+  -- 'dtRelFunc' component of a 'DatatypeRel' value.
+
 altArgs pr fnss apfn args = cvals4 cvals3
     where
         --  Calculate new value(s) for each argument from supplied values, and
