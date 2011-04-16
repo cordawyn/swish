@@ -1,27 +1,73 @@
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
--- |
---  Module      :  SwishScript
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
---  License     :  GPL V2
---
---  Maintainer  :  Douglas Burke
---  Stability   :  experimental
---  Portability :  H98
---
---  This module implements the Swish script processor:  it parses a script
---  from a supplied string, and returns a list of Swish state transformer
---  functions whose effect, when applied to a state value, is to implement
---  the supplied script.
---
---  The script syntax is based loosely on Notation3, and the script parser is an
---  extension of the Notation3 parser in the module "Swish.RDF.N3Parser".
---
---------------------------------------------------------------------------------
+{- |
+Module      :  SwishScript
+Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+License     :  GPL V2
+
+Maintainer  :  Douglas Burke
+Stability   :  experimental
+Portability :  H98
+
+This module implements the Swish script processor:  it parses a script
+from a supplied string, and returns a list of Swish state transformer
+functions whose effect, when applied to a state value, is to implement
+the supplied script.
+
+-}
 
 module Swish.RDF.SwishScript
-    ( parseScriptFromString )
+    ( 
+      -- * Syntax
+      -- $syntax
+      
+      -- ** Defining a prefix
+      -- $prefixLine
+      
+      -- ** Naming a graph
+      -- $nameItem
+      
+      -- ** Reading and writing graphs
+      
+      -- $readGraph
+      
+      -- $writeGraph
+      
+      -- ** Merging graphs
+      -- $mergeGraphs
+      
+      -- ** Comparing graphs
+      
+      -- $compareGraphs
+      
+      -- $assertEquiv
+      
+      -- $assertMember
+      
+      -- ** Defining rules
+      
+      -- $defineRule
+      
+      -- $defineRuleset
+      
+      -- $defineConstraints
+      
+      -- ** Apply a rule
+      -- $fwdChain
+      
+      -- $bwdChain
+      
+      -- ** Define a proof
+      -- $proof
+      
+      -- * An example script
+      -- $exampleScript
+      
+      -- * Parsing
+      
+      parseScriptFromString 
+    )
 where
 
 import Swish.RDF.SwishMonad
@@ -105,15 +151,19 @@ import Swish.Utils.ListHelpers
     ( equiv, flist )
 
 import Text.ParserCombinators.Parsec
-    ( (<?>), (<|>)
-    , many, manyTill, option, sepBy, between, try, notFollowedBy
+    ( (<?>) 
+    -- , (<|>)
+    -- , many
+    , manyTill
+    , option, sepBy, between, try, notFollowedBy
     , string, anyChar
     , getState
     )
 
+import Control.Applicative
+
 import Control.Monad.State
     ( modify, gets, lift
-    -- , StateT(..), execStateT
     )
 
 import Control.Monad (unless, when, liftM)
@@ -133,12 +183,30 @@ import qualified System.IO.Error as IO
 -- 
 
 -- | Parser for Swish script processor
-parseScriptFromString :: Maybe QName -> String -> Either String [SwishStateIO ()]
+parseScriptFromString :: 
+  Maybe QName -- ^ Default base for the script
+  -> String -- ^ Swish script
+  -> Either String [SwishStateIO ()]
 parseScriptFromString = parseAnyfromString script 
 
 ----------------------------------------------------------------------
 --  Syntax productions
 ----------------------------------------------------------------------
+
+n3SymLex :: N3Parser ScopedName
+n3SymLex = lexeme n3symbol
+
+setTo :: N3Parser ()
+setTo = isymbol ":-"
+
+semicolon :: N3Parser ()
+semicolon = isymbol ";"
+
+comma :: N3Parser ()
+comma = isymbol ","
+
+commentText :: N3Parser String
+commentText = semicolon *> restOfLine
 
 script :: N3Parser [SwishStateIO ()]
 script = do
@@ -176,85 +244,65 @@ prefixLine = do
   isymbol "."
   return $ return ()
 
+--  name :- graph
+--  name :- ( graph* )
 nameItem :: N3Parser (SwishStateIO ())
-nameItem =
-        --  name :- graph
-        --  name :- ( graph* )
-        do  { u <- lexeme n3symbol
-            ; isymbol ":-"
-            ; g <- graphOrList
-            ; return $ ssAddGraph u g
-            }
+nameItem = 
+  ssAddGraph <$> n3SymLex <*> (symbol ":-" *> graphOrList)
+  
+maybeURI :: N3Parser (Maybe String)
+maybeURI = (Just <$> lexUriRef) <|> return Nothing
 
+--  @read name  [ <uri> ]
 readGraph :: N3Parser (SwishStateIO ())
-readGraph =
-        --  @read name  [ <uri> ]
-        do  { commandName "@read"
-            ; n <- lexeme n3symbol
-            ; u <- option "" $ lexUriRef
-            ; return $ ssRead n (if null u then Nothing else Just u)
-            }
+readGraph = commandName "@read" *> (ssRead <$> n3SymLex <*> maybeURI)
 
+--  @write name [ <uri> ] ; Comment
 writeGraph :: N3Parser (SwishStateIO ())
 writeGraph =
-        --  @write name [ <uri> ] ; Comment
         do  { commandName "@write"
-            ; n <- lexeme n3symbol
+            ; n <- n3SymLex
             ; let gs = ssGetList n :: SwishStateIO (Either String [RDFGraph])
-            ; u <- option "" lexUriRef
-            ; isymbol ";"
-            ; c <- restOfLine
-            ; let muri = if null u then Nothing else Just u
+            ; muri <- maybeURI
+            ; c <- commentText
             ; return $ ssWriteList muri gs c
             }
 
+--  @merge ( name* ) => name
 mergeGraphs :: N3Parser (SwishStateIO ())
-mergeGraphs =
-        --  @merge ( name* ) => name
-        do  { commandName "@merge"
-            ; gs <- graphList
-            ; isymbol "=>"
-            ; n <- lexeme n3symbol
-            ; return $ ssMerge n gs
-            }
+mergeGraphs = do
+  commandName "@merge"
+  gs <- graphList
+  isymbol "=>"
+  n <- n3SymLex
+  return $ ssMerge n gs
 
+-- @compare  name name
 compareGraphs :: N3Parser (SwishStateIO ())
 compareGraphs =
-        --  @compare  name name
-        do  { commandName "@compare"
-            ; n1 <- lexeme n3symbol
-            ; n2 <- lexeme n3symbol
-            ; return $ ssCompare n1 n2
-            }
-
+  commandName "@compare" *> (ssCompare <$> n3SymLex <*> n3SymLex)
+  
+-- @<command> name name ; Comment
+assertArgs :: (ScopedName -> ScopedName -> String -> SwishStateIO ())
+              -> String -> N3Parser (SwishStateIO ())
+assertArgs assertFunc cName = do
+  commandName $ '@':cName
+  assertFunc <$> n3SymLex <*> n3SymLex <*> commentText
+      
+--  @asserteq name name ; Comment
 assertEquiv :: N3Parser (SwishStateIO ())
-assertEquiv =
-        --  @asserteq name name ; Comment
-        do  { commandName "@asserteq"
-            ; n1 <- lexeme n3symbol
-            ; n2 <- lexeme n3symbol
-            ; isymbol ";"
-            ; c <- restOfLine
-            ; return $ ssAssertEq n1 n2 c
-            }
-
+assertEquiv = assertArgs ssAssertEq "asserteq" 
+        
+--  @assertin name name ; Comment              
 assertMember :: N3Parser (SwishStateIO ())
-assertMember =
-        --  @assertin name name ; Comment
-        do  { commandName "@assertin"
-            ; n1 <- lexeme n3symbol
-            ; n2 <- lexeme n3symbol
-            ; isymbol ";"
-            ; c <- restOfLine
-            ; return $ ssAssertIn n1 n2 c
-            }
-
+assertMember = assertArgs ssAssertIn "assertin"
+  
+--  @rule name :- ( name* ) => name [ | ( (name var*)* ) ]               
 defineRule :: N3Parser (SwishStateIO ())
 defineRule =
-        --  @rule name :- ( name* ) => name [ | ( (name var*)* ) ]
         do  { commandName "@rule"
-            ; rn <- lexeme n3symbol
-            ; isymbol ":-"
+            ; rn <- n3SymLex
+            ; setTo
             ; ags <- graphOrList
             ; isymbol "=>"
             ; cg  <- graphExpr
@@ -262,38 +310,26 @@ defineRule =
             ; return $ ssDefineRule rn ags cg vms
             }
 
+--  @ruleset name :- ( name* ) ; ( name* )
 defineRuleset :: N3Parser (SwishStateIO ())
 defineRuleset =
-        --  @ruleset name :- ( name* ) ; ( name* )
-        do  { commandName "@ruleset"
-            ; sn <- lexeme n3symbol
-            ; isymbol ":-"
-            ; ags <- nameList
-            ; isymbol ";"
-            ; rns <- nameList
-            ; return $ ssDefineRuleset sn ags rns
-            }
-
+  commandName "@ruleset" *>      
+  (ssDefineRuleset <$> n3SymLex <*> (setTo *> nameList) <*> (semicolon *> nameList))
+  
+--  @constraints pref :- ( name* ) | ( name* )
 defineConstraints :: N3Parser (SwishStateIO ())
 defineConstraints =
-        --  @constraints pref :- ( name* ) | ( name* )
-        do  { commandName "@constraints"
-            ; sn <- lexeme n3symbol
-            ; isymbol ":-"
-            ; cgs <- graphOrList
-            ; isymbol "|"
-            ; cns <- nameOrList
-            ; return $ ssDefineConstraints sn cgs cns
-            }
-
+  commandName "@constraints" *>      
+  (ssDefineConstraints <$> n3SymLex <*> (setTo *> graphOrList) <*> (symbol "|" *> nameOrList))
+  
+--  @proof name ( name* )
+--    @input name
+--    @step name ( name* ) => name  # rule-name, antecedents, consequent
+--    @result name
 checkProofCmd :: N3Parser (SwishStateIO ())
 checkProofCmd =
-        --  @proof name ( name* )
-        --    @input name
-        --    @step name ( name* ) => name  # rule-name, antecedents, consequent
-        --    @result name
         do  { commandName "@proof"
-            ; pn  <- lexeme n3symbol
+            ; pn  <- n3SymLex
             ; sns <- nameList
             ; commandName "@input"
             ; igf <- formulaExpr
@@ -307,39 +343,34 @@ checkStep ::
     N3Parser (Either String [RDFRuleset]
                 -> SwishStateIO (Either String RDFProofStep))
 checkStep =
-        do  { commandName "@step"
-            ; rn   <- lexeme n3symbol
-            ; agfs <- formulaList
-            ; isymbol "=>"
-            ; cgf  <- formulaExpr
-            ; return $ ssCheckStep rn agfs cgf
-            }
+  commandName "@step" *>      
+  (ssCheckStep <$> n3SymLex <*> formulaList <*> (symbol "=>" *> formulaExpr))
 
+--  #   ruleset rule (antecedents) => result
+--  @fwdchain pref name ( name* ) => name
 fwdChain :: N3Parser (SwishStateIO ())
 fwdChain =
-        --  #   ruleset rule (antecedents) => result
-        --  @fwdchain pref name ( name* ) => name
         do  { commandName "@fwdchain"
-            ; sn  <- lexeme n3symbol
-            ; rn  <- lexeme n3symbol
+            ; sn  <- n3SymLex
+            ; rn  <- n3SymLex
             ; ags <- graphOrList
             ; isymbol "=>"
-            ; cn  <- lexeme n3symbol
+            ; cn  <- n3SymLex
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
             ; return $ ssFwdChain sn rn ags cn prefs
             }
 
+--  #   ruleset rule consequent <= (antecedent-alts)
+--  @bwdchain pref name graph <= name
 bwdChain :: N3Parser (SwishStateIO ())
 bwdChain =
-        --  #   ruleset rule consequent <= (antecedent-alts)
-        --  @bwdchain pref name graph <= name
         do  { commandName "@bwdchain"
-            ; sn  <- lexeme n3symbol
-            ; rn  <- lexeme n3symbol
+            ; sn  <- n3SymLex
+            ; rn  <- n3SymLex
             ; cg  <- graphExpr
             ; isymbol "<="
-            ; an  <- lexeme n3symbol
+            ; an  <- n3SymLex
             ; s <- getState             :: N3Parser N3State
             ; let prefs = prefixUris s  :: NamespaceMap
             ; return $ ssBwdChain sn rn cg an prefs
@@ -350,43 +381,32 @@ bwdChain =
 ----------------------------------------------------------------------
 
 commandName :: String -> N3Parser ()
-commandName cmd = try $
-        do  { _ <- string cmd
-            ; notFollowedBy identLetter
-            ; whiteSpace
-            }
+commandName cmd = try (string cmd *> notFollowedBy identLetter *> whiteSpace)
 
--- taken ftom NTParser
+-- taken from NTParser
 eoln :: N3Parser ()
 -- eoln = ignore (newline <|> (lineFeed *> optional newline))
 eoln = (try (string "\r\n") <|> string "\r" <|> string "\n") >> return ()
        <?> "new line"
 
 restOfLine :: N3Parser String
-restOfLine =
-        do  { s <- manyTill anyChar eoln
-            ; whiteSpace
-            ; return s
-            }
+restOfLine = manyTill anyChar eoln <* whiteSpace
+  
+br :: N3Parser a -> N3Parser a
+br = between (symbol "(") (symbol ")")
 
 nameList :: N3Parser [ScopedName]
-nameList =
-        do  { isymbol "("
-            ; ns <- many (lexeme n3symbol)
-            ; isymbol ")"
-            ; return ns
-            }
-
+nameList = br $ many n3SymLex
+  
+toList :: a -> [a]
+toList = (:[])
+           
 nameOrList :: N3Parser [ScopedName]
 nameOrList =
-        do  { n <- lexeme n3symbol
-            ; return [n]
-            }
-    <|>
-        nameList
-    <?>
-        "Name, or list of names"
-
+  (toList <$> n3SymLex)      
+  <|> nameList
+  <?> "Name, or list of names"
+  
 graphExpr :: N3Parser (SwishStateIO (Either String RDFGraph))
 graphExpr =
         graphOnly
@@ -409,64 +429,39 @@ graphOnly =
             }
 
 graphList :: N3Parser [SwishStateIO (Either String RDFGraph)]
-graphList = between (symbol "(") (symbol ")") (many graphExpr)
-    <?>
-        "List of graphs"
+graphList = br (many graphExpr)
+    <?> "List of graphs"
 
 graphOrList :: N3Parser [SwishStateIO (Either String RDFGraph)]
 graphOrList =
-        do  { g <- graphExpr
-            ; return [g]
-            }
-    <|>
-        graphList
-    <?>
-        "Graph, or list of graphs"
+  (toList <$> graphExpr)
+  <|> graphList
+  <?> "Graph, or list of graphs"
 
 formulaExpr :: N3Parser (SwishStateIO (Either String RDFFormula))
-formulaExpr =
-        do  { n <- lexeme n3symbol
-            ; namedGraph n
-            }
-    <?> "Formula (name or named graph)"
+formulaExpr = 
+  (n3SymLex >>= namedGraph)
+  <?> "Formula (name or named graph)"
 
 namedGraph :: ScopedName -> N3Parser (SwishStateIO (Either String RDFFormula))
 namedGraph n =
-        do  { isymbol ":-"
-            ; g <- graphOnly
-            ; return $ ssAddReturnFormula n g
-            }
-    <|>
-        return (ssGetFormula n)
+  (ssAddReturnFormula n <$> (setTo *> graphOnly))
+  <|> return (ssGetFormula n)
 
 formulaList :: N3Parser [SwishStateIO (Either String RDFFormula)]
 formulaList = between (symbol "(") (symbol ")") (many formulaExpr)
-    <?>
-        "List of formulae (names or named graphs)"
+    <?> "List of formulae (names or named graphs)"
 
 varModifiers :: N3Parser [(ScopedName,[RDFLabel])]
-varModifiers =
-        do  { isymbol "|"
-            ; varModList
-            }
+varModifiers = symbol "|" *> varModList
 
 varModList :: N3Parser [(ScopedName,[RDFLabel])]
-varModList =
-        do  { isymbol "("
-            ; vms <- sepBy varMod (symbol ",")
-            ; isymbol ")"
-            ; return vms
-            }
-    <|>
-        do  { vm <- lexeme varMod
-            ; return [vm]
-            }
+varModList = 
+  br (sepBy varMod comma)
+  <|> toList <$> lexeme varMod
 
 varMod :: N3Parser (ScopedName,[RDFLabel])
-varMod = do
-  rn  <- lexeme n3symbol
-  vns <- many $ lexeme quickVariable
-  return (rn,vns)
+varMod = (,) <$> n3SymLex <*> many (lexeme quickVariable)
 
 ----------------------------------------------------------------------
 --  SwishState helper functions
@@ -514,11 +509,8 @@ ssAddGraph nam gf =
             }
 
 ssGetGraph :: ScopedName -> SwishStateIO (Either String RDFGraph)
-ssGetGraph nam =
-        do  { grs <- ssGetList nam
-            ; return $ liftM head grs
-            }
-
+ssGetGraph nam = liftM head <$> ssGetList nam
+  
 ssGetFormula :: ScopedName -> SwishStateIO (Either String RDFFormula)
 ssGetFormula nam = gets find
     where
@@ -835,7 +827,7 @@ ssCheckStep ::
     -> SwishStateIO (Either String RDFFormula)      -- consequent graph formula
     -> Either String [RDFRuleset]                   -- rulesets
     -> SwishStateIO (Either String RDFProofStep)    -- resulting proof step
-ssCheckStep _  _    _   (Left  er)  = return $ Left er
+ssCheckStep _  _    _    (Left  er)  = return $ Left er
 ssCheckStep rn eagf ecgf (Right rss) =
     let
         errmsg1 = "Rule not in proof step ruleset(s): "
@@ -967,6 +959,579 @@ putResourceData muri gsh =
         toUri uri | "file://" `isPrefixOf` uri = writeFile (drop 7 uri) gstr
                   | otherwise = error $ "Unsupported file name for write: " ++ uri
         gstr = gsh "\n"
+
+{- $syntax
+
+The script syntax is based loosely on Notation3, and the script parser is an
+extension of the Notation3 parser in the module "Swish.RDF.N3Parser".
+The comment character is @#@ and white space is ignored.
+
+> script            := command *
+> command           := prefixLine        |
+>                      nameItem          |
+>                      readGraph         |
+>                      writeGraph        |
+>                      mergeGraphs       |
+>                      compareGraphs     |
+>                      assertEquiv       |
+>                      assertMember      |
+>                      defineRule        |
+>                      defineRuleset     |
+>                      defineConstraints |
+>                      checkProofCmd     |
+>                      fwdChain          |
+>                      bwdChain 
+
+-}
+
+{- $prefixLine
+
+> prefixLine        := @prefix [<prefix>]: <uri> .
+
+Define a namespace prefix and URI. 
+
+The prefix thus defined is available for use in any subsequent script
+command, and also in any graphs contained within the script file. (So,
+prefix declarations do not need to be repeated for each graph
+contained within the script.)
+
+Graphs read from external files must contain their own prefix
+declarations.
+
+Example:
+
+  > @prefix gex: <http://example1.com/graphs/>.
+  > @prefix :    <http://example2.com/id/>.
+
+-}
+
+{- $nameItem
+
+> nameItem          := name :- graph     |
+>                      name :- ( graph* )
+
+Graphs or lists of graphs can be given a name for use in other
+statements.  A name is a qname (prefix:local) or a URI enclosed in
+angle
+
+Example:
+
+> @prefix ex1: <http://example.com/graphs/> .
+> @prefix ex2: <http://example.com/statements/> .
+>
+> ex1:gr1 :- { 
+>     ex2:foo a ex2:Foo .
+>     ex2:bar a ex2:Bar .
+>     ex2:Bar rdfs:subClassOf ex2:Foo .
+> }
+
+-}
+
+{- $readGraph
+
+> readGraph         := @read name [<uri>]
+
+The @\@read@ command reads in the contents of the given URI
+- which at present only supports reading local files, so
+no HTTP access - and stores it under the given name.
+
+If no URI is given then the file is read from standard input.
+
+Example:
+
+  > @prefix ex: <http://example.com/> .
+  > @read ex:foo <foo.n3>
+
+-}
+
+{- $writeGraph
+
+> writeGraph        := @write name [<uri>] ; comment
+
+The @\@write@ command writes out the contents of the given graph
+- which at present only supports writing local files, so
+no HTTP access. The comment text is written as a comment line
+preceeding the graph contents.
+
+If no URI is given then the file is written to the standard output.
+
+Example:
+
+  > @prefix ex: <http://example.com/> .
+  > @read ex:gr1 <graph1.n3>
+  > @read ex:gr2 <graph2.n3>
+  > @merge (ex:gr1 ex:gr2) => ex:gr3
+  > @write ex:gr3 ; the merged data
+  > @write ex:gr3 <merged.n3> ; merge of graph1.n3 and graph2.n3
+
+-}
+
+{- $mergeGraphs
+
+> mergeGraphs       := @merge ( name* ) => name
+
+Create a new named graph that is the merge two or more graphs,
+renaming bnodes as required to avoid node-merging.
+
+When the merge command is run, the message
+
+  > # Merge: <output graph name>
+
+will be created on the standard output channel.
+
+Example:
+
+  > @prefix gex: <http://example.com/graph/>.
+  > @prefix ex: <http://example.com/statements/>.
+  > gex:gr1 :- { ex:foo ex:bar _:b1 . }
+  > gex:gr2 :- { _:b1 ex:foobar 23. }
+  > @merge (gex:gr1 gex:gr2) => gex:gr3
+  > @write gex:gr3 ; merged graphs
+
+When run in Swish, this creates the following output (along with
+several other namespace declarations):
+
+ > # merged graphs
+ > @prefix ex: <http://example.com/statements/> .
+ > ex:foo ex:bar [] .
+ > [
+ >  ex:foobar "23"^^xsd:integer
+ > ] .
+
+-}
+
+{- $compareGraphs
+
+> compareGraphs     := @compare name name
+
+Compare two graphs for isomorphism, setting the Swish exit status to
+reflect the result.
+
+When the compare command is run, the message
+
+  > # Compare: <graph1> <graph2>
+
+will be created on the standard output channel.
+
+Example:
+
+  > @prefix gex: <http://example.com/graphs/>.
+  > @read gex:gr1 <graph1.n3>
+  > @read gex:gr2 <graph2.n3>
+  > @compare gex:gr1 gex:gr2
+
+-}
+
+{- $assertEquiv
+
+> assertEquiv       := @asserteq name name ; comment
+
+Test two graphs or lists of graphs for isomorphism, reporting if they
+differ. The comment text is included with any report generated.
+
+When the command is run, the message
+
+  > # AssertEq: <comment>
+
+will be created on the standard output channel.
+
+Example:
+
+  > @prefix ex:  <http://id.ninebynine.org/wip/2003/swishtest/> .
+  >
+  > # Set up the graphs for the rules
+  > ex:Rule01Ant :- { ?p ex:son ?o . }
+  > ex:Rule01Con :- { ?o a ex:Male ; ex:parent ?p . }
+  >
+  > # Create a rule and a ruleset
+  > @rule ex:Rule01 :- ( ex:Rule01Ant ) => ex:Rule01Con
+  > @ruleset ex:rules :- (ex:TomSonDick ex:TomSonHarry) ; (ex:Rule01)
+  >
+  > # Apply the rule
+  > @fwdchain ex:rules ex:Rule01 { :Tom ex:son :Charles . } => ex:Rule01fwd
+  >
+  > # Compare the results to the expected value
+  > ex:ExpectedRule01fwd :- { :Charles a ex:Male ; ex:parent :Tom . }  
+  > @asserteq ex:Rule01fwd ex:ExpectedRule01fwd
+  >    ; Infer that Charles is male and has parent Tom
+
+-}
+
+{- $assertMember
+
+> assertMember      := @assertin name name ; comment
+
+Test if a graph is isomorphic to a member of a list of graphs,
+reporting if no match is found. The comment text is included with any
+report generated.
+
+Example:
+
+> @bwdchain pv:rules :PassengerVehicle ex:Test01Inp <= :t1b
+> 
+> @assertin ex:Test01Bwd0 :t1b ; Backward chain component test (0)
+> @assertin ex:Test01Bwd1 :t1b ; Backward chain component test (1)
+
+-}
+
+{- $defineRule
+
+> defineRule        := @rule name :- ( name* ) => name
+> defineRule        := @rule name :- ( name* ) => name
+>                       | ( (name var*)* )
+
+Define a named Horn-style rule. 
+
+The list of names preceding and following @=>@ are the antecedent and consequent
+graphs, respectivelu. Both sets may contain variable nodes of the form 
+@?var@.
+
+The optional part, after the @|@ separator, is a list of variable
+binding modifiers, each of which consists of a name and a list of
+variables (@?var@) to which the modifier is applied. Variable binding
+modifiers are built in to Swish, and are used to incorporate datatype
+value inferences into a rule.  
+
+-}
+
+{- $defineRuleset
+
+> defineRuleset     := @ruleset name :- ( name* ) ; ( name* ) 
+
+Define a named ruleset (a collection of axioms and rules). The first
+list of names are the axioms that are part of the ruleset, and the
+second list are the rules.
+
+-}
+
+{- $defineConstraints
+
+> defineConstraints := @constraints pref :- ( name* ) | [ name | ( name* ) ]
+
+Define a named ruleset containing class-restriction rules based on a
+datatype value constraint. The first list of
+names is a list of graphs that together comprise the class-restriction
+definitions (rule names are the names of the corresponding restriction
+classes). The second list of names is a list of datatypes whose
+datatype relations are referenced by the class restriction
+definitions.
+
+-}
+
+{- $fwdChain
+
+> fwdChain          := @fwdchain pref name ( name* ) => name
+
+Define a new graph obtained by forward-chaining a rule. The first name
+is the ruleset to be used. The second name is the rule name. The list
+of names are the antecedent graphs to which the rule is applied. The
+name following the @=>@ names a new graph that is the result of formward
+chaining from the given antecedents using the indicated rule.
+
+-}
+
+{- $bwdChain
+
+> bwdChain          := @bwdchain pref name graph <= name
+
+Define a new list of alternative graphs obtained by backward-chaining
+a rule. The first name is the ruleset to be used. The second name is
+the rule name. The third name (before the @<=@) is the name of a goal graph
+from which to backward chain. The final name (after the @<=@) names a new
+list of graphs, each of which is an alternative antecedent from which
+the given goal can be deduced using the indicated rule.
+
+
+-}
+
+{- $proof
+
+> checkProofCmd     := proofLine nl
+>                      inputLine nl
+>                      (stepLine nl)*
+>                      resultLine
+> proofLine         := @proof name ( name* )
+
+Check a proof, reporting the step that fails, if any.
+
+The @\@proof@ line names the proof and specifies a list rulesets
+(proof context) used.  The remaining lines specify the input
+expression (@\@input@), proof steps (@\@step@) and the final result
+(@\@result@) that is demonstrated by the proof.
+
+> inputLine         := @input name
+
+In a proof, indicates an input expression upon which the proof is
+based. Exactly one of these immediately follows the @\@proof@ command.
+
+> stepLine          := @step name ( name* ) => name
+
+This defines a step of the proof; any number of these immediately
+follow the @\@input@ command.
+
+It indicates the name of the rule applied for this step, a list of
+antecedent graphs, and a named graph that is deduced by this step.
+For convenience, the deduced graph may introduce a new named graph
+using an expression of the form:
+
+  > name :- { statements }
+
+> resultLine        := @result name
+
+This defines the goal of the proof, and completes a proof
+definition. Exactly one of these immediately follows the @\@step@
+commands.  For convenience, the result statement may introduce a new
+named graph using an expression of the form:
+
+  > name :- { statements }
+
+-}
+
+{- $exampleScript
+
+This is the example script taken from
+<http://www.ninebynine.org/Software/swish-0.2.1.html#sec-script-example>
+with the proof step adjusted so that it passes.
+
+> # -- Example Swish script --
+> #
+> # Comment lines start with a '#'
+> #
+> # The script syntax is loosely based on Notation3, but it is a quite 
+> # different language, except that embedded graphs (enclosed in {...})
+> # are encoded using Notation3 syntax.
+> #
+> # -- Prefix declarations --
+> #
+> # As well as being used for all labels defined and used by the script
+> # itself, these are applied to all graph expressions within the script 
+> # file, and to graphs created by scripted inferences, 
+> # but are not applied to any graphs read in from an external source.
+> 
+> @prefix ex:  <http://id.ninebynine.org/wip/2003/swishtest/> .
+> @prefix pv:  <http://id.ninebynine.org/wip/2003/swishtest/pv/> .
+> @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+> @prefix xsd_integer: <http://id.ninebynine.org/2003/XMLSchema/integer#> .
+> @prefix rs_rdf:  <http://id.ninebynine.org/2003/Ruleset/rdf#> .
+> @prefix rs_rdfs: <http://id.ninebynine.org/2003/Ruleset/rdfs#> .
+> @prefix :   <http://id.ninebynine.org/default/> .
+> 
+> # Additionally, prefix declarations are provided automatically for:
+> #    @prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+> #    @prefix rdfs:  <file://www.w3.org/2000/01/rdf-schema#> .
+> #    @prefix rdfd:  <http://id.ninebynine.org/2003/rdfext/rdfd#> .
+> #    @prefix rdfo:  <http://id.ninebynine.org/2003/rdfext/rdfo#> .
+> #    @prefix owl:   <http://www.w3.org/2002/07/owl#> .
+> 
+> # -- Simple named graph declarations --
+> 
+> ex:Rule01Ant :- { ?p ex:son ?o . }
+> 
+> ex:Rule01Con :- { ?o a ex:Male ; ex:parent ?p . }
+> 
+> ex:TomSonDick :- { :Tom ex:son :Dick . }
+> ex:TomSonHarry :- { :Tom ex:son :Harry . }
+> 
+> # -- Named rule definition --
+> 
+> @rule ex:Rule01 :- ( ex:Rule01Ant ) => ex:Rule01Con
+> 
+> # -- Named ruleset definition --
+> #
+> # A 'ruleset' is a collection of axioms and rules.
+> #
+> # Currently, the ruleset is identified using the namespace alone;
+> # i.e. the 'rules' in 'ex:rules' below is not used.  
+> # This is under review.
+> 
+> @ruleset ex:rules :- (ex:TomSonDick ex:TomSonHarry) ; (ex:Rule01)
+> 
+> # -- Forward application of rule --
+> #
+> # The rule is identified here by ruleset and a name within the ruleset.
+> 
+> @fwdchain ex:rules ex:Rule01 { :Tom ex:son :Charles . } => ex:Rule01fwd
+> 
+> # -- Compare graphs --
+> #
+> # Compare result of inference with expected result.
+> # This is a graph isomorphism test rather than strict equality, 
+> # to allow for bnode renaming.
+> # If the graphs are not equal, a message is generated, which
+> # includes the comment (';' to end of line)
+> 
+> ex:ExpectedRule01fwd :- { :Charles a ex:Male ; ex:parent :Tom . }  
+> 
+> @asserteq ex:Rule01fwd ex:ExpectedRule01fwd
+>    ; Infer that Charles is male and has parent Tom
+> 
+> # -- Display graph (to screen and a file) --
+> #
+> # The comment is included in the output.
+> 
+> @write ex:Rule01fwd ; Charles is male and has parent Tom
+> @write ex:Rule01fwd <Example1.n3> ; Charles is male and has parent Tom
+> 
+> # -- Read graph from file --
+> #
+> # Creates a new named graph in the Swish environment.
+> 
+> @read ex:Rule01inp <Example1.n3>
+> 
+> # -- Proof check --
+> #
+> # This proof uses the built-in RDF and RDFS rulesets, 
+> # which are the RDF- and RDFS- entailment rules described in the RDF
+> # formal semantics document.
+> #
+> # To prove:
+> #     ex:foo ex:prop "a" .
+> # RDFS-entails
+> #     ex:foo ex:prop _:x .
+> #     _:x rdf:type rdfs:Resource .
+> #
+> # If the proof is not valid according to the axioms and rules of the 
+> # ruleset(s) used and antecedents given, then an error is reported 
+> # indicating the failed proof step.
+> 
+> ex:Input  :- { ex:foo ex:prop "a" . }
+> ex:Result :- { ex:foo ex:prop _:a . _:a rdf:type rdfs:Resource . }
+> 
+> @proof ex:Proof ( rs_rdf:rules rs_rdfs:rules )
+>   @input  ex:Input
+>   @step   rs_rdfs:r3 ( rs_rdfs:a10 rs_rdfs:a39 )
+>           => ex:Stepa :- { rdfs:Literal rdf:type rdfs:Class . }
+>   @step   rs_rdfs:r8 ( ex:Stepa )
+>           => ex:Stepb :- { rdfs:Literal rdfs:subClassOf rdfs:Resource . }
+>   @step   rs_rdf:lg ( ex:Input )
+>           => ex:Stepc :- { ex:foo ex:prop _:a . _:a rdf:_allocatedTo "a" . }
+>   @step   rs_rdfs:r1 ( ex:Stepc )
+>           => ex:Stepd :- { _:a rdf:type rdfs:Literal . }
+>   @step   rs_rdfs:r9 ( ex:Stepb ex:Stepd )
+>           => ex:Stepe :- { _:a rdf:type rdfs:Resource . }
+>   @step   rs_rdf:se  ( ex:Stepc ex:Stepd ex:Stepe )
+>           => ex:Result
+>   @result ex:Result
+> 
+> # -- Restriction based datatype inferencing --
+> #
+> # Datatype inferencing based on a general class restriction and
+> # a predefined relation (per idea noted by Pan and Horrocks).
+> 
+> ex:VehicleRule :-
+>   { :PassengerVehicle a rdfd:GeneralRestriction ;
+>       rdfd:onProperties (:totalCapacity :seatedCapacity :standingCapacity) ;
+>       rdfd:constraint xsd_integer:sum ;
+>       rdfd:maxCardinality "1"^^xsd:nonNegativeInteger . }
+> 
+> # Define a new ruleset based on a declaration of a constraint class
+> # and reference to built-in datatype.
+> # The datatype constraint xsd_integer:sum is part of the definition 
+> # of datatype xsd:integer that is cited in the constraint ruleset
+> # declaration.  It relates named properties of a class instance.
+> 
+> @constraints pv:rules :- ( ex:VehicleRule ) | xsd:integer
+> 
+> # Input data for test cases:
+> 
+> ex:Test01Inp :-
+>   { _:a1 a :PassengerVehicle ;
+>       :seatedCapacity "30"^^xsd:integer ;
+>       :standingCapacity "20"^^xsd:integer . }
+> 
+> # Forward chaining test case:
+> 
+> ex:Test01Fwd :- { _:a1 :totalCapacity "50"^^xsd:integer . }
+> 
+> @fwdchain pv:rules :PassengerVehicle ex:Test01Inp => :t1f
+> @asserteq :t1f ex:Test01Fwd  ; Forward chain test
+> 
+> # Backward chaining test case:
+> #
+> # Note that the result of backward chaining is a list of alternatives,
+> # any one of which is sufficient to derive the given conclusion.
+> 
+> ex:Test01Bwd0 :-
+>   { _:a1 a :PassengerVehicle .
+>     _:a1 :totalCapacity "50"^^xsd:integer .
+>     _:a1 :seatedCapacity "30"^^xsd:integer . }
+> 
+> ex:Test01Bwd1 :-
+>   { _:a1 a :PassengerVehicle .
+>     _:a1 :totalCapacity "50"^^xsd:integer .
+>     _:a1 :standingCapacity "20"^^xsd:integer . }
+> 
+> # Declare list of graphs:
+> 
+> ex:Test01Bwd :- ( ex:Test01Bwd0 ex:Test01Bwd1 )
+> 
+> @bwdchain pv:rules :PassengerVehicle ex:Test01Inp <= :t1b
+> @asserteq :t1b ex:Test01Bwd  ; Backward chain test
+> 
+> # Can test for graph membership in a list
+> 
+> @assertin ex:Test01Bwd0 :t1b ; Backward chain component test (0)
+> @assertin ex:Test01Bwd1 :t1b ; Backward chain component test (1)
+> 
+> # -- Merge graphs --
+> #
+> # Merging renames bnodes to avoid collisions.
+> 
+> @merge ( ex:Test01Bwd0 ex:Test01Bwd1 ) => ex:Merged
+> 
+> # This form of comparison sets the Swish exit status based on the result.
+> 
+> ex:ExpectedMerged :-
+>   { _:a1 a :PassengerVehicle .
+>     _:a1 :totalCapacity "50"^^xsd:integer .
+>     _:a1 :seatedCapacity "30"^^xsd:integer .
+>     _:a2 a :PassengerVehicle .
+>     _:a2 :totalCapacity "50"^^xsd:integer .
+>     _:a2 :standingCapacity "20"^^xsd:integer . }
+> 
+> @compare ex:Merged ex:ExpectedMerged
+> 
+> # End of example script
+
+If saved in the file example.ss, then it can be evaluated by saying
+either of:
+
+> % Swish -s=example.ss
+
+or, from @ghci@:
+
+> Prelude> :m + Swish.RDF.SwishMain
+> Prelude Swish.RDF.SwishMain> :set prompt "Swish> "
+> Swish> runSwish "-s=example.ss"
+
+and the output is
+
+> # AssertEq: Infer that Charles is male and has parent Tom
+> # Charles is male and has parent Tom
+> @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+> @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+> @prefix rdfd: <http://id.ninebynine.org/2003/rdfext/rdfd#> .
+> @prefix owl: <http://www.w3.org/2002/07/owl#> .
+> @prefix log: <http://www.w3.org/2000/10/swap/log#> .
+> @prefix : <http://id.ninebynine.org/default/> .
+> @prefix ex: <http://id.ninebynine.org/wip/2003/swishtest/> .
+> @prefix pv: <http://id.ninebynine.org/wip/2003/swishtest/pv/> .
+> @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+> @prefix xsd_integer: <http://id.ninebynine.org/2003/XMLSchema/integer#> .
+> @prefix rs_rdf: <http://id.ninebynine.org/2003/Ruleset/rdf#> .
+> @prefix rs_rdfs: <http://id.ninebynine.org/2003/Ruleset/rdfs#> .
+> :Charles ex:parent :Tom ;
+>          a ex:Male .
+> 
+> Proof satisfied: ex:Proof
+> # AssertEq: Forward chain test
+> # AssertEq: Backward chain test
+> # AssertIn: Backward chain component test (0)
+> # AssertIn: Backward chain component test (1)
+> # Merge: ex:Merged
+> # Compare: ex:Merged ex:ExpectedMerged
+
+-}
 
 --------------------------------------------------------------------------------
 --
