@@ -46,7 +46,8 @@ Description:        Swish is a framework, written in the purely functional
                     Major Changes:
                     .
                     [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
-                    proof succeeds. Some small documentation improvements. Very minor
+                    proof succeeds. Some documentation improvements, including a discussion
+		    of the Swish script format (see "Swish.RDF.SwishScript"). Very minor
 		    changes to behavior of Swish in several edge cases.
                     .
                     [Version 0.3.0.2] Bugfix: stop losing triples with a bnode subject when
