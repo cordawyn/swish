@@ -424,25 +424,13 @@ g4_2 :: RDFGraph
 g4_2 = toGraph [arc b1 res_rdf_type o1, arc b2 res_rdf_type o2]
 
 g5 :: RDFGraph
-g5 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t02,t03,t04,t05]
-        }
+g5 = toGraph [t01,t02,t03,t04,t05]
 
 g6 :: RDFGraph
-g6 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t06]
-        }
+g6 = toGraph [t01,t06]
 
 g7 :: RDFGraph
-g7 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t01,t07]
-        }
+g7 = toGraph [t01,t07]
 
 t801, t802, t807, t808, t811, t812 :: Arc RDFLabel
 t801 = arc s1 res_rdf_type       o1
@@ -453,25 +441,13 @@ t811 = arc s1 res_log_implies o1
 t812 = arc o2 res_log_implies s2
 
 g8 :: RDFGraph
-g8 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t801,t802,t807,t808,t811,t812]
-        }
+g8 = toGraph [t801,t802,t807,t808,t811,t812]
 
 g81 :: RDFGraph
-g81 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t801,t802]
-        }
+g81 = toGraph [t801,t802]
 
 g83 :: RDFGraph
-g83 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t807,t808,t811,t812]
-        }
+g83 = toGraph [t807,t808,t811,t812]
 
 t911, t912, t913, t914, t921, t922, t923, t924,
   t925, t926, t927, t928 :: Arc RDFLabel
@@ -489,13 +465,9 @@ t927 = arc s2 p2 o3
 t928 = arc s2 p2 l1
 
 g9 :: RDFGraph
-g9 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t911,t912,t913,t914,
-                        t921,t922,t923,t924,
-                        t925,t926,t927,t928]
-        }
+g9 = toGraph [t911,t912,t913,t914,
+              t921,t922,t923,t924,
+              t925,t926,t927,t928]
 
 t1011, t1012, t1013, t1014, t1021, t1022, t1023, t1024,
   t1025, t1026, t1027, t1028 :: Arc RDFLabel
@@ -513,13 +485,9 @@ t1027 = arc o3 p2 s2
 t1028 = arc l1 p2 s2
 
 g10 :: RDFGraph
-g10 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t1011,t1012,t1013,t1014,
-                        t1021,t1022,t1023,t1024,
-                        t1025,t1026,t1027,t1028]
-        }
+g10 = toGraph [t1011,t1012,t1013,t1014,
+               t1021,t1022,t1023,t1024,
+               t1025,t1026,t1027,t1028]
 
 t1111, t1112, t1113 :: Arc RDFLabel
 t1111 = arc s1 p1 v1
@@ -527,11 +495,7 @@ t1112 = arc v2 p1 o1
 t1113 = arc v3 p1 v4
 
 g11 :: RDFGraph
-g11 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t1111,t1112,t1113]
-        }
+g11 = toGraph [t1111,t1112,t1113]
 
 t1211, t1221, t1222, t1223, t1224 :: Arc RDFLabel
 t1211 = arc b1 p1 o1
@@ -541,11 +505,7 @@ t1223 = arc b3 res_rdf_first v2
 t1224 = arc b3 res_rdf_rest  res_rdf_nil
 
 g12 :: RDFGraph
-g12 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t1211,t1221,t1222,t1223,t1224]
-        }
+g12 = toGraph [t1211,t1221,t1222,t1223,t1224]
 
 t1711, t1722, t1733 :: Arc RDFLabel
 t1711 = arc s1 p1 lfr
@@ -553,11 +513,7 @@ t1722 = arc s2 p2 lxml
 t1733 = arc s3 p3 lfrxml
 
 g17 :: RDFGraph
-g17 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [t1711,t1722,t1733]
-        }
+g17 = toGraph [t1711,t1722,t1733]
 
 tx101, tx102, tx111, tx112, tx113, tx114, tx121, tx122, tx123,
   tx124, tx125, tx126, tx127, tx128 :: Arc RDFLabel
@@ -577,14 +533,10 @@ tx127 = arc b2 p2 o3
 tx128 = arc b2 p2 l1
 
 x1 :: RDFGraph
-x1 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx101,tx102,
-                        tx111,tx112,tx113,tx114,
-                        tx121,tx122,tx123,tx124,
-                        tx125,tx126,tx127,tx128]
-        }
+x1 = toGraph [tx101,tx102,
+              tx111,tx112,tx113,tx114,
+              tx121,tx122,tx123,tx124,
+              tx125,tx126,tx127,tx128]
 
 tx201, tx202, tx211, tx212, tx213, tx214, tx221, tx222, tx223,
   tx224, tx225, tx226, tx227, tx228 :: Arc RDFLabel
@@ -604,14 +556,10 @@ tx227 = arc o3 p2 b2
 tx228 = arc l1 p2 b2
 
 x2 :: RDFGraph
-x2 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx201,tx202,
-                        tx211,tx212,tx213,tx214,
-                        tx221,tx222,tx223,tx224,
-                        tx225,tx226,tx227,tx228]
-        }
+x2 = toGraph [tx201,tx202,
+              tx211,tx212,tx213,tx214,
+              tx221,tx222,tx223,tx224,
+              tx225,tx226,tx227,tx228]
 
 tx311, tx312, tx313, tx314, tx321, tx322, tx323,
   tx324, tx325, tx326, tx327, tx328 :: Arc RDFLabel
@@ -629,13 +577,9 @@ tx327 = arc o3 p2 s2
 tx328 = arc l1 p2 s2
 
 x3 :: RDFGraph
-x3 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx311,tx312,tx313,tx314,
-                        tx321,tx322,tx323,tx324,
-                        tx325,tx326,tx327,tx328]
-        }
+x3 = toGraph [tx311,tx312,tx313,tx314,
+              tx321,tx322,tx323,tx324,
+              tx325,tx326,tx327,tx328]
 
 tx401, tx402, tx403, tx404, tx405, tx406, tx407,
   tx408, tx409 :: Arc RDFLabel
@@ -650,13 +594,9 @@ tx408 = arc b4 res_rdf_first  l1
 tx409 = arc b4 res_rdf_rest   res_rdf_nil
 
 x4 :: RDFGraph
-x4 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx401,tx402,tx403,tx404,
-                        tx405,tx406,tx407,tx408,
-                        tx409]
-        }
+x4 = toGraph [tx401,tx402,tx403,tx404,
+              tx405,tx406,tx407,tx408,
+              tx409]
 
 tx501, tx502, tx503, tx504, tx505, tx506, tx507,
   tx508, tx509 :: Arc RDFLabel
@@ -671,13 +611,9 @@ tx508 = arc b4 res_rdf_first  l1
 tx509 = arc b4 res_rdf_rest   res_rdf_nil
 
 x5 :: RDFGraph
-x5 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx501,tx502,tx503,tx504,
-                        tx505,tx506,tx507,tx508,
-                        tx509]
-        }
+x5 = toGraph [tx501,tx502,tx503,tx504,
+              tx505,tx506,tx507,tx508,
+              tx509]
 
 tx601, tx602, tx603, tx604, tx605, tx606, tx607,
   tx608 :: Arc RDFLabel
@@ -691,12 +627,8 @@ tx607 = arc b4 res_rdf_first l1
 tx608 = arc b4 res_rdf_rest  res_rdf_nil
 
 x6 :: RDFGraph
-x6 = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx601,tx602,tx603,tx604,
-                        tx605,tx606,tx607,tx608]
-        }
+x6 = toGraph [tx601,tx602,tx603,tx604,
+              tx605,tx606,tx607,tx608]
 
 tx701 :: Arc RDFLabel
 tx701 = arc b1 p2 f2
@@ -766,12 +698,8 @@ tx1308 = arc b2 p1 o2
 tx1309 = arc b3 p1 o3
 
 x13 :: RDFGraph
-x13    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1301,tx1302,tx1303,tx1304,tx1305,tx1306,
-                        tx1307,tx1308,tx1309]
-        }
+x13 = toGraph [tx1301,tx1302,tx1303,tx1304,tx1305,tx1306,
+               tx1307,tx1308,tx1309]
 
 --  List of more complex anon nodes
 
@@ -791,12 +719,8 @@ tx1411 = arc b3 p1 o3
 tx1412 = arc b3 p2 o3
 
 x14 :: RDFGraph
-x14    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1401,tx1402,tx1403,tx1404,tx1405,tx1406,
-                        tx1407,tx1408,tx1409,tx1410,tx1411,tx1412]
-        }
+x14 = toGraph [tx1401,tx1402,tx1403,tx1404,tx1405,tx1406,
+               tx1407,tx1408,tx1409,tx1410,tx1411,tx1412]
 
 --  List with nested list
 
@@ -825,14 +749,10 @@ tx1528 = arc b5 p1 o2
 tx1529 = arc b6 p1 o3
 
 x15 :: RDFGraph
-x15    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1501,tx1502,tx1503,tx1504,tx1505,tx1506,
-                        tx1507,tx1508,tx1509,
-                        tx1521,tx1522,tx1523,tx1524,tx1525,tx1526,
-                        tx1527,tx1528,tx1529]
-        }
+x15 = toGraph [tx1501,tx1502,tx1503,tx1504,tx1505,tx1506,
+               tx1507,tx1508,tx1509,
+               tx1521,tx1522,tx1523,tx1524,tx1525,tx1526,
+               tx1527,tx1528,tx1529]
 
 --  More complex list with nested list
 
@@ -866,14 +786,10 @@ tx1631 = arc b6 p1 o3
 tx1632 = arc b6 p2 o3
 
 x16 :: RDFGraph
-x16    = NSGraph
-        { namespaces = nslist
-        , formulae   = emptyFormulaMap
-        , statements = [tx1601,tx1602,tx1603,tx1604,tx1605,tx1606,
-                        tx1607,tx1608,tx1609,tx1610,tx1611,
-                        tx1621,tx1622,tx1623,tx1624,tx1625,tx1626,
-                        tx1627,tx1628,tx1629,tx1630,tx1631,tx1632]
-        }
+x16 = toGraph [tx1601,tx1602,tx1603,tx1604,tx1605,tx1606,
+               tx1607,tx1608,tx1609,tx1610,tx1611,
+               tx1621,tx1622,tx1623,tx1624,tx1625,tx1626,
+               tx1627,tx1628,tx1629,tx1630,tx1631,tx1632]
 
 kg1 :: RDFGraph
 kg1 = toRDFGraph
