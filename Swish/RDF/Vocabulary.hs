@@ -43,15 +43,13 @@ module Swish.RDF.Vocabulary
     , xsd_decimal, xsd_integer
     , xsd_nonneg_integer, xsd_nonpos_integer, xsd_pos_integer, xsd_neg_integer
     , xsd_float, xsd_double
+    , xsd_date, xsd_dateTime
     , default_base
     )
 where
 
-import Swish.Utils.Namespace
-    ( Namespace(..), ScopedName(..) )
-
-import Swish.Utils.MiscHelpers
-    ( lower )
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.MiscHelpers (lower)
 
 ------------------------------------------------------------
 --  Define some common namespace values
@@ -116,10 +114,10 @@ swishName = ScopedName namespaceSwish
 ------------------------------------------------------------
 --
 --  Note:  simple language tag URIs may be abbreviated as lang:tag,
---  but if the tag contains ahyphen, this would not be valid QName
+--  but if the tag contains a hyphen, this would not be valid QName
 --  form in Notation3, even though it is a valid QName component.
 --  Fortunately, they do not currently need to appear in Notation3 as
---  distinct labels (but future developments m,ay change that).
+--  distinct labels (but future developments may change that).
 
 namespaceLang :: Namespace
 namespaceLang
@@ -127,7 +125,7 @@ namespaceLang
     -- To be replaced by urn:ietf:params:lang?
 
 langName :: String -> ScopedName
-langName tag = ScopedName namespaceLang (lower tag)
+langName = ScopedName namespaceLang . lower
 
 langTag :: ScopedName -> String
 langTag = snLocal
@@ -229,6 +227,10 @@ xsd_float               = xsd_type "float"
 
 xsd_double              :: ScopedName
 xsd_double              = xsd_type "double"
+
+xsd_date, xsd_dateTime :: ScopedName
+xsd_date = xsd_type "date"
+xsd_dateTime = xsd_type "dateTime"
 
 owl_sameAs              :: ScopedName
 owl_sameAs              = ScopedName namespaceOWL  "sameAs"

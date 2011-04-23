@@ -1,3 +1,28 @@
+0.3.1.0:
+
+  - added IsString instance to RDFLabel
+
+  - added ToRDFLabel and FromRDFLabel type classes for converting
+    to and from RDFLabel along with instances for some standard
+    Haskell types.
+
+    UTCTime support has required adding old-locale and time 
+    to the package constraints.
+
+  - added xsd_dateTime export to Swish.RDF.Vocabulary
+
+0.3.0.3:
+
+  - to be written
+
+0.3.0.2:
+
+  - to be written
+
+0.3.0.1:
+
+  - to be written
+
 0.2.1 to 0.3.0.0:
 
   - Renamed module hierarchy from

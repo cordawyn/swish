@@ -1,0 +1,42 @@
+
+Some things I want to/should do (not in order)
+
+- use types better - e.g. ScopedName/Namespace has a lot
+  of String entries which could be replaced by Maybe String
+  and URI
+
+- the RDFLabel data type could be split up to add additional
+  type constraints, namely Lit could be split up into something
+  like ULit for an untyped literal, LLit for a language lit
+  coupled with a LString type that combines text and language tag),
+  and DLit for a literal with a datatype. This would require
+  going to 0.4.x
+
+- remove parsec parser, replace by attoparsec-text
+  - use Text rather than String
+  - use attoparsec-text-enumerator?
+
+  This would require going to 0.4.x
+
+- move a lot of parser/formatter tests out to ntriples files
+  (ie the test data in external files).
+
+- turtle parser, then RDF/XML.
+
+- look at using fgl rather than existing graph code (may or
+  may not be worth it), especially given that it's not really a
+  graph
+
+- look at using something like a TextBuilder for processing output
+
+- profile (have added the -fdeveloper cabal flag which can be combined
+  with the --enable-library-profiling and --enable-executable-profiling
+  flags)
+
+- how much of the support code - e.g. Swish.Utils.LookupMap - can now
+  be replaced with packages from hackage? Swish.Utils.DateTime is an
+  obvious candidate.
+
+- add top-level modules - e.g. Swish or Swish.RDF - for documentation and
+  a simple way to load up a useful set of modules.
+

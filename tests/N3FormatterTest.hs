@@ -24,7 +24,9 @@ import Swish.RDF.N3Formatter
 import Swish.RDF.N3Parser (parseN3fromString)
 
 import Swish.RDF.RDFGraph
-    ( RDFGraph, RDFLabel(..), NSGraph(..)
+    ( RDFGraph
+    , RDFLabel(..), ToRDFLabel(..)
+    , NSGraph(..)
     , NamespaceMap
     , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
@@ -33,16 +35,15 @@ import Swish.RDF.RDFGraph
     , res_owl_sameAs
     )
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
-    , emptyLookupMap, makeLookupMap )
+    , emptyLookupMap, makeLookupMap, mapAdd )
 
 import Swish.RDF.GraphClass (Arc, arc)
+
+import Swish.RDF.Vocabulary (langName)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -127,6 +128,10 @@ l12 = Lit l12txt Nothing
 l13 = Lit l13txt Nothing
 l14 = Lit l14txt Nothing
 
+lfr, lfoobar :: RDFLabel
+lfr = Lit "chat et chien" (Just (langName "fr"))
+lfoobar = Lit "foo bar" (Just (ScopedName base1 "o1"))
+  
 f1, f2 :: RDFLabel
 f1 = Res $ ScopedName base1 "f1"
 f2 = Res $ ScopedName base2 "f2"
@@ -623,6 +628,19 @@ graph_b5    = toGraph [arc b1 res_rdf_type o1,
                        arc b2 p2 o2,
                        arc b3 res_rdf_type o3]
 
+-- datatype/literal graphs
+
+graph_l1, graph_l2, graph_l3 :: RDFGraph
+graph_l1 = toGraph [arc s1 p1 lfr]
+graph_l2 = toGraph [arc s1 p1 lfoobar]
+graph_l3 = 
+  let gtmp = toGraph [arc s1 p1 (toRDFLabel (12::Int)),
+                      arc s1 p1 (toRDFLabel (23.4::Float)),
+                      arc s1 p1 (toRDFLabel ((-2.304e-108)::Double)),
+                      arc s1 p1 (toRDFLabel True)
+                      ]
+  in gtmp { namespaces = mapAdd (namespaces gtmp) (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") }
+                    
 ------------------------------------------------------------
 --  Trivial formatter tests
 ------------------------------------------------------------
@@ -832,6 +850,45 @@ simpleN3Graph_b5 =
   "[\n base2:p2 base2:o2\n] .\n" ++
   "[\n a base3:o3\n] .\n"
 
+{-
+Simple datatype/language tests; may replicate some of the
+previous tests.
+-}
+simpleN3Graph_l1 :: String
+simpleN3Graph_l1 =
+  commonPrefixes ++
+  "base1:s1 base1:p1 \"chat et chien\"@fr .\n"
+  
+simpleN3Graph_l2 :: String
+simpleN3Graph_l2 =
+  commonPrefixes ++
+  "base1:s1 base1:p1 \"foo bar\"^^base1:o1 .\n"
+  
+simpleN3Graph_l3 :: String
+simpleN3Graph_l3 =
+  "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" ++ 
+  commonPrefixes ++ 
+  "\n" ++ -- TODO: why do we need this?
+  "base1:s1 base1:p1 \"-2.304e-108\"^^xsd:double,\n" ++ 
+  "                  \"12\"^^xsd:integer,\n" ++ 
+  "                  \"23.4\"^^xsd:float,                  \"True\"^^xsd:boolean .\n"
+  
+{-
+
+-- this is more a parser than formatter test; at the moment we
+-- do not include it.
+
+simpleN3Graph_l3a :: String
+simpleN3Graph_l3a =
+  "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" ++ 
+  commonPrefixes ++ 
+  "base1:s1 base1:p1 \"12\"^^xsd:integer , \n" ++
+  "  \"23.4\"^^xsd:float \n" ++
+  "  \"-2.304e-108\"^^xsd:double \n" ++
+  "  true .\n"
+  
+-}
+
 -- diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
 
 trivialTestSuite :: Test
@@ -862,6 +919,10 @@ trivialTestSuite = TestList
  , formatTest "trivialTestb1rev" graph_b1rev simpleN3Graph_b1rev
  , formatTest "trivialTestb2rev" graph_b2rev simpleN3Graph_b2rev
 
+ , formatTest "lit1"   graph_l1   simpleN3Graph_l1  
+ , formatTest "lit2"   graph_l2   simpleN3Graph_l2
+ , formatTest "lit3"   graph_l3   simpleN3Graph_l3
+   
  , formatTest "trivialTestx4" x4 exoticN3Graph_x4
  , formatTest "trivialTestx5" x5 exoticN3Graph_x5
  , formatTest "trivialTestx7" x7 exoticN3Graph_x7
@@ -949,6 +1010,11 @@ roundTripTestSuite = TestList
   , roundTripTest "04" g1a1
   , roundTripTest "05" g1l1
   , roundTripTest "06" g1l2
+    
+  , roundTripTest "l1"    graph_l1
+  , roundTripTest "l2"    graph_l2
+  , roundTripTest "l3"    graph_l3
+      
     -- roundTripTest07 = roundTripTest "07" g1f1 -- formula is a named node
   , roundTripTest "08" g1f2
   , fullRoundTripTest "11" simpleN3Graph_g1_01
@@ -959,6 +1025,7 @@ roundTripTestSuite = TestList
   , fullRoundTripTest "16rt" simpleN3Graph_g1_06_rt
     -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
   , fullRoundTripTest "18" simpleN3Graph_g1_08
+  
   ]
 
 ------------------------------------------------------------

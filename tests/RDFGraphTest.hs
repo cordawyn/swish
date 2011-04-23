@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -34,7 +36,10 @@ import Swish.Utils.Namespace
     )
 
 import Swish.RDF.RDFGraph
-    ( RDFTriple, RDFGraph, RDFLabel(..), NSGraph(..)
+    ( RDFTriple, 
+      RDFGraph, 
+      RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..),
+      NSGraph(..)
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp
     , isUri, isBlank, isQueryVar, makeBlank
@@ -46,18 +51,23 @@ import Swish.RDF.RDFGraph
     , newNode, newNodes )
 
 import Swish.RDF.Vocabulary
-    ( namespaceRDF
-    , langName 
-    , rdf_XMLLiteral
+  ( namespaceRDF
+  , langName 
+  , rdf_XMLLiteral
+  , xsd_boolean
+  , xsd_integer
+  , xsd_float
+  , xsd_double
+  , xsd_dateTime
     )
 
 import qualified Data.Traversable as T
 
-import Data.List
-    ( elemIndex )
+import Data.List (elemIndex)
+import Data.Maybe (fromJust)
 
-import Data.Maybe
-    ( fromJust )
+import System.Locale (defaultTimeLocale)
+import Data.Time (UTCTime, buildTime)
 
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
@@ -155,9 +165,9 @@ qb4m  = ScopedName base4 "more"
 es1, us1, s1, s2, s3, s4, s5, s6, s7, s8 :: RDFLabel
 es1 = Res qbes1
 us1 = Res qbus1
-s1 = Res qb1s1 
-s2 = Res qb2s2 
-s3 = Res qb3s3 
+s1 = toRDFLabel qb1s1 
+s2 = toRDFLabel qb2s2 
+s3 = toRDFLabel qb3s3 
 s4 = Res qb3   
 s5 = Blank "s5"
 s6 = Res qb3bm 
@@ -165,9 +175,9 @@ s7 = Res qb4m
 s8 = Blank "s8"
 
 st1, st2, st3 :: RDFLabel
-st1 = Res $ ScopedName base1 "st1"
-st2 = Res $ ScopedName base2 "st2" 
-st3 = Res $ ScopedName base3 "st3"
+st1 = toRDFLabel $ ScopedName base1 "st1"
+st2 = toRDFLabel $ ScopedName base2 "st2" 
+st3 = toRDFLabel $ ScopedName base3 "st3"
 
 bb, bb0, b1, b2, b3, b4, b5, b6, b7,
   b8, b9, b10 :: RDFLabel
@@ -212,7 +222,7 @@ o1, o2, o3, o4, o5, o6 :: RDFLabel
 o1 = Res $ ScopedName base1 "o1"
 o2 = Res $ ScopedName base2 "o2"
 o3 = Res $ ScopedName base3 "o3"
-o4 = Res qb3   
+o4 = toRDFLabel qb3   
 o5 = Blank "o5"
 o6 = Blank "s5"
 
@@ -222,19 +232,19 @@ qb1t2 = ScopedName base1 "type2"
 
 l1, l2, l2gb, l3, l4, l5, l6, l7, l8,
   l9, l10, l11, l12 :: RDFLabel
-l1  = Lit "l1"  Nothing                
-l2  = Lit "l2"  (Just (langName "en")) 
+l1   = "l1" -- use IsString instance
+l2   = Lit "l2"  (Just (langName "en")) 
 l2gb = Lit "l2"  (Just (langName "en-gb")) 
-l3  = Lit "l2"  (Just (langName "fr")) 
-l4  = Lit "l4"  (Just qb1t1)           
-l5  = Lit "l4"  (Just qb1t1)           
-l6  = Lit "l4"  (Just qb1t1)           
-l7  = Lit "l4"  (Just qb1t2)           
-l8  = Lit "l4"  (Just qb1t2)           
-l9  = Lit "l4"  (Just qb1t2)           
-l10 = Lit "l10" (Just rdf_XMLLiteral)  
-l11 = Lit "l10" (Just rdf_XMLLiteral)  
-l12 = Lit "l10" (Just rdf_XMLLiteral)  
+l3   = Lit "l2"  (Just (langName "fr")) 
+l4   = Lit "l4"  (Just qb1t1)           
+l5   = Lit "l4"  (Just qb1t1)           
+l6   = Lit "l4"  (Just qb1t1)           
+l7   = Lit "l4"  (Just qb1t2)           
+l8   = Lit "l4"  (Just qb1t2)           
+l9   = Lit "l4"  (Just qb1t2)           
+l10  = Lit "l10" (Just rdf_XMLLiteral)  
+l11  = Lit "l10" (Just rdf_XMLLiteral)  
+l12  = Lit "l10" (Just rdf_XMLLiteral)  
 
 v1, v2, v3, v4, vb3, vb4 :: RDFLabel
 v1  = Var "v1"  
@@ -299,6 +309,82 @@ testNodeEqSuite = TestList
     tEq  ll1 ll2 = (ll1 == ll2)        ||
          (ll1,ll2) `elem` nodeeqlist ||
          (ll2,ll1) `elem` nodeeqlist
+
+-- test ToRDFLabel/FromRDFlabel/IsString instances
+--
+    
+testConv :: (ToRDFLabel a, FromRDFLabel a, Eq a, Show a) 
+            => String -> String -> Maybe ScopedName -> a -> Test    
+testConv lbl sVal dtype hVal = 
+  let rdfVal = Lit sVal dtype
+  in TestList
+  [
+    testEq ("tconv:" ++ lbl) rdfVal       (toRDFLabel hVal)
+  , testEq ("fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
+  ]
+    
+testConversionSuite :: Test
+testConversionSuite =
+  TestList
+  [
+    -- failure case
+    testEq "fconv:fail char"    (Nothing :: Maybe Char) (fromRDFLabel l1)
+  , testEq "fconv:fail int1"    (Nothing :: Maybe Int)  (fromRDFLabel l1)
+  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (Lit "123456789012345" (Just xsd_integer))) 
+  , testEq "fconv:fail float1"  (Nothing :: Maybe Float)  (fromRDFLabel l1)
+  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "1.234e101" (Just xsd_float))) -- invalid input 
+  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsd_float))) -- invalid input 
+    
+    -- basic string tests
+  , testEq "tconv:emptystring1"  (Lit "" Nothing)    ""       -- want to try out IsString so do not use testConv
+  , testConv "emptystring2"       "" Nothing    (""::String)
+  , testConv "char"                "x" Nothing   'x'
+  , testEq "tconv:l1-1"          (Lit "l1" Nothing)  l1
+  , testConv "l1-2"          "l1" Nothing  ("l1"::String)
+    
+    -- boolean
+  , testConv "True"     "True"    (Just xsd_boolean) True
+  , testConv "False"    "False"   (Just xsd_boolean) False
+    
+    -- numeric types
+  , testConv "int 0"    "0"       (Just xsd_integer) (0::Int)
+  , testConv "int -10"  "-10"     (Just xsd_integer) ((-10)::Int)
+  , testConv "int 10"   "10"      (Just xsd_integer) (10::Int)
+  , testConv "integer 0"    "0"       (Just xsd_integer) (0::Integer)
+  , testConv "integer -10"  "-10"     (Just xsd_integer) ((-10)::Integer)
+  , testConv "integer 10"   "10"      (Just xsd_integer) (10::Integer)
+  , testConv "integer big"  "123456789012345678901234567890"      (Just xsd_integer) (123456789012345678901234567890::Integer)
+  , testConv "integer -big" "-123456789012345678901234567890"     (Just xsd_integer) ((-123456789012345678901234567890)::Integer)
+  , testConv "float 0"        "0.0"     (Just xsd_float) (0::Float)
+  , testConv "float 0.2"      "0.2"     (Just xsd_float) (0.2::Float)
+  , testConv "float -0.2"     "-0.2"    (Just xsd_float) ((-0.2)::Float)
+  , testConv "float 2.01e-4"  "2.01e-4"  (Just xsd_float) (0.000201::Float)
+  , testConv "float -2.01e-4" "-2.01e-4" (Just xsd_float) ((-0.000201)::Float)
+  , testConv "float 2.01e38"  "2.01e38"  (Just xsd_float) (2.01e38::Float)
+  , testConv "float -2.01e38" "-2.01e38" (Just xsd_float) ((-2.01e38)::Float)
+  , testConv "double 0"        "0.0"     (Just xsd_double) (0::Double)
+  , testConv "double 0.2"      "0.2"     (Just xsd_double) (0.2::Double)
+  , testConv "double -0.2"     "-0.2"    (Just xsd_double) ((-0.2)::Double)
+  , testConv "double 2.01e-4"  "2.01e-4"  (Just xsd_double) (0.000201::Double)
+  , testConv "double -2.01e-4" "-2.01e-4" (Just xsd_double) ((-0.000201)::Double)
+  , testConv "double 2.01e38"  "2.01e38"  (Just xsd_double) (2.01e38::Double)
+  , testConv "double -2.01e38" "-2.01e38" (Just xsd_double) ((-2.01e38)::Double)
+  , testConv "double 2.01e108"  "2.01e108"  (Just xsd_double) (2.01e108::Double)
+  , testConv "double -2.01e108" "-2.01e108" (Just xsd_double) ((-2.01e108)::Double)
+  
+    -- URI related types
+  , testEq "tconv:sname s1"    s1             (toRDFLabel qb1s1)
+  , testEq "fconv:sname s1"    (Just qb1s1)   (fromRDFLabel s1)
+    
+    -- time values
+  , testConv "tconv:time1"   "1970-01-01T00:00:00Z"   (Just xsd_dateTime)  utc1
+                              
+    -- TODO
+    
+  ]
+  
+utc1 :: UTCTime
+utc1 = buildTime defaultTimeLocale []
 
 ------------------------------------------------------------
 --  RDFLabel classification tests
@@ -1189,6 +1275,7 @@ testMergeSuite = TestList
 allTests :: Test
 allTests = TestList
   [ testLangEqSuite
+  , testConversionSuite
   , testNodeEqSuite
   , testNodeClassSuite
   , testNodeLocalSuite

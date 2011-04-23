@@ -20,7 +20,7 @@
 ------------------------------------------------------------
 
 module Swish.RDF.RDFGraph
-    ( RDFLabel(..)
+    ( RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp, isUri, isBlank, isQueryVar
     , getLiteralText, getScopedName, makeBlank
@@ -66,6 +66,9 @@ import Swish.RDF.Vocabulary
     , rdfd_GeneralRestriction
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs, log_implies
+    -- , xsd_type
+    , xsd_boolean, xsd_float, xsd_double, xsd_integer
+    , xsd_dateTime                                                
     )
 
 import Swish.RDF.GraphClass
@@ -93,13 +96,12 @@ import qualified Data.Traversable as T
 import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 -- import Control.Monad (liftM, ap)
 
-import Data.Char
-    ( isDigit )
-
-import Data.List
-    ( intersect, union, findIndices )
-
+import Data.Char (isDigit)
+import Data.List (intersect, union, findIndices)
 import Data.Ord (comparing)
+import Data.String (IsString(..))
+import Data.Time (UTCTime, parseTime, formatTime)
+import System.Locale (defaultTimeLocale)  
 
 -----------------------------------------------------------
 -- | RDF graph node values
@@ -175,6 +177,151 @@ instance Label RDFLabel where
     makeLabel  ('?':loc)    = Var loc
     makeLabel  loc          = Blank loc
     labelHash seed lb       = hash seed (showCanon lb)
+
+instance IsString RDFLabel where
+  fromString = flip Lit Nothing
+
+-- | A type that can be converted to a RDF Label.
+--
+class ToRDFLabel a where
+  toRDFLabel :: a -> RDFLabel
+  
+-- | A type that can be converted from a RDF Label,
+--   with the possibility of failure.
+--  
+class FromRDFLabel a where
+  fromRDFLabel :: RDFLabel -> Maybe a
+
+-- instances for type conversion to/from RDFLabel
+  
+-- TODO: need to check that the Haskell read/show instances match
+--       the RDF syntactical constraints
+
+maybeRead :: (Read a) => String -> Maybe a
+maybeRead inStr = 
+  case reads inStr of
+    [(val, "")] -> Just val
+    _ -> Nothing
+    
+fLabel :: (String -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
+fLabel conv dtype (Lit xs (Just dt)) | dt == dtype = conv xs
+                                     | otherwise = Nothing
+fLabel _    _     _ = Nothing
+  
+tLabel :: (Show a) => ScopedName -> a -> RDFLabel                      
+tLabel dtype = flip Lit (Just dtype) . show                      
+
+instance ToRDFLabel Char where
+  toRDFLabel = flip Lit Nothing . (:[])
+
+instance FromRDFLabel Char where
+  fromRDFLabel (Lit [c] Nothing) = Just c
+  fromRDFLabel _ = Nothing
+
+instance ToRDFLabel [Char] where
+  toRDFLabel = flip Lit Nothing
+
+instance FromRDFLabel [Char] where
+  fromRDFLabel (Lit xs Nothing) = Just xs
+  fromRDFLabel _ = Nothing
+
+instance ToRDFLabel Bool where
+  toRDFLabel = tLabel xsd_boolean
+  
+instance FromRDFLabel Bool where
+  fromRDFLabel = fLabel maybeRead xsd_boolean
+
+instance ToRDFLabel Float where
+  toRDFLabel = tLabel xsd_float
+  
+{-
+As reads "<invalid float>" returns some form of Inf
+we need to catch this.
+-}
+
+instance FromRDFLabel Float where
+  fromRDFLabel = fLabel (\istr -> maybeRead istr >>= conv) xsd_float
+    where
+      conv :: Float -> Maybe Float
+      conv i | (isNaN i || isInfinite i || isDenormalized i) = Nothing
+             | otherwise = Just . realToFrac $ i -- or fromRational . toRational
+
+instance ToRDFLabel Double where
+  toRDFLabel = tLabel xsd_double
+  
+instance FromRDFLabel Double where
+  fromRDFLabel = fLabel maybeRead xsd_double
+
+-- TODO: are there subtypes of xsd::integer that are  
+--       useful here?  
+--         
+-- TODO: add in support for Int8/..., Word8/...  
+--  
+instance ToRDFLabel Int where
+  toRDFLabel = tLabel xsd_integer
+
+{-
+it appears that reads doesn't fail when the input is outside
+the Int range; instead it overflows. So instead of
+
+  fromRDFLabel = fLabel maybeRead xsd_integer
+
+we convert via Integer.
+-}
+
+instance FromRDFLabel Int where
+  fromRDFLabel = fLabel (\istr -> maybeRead istr >>= conv) xsd_integer
+    where
+      conv :: Integer -> Maybe Int
+      conv i = 
+        let lb = fromIntegral (minBound :: Int)
+            ub = fromIntegral (maxBound :: Int)
+        in if (i >= lb) && (i <= ub) then Just (fromIntegral i) else Nothing
+
+instance ToRDFLabel Integer where
+  toRDFLabel = tLabel xsd_integer
+
+instance FromRDFLabel Integer where
+  fromRDFLabel = fLabel maybeRead xsd_integer
+
+timeFormat :: String
+timeFormat = "%FT%T%QZ"
+  
+-- TODO: is assumuption of UTC here correct?
+
+{-
+aeson uses
+
+instance ToJSON UTCTime where
+    toJSON t = String (pack (take 23 str ++ "Z"))
+      where str = formatTime defaultTimeLocale "%FT%T%Q" t
+    {-# INLINE toJSON #-}
+
+instance FromJSON UTCTime where
+    parseJSON (String t) =
+        case parseTime defaultTimeLocale "%FT%T%QZ" (unpack t) of
+          Just d -> pure d
+          _      -> fail "could not parse ISO-8601 date"
+    parseJSON v   = typeMismatch "UTCTime" v
+    {-# INLINE parseJSON #-}
+
+-}
+
+instance ToRDFLabel UTCTime where
+  toRDFLabel = flip Lit (Just xsd_dateTime) . 
+            formatTime defaultTimeLocale timeFormat
+  
+instance FromRDFLabel UTCTime where
+  fromRDFLabel = fLabel (parseTime defaultTimeLocale timeFormat) xsd_dateTime
+  
+instance ToRDFLabel ScopedName where  
+  toRDFLabel = Res
+
+instance FromRDFLabel ScopedName where
+  fromRDFLabel (Res sn) = Just sn
+  fromRDFLabel _        = Nothing
+  
+-- TODO: add instance for URI
 
 -- | Get the canonical string for RDF label.
 --
