@@ -24,25 +24,18 @@ module Swish.RDF.Proof
     , checkProof, explainProof, checkStep, showProof, showsProof, showsFormula )
 where
 
-import Swish.RDF.Ruleset
-    ( Ruleset(..) )
+import Swish.RDF.Ruleset (Ruleset(..))
 
 import Swish.RDF.Rule
     ( Expression(..), Formula(..), Rule(..)
     , showsFormula, showsFormulae )
 
-import Swish.Utils.ShowM
-    ( ShowM(..) )
+import Swish.Utils.ShowM (ShowM(..))
 
-import Swish.Utils.ListHelpers
-    ( subset )
+import Swish.Utils.ListHelpers (subset)
 
-import Data.List
-    ( union, intersect, intercalate )
-
-import Data.Maybe
-    ( catMaybes )
-
+import Data.List (union, intersect, intercalate)
+import Data.Maybe (catMaybes, isNothing)
 
 ------------------------------------------------------------
 --  Proof framework
@@ -114,7 +107,7 @@ checkStep ::
   -> Step ex     -- ^ the step to validate
   -> Bool        -- ^ @True@ if the step is valid
 
-checkStep rules prev step = maybe True (const False) $ explainStep rules prev step
+checkStep rules prev step = isNothing $ explainStep rules prev step
 
 {-
 

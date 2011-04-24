@@ -33,6 +33,8 @@ Some things I want to/should do (not in order)
   with the --enable-library-profiling and --enable-executable-profiling
   flags)
 
+- improve test coverage (-fhpc cabal flag)
+
 - how much of the support code - e.g. Swish.Utils.LookupMap - can now
   be replaced with packages from hackage? Swish.Utils.DateTime is an
   obvious candidate.
@@ -40,3 +42,8 @@ Some things I want to/should do (not in order)
 - add top-level modules - e.g. Swish or Swish.RDF - for documentation and
   a simple way to load up a useful set of modules.
 
+- move to camel case for names, in particular for Swish.RDF.Vocabulary;
+  this would require an update to version 0.4.x
+
+- change SwishAction from a tuple to a SwishStateIO (); requires an
+  update to 0.4.x
