@@ -1,0 +1,80 @@
+\documentclass{scrreprt}
+\usepackage{paralist}
+\usepackage{graphicx}
+\usepackage[final]{hcar}
+
+%include polycode.fmt
+
+\begin{document}
+
+\begin{hcarentry}{Swish}
+\report{Douglas Burke}
+\status{Experimental}
+\participants{Graham Klyne, Vasili I Galchin}
+\makeheader
+
+Swish is a framework, written in the purely functional programming
+language Haskell, for performing deductions in RDF data using a
+variety of techniques. Swish is conceived as a toolkit for
+experimenting with RDF inference, and for implementing stand-alone RDF
+file processors (usable in similar style to CWM, but with a view to
+being extensible in declarative style through added Haskell function
+and data value declarations). It explores Haskell as ``a scripting
+language for the Semantic Web'', is a work-in-progress, and currently
+incorporates:
+
+\begin{itemize}
+
+\item
+Support for both Notation3 and NTriples formats.
+
+\item
+RDF graph isomorphism testing and merging.
+
+\item
+Display of differences between RDF graphs.
+
+\item
+Inference operations in forward chaining, backward chaining and proof-checking modes.
+
+\item
+Simple Horn-style rule implementations, extendable through variable binding modifiers and filters.
+
+\item
+Class restriction rule implementation, primarily for datatype inferences.
+
+\item
+RDF formal semantics entailment rule implementation.
+
+\item
+Complete, ready-to-run, command-line and script-driven programs.
+
+\end{itemize}
+
+\subsubsection*{Current Work}
+
+The version on Hackage has recently been updated from 0.2.1 to
+the 0.3 series; the main changes were to make the package build
+with recent Haskell Platform releases, updates to match the latest
+N3 specification, and addition of the NTriples format. Minor bug fixes
+and improvements have been made to this series.
+
+\subsubsection*{Future Plans}
+
+The major planned changes are a move to using the
+Data.Text module,
+addition of an RDF/XML parser, profiling 
+and further clean up of the code.
+Community input -- whether it be patches, new code or just feature
+requests -- are more than welcome.
+
+\FurtherReading
+
+\begin{itemize}
+\item \url{https://bitbucket.org/doug_burke/swish/}
+\item \url{http://www.ninebynine.org/RDFNotes/Swish/Intro.html}
+\end{itemize}
+
+\end{hcarentry}
+
+\end{document}
