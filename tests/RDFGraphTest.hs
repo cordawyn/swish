@@ -19,7 +19,7 @@
 module Main where
 
 import Swish.Utils.LookupMap
-    ( LookupMap(..)
+    ( LookupMap(..), LookupEntryClass(..)
     , mapFindMaybe )
 
 import Swish.Utils.ListHelpers
@@ -64,7 +64,7 @@ import Swish.RDF.Vocabulary
 
 import qualified Data.Traversable as T
 
-import Data.List (elemIndex)
+import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust)
 
 import System.Locale (defaultTimeLocale)
@@ -793,6 +793,24 @@ urio1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#o1
 tu01 :: Arc RDFLabel
 tu01  = arc (Res uris1) (Res urip1) (Res urio1)
 
+g2arcs :: [String]
+g2arcs = [
+  "(base1:s1,base1:p1,base1:o1)", 
+  "(base2:s2,base1:p1,base2:o2)", 
+  "(base3:s3,base1:p1,base3:o3)", 
+  "(base1:s1,base1:p1,\"l1\")", 
+  "(base2:s2,base1:p1,\"l4\"^^base1:type1)", 
+  "(base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral)"
+  ]
+  
+g2str :: String -> String
+g2str sp = 
+  let spaces = "    "
+  in intercalate ('\n':sp) $ 
+     ["Graph, formulae: ",
+      "arcs: "]
+     ++ map (spaces++) g2arcs
+     
 g1uri, g2, gt2, g3, gt3, g4, g5, g6, g7, g8, g9, g10 :: RDFGraph
 g1uri = toGraph [tu01]
 g2    = toGraph [t01,t02,t03,t04,t05,t06]
@@ -885,13 +903,46 @@ g1f5 = setFormulae fm5 g1f1
 g1f6 = setFormulae fm6 g1f1
 g1f7 = setFormulae fm7 g1f1
 
+g1f1str, g1f2str :: String
+
+g1f1str = 
+  "Graph, formulae: \n" ++
+  "arcs: \n" ++
+  "    (base1:s1,base1:p1,base1:o1)"
+
+g1f2str =
+  "Graph, formulae: \n    " ++
+  lf22str ++ "\n" ++
+  "arcs: \n" ++
+  "    (base1:s1,base1:p1,base1:o1)"
+
+lf11, lf22, lf23, lf24, lf25, lf27, lf33, lf36 :: LookupFormula RDFLabel RDFGraph
+lf11 = Formula s1 g1
+lf22 = newEntry (s2,g2)
+lf23 = newEntry (s2,g3)
+lf24 = newEntry (s2,g4)
+lf25 = newEntry (s2,g5)
+lf27 = newEntry (s2,g7)
+lf33 = newEntry (s3,g3)
+lf36 = newEntry (s3,g6)
+
+lf22str :: String
+lf22str =
+  "base2:s2 :- { \n" ++ 
+  "        (base1:s1,base1:p1,base1:o1)\n" ++ 
+  "        (base2:s2,base1:p1,base2:o2)\n" ++ 
+  "        (base3:s3,base1:p1,base3:o3)\n" ++ 
+  "        (base1:s1,base1:p1,\"l1\")\n" ++ 
+  "        (base2:s2,base1:p1,\"l4\"^^base1:type1)\n" ++ 
+  "        (base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral) }"
+
 fm2, fm3, fm4, fm5, fm6, fm7 :: LookupMap (LookupFormula RDFLabel RDFGraph)
-fm2  = LookupMap [Formula s2 g2]
-fm3  = LookupMap [Formula s1 g1,Formula s2 g2,Formula s3 g3]
-fm4  = LookupMap [Formula s1 g1,Formula s2 g3,Formula s3 g3]
-fm5  = LookupMap [Formula s1 g1,Formula s2 g4,Formula s3 g6]
-fm6  = LookupMap [Formula s1 g1,Formula s2 g5,Formula s3 g6]
-fm7  = LookupMap [Formula s1 g1,Formula s2 g7,Formula s3 g6]
+fm2  = LookupMap [lf22]
+fm3  = LookupMap [lf11, lf22, lf33]
+fm4  = LookupMap [lf11, lf23, lf33]
+fm5  = LookupMap [lf11, lf24, lf36]
+fm6  = LookupMap [lf11, lf25, lf36]
+fm7  = LookupMap [lf11, lf27, lf36]
 
 f1, f2, f3, f4, f5, f6, f7 :: FormulaMap RDFLabel
 f1   = getFormulae g1f1
@@ -970,6 +1021,18 @@ testGraphFormulaSuite = TestLabel "TestFormulae" $ TestList
   , testFormulaLookup "10a" f10 s1 (Just g1)
   , testFormulaLookup "10b" f10 s2 (Just g2)
   , testFormulaLookup "10c" f10 s3 (Just g3)
+    
+    -- a few tests added in to improve test coverage
+  , testEq "lf11" (Formula s1 g1) lf11  
+  , testEq "g2:show"    (g2str "") (show g2) 
+  , testEq "g1f1:show"  g1f1str (show g1f1) 
+  , testEq "g1f2:show"  g1f2str (show g1f2) 
+  , testEq "lf22:show" lf22str (show lf22) 
+  , testEq "[]:showList"    "[no graphs]" (show ([] :: [RDFGraph])) 
+  , testEq "g2:showList1"    ("[" ++ g2str " " ++ "]") (show [g2]) 
+  , testEq "g2:showList2"    ("[" ++ g2str " " ++ ",\n " ++ g2str " " ++ "]") (show [g2,g2]) 
+    
+    -- back to the main schedule
   , testGraphEq "g1f1-g1f1" True  g1f1 g1f1
   , testGraphEq "g1f1-g1f2" True  g1f1 g1f2
   , testGraphEq "g1f1-g1f3" False g1f1 g1f3
