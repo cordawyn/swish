@@ -59,6 +59,7 @@ import Swish.RDF.Vocabulary
   , xsd_float
   , xsd_double
   , xsd_dateTime
+  , xsd_date
     )
 
 import qualified Data.Traversable as T
@@ -67,7 +68,7 @@ import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 
 import System.Locale (defaultTimeLocale)
-import Data.Time (UTCTime, buildTime)
+import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
 
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
@@ -328,12 +329,17 @@ testConversionSuite =
   TestList
   [
     -- failure case
-    testEq "fconv:fail char"    (Nothing :: Maybe Char) (fromRDFLabel l1)
+    testEq "fconv:fail chr1"    (Nothing :: Maybe Char) (fromRDFLabel l1)
+  , testEq "fconv:fail chr2"    (Nothing :: Maybe Char) (fromRDFLabel s1)
+  , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (Lit "1.23" (Just xsd_float)))
   , testEq "fconv:fail int1"    (Nothing :: Maybe Int)  (fromRDFLabel l1)
   , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (Lit "123456789012345" (Just xsd_integer))) 
   , testEq "fconv:fail float1"  (Nothing :: Maybe Float)  (fromRDFLabel l1)
   , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "1.234e101" (Just xsd_float))) -- invalid input 
-  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsd_float))) -- invalid input 
+  , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsd_float))) -- invalid input 
+  , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "NaNs" (Just xsd_float))) -- invalid input 
+  , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (Lit "1.23" (Just xsd_float))) -- invalid input 
+  , testEq "fconv: fail sn1"    (Nothing :: Maybe ScopedName) (fromRDFLabel l1)
     
     -- basic string tests
   , testEq "tconv:emptystring1"  (Lit "" Nothing)    ""       -- want to try out IsString so do not use testConv
@@ -377,14 +383,32 @@ testConversionSuite =
   , testEq "fconv:sname s1"    (Just qb1s1)   (fromRDFLabel s1)
     
     -- time values
-  , testConv "tconv:time1"   "1970-01-01T00:00:00Z"   (Just xsd_dateTime)  utc1
+  , testConv "time1"   "1970-01-01T00:00:00Z"            (Just xsd_dateTime)  utc1
+  , testEq   "tconv:time2"   (Lit "2011-02-28T20:04:02.304Z" (Just xsd_dateTime))  (toRDFLabel utc2)
+  , testEq   "fconv:time2a"  (Just utc2)                                           (fromRDFLabel (Lit "2011-02-28T20:04:02.304Z" (Just xsd_dateTime)))
+  , testEq   "fconv:time2b"  (Just utc2)                                           (fromRDFLabel (Lit "2011-02-28T17:04:02.304-03:00" (Just xsd_dateTime)))
+  , testEq   "fconv:time2c"  (Just utc2)                                           (fromRDFLabel (Lit "2011-03-01T00:04:02.304+04:00" (Just xsd_dateTime)))
+  , testEq   "fconv:time2d"  (Just utc2)                                           (fromRDFLabel (Lit "2011-02-28T20:04:02.304" (Just xsd_dateTime)))
+  , testConv "time2Z"  "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
                               
+  , testConv "day1a"   "1970-01-01Z"      (Just xsd_date) day1
+  , testEq   "fconv:day1b"  (Just day1)   (fromRDFLabel (Lit "1970-01-01" (Just xsd_date)))
+  , testEq   "fconv:day1c"  (Just day1)   (fromRDFLabel (Lit "1970-01-01-03:00" (Just xsd_date)))
+  , testEq   "fconv:day1d"  (Just day1)   (fromRDFLabel (Lit "1970-01-01+04:00" (Just xsd_date)))
+    
     -- TODO
     
   ]
   
-utc1 :: UTCTime
+utc1, utc2 :: UTCTime
 utc1 = buildTime defaultTimeLocale []
+utc2 =
+  let dNum = fromGregorian 2011 2 28
+      tDiff = (23.0 - 3.0) * 3600.0 + 4.0 * 60.0 + 2.304 
+  in UTCTime dNum tDiff
+     
+day1 :: Day
+day1 = fromGregorian 1970 1 1
 
 ------------------------------------------------------------
 --  RDFLabel classification tests

@@ -68,7 +68,7 @@ import Swish.RDF.Vocabulary
     , owl_sameAs, log_implies
     -- , xsd_type
     , xsd_boolean, xsd_float, xsd_double, xsd_integer
-    , xsd_dateTime                                                
+    , xsd_dateTime, xsd_date                                                
     )
 
 import Swish.RDF.GraphClass
@@ -76,14 +76,10 @@ import Swish.RDF.GraphClass
     , Arc(..), arc, arcSubj, arcPred, arcObj
     , Selector )
 
-import Swish.RDF.GraphMatch
-    ( graphMatch, LabelMap, ScopedLabel(..) )
+import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
 
-import Swish.Utils.MiscHelpers
-    ( hash, quote )
-
-import Swish.Utils.ListHelpers
-    ( addSetElem )
+import Swish.Utils.MiscHelpers (hash, quote)
+import Swish.Utils.ListHelpers (addSetElem)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..), LookupEntryClass(..)
@@ -100,7 +96,7 @@ import Data.Char (isDigit)
 import Data.List (intersect, union, findIndices)
 import Data.Ord (comparing)
 import Data.String (IsString(..))
-import Data.Time (UTCTime, parseTime, formatTime)
+import Data.Time (UTCTime, Day, parseTime, formatTime)
 import System.Locale (defaultTimeLocale)  
 
 -----------------------------------------------------------
@@ -183,12 +179,30 @@ instance IsString RDFLabel where
 
 -- | A type that can be converted to a RDF Label.
 --
+-- The String instance converts to an untyped literal
+-- (so no language tag is assumed).
+--
+-- The `UTCTime` and `Day` instances assume values are in UTC.
+--  
+-- The numeric types have not yet been checked to ensure the
+-- conversion meets the lexical constraints of both Haskell
+-- and RDF.  
+--
 class ToRDFLabel a where
   toRDFLabel :: a -> RDFLabel
   
 -- | A type that can be converted from a RDF Label,
 --   with the possibility of failure.
 --  
+-- The String instance converts from an untyped literal
+-- (so it can not be used with a string with a language tag).
+--
+-- The `UTCTime` and `Day` instances assume values are in UTC.
+--  
+-- The numeric types have not yet been checked to ensure the
+-- conversion meets the lexical constraints of both Haskell
+-- and RDF.  
+--
 class FromRDFLabel a where
   fromRDFLabel :: RDFLabel -> Maybe a
 
@@ -284,35 +298,67 @@ instance ToRDFLabel Integer where
 instance FromRDFLabel Integer where
   fromRDFLabel = fLabel maybeRead xsd_integer
 
-timeFormat :: String
-timeFormat = "%FT%T%QZ"
-  
--- TODO: is assumuption of UTC here correct?
-
 {-
-aeson uses
+Support an ISO-8601 style format supporting
 
-instance ToJSON UTCTime where
-    toJSON t = String (pack (take 23 str ++ "Z"))
-      where str = formatTime defaultTimeLocale "%FT%T%Q" t
-    {-# INLINE toJSON #-}
+  2005-02-28T00:00:00Z
+  2004-12-31T19:01:00-05:00
+  2005-07-14T03:18:56.234+01:00
 
-instance FromJSON UTCTime where
-    parseJSON (String t) =
-        case parseTime defaultTimeLocale "%FT%T%QZ" (unpack t) of
-          Just d -> pure d
-          _      -> fail "could not parse ISO-8601 date"
-    parseJSON v   = typeMismatch "UTCTime" v
-    {-# INLINE parseJSON #-}
+fromUTCFormat is used to convert UTCTime to a string
+for storage within a Lit.
 
+toUTCFormat is used to convert a string into UTCTime;
+we have to support 
+   no time zone
+   Z
+   +/-HH:MM
+
+which means a somewhat messy convertor, which is written
+for clarity rather than speed.
 -}
 
+fromUTCFormat :: UTCTime -> String
+fromUTCFormat = formatTime defaultTimeLocale "%FT%T%QZ"
+  
+fromDayFormat :: Day -> String
+fromDayFormat = formatTime defaultTimeLocale "%FZ"
+  
+toUTCFormat :: String -> Maybe UTCTime
+toUTCFormat inVal = 
+  let fmt = "%FT%T%Q"
+      fmtHHMM = fmt ++ "%z"
+      fmtZ = fmt ++ "Z"
+      pt f = parseTime defaultTimeLocale f inVal
+  in case pt fmtHHMM of
+    o@(Just _) -> o
+    _ -> case pt fmtZ of
+      o@(Just _) -> o
+      _ -> pt fmt 
+    
+toDayFormat :: String -> Maybe Day
+toDayFormat inVal = 
+  let fmt = "%F"
+      fmtHHMM = fmt ++ "%z"
+      fmtZ = fmt ++ "Z"
+      pt f = parseTime defaultTimeLocale f inVal
+  in case pt fmtHHMM of
+    o@(Just _) -> o
+    _ -> case pt fmtZ of
+      o@(Just _) -> o
+      _ -> pt fmt 
+    
 instance ToRDFLabel UTCTime where
-  toRDFLabel = flip Lit (Just xsd_dateTime) . 
-            formatTime defaultTimeLocale timeFormat
+  toRDFLabel = flip Lit (Just xsd_dateTime) . fromUTCFormat
   
 instance FromRDFLabel UTCTime where
-  fromRDFLabel = fLabel (parseTime defaultTimeLocale timeFormat) xsd_dateTime
+  fromRDFLabel = fLabel toUTCFormat xsd_dateTime
+  
+instance ToRDFLabel Day where
+  toRDFLabel = flip Lit (Just xsd_date) . fromDayFormat
+
+instance FromRDFLabel Day where
+  fromRDFLabel = fLabel toDayFormat xsd_date
   
 instance ToRDFLabel ScopedName where  
   toRDFLabel = Res
