@@ -20,10 +20,14 @@
 ------------------------------------------------------------
 
 module Swish.RDF.RDFGraph
-    ( RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
+    ( 
+      -- * Labels
+      RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp, isUri, isBlank, isQueryVar
     , getLiteralText, getScopedName, makeBlank
+                                     
+      -- * RDF Graphs
     , RDFTriple
     , NSGraph(..), RDFGraph
     , NamespaceMap, RevNamespaceMap, RevNamespace
@@ -35,16 +39,19 @@ module Swish.RDF.RDFGraph
     , setNamespaces, getNamespaces
     , setFormulae, getFormulae, setFormula, getFormula
     , toRDFGraph, emptyRDFGraph {-, updateRDFGraph-}
-      -- Re-export from GraphClass
+      
+    -- * Re-export from GraphClass
     , LDGraph(..), Label (..), Arc(..)
     , arc, arcSubj, arcPred, arcObj, Selector
-      -- Export selected RDFLabel values
+      
+      -- * Export selected RDFLabel values
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
     , res_rdfs_member
     , res_rdfd_GeneralRestriction
     , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
     , res_owl_sameAs, res_log_implies
-      -- Exported for testing:
+      
+      -- * Exported for testing
     , grMatchMap, grEq
     , mapnode, maplist
     )
