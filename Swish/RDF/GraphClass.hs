@@ -90,6 +90,14 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     update      :: ( [Arc lb] -> [Arc lb] ) -> lg lb -> lg lb
     update f g  = setArcs ( f (getArcs g) ) g
 
+{-
+TODO:
+  add a Monoid instance for LDGraph, so that we can remove the
+  NSGraph instance in RDFGraph
+
+  This means adding the emptyGr function to the interface
+-}
+
 -- |Function to replace arcs in a graph with a given list of arcs
 replaceArcs :: (LDGraph lg lb) => lg lb -> [Arc lb] -> lg lb
 replaceArcs gr as = update (const as) gr

@@ -99,6 +99,7 @@ import qualified Data.Traversable as T
 import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 -- import Control.Monad (liftM, ap)
 
+import Data.Monoid (Monoid(..))
 import Data.Char (isDigit)
 import Data.List (intersect, union, findIndices)
 import Data.Ord (comparing)
@@ -264,7 +265,7 @@ instance FromRDFLabel Float where
   fromRDFLabel = fLabel (\istr -> maybeRead istr >>= conv) xsd_float
     where
       conv :: Float -> Maybe Float
-      conv i | (isNaN i || isInfinite i || isDenormalized i) = Nothing
+      conv i | isNaN i || isInfinite i || isDenormalized i = Nothing
              | otherwise = Just . realToFrac $ i -- or fromRational . toRational
 
 instance ToRDFLabel Double where
@@ -526,7 +527,7 @@ data LookupFormula lb gr = Formula
     , formGraph :: gr
     }
 
-instance ( Eq lb, Eq gr ) => Eq (LookupFormula lb gr) where
+instance (Eq lb, Eq gr) => Eq (LookupFormula lb gr) where
     f1 == f2 = formLabel f1 == formLabel f2 &&
                formGraph f1 == formGraph f2
 
@@ -613,6 +614,10 @@ getFormula g l = mapFindMaybe l (formulae g)
 setFormula     :: (Label lb) => Formula lb -> NSGraph lb -> NSGraph lb
 setFormula f g = g { formulae=mapReplaceOrAdd f (formulae g) }
 
+instance (Label lb) => Monoid (NSGraph lb) where
+  mempty = NSGraph emptyNamespaceMap (LookupMap []) []
+  mappend = merge
+  
 instance (Label lb) => LDGraph NSGraph lb where
     getArcs      = statements 
     setArcs as g = g { statements=as }
@@ -673,17 +678,12 @@ grMatchMap g1 g2 =
         matchable l1 l2 = mapFormula g1 l1 == mapFormula g2 l2
         mapFormula g l  = mapFindMaybe l (getFormulae g)
 
-toNSGraph :: (Eq lb, Show lb) => [Arc lb] -> NSGraph lb
-toNSGraph arcs =
-    NSGraph
-        { statements = arcs
-        , namespaces = emptyNamespaceMap
-        , formulae   = LookupMap []
-        }
-
 -- |Merge RDF graphs, renaming blank and query variable nodes as
 --  needed to neep variable nodes from the two graphs distinct in
 --  the resulting graph.
+--        
+--  Currently formulae are not preserved across a merge.
+--        
 merge :: (Label lb) => NSGraph lb -> NSGraph lb -> NSGraph lb
 merge gr1 gr2 =
     let
@@ -815,11 +815,11 @@ type RDFGraph = NSGraph RDFLabel
 
 -- |Create a new RDF graph from a supplied list of arcs
 toRDFGraph :: [Arc RDFLabel] -> RDFGraph
-toRDFGraph = toNSGraph 
+toRDFGraph arcs = emptyRDFGraph { statements = arcs }
 
 -- |Create a new, empty RDF graph.
 emptyRDFGraph :: RDFGraph
-emptyRDFGraph = toRDFGraph []
+emptyRDFGraph = mempty 
 
 {-
 -- |Update an RDF graph using a supplied list of arcs, keeping

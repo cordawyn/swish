@@ -49,8 +49,9 @@ Description:
   [Version 0.3.1.0] Added the `Swish.RDF.RDFGraph.ToRDFLabel` and
   `Swish.RDF.RDFGraph.FromRDFLabel` classes to
   @Swish.RDF.RDFGraph@ and a number of instances for common Haskell
-  datatypes. Added a `Data.String.IsString` instance for
-  `Swish.RDF.RDFGraph.RDFLabel`.
+  datatypes. Added instances:
+  @IsString RDFLabel@
+   and @Monoid NSGraph@.
   .
   [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
   proof succeeds. Some documentation improvements, including a discussion

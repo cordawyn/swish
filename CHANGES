@@ -1,13 +1,19 @@
 0.3.1.0:
 
-  - added IsString instance to RDFLabel
+  - NSGraph:
 
-  - added ToRDFLabel and FromRDFLabel type classes for converting
-    to and from RDFLabel along with instances for some standard
-    Haskell types.
+    - added Monoid instance with a Label constraint
 
-    UTCTime support has required adding old-locale and time 
-    to the package constraints.
+  - RDFLabel:
+
+    - added IsString instance
+
+    - added ToRDFLabel and FromRDFLabel type classes for converting to
+      and from RDFLabel along with instances for some standard Haskell
+      types.
+
+  - UTCTime support (To/FromRDFLabel) has required adding old-locale
+    and time to the package constraints.
 
   - added xsd_dateTime export to Swish.RDF.Vocabulary
 

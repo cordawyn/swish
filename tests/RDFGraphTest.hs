@@ -22,8 +22,7 @@ import Swish.Utils.LookupMap
     ( LookupMap(..), LookupEntryClass(..)
     , mapFindMaybe )
 
-import Swish.Utils.ListHelpers
-    ( equiv )
+import Swish.Utils.ListHelpers (equiv)
 
 import Swish.RDF.GraphClass
     ( Label(..), Arc, arc )
@@ -45,7 +44,7 @@ import Swish.RDF.RDFGraph
     , isUri, isBlank, isQueryVar, makeBlank
     , getScopedName
     , LookupFormula(..), FormulaMap, emptyFormulaMap
-    , getArcs, addArc, merge
+    , getArcs, addArc
     , remapLabels, remapLabelList
     , setFormulae, getFormulae, setFormula, getFormula
     , newNode, newNodes )
@@ -64,6 +63,7 @@ import Swish.RDF.Vocabulary
 
 import qualified Data.Traversable as T
 
+import Data.Monoid (Monoid(..))
 import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust)
 
@@ -72,6 +72,7 @@ import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
 
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
+    , Assertion
     , assertBool, assertEqual, assertString
     , runTestTT )
 
@@ -853,6 +854,44 @@ grapheqlist =
   , ("g10","g10a")
   ]
 
+{-  
+  TODO: test Foldable instance of NSGraph
+  
+pick one of
+
+Methods
+fold :: Monoid m => t m -> mSource
+
+Combine the elements of a structure using a monoid.
+
+foldMap :: Monoid m => (a -> m) -> t a -> mSource
+
+Map each element of the structure to a monoid, and combine the results.
+
+foldr :: (a -> b -> b) -> b -> t a -> bSource
+
+Right-associative fold of a structure.
+
+foldr f z = foldr f z . toList
+foldl :: (a -> b -> a) -> a -> t b -> aSource
+
+Left-associative fold of a structure.
+
+foldl f z = foldl f z . toList
+foldr1 :: (a -> a -> a) -> t a -> aSource
+
+A variant of foldr that has no base case, and thus may only be applied to non-empty structures.
+
+foldr1 f = foldr1 f . toList
+foldl1 :: (a -> a -> a) -> t a -> aSource
+
+A variant of foldl that has no base case, and thus may only be applied to non-empty structures.
+
+foldl1 f = foldl1 f . toList
+
+XXX END DIGRESSION
+-}
+  
 testGraphEqSuite :: Test
 testGraphEqSuite = TestList
   [ testGraphEq (tLab ll1 ll2) (tEq ll1 ll2) gg1 gg2
@@ -1180,12 +1219,19 @@ testGraphTranslateSuite = TestLabel "TestTranslate" $ TestList
 
 testMerge :: String -> RDFGraph -> RDFGraph -> RDFGraph -> Test
 testMerge lab a1 a2 gr =
-    TestCase ( assertEquiv ("testMerge:"++lab) gr (merge a1 a2) )
-        where
-            grequiv gg1 gg2 = (getArcs gg1) `equiv` (getArcs gg2)
-            assertEquiv lbl gg1 gg2 = assertString $
-                if grequiv gg1 gg2 then ""
-                else lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
+    TestCase ( assertGrEquiv ("testMerge:"++lab) gr (a1 `mappend` a2) )
+            
+assertGrEquiv :: String -> RDFGraph -> RDFGraph -> Assertion
+assertGrEquiv lbl gg1 gg2 = 
+  assertString $
+    if (getArcs gg1) `equiv` (getArcs gg2) then ""
+    else lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
+
+assertGrEq :: String -> RDFGraph -> RDFGraph -> Assertion
+assertGrEq lbl gg1 gg2 = 
+  assertString $
+    if gg1 == gg2 then ""
+    else lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
 
 testEquiv :: (Eq a) => String -> [a] -> [a] -> Test
 testEquiv lab l1s l2s = TestCase $ assertBool lab (l1s `equiv` l2s)
@@ -1247,7 +1293,7 @@ tm74 = arc bn6 p2 o4
 
 gm0, gms, gms2, gm1, gm11, gm2, gm2f, gm22, gm3, gm3f, gm33,
   gm4, gm44 :: RDFGraph
-gm0  = toGraph []
+gm0  = mempty
 gms  = toGraph [arc s1 p1 o1, arc o1 p2 s3, arc s2 p3 o4]
 gms2 = toGraph [arc us1 p1 o1, arc p1 p2 es1]
 gm1  = toGraph [tm01,tm02,tm03,tm04,tm05,tm06,tm07,tm08
@@ -1267,7 +1313,7 @@ gm33 = toGraph [tm04,tm44]
 gm4  = toGraph [tm01,tm04]
 gm44 = toGraph [tm01,tm04,tm41a,tm44a]
 
-gm5, gm55, gm6, gm66 :: RDFGraph
+gm5, gm55 :: RDFGraph
 gm5  = NSGraph
         { namespaces = nslist
         , formulae   = LookupMap [Formula b1 gm2]
@@ -1280,6 +1326,15 @@ gm55 = NSGraph
         , statements = [tm01,tm02,tm03,tm41,tm42,tm43]
         }
 
+gm5s :: RDFGraph
+gm5s  = NSGraph
+        { namespaces = nslist
+        , formulae   = LookupMap [Formula b1 gm2]
+        , statements = [tm01,tm02,tm03,
+                        arc s1 p1 o1, arc o1 p2 s3, arc s2 p3 o4]
+        }
+
+gm6, gm66 :: RDFGraph
 gm6 = NSGraph
         { namespaces = nslist
         , formulae   = LookupMap [Formula ba1 gm2,Formula bn3 gm3]
@@ -1296,6 +1351,45 @@ gm66 = NSGraph
                        ,tm67,tm68,tm69,tm70,tm71,tm72,tm73,tm74
                        ]
         }
+
+gm456 :: RDFGraph
+gm456 = NSGraph 
+  { namespaces = nslist
+  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = LookupMap []
+  , statements = [tm01, tm04,
+                  tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
+                  , arc s1 p1 b4
+                  , arc b4 p1 o2
+                  , arc b4 p1 o3
+                 ]
+  }
+
+gm564 :: RDFGraph
+gm564 = NSGraph 
+  { namespaces = nslist
+  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = LookupMap []
+  , statements = [tm01, tm02, tm03
+                  , arc b5 p2 b6
+                  , tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
+                  , arc s1 p1 b4
+                 ]
+  }
+
+gm645 :: RDFGraph
+gm645 = NSGraph 
+  { namespaces = nslist
+  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = LookupMap []
+  , statements = [tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
+                  , arc s1 p1 b4
+                  , arc b4 p1 o2
+                  , arc b4 p1 o3
+                  , arc s1 p1 b5
+                  , arc b6 p2 b7
+                 ]
+  }
 
 tm81, tm82, tm811, tm821, tm812, tm822 :: Arc RDFLabel
 tm81  = arc b1 p1 v1
@@ -1348,6 +1442,18 @@ testMergeSuite = TestList
   , testMerge "04" gm4 gm4 gm44
   , testMerge "05" gm5 gm5 gm55
   , testMerge "06" gm6 gm6 gm66
+  , testMerge "0+s" gm0 gms gms
+  , testMerge "s+0" gms gm0 gms
+  , testMerge "0+5" gm0 gm5 gm5
+  , testMerge "5+0" gm5 gm0 gm5
+  , testMerge "5+s" gm5 gms gm5s
+  , testMerge "s+5" gms gm5 gm5s
+  , TestCase (assertGrEquiv "mconcat:456" gm456 (mconcat [gm4,gm5,gm6]))
+  , TestCase (assertGrEquiv "mconcat:564" gm564 (mconcat [gm5,gm6,gm4]))
+  , TestCase (assertGrEquiv "mconcat:645" gm645 (mconcat [gm6,gm4,gm5]))
+  , TestCase (assertGrEq "mappend"  
+              (mappend gm4 (mappend gm5 gm6))
+              (mappend (mappend gm4 gm5) gm6))
   , testGraphEq "Remap07" True gm82 gm82a
   , testEquiv "testRemapList07" gm82b2 gm82b1
   , testGraphEq "Remap08" True gm83 gm83a

@@ -22,7 +22,7 @@
 
 module Swish.RDF.GraphMatch
       ( graphMatch,
-        -- The rest exported for testing only
+        -- * Exported for testing
         LabelMap, GenLabelMap(..), LabelEntry, GenLabelEntry(..),
         ScopedLabel(..), makeScopedLabel, makeScopedArc,
         LabelIndex, EquivalenceClass, nullLabelVal, emptyMap,
@@ -186,7 +186,7 @@ graphMatch :: (Label lb) =>
     -> [Arc lb] -- ^ the first graph to be compared, as a list of arcs
     -> [Arc lb] -- ^ the second graph to be compared, as a list of arcs
     -> (Bool,LabelMap (ScopedLabel lb))
-    -- ^ If the first element is `True` then the secondelement maps each label
+    -- ^ If the first element is `True` then the second element maps each label
     --   to an equivalence class identifier, otherwise it is just
     --   `emptyMap`.
     --
