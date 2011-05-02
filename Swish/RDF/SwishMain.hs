@@ -10,34 +10,14 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  Swish:  Semantic Web Inference Scripting in Haskell
---
---  This program is a simple skeleton for constructing Semantic Web [1]
---  inference tools in Haskell, using the RDF graph and several RDF
---  parsers (at present Notation 3 and NTriples).
---
---  It might be viewed as a kind of embroyonic CWM [2] in Haskell, except
---  that the intent is that Haskell will be used as a primary language for
---  defining inferences.  As such, Swish is an open-ended toolkit for
---  constructing new special-purpose Semantic Web applications rather
---  than a closed, self-contained general-purpose SW application.
 --  I anticipate that this module may be used as a starting point for
---  creating new programs rathar then as a complete program in its own right.
---  The functionality built into this code is selected with a view to testing
---  the Haskell modules for handling RDF rather than for performing any
---  particular application processing (though development as a tool with
---  some broader utility is not ruled out).  As such, it is part of
---  another experiment along the lines described in [3].
+--  creating new programs rather then as a complete program in its own
+--  right.  The functionality built into this code is selected with a
+--  view to testing the Haskell modules for handling RDF rather than
+--  for performing any particular application processing (though
+--  development as a tool with some broader utility is not ruled out).
 --
---  (1) Semantic web: <http://www.w3.org/2001/sw/>
---
---  (2) CWM:          <http://www.w3.org/2000/10/swap/doc/cwm.html>
---
---  (3) Motivation:   <http://www.w3.org/2000/10/swap/doc/Motivation.html>
---
---  (4) Notation 3:   <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
---
---  (5) RDF:          <http://www.w3.org/RDF/>
+--  This module is likely to be moved to the Swish module.
 --
 --------------------------------------------------------------------------------
 

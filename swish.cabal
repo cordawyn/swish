@@ -52,6 +52,8 @@ Description:
   datatypes. Added instances:
   @IsString RDFLabel@
    and @Monoid NSGraph@.
+  A top-level module "Swish" has been introduced with most of the
+  documentation from "Swish.RDF.SwishMain".
   .
   [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
   proof succeeds. Some documentation improvements, including a discussion
@@ -123,6 +125,7 @@ Library
       directory >= 1.0 && <= 1.1,
       filepath >= 1.1 && <= 1.2
    Exposed-Modules:
+      Swish
       Swish.RDF.BuiltInDatatypes
       Swish.RDF.BuiltInMap
       Swish.RDF.BuiltInRules

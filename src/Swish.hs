@@ -26,7 +26,7 @@ import Control.Monad (unless)
 
 import System.IO (stderr, hPutStrLn)
 
-import Swish.RDF.SwishMain
+import Swish
 
 ------------------------------------------------------------
 --  Swish main program
