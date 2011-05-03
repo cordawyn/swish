@@ -54,17 +54,11 @@ import Test.HUnit
     ( Test(TestCase,TestList)
     , Assertion
     , assertBool, assertEqual, assertFailure
-    , runTestTT, runTestText, putTextToHandle
-    )
-
-import System.IO
-    ( IOMode(WriteMode)
-    , openFile, hClose
+    , runTestTT
     )
 
 import Control.Monad (unless)
-import Data.Maybe (isJust)
-
+import Data.Maybe (isJust, isNothing)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -100,7 +94,7 @@ testJust lab av =
 
 testNothing :: String -> Maybe a -> Test
 testNothing lab av =
-    TestCase ( assertBool ("testJust:"++lab) (not $ isJust av) )
+    TestCase ( assertBool ("testNothing:"++lab) (isNothing av) )
 
 -- Compare lists and lists of lists and Maybe lists for set equivalence:
 
@@ -173,6 +167,11 @@ testVarModSuite :: Test
 testVarModSuite = TestList
     [ testVarMod01, testVarMod02, testVarMod03, testVarMod04
     , testVarMod05, testVarMod06, testVarMod07
+      -- the following just exposes a few "edge" cases (a Show instance
+      -- and using the namespace part of the swish namespace)
+    , TestCase (assertEqual "show:rdfVarBindingUriRef" 
+                (Just "swish:rdfVarBindingUriRef")
+                $ fmap show (findRDFOpenVarBindingModifier (swishName "rdfVarBindingUriRef")))
     ]
 
 ------------------------------------------------------------
@@ -252,13 +251,13 @@ allTests = TestList
 main :: IO ()
 main = runTestTT allTests >> return ()
 
+{-
 runTestFile :: Test -> IO ()
 runTestFile t = do
     h <- openFile "a.tmp" WriteMode
     _ <- runTestText (putTextToHandle h False) t
     hClose h
     
-{-
 tf = runTestFile
 tt = runTestTT
 -}

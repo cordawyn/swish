@@ -155,7 +155,8 @@ arc :: lb      -- ^ The subject of the arc.
 arc = Arc
 
 arcToTriple :: Arc lb -> (lb,lb,lb)
-arcToTriple a = (asubj a,apred a,aobj a)
+arcToTriple (Arc s p o) = (s, p, o)
+-- arcToTriple a = (asubj a,apred a,aobj a)
 
 arcFromTriple :: (lb,lb,lb) -> Arc lb
 arcFromTriple (s,p,o) = Arc s p o

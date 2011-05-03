@@ -12,6 +12,11 @@
       and from RDFLabel along with instances for some standard Haskell
       types.
 
+  - RDFTriple:
+
+    - added toRDFTriple and fromRDFTriple functions that take advantage
+      of the To/FromRDFLabel typeclasses to ease conversion from/to Arcs.
+
   - UTCTime support (To/FromRDFLabel) has required adding old-locale
     and time to the package constraints.
 

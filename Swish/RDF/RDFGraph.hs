@@ -29,7 +29,10 @@ module Swish.RDF.RDFGraph
                                      
       -- * RDF Graphs
     , RDFTriple
-    , NSGraph(..), RDFGraph
+    , toRDFTriple, fromRDFTriple
+    , NSGraph(..)
+    , RDFGraph
+    , toRDFGraph, emptyRDFGraph {-, updateRDFGraph-}
     , NamespaceMap, RevNamespaceMap, RevNamespace
     , emptyNamespaceMap
     , LookupFormula(..), Formula, FormulaMap, emptyFormulaMap
@@ -38,7 +41,6 @@ module Swish.RDF.RDFGraph
     , newNode, newNodes
     , setNamespaces, getNamespaces
     , setFormulae, getFormulae, setFormula, getFormula
-    , toRDFGraph, emptyRDFGraph {-, updateRDFGraph-}
       
     -- * Re-export from GraphClass
     , LDGraph(..), Label (..), Arc(..)
@@ -215,6 +217,12 @@ class FromRDFLabel a where
   fromRDFLabel :: RDFLabel -> Maybe a
 
 -- instances for type conversion to/from RDFLabel
+  
+instance ToRDFLabel RDFLabel where
+  toRDFLabel = id
+  
+instance FromRDFLabel RDFLabel where
+  fromRDFLabel = Just . id
   
 -- TODO: need to check that the Haskell read/show instances match
 --       the RDF syntactical constraints
@@ -502,9 +510,37 @@ makeBlank  (Var loc)    = Blank loc
 makeBlank  lb           = lb
 
 -- | RDF Triple (statement)
-
+-- 
+--   At present there is no check or type-level
+--   constraint that stops the subject or
+--   predicate of the triple from being a literal.
+--
 type RDFTriple = Arc RDFLabel
 
+-- | Convert 3 RDF labels to a RDF triple.
+--
+--   See also `arcFromTriple`.
+toRDFTriple :: 
+  (ToRDFLabel s, ToRDFLabel p, ToRDFLabel o) 
+  => s -- ^ Subject 
+  -> p -- ^ Predicate
+  -> o -- ^ Object
+  -> RDFTriple
+toRDFTriple s p o = 
+  Arc (toRDFLabel s) (toRDFLabel p) (toRDFLabel o)
+
+-- | Extract the contents of a RDF triple.
+--
+--   See also `arcToTriple`.
+fromRDFTriple :: 
+  (FromRDFLabel s, FromRDFLabel p, FromRDFLabel o) 
+  => RDFTriple 
+  -> Maybe (s, p, o) -- ^ The conversion only succeeds if all three
+                     --   components can be converted to the correct
+                     --   Haskell types.
+fromRDFTriple (Arc s p o) = 
+  (,,) <$> fromRDFLabel s <*> fromRDFLabel p <*> fromRDFLabel o
+  
 -- | Namespace prefix list entry
 
 type NamespaceMap = LookupMap Namespace

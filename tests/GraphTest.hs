@@ -18,7 +18,8 @@ module Main where
 
 import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
-        assertEqual, runTestTT )
+        assertEqual, assertBool,
+        runTestTT )
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust)
 
@@ -1756,6 +1757,7 @@ allTests = TestList
   , testGraphSuite
   , testLabelEqSuite
   , testLabelOrdSuite
+  , TestCase (assertBool "arc neq" ((Arc True True True) /= (Arc True True False))) -- silly test of Eq instance
   , testStmtEqSuite
   , testLabelMapSuite
   , testGraphMatchSupportSuite

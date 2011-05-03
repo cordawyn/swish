@@ -41,7 +41,7 @@ Some things I want to/should do (not in order)
   obvious candidate.
 
 - add top-level modules - e.g. Swish or Swish.RDF - for documentation
-  and a simple way to load up a useful set of modules.
+  (partly done) and a simple way to load up a useful set of modules.
 
 - move to camel case for names, in particular for
   Swish.RDF.Vocabulary; this would require a minor version update
@@ -49,18 +49,7 @@ Some things I want to/should do (not in order)
 - change SwishAction from a tuple to a SwishStateIO (); requires an
   minor version update
 
-- change To/FromRDFLabel to To/FromLabel
-  add instances for Label (id/Just . id)
-  add URI instances (ScopedName "?" I think)
-
-  add To/FromArc classes that take convert to/from
-  a tuple; this is where To/FromLabel instances of
-  Label come in since can say
-
-    instance (ToLabel a, ToLabel b, ToLabel c) => ToArc ..
-
-  Hmm, perhaps not; at least not as a typeclass; it
-  may just make more sense as a constructor/destructor
+- add URI instances (ScopedName "?" I think) for To/FromRDFLabel
 
 - N3Formatter should output integer/float/bool/... as "native"
   values rather than e.g. "1"^^xsd:integer 

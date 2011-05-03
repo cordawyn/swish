@@ -23,8 +23,7 @@ module Swish.RDF.BuiltInRules
     )
 where
 
-import Swish.RDF.BuiltInDatatypes
-    ( allDatatypes )
+import Swish.RDF.BuiltInDatatypes (allDatatypes)
 
 import Swish.RDF.RDFVarBinding
     ( RDFOpenVarBindingModify
@@ -35,8 +34,7 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.RDF.RDFRuleset
-    ( RDFRuleset, RDFRulesetMap )
+import Swish.RDF.RDFRuleset (RDFRuleset, RDFRulesetMap)
 
 import Swish.RDF.RDFProofContext
     ( rulesetRDF
@@ -49,18 +47,9 @@ import Swish.RDF.VarBinding
     , varFilterEQ, varFilterNE
     )
 
-import Swish.RDF.Datatype
-    ( typeRules
-    , typeMkModifiers
-    )
-
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , mapFindMaybe
-    )
-
-import Swish.Utils.Namespace
-    ( ScopedName(..) )
+import Swish.RDF.Datatype (typeRules, typeMkModifiers)
+import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
+import Swish.Utils.Namespace (ScopedName(..))
 
 ------------------------------------------------------------
 --  Declare variable binding filters list
@@ -83,9 +72,15 @@ rdfVarBindingFilters =
     , filter2 varFilterNE
     ]
     where
-        filter1 f lbs = makeVarFilterModify $ f (head lbs)
-        filter2 f lbs = makeVarFilterModify $ f (head lbs) (lbs!!1)
-        -- filterN f lbs = makeVarFilterModify $ f ...
+      -- Swish.RDF.VarBinding.openVbmName seems to require that the label
+      -- list not be evaluated which means that we can not replace these
+      -- statements by ones like
+      --
+      --    filter1 f (lb:_) = makeVarFilterModift $ f lb
+      --
+      filter1 f lbs = makeVarFilterModify $ f (head lbs)
+      filter2 f lbs = makeVarFilterModify $ f (head lbs) (lbs!!1)
+      -- filterN f lbs = makeVarFilterModify $ f ...
 
 ------------------------------------------------------------
 --  Declare variable binding modifiers map

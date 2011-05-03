@@ -25,7 +25,7 @@ import Swish.Utils.LookupMap
 import Swish.Utils.ListHelpers (equiv)
 
 import Swish.RDF.GraphClass
-    ( Label(..), Arc, arc )
+    ( Label(..), arc )
 
 import Swish.Utils.Namespace
     ( Namespace(..)
@@ -35,19 +35,19 @@ import Swish.Utils.Namespace
     )
 
 import Swish.RDF.RDFGraph
-    ( RDFTriple, 
-      RDFGraph, 
-      RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..),
-      NSGraph(..)
-    , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
-    , isDatatyped, isMemberProp
-    , isUri, isBlank, isQueryVar, makeBlank
-    , getScopedName
-    , LookupFormula(..), FormulaMap, emptyFormulaMap
-    , getArcs, addArc
-    , remapLabels, remapLabelList
-    , setFormulae, getFormulae, setFormula, getFormula
-    , newNode, newNodes )
+  ( RDFTriple, toRDFTriple, fromRDFTriple
+  , RDFGraph 
+  , RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
+  , NSGraph(..)
+  , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
+  , isDatatyped, isMemberProp
+  , isUri, isBlank, isQueryVar, makeBlank
+  , getScopedName
+  , LookupFormula(..), FormulaMap, emptyFormulaMap
+  , getArcs, addArc
+  , remapLabels, remapLabelList
+  , setFormulae, getFormulae, setFormula, getFormula
+  , newNode, newNodes )
 
 import Swish.RDF.Vocabulary
   ( namespaceRDF
@@ -73,7 +73,7 @@ import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
     , Assertion
-    , assertBool, assertEqual, assertString
+    , assertBool, assertEqual
     , runTestTT )
 
 ------------------------------------------------------------
@@ -245,8 +245,10 @@ l7   = Lit "l4"  (Just qb1t2)
 l8   = Lit "l4"  (Just qb1t2)           
 l9   = Lit "l4"  (Just qb1t2)           
 l10  = Lit "l10" (Just rdf_XMLLiteral)  
-l11  = Lit "l10" (Just rdf_XMLLiteral)  
-l12  = Lit "l10" (Just rdf_XMLLiteral)  
+-- l11  = Lit "l11" (Just rdf_XMLLiteral)  
+-- l12  = Lit "l12" (Just rdf_XMLLiteral)  
+l11  = Lit "l10" (Just rdf_XMLLiteral)   -- are these meant to both be l10?
+l12  = Lit "l10" (Just rdf_XMLLiteral)   -- if you change them some tests fail
 
 v1, v2, v3, v4, vb3, vb4 :: RDFLabel
 v1  = Var "v1"  
@@ -325,6 +327,9 @@ testConv lbl sVal dtype hVal =
   , testEq ("fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
   ]
     
+-- some conversions (e.g. toRDFTriple) are covered by  
+-- other tests
+--
 testConversionSuite :: Test
 testConversionSuite =
   TestList
@@ -340,8 +345,9 @@ testConversionSuite =
   , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsd_float))) -- invalid input 
   , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "NaNs" (Just xsd_float))) -- invalid input 
   , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (Lit "1.23" (Just xsd_float))) -- invalid input 
-  , testEq "fconv: fail sn1"    (Nothing :: Maybe ScopedName) (fromRDFLabel l1)
-    
+  , testEq "fconv:fail sn1"     (Nothing :: Maybe ScopedName) (fromRDFLabel l1)
+  , testEq "fconv:fail triple"  (Nothing :: Maybe (ScopedName, ScopedName, Int)) (fromRDFTriple t01)
+                                    
     -- basic string tests
   , testEq "tconv:emptystring1"  (Lit "" Nothing)    ""       -- want to try out IsString so do not use testConv
   , testConv "emptystring2"       "" Nothing    (""::String)
@@ -396,6 +402,10 @@ testConversionSuite =
   , testEq   "fconv:day1b"  (Just day1)   (fromRDFLabel (Lit "1970-01-01" (Just xsd_date)))
   , testEq   "fconv:day1c"  (Just day1)   (fromRDFLabel (Lit "1970-01-01-03:00" (Just xsd_date)))
   , testEq   "fconv:day1d"  (Just day1)   (fromRDFLabel (Lit "1970-01-01+04:00" (Just xsd_date)))
+    
+    -- basic fromRDFTriple test
+    
+  , testEq   "fconv:triple" (Just (qb1s1, p1, "l1" :: String))     (fromRDFTriple t04)
     
     -- TODO
     
@@ -549,16 +559,17 @@ testNodeLocalSuite = TestList
 testNodeEq :: String -> RDFLabel -> RDFLabel -> Test
 testNodeEq = testCompare "testNodeEq:"
 
-tnn01, tnn02, tnn03, tnn04, tnn05, tnn06,
-  tnn07, tnn08, tnn09 :: RDFLabel
-tnn01 = (newNode  v1 [b1,b3,v1,v2])
-tnn02 = (newNode  b1 [b1,b3,v1,v2])
-tnn03 = (newNodes b1 [b1,b3,v1,v2])!!0
-tnn04 = (newNodes b1 [b1,b3,v1,v2])!!1
-tnn05 = (newNodes b1 [b1,b3,v1,v2])!!2
-tnn06 = (newNodes s1 [b1,b3,v1,v2,tnns3])!!0
-tnn07 = (newNodes s1 [b1,b3,v1,v2,tnns3])!!1
-tnn08 = (newNodes s1 [b1,b3,v1,v2,tnns3])!!2
+tnn01, tnn02 :: RDFLabel
+tnn01 = newNode  v1 [b1,b3,v1,v2]
+tnn02 = newNode  b1 [b1,b3,v1,v2]
+
+tnn03, tnn04, tnn05 :: RDFLabel
+(tnn03 : tnn04 : tnn05 : _ ) = newNodes b1 [b1, b3, v1, v2]
+
+tnn06, tnn07, tnn08 :: RDFLabel
+(tnn06 : tnn07 : tnn08 : _ ) = newNodes s1 [b1,b3,v1,v2,tnns3]
+
+tnn09 :: RDFLabel
 tnn09 = (newNodes l1 [b1,b3,v1,v2,tnns3])!!2
 
 tnns1, tnns2, tnns3, tnns4, tnnl1 :: RDFLabel
@@ -663,11 +674,11 @@ olist =
     ("l1",l1), ("l4",l4), ("l7",l7), ("l8",l8), ("l10",l10)
   ]
 
-tlist :: [(String, Arc RDFLabel)]
+tlist :: [(String, RDFTriple)]
 tlist =
   [ (lab s p o,trp s p o) | s <- slist, p <- plist, o <- olist ]
     where
-    lab (s,_) (p,_) (o,_) = s++"."++p++"."++o
+    lab (s,_) (p,_) (o,_) = intercalate "." [s, p, o]
     trp (_,s) (_,p) (_,o) = arc s p o
 
 stmteqlist :: [(String, String)]
@@ -720,7 +731,7 @@ testGraphEq lab eq gg1 gg2 =
 testGraphEqM :: String -> Bool -> Maybe RDFGraph -> Maybe RDFGraph -> Test
 testGraphEqM = testCompareEq "testGraphEq:"
 
-t01, t02, t03, t04, t05, t06 :: Arc RDFLabel
+t01, t02, t03, t04, t05, t06 :: RDFTriple
 t01 = arc s1 p1 o1
 t02 = arc s2 p1 o2
 t03 = arc s3 p1 o3
@@ -728,21 +739,22 @@ t04 = arc s1 p1 l1
 t05 = arc s2 p1 l4
 t06 = arc s3 p1 l10
 
-t10, t11, t12 :: Arc RDFLabel
+t10, t11, t12 :: RDFTriple
 t10 = arc s1 p1 b1
 t11 = arc b1 p2 b2
 t12 = arc b2 p3 o1
 
-t20, t21, t22 :: Arc RDFLabel
+t20, t21, t22 :: RDFTriple
 t20 = arc s1 p1 b3
 t21 = arc b3 p2 b4
 t22 = arc b4 p3 o1
 
-tt01, tt02, tt03, tt04, tt05, tt06 :: Arc RDFLabel
+tt01, tt02, tt03, tt04, tt05, tt06 :: RDFTriple
 tt01 = arc st1 p1 o1
 tt02 = arc st2 p1 o2
 tt03 = arc st3 p1 o3
-tt04 = arc st1 p1 l1
+tt04 = toRDFTriple st1 p1 ("l1" :: RDFLabel)
+-- tt04 = arc st1 p1 l1
 tt05 = arc st2 p1 l4
 tt06 = arc st3 p1 l10
 
@@ -764,7 +776,7 @@ nslistalt = LookupMap $ map makeNewPrefixNamespace
     , ("altbase3",base3)
     ]
 
-toGraph :: [Arc RDFLabel] -> RDFGraph
+toGraph :: [RDFTriple] -> RDFGraph
 toGraph stmts = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
@@ -791,8 +803,8 @@ uris1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#s1
 urip1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#p1"
 urio1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#o1"
 
-tu01 :: Arc RDFLabel
-tu01  = arc (Res uris1) (Res urip1) (Res urio1)
+tu01 :: RDFTriple
+tu01  = toRDFTriple uris1 urip1 urio1
 
 g2arcs :: [String]
 g2arcs = [
@@ -1023,7 +1035,7 @@ f21, f22 :: FormulaMap RDFLabel
 f21  = getFormulae g1f21
 f22  = getFormulae g1f22
 
-f23a, f23b, f23c :: Maybe (NSGraph RDFLabel)
+f23a, f23b, f23c :: Maybe RDFGraph
 f23a = getFormula g1f22 s1
 f23b = getFormula g1f22 s2
 f23c = getFormula g1f22 s3
@@ -1221,23 +1233,23 @@ testMerge :: String -> RDFGraph -> RDFGraph -> RDFGraph -> Test
 testMerge lab a1 a2 gr =
     TestCase ( assertGrEquiv ("testMerge:"++lab) gr (a1 `mappend` a2) )
             
+assertGrHelper :: String -> RDFGraph -> RDFGraph -> Bool -> Assertion
+assertGrHelper lbl gg1 gg2 = assertBool $ 
+    lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
+  
 assertGrEquiv :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEquiv lbl gg1 gg2 = 
-  assertString $
-    if (getArcs gg1) `equiv` (getArcs gg2) then ""
-    else lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
+  assertGrHelper lbl gg1 gg2 $ (getArcs gg1) `equiv` (getArcs gg2)
 
 assertGrEq :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEq lbl gg1 gg2 = 
-  assertString $
-    if gg1 == gg2 then ""
-    else lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
+  assertGrHelper lbl gg1 gg2 $ gg1 == gg2
 
 testEquiv :: (Eq a) => String -> [a] -> [a] -> Test
 testEquiv lab l1s l2s = TestCase $ assertBool lab (l1s `equiv` l2s)
 
 tm01, tm02, tm03, tm04, tm05, tm06, tm07, tm08, tm09,
-  tm10, tm11, tm12, tm13, tm14 :: Arc RDFLabel
+  tm10, tm11, tm12, tm13, tm14 :: RDFTriple
 tm01 = arc s1  p1 b1
 tm02 = arc b1  p1 o2
 tm03 = arc b1  p1 o3
@@ -1254,7 +1266,7 @@ tm13 = arc s4  p2 bn3
 tm14 = arc bn4 p2 o4
 
 tm21, tm22, tm23, tm24, tm25, tm26, tm27, tm28, tm29,
-  tm30, tm31, tm32, tm33, tm34 :: Arc RDFLabel
+  tm30, tm31, tm32, tm33, tm34 :: RDFTriple
 tm21 = arc s1  p1 b6
 tm22 = arc b6  p1 o2
 tm23 = arc b6  p1 o3
@@ -1270,18 +1282,18 @@ tm32 = arc ba4 p2 o4
 tm33 = arc s4  p2 bn5
 tm34 = arc bn6 p2 o4
 
-tm41, tm42, tm43, tm44 :: Arc RDFLabel
+tm41, tm42, tm43, tm44 :: RDFTriple
 tm41  = arc s1  p1 b2
 tm42  = arc b2  p1 o2
 tm43  = arc b2  p1 o3
 tm44  = arc b4  p2 b5
 
-tm41a, tm44a :: Arc RDFLabel
+tm41a, tm44a :: RDFTriple
 tm41a = arc s1  p1 b4
 tm44a = arc b5  p2 b6
 
 tm67, tm68, tm69, tm70, tm71, tm72,
-  tm73, tm74 :: Arc RDFLabel
+  tm73, tm74 :: RDFTriple
 tm67 = arc s2  p3 v3
 tm68 = arc s3  p3 v4
 tm69 = arc s4  p1 c3
@@ -1391,7 +1403,7 @@ gm645 = NSGraph
                  ]
   }
 
-tm81, tm82, tm811, tm821, tm812, tm822 :: Arc RDFLabel
+tm81, tm82, tm811, tm821, tm812, tm822 :: RDFTriple
 tm81  = arc b1 p1 v1
 tm82  = arc b2 p2 v2
 tm811 = arc b1 p1 v3
