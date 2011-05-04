@@ -47,13 +47,12 @@ Description:
   Major Changes:
   .
   [Version 0.3.1.0] Added the `Swish.RDF.RDFGraph.ToRDFLabel` and
-  `Swish.RDF.RDFGraph.FromRDFLabel` classes to
-  @Swish.RDF.RDFGraph@ and a number of instances for common Haskell
-  datatypes. Added instances:
-  @IsString RDFLabel@
-   and @Monoid NSGraph@.
-  A top-level module "Swish" has been introduced with most of the
-  documentation from "Swish.RDF.SwishMain".
+  `Swish.RDF.RDFGraph.FromRDFLabel` classes and the 
+  `Swish.RDF.RDFGraph.toRDFTriple` and `Swish.RDF.RDFGraph.fromRDFTriple`
+  functions.
+  Added instances: @IsString RDFLabel@ and @Monoid NSGraph@.
+  The modules "Swish" and "Swish.RDF" have been introduced to provide
+  documentation.
   .
   [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
   proof succeeds. Some documentation improvements, including a discussion
@@ -126,6 +125,7 @@ Library
       filepath >= 1.1 && <= 1.2
    Exposed-Modules:
       Swish
+      Swish.RDF
       Swish.RDF.BuiltInDatatypes
       Swish.RDF.BuiltInMap
       Swish.RDF.BuiltInRules

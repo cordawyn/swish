@@ -22,6 +22,8 @@
 
   - added xsd_dateTime export to Swish.RDF.Vocabulary
 
+  - added Swish and Swish.RDF modules for documentation purposes.
+
 0.3.0.3:
 
   - to be written

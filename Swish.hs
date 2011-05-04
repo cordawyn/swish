@@ -28,7 +28,7 @@
 --  "Swish.RDF.SwishScript".
 --
 --  Users wishing to process RDF data directly may prefer to look at
---  the following modules; "Swish.RDF.RDFGraph", "Swish.RDF.N3Parser",
+--  the following modules; "Swish.RDF", "Swish.RDF.N3Parser",
 --  "Swish.RDF.N3Formatter", "Swish.RDF.NTParser" and
 --  "Swish.RDF.NTFormatter".
 --
