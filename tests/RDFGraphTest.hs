@@ -24,14 +24,12 @@ import Swish.Utils.LookupMap
 
 import Swish.Utils.ListHelpers (equiv)
 
-import Swish.RDF.GraphClass
-    ( Label(..), arc )
+import Swish.RDF.GraphClass (Label(..), arc)
 
 import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
     , nullScopedName
-    , makeUriScopedName
     )
 
 import Swish.RDF.RDFGraph
@@ -799,9 +797,9 @@ g1alt = NSGraph
 --  Construct version of g1 using just URIs
 
 uris1, urip1, urio1 :: ScopedName
-uris1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
-urip1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#p1"
-urio1 = makeUriScopedName "http://id.ninebynine.org/wip/2003/test/graph1/node#o1"
+uris1 = "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
+urip1 = "http://id.ninebynine.org/wip/2003/test/graph1/node#p1"
+urio1 = "http://id.ninebynine.org/wip/2003/test/graph1/node#o1"
 
 tu01 :: RDFTriple
 tu01  = toRDFTriple uris1 urip1 urio1

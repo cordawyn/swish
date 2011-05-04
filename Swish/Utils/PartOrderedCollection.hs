@@ -12,11 +12,11 @@
 --
 --  This module provides methods to support operations on partially ordered
 --  collections.  The partial ordering relationship is represented by
---  Maybe `Ordering`.
+--  `Maybe Ordering`.
 --
 --  Thanks to members of the haskell-cafe mailing list -
---    Robert (rvollmert-lists@gmx.net) and
---    Tom Pledger (Tom.Pledger@peace.com) -
+--    Robert (rvollmert-lists\@gmx.net) and
+--    Tom Pledger (Tom.Pledger\@peace.com) -
 --  who suggested key ideas on which some of the code in this module is based.
 --
 --------------------------------------------------------------------------------

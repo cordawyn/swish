@@ -32,11 +32,10 @@ module Swish.Utils.Namespace
     )
 where
 
-import Swish.Utils.QName
-    ( QName(..), getQNameURI )
+import Swish.Utils.QName (QName(..), getQNameURI)
+import Swish.Utils.LookupMap (LookupEntryClass(..))
 
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..) )
+import Data.String (IsString(..))
 
 ------------------------------------------------------------
 --  Namespace, having a prefix and a URI
@@ -96,6 +95,9 @@ getScopePrefix = nsPrefix . snScope
 getScopeURI :: ScopedName -> String
 getScopeURI = nsURI . snScope
 
+instance IsString ScopedName where
+  fromString = makeUriScopedName
+    
 instance Eq ScopedName where
     (==) = snEq
 
@@ -109,7 +111,7 @@ instance Show ScopedName where
             pre = nsPrefix n
             uri = nsURI n
 
---  Scoped names are equal of ther corresponding QNames are equal
+--  Scoped names are equal if their corresponding QNames are equal
 snEq :: ScopedName -> ScopedName -> Bool
 snEq s1 s2 = getQName s1 == getQName s2
 

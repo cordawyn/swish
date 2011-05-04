@@ -17,12 +17,18 @@
     - added toRDFTriple and fromRDFTriple functions that take advantage
       of the To/FromRDFLabel typeclasses to ease conversion from/to Arcs.
 
+  - QName and ScopedName:
+
+    - added IsString instance
+
   - UTCTime support (To/FromRDFLabel) has required adding old-locale
     and time to the package constraints.
 
   - added xsd_dateTime export to Swish.RDF.Vocabulary
 
   - added Swish and Swish.RDF modules for documentation purposes.
+
+  - marked Swish.Utils.DateTime as deprecated.
 
 0.3.0.3:
 

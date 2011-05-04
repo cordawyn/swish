@@ -11,7 +11,10 @@
 --  Portability :  H98
 --
 --  This Module defines a collection of date/time manipulation functions. It
---  should probably be replaced by standard modules from Hackage. 
+--  is deprecated - since it's functionality is available from other
+--  modules - and will be removed in a future release.
+--
+--------------------------------------------------------------------------------
 --
 --  Date/time value manipulation.
 --
@@ -23,7 +26,6 @@
 --      defined by RFC 3339.
 --      Timezone interpretation is per RFC3339.
 --
---------------------------------------------------------------------------------
 --
 --            year,month,day,hour,min,sec,millisec,timezone
 --class (Show a,Eq a) => DateTimeClass a where

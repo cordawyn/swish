@@ -50,9 +50,11 @@ Description:
   `Swish.RDF.RDFGraph.FromRDFLabel` classes and the 
   `Swish.RDF.RDFGraph.toRDFTriple` and `Swish.RDF.RDFGraph.fromRDFTriple`
   functions.
-  Added instances: @IsString RDFLabel@ and @Monoid NSGraph@.
+  Added instances: @IsString RDFLabel@, @IsString QName@, @IsString ScopedName@
+  and @Monoid NSGraph@.
   The modules "Swish" and "Swish.RDF" have been introduced to provide
-  documentation.
+  documentation. The module "Swish.Utils.DateTime" is deprecated and
+  will be removed in a later release.
   .
   [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
   proof succeeds. Some documentation improvements, including a discussion

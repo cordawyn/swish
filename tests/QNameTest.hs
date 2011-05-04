@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -113,9 +115,9 @@ qp2 = qnameFromPair (base1,"s2")
 qu1, qu2, qu3, qu4, qu5 :: QName
 qu1 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
 qu2 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph2/node/s2"
-qu3 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph3/node"
-qu4 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph5/"
-qu5 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph5/s5"
+qu3 = "http://id.ninebynine.org/wip/2003/test/graph3/node"
+qu4 = "http://id.ninebynine.org/wip/2003/test/graph5/"
+qu5 = "http://id.ninebynine.org/wip/2003/test/graph5/s5"
 
 testMakeQNameSuite :: Test
 testMakeQNameSuite = 

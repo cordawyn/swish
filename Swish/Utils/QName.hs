@@ -27,6 +27,7 @@ import Data.Char (isAlpha, isAlphaNum)
 
 import System.Directory (canonicalizePath)
 import System.FilePath (splitDirectories)
+import Data.String (IsString(..))
 import Data.List (intercalate)
 
 ------------------------------------------------------------
@@ -36,6 +37,23 @@ import Data.List (intercalate)
 --  cf. http://www.w3.org/TR/REC-xml-names/
 
 data QName = QName { qnNsuri, qnLocal :: String }
+
+instance IsString QName where
+  fromString = qnameFromURI
+
+instance Eq QName where
+    (==) = qnEq
+
+instance Ord QName where
+    (QName u1 l1) <= (QName u2 l2) =
+        if up1 /= up2 then up1 <= up2 else (ur1++l1) <= (ur2++l2)
+        where
+            n   = min (length u1) (length u2)
+            (up1,ur1) = splitAt n u1
+            (up2,ur2) = splitAt n u2
+
+instance Show QName where
+    show (QName ns ln) = "<" ++ ns ++ ln ++ ">"
 
 newQName :: String -> String -> QName
 newQName = QName
@@ -54,20 +72,6 @@ getLocalName = qnLocal
 
 getQNameURI :: QName -> String
 getQNameURI (QName ns ln) = ns++ln
-
-instance Eq QName where
-    (==) = qnEq
-
-instance Ord QName where
-    (QName u1 l1) <= (QName u2 l2) =
-        if up1 /= up2 then up1 <= up2 else (ur1++l1) <= (ur2++l2)
-        where
-            n   = min (length u1) (length u2)
-            (up1,ur1) = splitAt n u1
-            (up2,ur2) = splitAt n u2
-
-instance Show QName where
-    show (QName ns ln) = "<" ++ ns ++ ln ++ ">"
 
 --  Original used comparison of concatenated strings,
 --  but that was very inefficient.  This version does the
