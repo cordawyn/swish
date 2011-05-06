@@ -248,6 +248,16 @@ l10  = Lit "l10" (Just rdf_XMLLiteral)
 l11  = Lit "l10" (Just rdf_XMLLiteral)   -- are these meant to both be l10?
 l12  = Lit "l10" (Just rdf_XMLLiteral)   -- if you change them some tests fail
 
+nanF, infF, ninfF :: RDFLabel
+nanF  = Lit "NaN" (Just xsd_float)
+infF  = Lit "INF" (Just xsd_float)
+ninfF = Lit "-INF" (Just xsd_float)
+
+nanD, infD, ninfD :: RDFLabel
+nanD  = Lit "NaN" (Just xsd_double)
+infD  = Lit "INF" (Just xsd_double)
+ninfD = Lit "-INF" (Just xsd_double)
+
 v1, v2, v3, v4, vb3, vb4 :: RDFLabel
 v1  = Var "v1"  
 v2  = Var "v2"  
@@ -315,16 +325,29 @@ testNodeEqSuite = TestList
 -- test ToRDFLabel/FromRDFlabel/IsString instances
 --
     
-testConv :: (ToRDFLabel a, FromRDFLabel a, Eq a, Show a) 
-            => String -> String -> Maybe ScopedName -> a -> Test    
-testConv lbl sVal dtype hVal = 
+testToConv :: 
+  (ToRDFLabel a, Eq a, Show a) 
+  => String -> String -> Maybe ScopedName -> a -> Test
+testToConv lbl sVal dtype hVal = 
   let rdfVal = Lit sVal dtype
-  in TestList
-  [
-    testEq ("tconv:" ++ lbl) rdfVal       (toRDFLabel hVal)
-  , testEq ("fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
-  ]
-    
+  in testEq (":tconv:" ++ lbl) rdfVal (toRDFLabel hVal)
+  
+testFrConv :: 
+  (FromRDFLabel a, Eq a, Show a) 
+  => String -> String -> Maybe ScopedName -> a -> Test
+testFrConv lbl sVal dtype hVal = 
+  let rdfVal = Lit sVal dtype
+  in testEq (":fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
+  
+testConv :: 
+  (ToRDFLabel a, FromRDFLabel a, Eq a, Show a) 
+  => String -> String -> Maybe ScopedName -> a -> Test    
+testConv lbl sVal dtype hVal = 
+  TestList [ 
+    testToConv lbl sVal dtype hVal,
+    testFrConv lbl sVal dtype hVal         
+    ]
+  
 -- some conversions (e.g. toRDFTriple) are covered by  
 -- other tests
 --
@@ -336,6 +359,9 @@ testConversionSuite =
     testEq "fconv:fail chr1"    (Nothing :: Maybe Char) (fromRDFLabel l1)
   , testEq "fconv:fail chr2"    (Nothing :: Maybe Char) (fromRDFLabel s1)
   , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (Lit "1.23" (Just xsd_float)))
+  , testEq "fconv:fail bool1"   (Nothing :: Maybe Bool)  (fromRDFLabel l1)
+  , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "True" (Just xsd_boolean))) -- should we just let this be valid?
+  , testEq "fconv:fail bool3"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "true" (Just xsd_float)))
   , testEq "fconv:fail int1"    (Nothing :: Maybe Int)  (fromRDFLabel l1)
   , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (Lit "123456789012345" (Just xsd_integer))) 
   , testEq "fconv:fail float1"  (Nothing :: Maybe Float)  (fromRDFLabel l1)
@@ -347,59 +373,99 @@ testConversionSuite =
   , testEq "fconv:fail triple"  (Nothing :: Maybe (ScopedName, ScopedName, Int)) (fromRDFTriple t01)
                                     
     -- basic string tests
-  , testEq "tconv:emptystring1"  (Lit "" Nothing)    ""       -- want to try out IsString so do not use testConv
-  , testConv "emptystring2"       "" Nothing    (""::String)
-  , testConv "char"                "x" Nothing   'x'
-  , testEq "tconv:l1-1"          (Lit "l1" Nothing)  l1
-  , testConv "l1-2"          "l1" Nothing  ("l1"::String)
+  , testEq     "tconv:emptystring1"  (Lit "" Nothing)    ""       -- want to try out IsString so do not use testToConv
+  , testConv   "emptystring2"        ""                  Nothing    (""::String)
+  , testConv   "char"                "x"                 Nothing    'x'
+  , testToConv "l1-1"                "l1"                Nothing    l1
+  , testConv   "l1-2"                "l1"                Nothing    ("l1"::String)
     
     -- boolean
-  , testConv "True"     "True"    (Just xsd_boolean) True
-  , testConv "False"    "False"   (Just xsd_boolean) False
+  , testFrConv  "True1"    "1"       (Just xsd_boolean)   True
+  , testFrConv  "False0"   "0"       (Just xsd_boolean)   False
+  , testConv    "True"     "true"    (Just xsd_boolean)   True
+  , testConv    "False"    "false"   (Just xsd_boolean)   False
+    
+    {-
+For example, -1E4, 1267.43233E12, 12.78e-2, 12 , -0, 0 and INF are all legal literals for float.
+For example, -1E4, 1267.43233E12, 12.78e-2, 12 , -0, 0 and INF are all legal literals for double.
+
+Valid values for xsd:integer include -123456789012345678901234567890, 2147483647, 0, or -0000000000000000000005.
+
+
+     -}
     
     -- numeric types
-  , testConv "int 0"    "0"       (Just xsd_integer) (0::Int)
-  , testConv "int -10"  "-10"     (Just xsd_integer) ((-10)::Int)
-  , testConv "int 10"   "10"      (Just xsd_integer) (10::Int)
-  , testConv "integer 0"    "0"       (Just xsd_integer) (0::Integer)
-  , testConv "integer -10"  "-10"     (Just xsd_integer) ((-10)::Integer)
-  , testConv "integer 10"   "10"      (Just xsd_integer) (10::Integer)
-  , testConv "integer big"  "123456789012345678901234567890"      (Just xsd_integer) (123456789012345678901234567890::Integer)
-  , testConv "integer -big" "-123456789012345678901234567890"     (Just xsd_integer) ((-123456789012345678901234567890)::Integer)
-  , testConv "float 0"        "0.0"     (Just xsd_float) (0::Float)
-  , testConv "float 0.2"      "0.2"     (Just xsd_float) (0.2::Float)
-  , testConv "float -0.2"     "-0.2"    (Just xsd_float) ((-0.2)::Float)
-  , testConv "float 2.01e-4"  "2.01e-4"  (Just xsd_float) (0.000201::Float)
-  , testConv "float -2.01e-4" "-2.01e-4" (Just xsd_float) ((-0.000201)::Float)
-  , testConv "float 2.01e38"  "2.01e38"  (Just xsd_float) (2.01e38::Float)
-  , testConv "float -2.01e38" "-2.01e38" (Just xsd_float) ((-2.01e38)::Float)
-  , testConv "double 0"        "0.0"     (Just xsd_double) (0::Double)
-  , testConv "double 0.2"      "0.2"     (Just xsd_double) (0.2::Double)
-  , testConv "double -0.2"     "-0.2"    (Just xsd_double) ((-0.2)::Double)
-  , testConv "double 2.01e-4"  "2.01e-4"  (Just xsd_double) (0.000201::Double)
-  , testConv "double -2.01e-4" "-2.01e-4" (Just xsd_double) ((-0.000201)::Double)
-  , testConv "double 2.01e38"  "2.01e38"  (Just xsd_double) (2.01e38::Double)
-  , testConv "double -2.01e38" "-2.01e38" (Just xsd_double) ((-2.01e38)::Double)
-  , testConv "double 2.01e108"  "2.01e108"  (Just xsd_double) (2.01e108::Double)
-  , testConv "double -2.01e108" "-2.01e108" (Just xsd_double) ((-2.01e108)::Double)
+  , testConv   "int 0"    "0"       (Just xsd_integer) (0::Int)
+  , testConv   "int -10"  "-10"     (Just xsd_integer) ((-10)::Int)
+  , testConv   "int 10"   "10"      (Just xsd_integer) (10::Int)
+  , testConv   "integer 0"    "0"       (Just xsd_integer) (0::Integer)
+  , testConv   "integer -10"  "-10"     (Just xsd_integer) ((-10)::Integer)
+  , testConv   "integer 10"   "10"      (Just xsd_integer) (10::Integer)
+  , testFrConv "integer -0..05" "-0000000000000000000005" (Just xsd_integer)  ((-5)::Integer)
+  , testConv   "integer big"  "123456789012345678901234567890"      (Just xsd_integer) (123456789012345678901234567890::Integer)
+  , testConv   "integer -big" "-123456789012345678901234567890"     (Just xsd_integer) ((-123456789012345678901234567890)::Integer)
+  
+  , testToConv "float NaN"    "NaN"          (Just xsd_float)   ((0.0::Float)/0.0)
+  , testToConv "float INF"    "INF"          (Just xsd_float)   ((1.0::Float)/0.0)
+  , testToConv "float -INF"   "-INF"         (Just xsd_float)   (((-1.0)::Float)/0.0)
+  , testEq     ":fconv:float NaN"  (Just True)  (fmap isNaN (fromRDFLabel nanF :: Maybe Float))
+  , testEq     ":fconv:float INF"  (Just True)  (fmap isInfinite (fromRDFLabel infF :: Maybe Float))
+  , testEq     ":fconv:float -INF" (Just True)  (fmap isInfinite (fromRDFLabel ninfF :: Maybe Float))
+  
+  , testToConv "double NaN"    "NaN"          (Just xsd_double)   ((0.0::Double)/0.0)
+  , testToConv "double INF"    "INF"          (Just xsd_double)   ((1.0::Double)/0.0)
+  , testToConv "double -INF"   "-INF"         (Just xsd_double)   (((-1.0)::Double)/0.0)
+  , testEq     ":fconv:double NaN"  (Just True)  (fmap isNaN (fromRDFLabel nanD :: Maybe Double))
+  , testEq     ":fconv:double INF"  (Just True)  (fmap isInfinite (fromRDFLabel infD :: Maybe Double))
+  , testEq     ":fconv:double -INF" (Just True)  (fmap isInfinite (fromRDFLabel ninfD :: Maybe Double))
+  
+  , testFrConv "float 0.0"      "0.0"       (Just xsd_float)   (0::Float)
+  , testToConv "float 0.0"      "0.0E0"     (Just xsd_float)   (0::Float)
+  , testFrConv "float 0."       "0."        (Just xsd_float)   (0::Float)
+  , testFrConv "float -0"       "-0"        (Just xsd_float)   (0::Float)
+  , testFrConv "float 0.2"      "0.2"       (Just xsd_float) (0.2::Float)
+  , testToConv "float 0.2"      "2.0E-1"    (Just xsd_float) (0.2::Float)
+  , testFrConv "float -0.2"     "-0.2"      (Just xsd_float) ((-0.2)::Float)
+  , testToConv "float -0.2"     "-2.0E-1"   (Just xsd_float) ((-0.2)::Float)
+  , testConv   "float 2.01e-4"  "2.01E-4"   (Just xsd_float) (0.000201::Float)
+  , testConv   "float -2.01e-4" "-2.01E-4"  (Just xsd_float) ((-0.000201)::Float)
+  , testConv   "float 2.01e38"  "2.01E38"   (Just xsd_float) (2.01e38::Float)
+  , testConv   "float -2.01e38" "-2.01E38"  (Just xsd_float) ((-2.01e38)::Float)
+    
+  , testFrConv "double 0"        "0.0"     (Just xsd_double) (0::Double)
+  , testToConv "double 0"        "0.0E0"   (Just xsd_double) (0::Double)
+  , testFrConv "double 0."       "0."      (Just xsd_double)   (0::Double)
+  , testFrConv "double -0"       "-0"      (Just xsd_double)   (0::Double)
+  , testFrConv "double 0.2"      "0.2"     (Just xsd_double) (0.2::Double)
+  , testToConv "double 0.2"      "2.0E-1"  (Just xsd_double) (0.2::Double)
+  , testFrConv "double -0.2"     "-0.2"    (Just xsd_double) ((-0.2)::Double)
+  , testToConv "double -0.2"     "-2.0E-1" (Just xsd_double) ((-0.2)::Double)
+  , testFrConv "double 2.01e-4"  "2.01e-4"  (Just xsd_double) (0.000201::Double)
+  , testToConv "double 2.01e-4"  "2.01E-4"  (Just xsd_double) (0.000201::Double)
+  , testFrConv "double -2.01e-4" "-2.01e-4" (Just xsd_double) ((-0.000201)::Double)
+  , testToConv "double -2.01e-4" "-2.01E-4" (Just xsd_double) ((-0.000201)::Double)
+  , testConv   "double 2.01e38"  "2.01E38"  (Just xsd_double) (2.01e38::Double)
+  , testConv   "double -2.01e38" "-2.01E38" (Just xsd_double) ((-2.01e38)::Double)
+  , testConv   "double 2.01e108"  "2.01E108"  (Just xsd_double) (2.01e108::Double)
+  , testConv   "double -2.01e108" "-2.01E108" (Just xsd_double) ((-2.01e108)::Double)
   
     -- URI related types
   , testEq "tconv:sname s1"    s1             (toRDFLabel qb1s1)
   , testEq "fconv:sname s1"    (Just qb1s1)   (fromRDFLabel s1)
     
     -- time values
-  , testConv "time1"   "1970-01-01T00:00:00Z"            (Just xsd_dateTime)  utc1
-  , testEq   "tconv:time2"   (Lit "2011-02-28T20:04:02.304Z" (Just xsd_dateTime))  (toRDFLabel utc2)
-  , testEq   "fconv:time2a"  (Just utc2)                                           (fromRDFLabel (Lit "2011-02-28T20:04:02.304Z" (Just xsd_dateTime)))
-  , testEq   "fconv:time2b"  (Just utc2)                                           (fromRDFLabel (Lit "2011-02-28T17:04:02.304-03:00" (Just xsd_dateTime)))
-  , testEq   "fconv:time2c"  (Just utc2)                                           (fromRDFLabel (Lit "2011-03-01T00:04:02.304+04:00" (Just xsd_dateTime)))
-  , testEq   "fconv:time2d"  (Just utc2)                                           (fromRDFLabel (Lit "2011-02-28T20:04:02.304" (Just xsd_dateTime)))
-  , testConv "time2Z"  "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
+  , testConv   "time1"   "1970-01-01T00:00:00Z"            (Just xsd_dateTime)  utc1
+  , testToConv "time2"   "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
+  , testFrConv "time2a"  "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
+  , testFrConv "time2b"  "2011-02-28T17:04:02.304-03:00"   (Just xsd_dateTime)  utc2
+  , testFrConv "time2c"  "2011-03-01T00:04:02.304+04:00"   (Just xsd_dateTime)  utc2
+  , testFrConv "time2d"  "2011-02-28T20:04:02.304"         (Just xsd_dateTime)  utc2
+  , testConv   "time2Z"  "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
                               
-  , testConv "day1a"   "1970-01-01Z"      (Just xsd_date) day1
-  , testEq   "fconv:day1b"  (Just day1)   (fromRDFLabel (Lit "1970-01-01" (Just xsd_date)))
-  , testEq   "fconv:day1c"  (Just day1)   (fromRDFLabel (Lit "1970-01-01-03:00" (Just xsd_date)))
-  , testEq   "fconv:day1d"  (Just day1)   (fromRDFLabel (Lit "1970-01-01+04:00" (Just xsd_date)))
+  , testConv   "day1a"   "1970-01-01Z"                     (Just xsd_date)      day1
+  , testFrConv "day1b"   "1970-01-01"                      (Just xsd_date)      day1
+  , testFrConv "day1c"   "1970-01-01-03:00"                (Just xsd_date)      day1
+  , testFrConv "day1d"   "1970-01-01+04:00"                (Just xsd_date)      day1
     
     -- basic fromRDFTriple test
     

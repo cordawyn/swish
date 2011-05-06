@@ -55,6 +55,8 @@ Description:
   The modules "Swish" and "Swish.RDF" have been introduced to provide
   documentation. The module "Swish.Utils.DateTime" is deprecated and
   will be removed in a later release.
+  The N3 formatter now writes out literals with xsd:boolean, xsd:integer, xsd:decimal
+  and xsd:double types as literals rather than as a typed string.
   .
   [Version 0.3.0.3] Changed @scripts/SwishExample.ss@ script so that the
   proof succeeds. Some documentation improvements, including a discussion

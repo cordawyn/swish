@@ -30,17 +30,37 @@
 
   - marked Swish.Utils.DateTime as deprecated.
 
+  - The N3 formatter now writes true, 1, 1.2, 1.2e34 rather than
+    "true"^^xsd:boolean, "1"^^xsd:integer, "1.2"^^xsd:decimal
+    and "1.2e34"^^xsd:double.
+
 0.3.0.3:
 
-  - to be written
+  - changed scripts/SwishExample.ss script so that the proof succeeds.
+
+  - minor documentation improvements, including the addition of the
+    Swish script format in Swish.RDF.SwishScript.
+
+  - minor changes to behavior of Swish in several edge cases.
 
 0.3.0.2:
 
-  - to be written
+  - bugfix: stop losing triples with a bnode subject when using the
+    N3 Formatter which also makes the scripts/SwishTest.ss script run
+    successfully.
+
+  - several commands in Swish scripts now create screen
+    output as an aid to debugging.
+
+  - added the developer flag.
 
 0.3.0.1:
 
-  - to be written
+  - updated the Swish script parser to work with the changes in
+    0.3.0.0 (reported by Rick Murphy).
+
+  - several example scripts are installed in the scripts/ directory,
+    although only VehicleCapacity.ss works with this release.
 
 0.2.1 to 0.3.0.0:
 
@@ -126,13 +146,4 @@
     invalid arguments as it now errors out if given an invalid
     argument before processing any input.
 
-
-Thoughts:
-
-  - need to remove the use of :- in N3Formatter; should probably aim to
-    create turtle-compatible output where possible, with flags to control
-    the use of existential statements (@forSome), a la cwm
-
-  - I plan to move to using Text rather than String, which will mean
-    changing from Parsec to attoparsec-text (probably).
 

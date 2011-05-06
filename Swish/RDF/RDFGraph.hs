@@ -108,6 +108,7 @@ import Data.Ord (comparing)
 import Data.String (IsString(..))
 import Data.Time (UTCTime, Day, parseTime, formatTime)
 import System.Locale (defaultTimeLocale)  
+import Text.Printf
 
 -----------------------------------------------------------
 -- | RDF graph node values
@@ -187,32 +188,47 @@ instance Label RDFLabel where
 instance IsString RDFLabel where
   fromString = flip Lit Nothing
 
--- | A type that can be converted to a RDF Label.
---
--- The String instance converts to an untyped literal
--- (so no language tag is assumed).
---
--- The `UTCTime` and `Day` instances assume values are in UTC.
---  
--- The numeric types have not yet been checked to ensure the
--- conversion meets the lexical constraints of both Haskell
--- and RDF.  
---
+{-|
+A type that can be converted to a RDF Label.
+
+The String instance converts to an untyped literal
+(so no language tag is assumed).
+
+The `UTCTime` and `Day` instances assume values are in UTC.
+ 
+The conversion for XSD types attempts to use the
+canonical form described in section 2.3.1 of
+<http://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#lexical-space>.
+  
+-}
+
 class ToRDFLabel a where
   toRDFLabel :: a -> RDFLabel
   
--- | A type that can be converted from a RDF Label,
---   with the possibility of failure.
---  
--- The String instance converts from an untyped literal
--- (so it can not be used with a string with a language tag).
---
--- The `UTCTime` and `Day` instances assume values are in UTC.
---  
--- The numeric types have not yet been checked to ensure the
--- conversion meets the lexical constraints of both Haskell
--- and RDF.  
---
+{-|
+A type that can be converted from a RDF Label,
+with the possibility of failure.
+ 
+The String instance converts from an untyped literal
+(so it can not be used with a string with a language tag).
+
+The following conversions are supported for common XSD
+types (out-of-band values result in @Nothing@):
+
+ - @xsd:boolean@ to @Bool@
+
+ - @xsd:integer@ to @Int@ and @Integer@
+
+ - @xsd:float@ to @Float@
+
+ - @xsd:double@ to @Double@
+
+ - @xsd:dateTime@ to @UTCTime@
+
+ - @xsd:date@ to @Day@
+
+-}
+
 class FromRDFLabel a where
   fromRDFLabel :: RDFLabel -> Maybe a
 
@@ -235,11 +251,11 @@ maybeRead inStr =
     
 fLabel :: (String -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
 fLabel conv dtype (Lit xs (Just dt)) | dt == dtype = conv xs
-                                     | otherwise = Nothing
+                                     | otherwise   = Nothing
 fLabel _    _     _ = Nothing
   
-tLabel :: (Show a) => ScopedName -> a -> RDFLabel                      
-tLabel dtype = flip Lit (Just dtype) . show                      
+tLabel :: (Show a) => ScopedName -> (String -> String) -> a -> RDFLabel                      
+tLabel dtype conv = flip Lit (Just dtype) . conv . show                      
 
 instance ToRDFLabel Char where
   toRDFLabel = flip Lit Nothing . (:[])
@@ -248,47 +264,67 @@ instance FromRDFLabel Char where
   fromRDFLabel (Lit [c] Nothing) = Just c
   fromRDFLabel _ = Nothing
 
-instance ToRDFLabel [Char] where
+instance ToRDFLabel String where
   toRDFLabel = flip Lit Nothing
 
-instance FromRDFLabel [Char] where
+instance FromRDFLabel String where
   fromRDFLabel (Lit xs Nothing) = Just xs
   fromRDFLabel _ = Nothing
 
 instance ToRDFLabel Bool where
-  toRDFLabel = tLabel xsd_boolean
-  
+  toRDFLabel b = Lit (if b then "true" else "false") (Just xsd_boolean)
+                                                 
 instance FromRDFLabel Bool where
-  fromRDFLabel = fLabel maybeRead xsd_boolean
-
-instance ToRDFLabel Float where
-  toRDFLabel = tLabel xsd_float
-  
-{-
-As reads "<invalid float>" returns some form of Inf
-we need to catch this.
--}
-
-instance FromRDFLabel Float where
-  fromRDFLabel = fLabel (\istr -> maybeRead istr >>= conv) xsd_float
+  fromRDFLabel = fLabel conv xsd_boolean
     where
-      conv :: Float -> Maybe Float
-      conv i | isNaN i || isInfinite i || isDenormalized i = Nothing
-             | otherwise = Just . realToFrac $ i -- or fromRational . toRational
+      conv s | s `elem` ["1", "true"]  = Just True
+             | s `elem` ["0", "false"] = Just False
+             | otherwise               = Nothing
 
+fromRealFloat :: (RealFloat a, PrintfArg a) => ScopedName -> a -> RDFLabel
+fromRealFloat dtype f | isNaN f      = toL "NaN"
+                      | isInfinite f = toL $ if f > 0.0 then "INF" else "-INF"
+                      | otherwise    = toL $ printf "%E" f
+                        where
+                          toL = flip Lit (Just dtype)
+
+toRealFloat :: (RealFloat a, Read a) => (a -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
+toRealFloat conv = fLabel rconv
+    where
+      rconv "NaN"  = Just (0.0/0.0) -- how best to create a NaN?
+      rconv "INF"  = Just (1.0/0.0) -- ditto for Infinity
+      rconv "-INF" = Just ((-1.0)/0.0)
+      rconv istr 
+        -- xsd semantics allows "2." but Haskell syntax does not so add on a "0" in this case
+        | null istr        = Nothing
+        | last istr == '.' = maybeRead (istr ++ "0") >>= conv
+        | otherwise        = maybeRead istr >>= conv
+      
+instance ToRDFLabel Float where
+  toRDFLabel = fromRealFloat xsd_float
+  
+instance FromRDFLabel Float where
+  fromRDFLabel = toRealFloat conv xsd_float
+    where
+      -- assume that an invalid value (NaN/Inf) from maybeRead means
+      -- that the value is out of bounds for Float so we do not
+      -- convert
+      conv f | isNaN f || isInfinite f = Nothing
+             | otherwise               = Just f
+                 
 instance ToRDFLabel Double where
-  toRDFLabel = tLabel xsd_double
+  toRDFLabel = fromRealFloat xsd_double
   
 instance FromRDFLabel Double where
-  fromRDFLabel = fLabel maybeRead xsd_double
-
+  fromRDFLabel = toRealFloat Just xsd_double
+  
 -- TODO: are there subtypes of xsd::integer that are  
 --       useful here?  
 --         
 -- TODO: add in support for Int8/..., Word8/...  
 --  
 instance ToRDFLabel Int where
-  toRDFLabel = tLabel xsd_integer
+  toRDFLabel = tLabel xsd_integer id
 
 {-
 it appears that reads doesn't fail when the input is outside
@@ -309,7 +345,7 @@ instance FromRDFLabel Int where
         in if (i >= lb) && (i <= ub) then Just (fromIntegral i) else Nothing
 
 instance ToRDFLabel Integer where
-  toRDFLabel = tLabel xsd_integer
+  toRDFLabel = tLabel xsd_integer id
 
 instance FromRDFLabel Integer where
   fromRDFLabel = fLabel maybeRead xsd_integer

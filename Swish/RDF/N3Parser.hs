@@ -180,7 +180,7 @@ data N3State = N3State
 setPrefix :: String -> String -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
-        p'    = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
+        p' = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
 
 -- | Set name for special syntax element
 setSName :: String -> ScopedName -> N3State -> N3State
@@ -225,7 +225,7 @@ getAllowLocalNames = allowLocalNames
 --  Return function to update graph in N3 parser state,
 --  using the supplied function of a graph
 --  (use returned function with Parsec updateState)
-updateGraph :: ( RDFGraph -> RDFGraph ) -> ( N3State -> N3State )
+updateGraph :: ( RDFGraph -> RDFGraph ) -> N3State -> N3State
 updateGraph f s = s { graphState = f (graphState s) }
 
 ----------------------------------------------------------------------
@@ -399,11 +399,28 @@ operatorLabel snam = do
 -}
 operatorLabel snam = (Res . flip getPrefixScopedName snam) <$> getState
 
--- Add statement to graph in N3 parser state
+{-
+Add statement to graph in N3 parser state.
+
+To support literals that are written directly/implicitly - i.e.  as
+true/false/1/1.0/1.0e23 - rather than a string with an explicit
+datatype we need to special case handling of the object label for
+literals. Is this actually needed? The N3 Formatter now doesn't
+display the xsd: datatypes on output, but there may be issues with
+other formats (e.g RDF/XML once it is supported).
+
+-}
 
 type AddStatement = RDFLabel -> N3Parser ()
 
 addStatement :: RDFLabel -> RDFLabel -> AddStatement
+addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsd_boolean, xsd_integer, xsd_decimal, xsd_double] = do 
+  st <- getState
+  let stmt = arc s p o
+      oldp = prefixUris st
+      ogs = graphState st
+      newp = mapReplaceOrAdd (snScope dtype) oldp
+  setState $ st { prefixUris = newp, graphState = addArc stmt ogs }
 addStatement s p o = updateState (updateGraph (addArc (arc s p o) ))
 
 addStatementRev :: RDFLabel -> RDFLabel -> AddStatement

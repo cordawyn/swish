@@ -13,7 +13,6 @@
 --  This Module implements a Notation 3 formatter (see [1], [2] and [3]),
 --  for an RDFGraph value.
 --
---
 -- REFERENCES:
 --
 -- (1) <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
@@ -75,6 +74,7 @@ import Swish.RDF.Vocabulary (
   rdf_type,
   rdf_nil,
   owl_sameAs, log_implies
+  , xsd_boolean, xsd_decimal, xsd_integer, xsd_double 
   )
 
 import Swish.RDF.GraphClass
@@ -737,7 +737,9 @@ nextLine str = do
 --  (b) URI nodes:  if possible, replace URI with qname,
 --      else display as <uri>
 --  (c) formula nodes (containing graphs).
---
+--  (d) use the "special-case" formats for integer/float/double
+--      literals.      
+--      
 --  [[[TODO:]]]
 --  (d) generate multi-line literals when appropriate
 --
@@ -793,15 +795,20 @@ formatLabel _ lab@(Res sn) =
       queueFormula lab
       return name
 
-formatLabel _ (Lit lit mlit) = return $ quoteStr lit ++ formatAnnotation mlit
+-- We assume there that the values are valid (e.g. that lit is syntactically
+-- correct).
+--      
+formatLabel _ (Lit lit (Just dtype)) 
+  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer, xsd_double] = return $ lit
+  | otherwise = return $ quoteStr lit ++ formatAnnotation dtype
+formatLabel _ (Lit lit Nothing) = return $ quoteStr lit
 
 formatLabel _ lab = return $ show lab
 
 -- the annotation for a literal (ie type or language)
-formatAnnotation :: Maybe ScopedName -> String
-formatAnnotation Nothing = ""
-formatAnnotation (Just a)  | isLang a  = '@' : langTag a
-                           | otherwise = '^':'^': showScopedName a
+formatAnnotation :: ScopedName -> String
+formatAnnotation a  | isLang a  = '@' : langTag a
+                    | otherwise = '^':'^': showScopedName a
 
 {-
 Swish.Utils.MiscHelpers contains a quote routine

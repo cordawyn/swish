@@ -26,11 +26,8 @@ import Swish.RDF.N3Parser
 
 import Swish.RDF.RDFGraph
     ( RDFGraph, RDFLabel(..), NSGraph(..)
-    -- LookupNamespace(..), Namespace
-    , emptyNamespaceMap
-    , LookupFormula(..), emptyFormulaMap
+    , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
-      -- Export selected RDFLabel values
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
     , res_owl_sameAs, res_log_implies
     )
@@ -48,6 +45,10 @@ import Swish.RDF.Vocabulary
     ( namespaceRDF
     , langName
     , rdf_XMLLiteral
+    , xsd_boolean 
+    , xsd_integer
+    , xsd_decimal 
+    , xsd_double 
     )
 
 import Swish.Utils.QName (QName, qnameFromURI)
@@ -57,6 +58,7 @@ import Swish.RDF.GraphClass (Arc, arc)
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
+import Data.Monoid (Monoid(..))
 import Data.List (intercalate)
 
 ------------------------------------------------------------
@@ -250,6 +252,9 @@ base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 basea = Namespace "a" "http://example.org/basea#"
 
+xsdNS :: Namespace
+xsdNS = Namespace "xsd" "http://www.w3.org/2001/XMLSchema#"
+
 u1 :: RDFLabel
 u1 = Res $ ScopedName base1 ""
 
@@ -310,13 +315,13 @@ l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'" Nothing
 l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--" Nothing
 
 lfr, lxml, lfrxml :: RDFLabel
-lfr    = Lit "chat"          (Just $ langName "fr")
-lxml   = Lit "<br/>"         (Just rdf_XMLLiteral )
-lfrxml = Lit "<em>chat</em>" (Just rdf_XMLLiteral )
+lfr    = Lit "chat"          $ Just $ langName "fr"
+lxml   = Lit "<br/>"         $ Just rdf_XMLLiteral
+lfrxml = Lit "<em>chat</em>" $ Just rdf_XMLLiteral
 
 bTrue, bFalse :: RDFLabel
-bTrue  = Lit "true"  $ Just $ ScopedName (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") "boolean"
-bFalse = Lit "false" $ Just $ ScopedName (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") "boolean"
+bTrue  = Lit "true"  $ Just xsd_boolean
+bFalse = Lit "false" $ Just xsd_boolean
 
 f1, f2 :: RDFLabel
 f1 = Res $ ScopedName base1 "f1"
@@ -379,17 +384,23 @@ dg2 = toRDFGraph
     xb5 = mUN ns5 "b5"
     xc5 = mUN ns5 "c5"
 
-nslist :: LookupMap Namespace
+nslist, xnslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace
     [ ("base1",base1)
     , ("base2",base2)
     , ("base3",base3)
     , ("base4",base4)
     ]
+xnslist = LookupMap $ map makeNewPrefixNamespace
+    [ ("base1",base1)
+    , ("base2",base2)
+    , ("base3",base3)
+    , ("base4",base4)
+    , ("xsd", xsdNS)
+    ]
 
 toGraph :: [Arc RDFLabel] -> RDFGraph
-toGraph stmts = NSGraph { namespaces = nslist
-                        , formulae   = emptyFormulaMap
+toGraph stmts = mempty { namespaces = nslist
                         , statements = stmts
                         }
 
@@ -670,11 +681,14 @@ tx1211 = arc s2 p2 b4
 tx1212 = arc b4 p2 o2
 
 x12fg :: RDFGraph
+x12fg  = mempty { statements = [tx1211,tx1212] }
+{-
 x12fg  = NSGraph
         { namespaces = emptyNamespaceMap
         , formulae   = emptyFormulaMap
         , statements = [tx1211,tx1212]
         }
+-}
         
 x12 :: RDFGraph
 x12    = NSGraph
@@ -1144,20 +1158,65 @@ litN3Graph_g1 =
 litN3Graph_g2 :: String
 litN3Graph_g2 =
     commonPrefixes ++
+    "@prefix xsd: <" ++ nsURI xsdNS ++ "> . \n" ++
+    " base1:s1 base1:p1 \"true\"^^xsd:boolean.\n" ++
+    " base2:s2 base2:p2 \"false\"^^xsd:boolean.\n" ++
+    " base3:s3 base3:p3 \"true\"^^xsd:boolean.\n"
+
+litN3Graph_g3 :: String
+litN3Graph_g3 =
+    commonPrefixes ++
     " base1:s1 base1:p1 @true.\n" ++
     " base2:s2 base2:p2 @false.\n" ++
     " base3:s3 base3:p3 true.\n"
     
+litN3Graph_g4 :: String
+litN3Graph_g4 =
+    commonPrefixes ++
+    " base1:s1 base1:p1 ( true 1 2.0 -2.21 -2.3e-4 ).\n"
+
 lit_g1 :: RDFGraph
 lit_g1 = toGraph [ arc s1 p1 bTrue
                  , arc s2 p2 bFalse
                  , arc s3 p3 bTrue
                  ]
 
+-- at the moment we could use lit_g1 rather than lit_g2, since
+-- the namespace map isn't used in the comparison.
+--
+lit_g2 :: RDFGraph
+lit_g2 = lit_g1 { namespaces = xnslist }
+
+bOne, b20, b221, b23e4 :: RDFLabel
+bOne  = Lit "1" $ Just xsd_integer
+b20   = Lit "2.0" $ Just xsd_decimal
+b221  = Lit "-2.21" $ Just xsd_decimal
+b23e4 = Lit "-2.3e-4" $ Just xsd_double
+
+lit_g4 :: RDFGraph
+lit_g4 = mempty {
+  namespaces = xnslist
+  , statements = [
+    arc s1 p1 b1
+    , arc b1 res_rdf_first bTrue
+    , arc b1 res_rdf_rest  b2
+    , arc b2 res_rdf_first bOne
+    , arc b2 res_rdf_rest  b3
+    , arc b3 res_rdf_first b20
+    , arc b3 res_rdf_rest  b4
+    , arc b4 res_rdf_first b221
+    , arc b4 res_rdf_rest  b5
+    , arc b5 res_rdf_first b23e4
+    , arc b5 res_rdf_rest  res_rdf_nil
+    ]
+  }
+
 litTestSuite :: Test
 litTestSuite = TestList
   [ parseTest "litTest01" litN3Graph_g1 lit_g1  noError
-  , parseTest "litTest02" litN3Graph_g2 lit_g1  noError
+  , parseTest "litTest02" litN3Graph_g2 lit_g2  noError
+  , parseTest "litTest03" litN3Graph_g3 lit_g2  noError
+  , parseTest "litTest04" litN3Graph_g4 lit_g4  noError
   ]
 
 ------------------------------------------------------------

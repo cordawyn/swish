@@ -869,28 +869,10 @@ simpleN3Graph_l3 =
   "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" ++ 
   commonPrefixes ++ 
   "\n" ++ -- TODO: why do we need this?
-  "base1:s1 base1:p1 \"-2.304e-108\"^^xsd:double,\n" ++ 
-  "                  \"12\"^^xsd:integer,\n" ++ 
-  "                  \"23.4\"^^xsd:float,                  \"True\"^^xsd:boolean .\n"
+  "base1:s1 base1:p1 -2.304E-108,\n" ++ 
+  "                  12,\n" ++ 
+  "                  \"2.34E1\"^^xsd:float,                  true .\n"
   
-{-
-
--- this is more a parser than formatter test; at the moment we
--- do not include it.
-
-simpleN3Graph_l3a :: String
-simpleN3Graph_l3a =
-  "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" ++ 
-  commonPrefixes ++ 
-  "base1:s1 base1:p1 \"12\"^^xsd:integer , \n" ++
-  "  \"23.4\"^^xsd:float \n" ++
-  "  \"-2.304e-108\"^^xsd:double \n" ++
-  "  true .\n"
-  
--}
-
--- diag13 = diagTest "trivialTest13" x13a simpleN3Graph_x13a
-
 trivialTestSuite :: Test
 trivialTestSuite = TestList
  [ formatTest "trivialTest01" g1np simpleN3Graph_g1_01

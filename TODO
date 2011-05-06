@@ -37,11 +37,8 @@ Some things I want to/should do (not in order)
 - improve test coverage (-fhpc cabal flag)
 
 - how much of the support code - e.g. Swish.Utils.LookupMap - can now
-  be replaced with packages from hackage? Swish.Utils.DateTime is an
-  obvious candidate.
-
-- add top-level modules - e.g. Swish or Swish.RDF - for documentation
-  (partly done) and a simple way to load up a useful set of modules.
+  be replaced with packages from hackage? Swish.Utils.DateTime is now
+  marked as deprecated since it isn't used by any other module.
 
 - move to camel case for names, in particular for
   Swish.RDF.Vocabulary; this would require a minor version update
@@ -49,16 +46,14 @@ Some things I want to/should do (not in order)
 - change SwishAction from a tuple to a SwishStateIO (); requires an
   minor version update
 
-- add URI instances (ScopedName "?" I think) for To/FromRDFLabel
+  can we improve the processing of the commands, so that they
+  exit on error immediately, with a single error message.
 
-- N3Formatter should output integer/float/bool/... as "native"
-  values rather than e.g. "1"^^xsd:integer 
-
-  NTriples does not support this syntax, does it?
-
-- can Swish.Utils.DateTime be replaced by existing routines (do
-  not remove the module yet, mark as deprecate) 
+  A DSL for the command language?
 
 - check that the syntax supported by Read is compatible with
   RDF for To/FromLabel conversions of int/real types.
+
+- remove the containedIn function of the LDGraph type class,
+  or implement it. It is currently unused in the code base.
 
