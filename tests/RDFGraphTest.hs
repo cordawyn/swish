@@ -26,11 +26,8 @@ import Swish.Utils.ListHelpers (equiv)
 
 import Swish.RDF.GraphClass (Label(..), arc)
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , nullScopedName
-    )
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), nullScopedName)
+import Swish.Utils.QName (QName, qnameFromURI)
 
 import Swish.RDF.RDFGraph
   ( RDFTriple, toRDFTriple, fromRDFTriple
@@ -61,6 +58,7 @@ import Swish.RDF.Vocabulary
 
 import qualified Data.Traversable as T
 
+import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust)
@@ -143,14 +141,23 @@ testLangEqSuite = TestList
 --  Define some common values
 ------------------------------------------------------------
 
+base1Str :: String
+base1Str = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
+
 -- TODO: using a base of "" or "?" causes a fromJust failure somewhere
 basee, baseu, base1, base2, base3, base4 :: Namespace
 basee = Namespace ""      "http://example.com/a#"
 baseu = Namespace "?"     "http://example.com/"
-base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
+base1 = Namespace "base1" base1Str
 base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
 base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+
+qn1s1 :: QName
+qn1s1 = qnameFromURI $ base1Str ++ "s1"
+
+qu1s1 :: URI
+qu1s1 = fromJust $ parseURI $ base1Str ++ "s1"
 
 qbes1, qbus1, qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: ScopedName
 qbes1 = ScopedName basee "s1"
@@ -356,8 +363,8 @@ testConversionSuite =
   TestList
   [
     -- failure case
-    testEq "fconv:fail chr1"    (Nothing :: Maybe Char) (fromRDFLabel l1)
-  , testEq "fconv:fail chr2"    (Nothing :: Maybe Char) (fromRDFLabel s1)
+    testEq "fconv:fail chr1"    (Nothing :: Maybe Char)   (fromRDFLabel l1)
+  , testEq "fconv:fail chr2"    (Nothing :: Maybe Char)   (fromRDFLabel s1)
   , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (Lit "1.23" (Just xsd_float)))
   , testEq "fconv:fail bool1"   (Nothing :: Maybe Bool)  (fromRDFLabel l1)
   , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "True" (Just xsd_boolean))) -- should we just let this be valid?
@@ -370,6 +377,8 @@ testConversionSuite =
   , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "NaNs" (Just xsd_float))) -- invalid input 
   , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (Lit "1.23" (Just xsd_float))) -- invalid input 
   , testEq "fconv:fail sn1"     (Nothing :: Maybe ScopedName) (fromRDFLabel l1)
+  , testEq "fconv:fail qn1"     (Nothing :: Maybe QName)      (fromRDFLabel l1)
+  , testEq "fconv:fail qu1"     (Nothing :: Maybe URI)        (fromRDFLabel l1)
   , testEq "fconv:fail triple"  (Nothing :: Maybe (ScopedName, ScopedName, Int)) (fromRDFTriple t01)
                                     
     -- basic string tests
@@ -452,6 +461,12 @@ Valid values for xsd:integer include -123456789012345678901234567890, 2147483647
     -- URI related types
   , testEq "tconv:sname s1"    s1             (toRDFLabel qb1s1)
   , testEq "fconv:sname s1"    (Just qb1s1)   (fromRDFLabel s1)
+    
+  , testEq "tconv:qname s1"    s1             (toRDFLabel qn1s1)
+  , testEq "fconv:qname s1"    (Just qn1s1)   (fromRDFLabel s1)
+    
+  , testEq "tconv:URI s1"      s1             (toRDFLabel qu1s1)
+  , testEq "fconv:URI s1"      (Just qu1s1)   (fromRDFLabel s1)
     
     -- time values
   , testConv   "time1"   "1970-01-01T00:00:00Z"            (Just xsd_dateTime)  utc1

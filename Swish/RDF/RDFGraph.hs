@@ -63,6 +63,9 @@ import Swish.Utils.Namespace
     ( Namespace(..)
     , getScopedNameURI
     , ScopedName(..)
+    , getQName
+    , makeQNameScopedName
+    , makeUriScopedName
     , nullScopedName
     )
 
@@ -87,6 +90,7 @@ import Swish.RDF.GraphClass
 
 import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
 
+import Swish.Utils.QName (QName)
 import Swish.Utils.MiscHelpers (hash, quote)
 import Swish.Utils.ListHelpers (addSetElem)
 
@@ -100,6 +104,8 @@ import qualified Data.Traversable as T
 
 import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 -- import Control.Monad (liftM, ap)
+
+import Network.URI (URI, parseURI, uriToString)
 
 import Data.Monoid (Monoid(..))
 import Data.Char (isDigit)
@@ -419,7 +425,19 @@ instance FromRDFLabel ScopedName where
   fromRDFLabel (Res sn) = Just sn
   fromRDFLabel _        = Nothing
   
--- TODO: add instance for URI
+instance ToRDFLabel QName where  
+  toRDFLabel = Res . makeQNameScopedName
+  
+instance FromRDFLabel QName where
+  fromRDFLabel (Res sn) = Just $ getQName sn
+  fromRDFLabel _        = Nothing
+  
+instance ToRDFLabel URI where  
+  toRDFLabel u = Res $ makeUriScopedName $ uriToString id u ""
+  
+instance FromRDFLabel URI where
+  fromRDFLabel (Res sn) = parseURI $ getScopedNameURI sn
+  fromRDFLabel _        = Nothing
 
 -- | Get the canonical string for RDF label.
 --
