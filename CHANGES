@@ -30,9 +30,11 @@
 
   - marked Swish.Utils.DateTime as deprecated.
 
-  - The N3 formatter now writes true, 1, 1.2, 1.2e34 rather than
+  - the N3 formatter now writes true, 1, 1.2, 1.2e34 rather than
     "true"^^xsd:boolean, "1"^^xsd:integer, "1.2"^^xsd:decimal
     and "1.2e34"^^xsd:double.
+
+  - improved test coverage
 
 0.3.0.3:
 

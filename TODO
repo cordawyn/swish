@@ -13,6 +13,9 @@ Some things I want to/should do (not in order)
   LString type that combines text and language tag), and DLit for a
   literal with a datatype. This would require a minor version update
 
+  An alternative change would be to make it 'Lit RDFLiteral' with
+  RDFLiteral having the Untyped/Typed/Language options.
+
 - remove parsec parser, replace by attoparsec-text
 
   - use Text rather than String
@@ -49,10 +52,8 @@ Some things I want to/should do (not in order)
   can we improve the processing of the commands, so that they
   exit on error immediately, with a single error message.
 
-  A DSL for the command language?
-
-- check that the syntax supported by Read is compatible with
-  RDF for To/FromLabel conversions of int/real types.
+  An EDSL for the command language or for the base components
+  such as RDFTriple/Graph?
 
 - remove the containedIn function of the LDGraph type class,
   or implement it. It is currently unused in the code base.

@@ -578,8 +578,8 @@ test3 =
   TestList
   [ test "testQuery31" (not $ null var31)
   , testEq "testUnsubs31" 2 (length res31v)
-  , testEq "testUnsubs31a" [(Var "b")] (head res31v)
-  , testEq "testUnsubs31a" [(Var "b")] (head . tail $ res31v)
+  , testEq "testUnsubs31a" [Var "b"] (head res31v)
+  , testEq "testUnsubs31a" [Var "b"] (head . tail $ res31v)
   , testEq "testResult31" 2 (length res31)
   , testGr "testResult31a" result31a res31
   , testGr "testResult31b" result31b res31
@@ -709,8 +709,8 @@ result44b = prefix4 ++
     "?n       rel:son      pers:Ro4 . \n"
 
 unbound44a, unbound44b :: [RDFLabel]
-unbound44a = [(Var "m"),(Var "c"),(Var "n"),(Var "d")]
-unbound44b = [(Var "a"),(Var "m"),(Var "b"),(Var "n")]
+unbound44a = [Var "m",Var "c",Var "n",Var "d"]
+unbound44b = [Var "a",Var "m",Var "b",Var "n"]
 
 var44 :: [[RDFVarBinding]]
 var44 = rdfQueryBack query44 graph44
@@ -752,8 +752,8 @@ result45a2 = prefix4 ++
     "?a rel:son      pers:Wi3 . \n"
 
 unbound45a1, unbound45a2 :: [RDFLabel]
-unbound45a1 = [(Var "a")]
-unbound45a2 = [(Var "a")]
+unbound45a1 = [Var "a"]
+unbound45a2 = [Var "a"]
 
 var45 :: [[RDFVarBinding]]
 var45 = rdfQueryBack query45 graph45
@@ -797,8 +797,8 @@ result46b = prefix4 ++
     "?a rel:stepson pers:St3 . \n"
 
 unbound46a, unbound46b :: [RDFLabel]
-unbound46a = [(Var "a")]
-unbound46b = [(Var "a")]
+unbound46a = [Var "a"]
+unbound46b = [Var "a"]
 
 var46 :: [[RDFVarBinding]]
 var46 = rdfQueryBack query46 graph46
@@ -880,14 +880,14 @@ unbound47a1, unbound47a2,
   unbound47c1, unbound47c2,
   unbound47d1, unbound47d2 :: [RDFLabel]
 
-unbound47a1 = [(Var "a")]
-unbound47a2 = [(Var "a")]
-unbound47b1 = [(Var "a")]
-unbound47b2 = [(Var "a")]
-unbound47c1 = [(Var "a")]
-unbound47c2 = [(Var "a")]
-unbound47d1 = [(Var "a")]
-unbound47d2 = [(Var "a")]
+unbound47a1 = [Var "a"]
+unbound47a2 = [Var "a"]
+unbound47b1 = [Var "a"]
+unbound47b2 = [Var "a"]
+unbound47c1 = [Var "a"]
+unbound47c2 = [Var "a"]
+unbound47d1 = [Var "a"]
+unbound47d2 = [Var "a"]
 
 var47 :: [[RDFVarBinding]]
 var47 = rdfQueryBack query47 graph47
@@ -937,8 +937,8 @@ result48b = prefix4 ++
     "?a rel:son pers:La3 . \n"
     
 unbound48a, unbound48b :: [RDFLabel]
-unbound48a = [(Var "a")]
-unbound48b = [(Var "a")]
+unbound48a = [Var "a"]
+unbound48b = [Var "a"]
 
 var48 :: [[RDFVarBinding]]
 var48 = rdfQueryBack query48 graph48
@@ -1009,8 +1009,8 @@ result50b = prefix4 ++
     "?a rel:son pers:Gr3 . \n"
 
 unbound50a, unbound50b :: [RDFLabel]
-unbound50a = [(Var "a")]
-unbound50b = [(Var "a")]
+unbound50a = [Var "a"]
+unbound50b = [Var "a"]
 
 var50 :: [[RDFVarBinding]]
 var50 = rdfQueryBack query50 graph50
@@ -1048,12 +1048,12 @@ test4 =
   , testEq "testQuery42a" 1 (length var42)
   , testEq "testResult42" 1 (length res42)
   , testGr "testResult42a" result42a (fst $ unzip $ head res42)
-  , testLs "testUnbound42a" [(Var "b")] (snd $ head $ head res42)
+  , testLs "testUnbound42a" [Var "b"] (snd $ head $ head res42)
   , test "testQuery43" (not $ null var43)
   , testEq "testQuery43a" 1 (length var43)
   , testEq "testResult43" 1 (length res43)
   , testGr "testResult43a" result43a (fst $ unzip $ head res43)
-  , testLs "testUnbound43a" [(Var "a")] (snd $ head $ head res43)
+  , testLs "testUnbound43a" [Var "a"] (snd $ head $ head res43)
   , test "testQuery44" (not $ null var44)
   , testEq "testQuery44a"   2 (length var44)
   , testEq "testResult44"   2 (length res44)
