@@ -33,7 +33,7 @@ import Swish.RDF.RDFGraph
   ( RDFTriple, toRDFTriple, fromRDFTriple
   , RDFGraph 
   , RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
-  , NSGraph(..)
+  , NSGraph(..), Arc(..)
   , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
   , isDatatyped, isMemberProp
   , isUri, isBlank, isQueryVar, makeBlank
@@ -57,6 +57,7 @@ import Swish.RDF.Vocabulary
     )
 
 import qualified Data.Traversable as T
+import qualified Data.Foldable as F
 
 import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
@@ -903,9 +904,12 @@ g2str sp =
       "arcs: "]
      ++ map (spaces++) g2arcs
      
+g2Labels :: [RDFTriple]
+g2Labels = [t01,t02,t03,t04,t05,t06]
+
 g1uri, g2, gt2, g3, gt3, g4, g5, g6, g7, g8, g9, g10 :: RDFGraph
 g1uri = toGraph [tu01]
-g2    = toGraph [t01,t02,t03,t04,t05,t06]
+g2    = toGraph g2Labels
 gt2   = toGraph [tt01,tt02,tt03,tt04,tt05,tt06]
 g3    = toGraph [t06,t05,t04,t03,t02,t01]
 gt3   = toGraph [tt06,tt05,tt04,tt03,tt02,tt01]
@@ -916,6 +920,9 @@ g7    = toGraph [t01,t02]
 g8    = toGraph [t02,t01]
 g9    = toGraph [t03,t02,t01]
 g10   = toGraph [t02,t02,t01]
+
+fg1g2 :: RDFGraph
+fg1g2 = g1 `mappend` g2
 
 g9a, g10a :: RDFGraph
 g9a  = addArc t03 g8
@@ -945,44 +952,6 @@ grapheqlist =
   , ("g10","g10a")
   ]
 
-{-  
-  TODO: test Foldable instance of NSGraph
-  
-pick one of
-
-Methods
-fold :: Monoid m => t m -> mSource
-
-Combine the elements of a structure using a monoid.
-
-foldMap :: Monoid m => (a -> m) -> t a -> mSource
-
-Map each element of the structure to a monoid, and combine the results.
-
-foldr :: (a -> b -> b) -> b -> t a -> bSource
-
-Right-associative fold of a structure.
-
-foldr f z = foldr f z . toList
-foldl :: (a -> b -> a) -> a -> t b -> aSource
-
-Left-associative fold of a structure.
-
-foldl f z = foldl f z . toList
-foldr1 :: (a -> a -> a) -> t a -> aSource
-
-A variant of foldr that has no base case, and thus may only be applied to non-empty structures.
-
-foldr1 f = foldr1 f . toList
-foldl1 :: (a -> a -> a) -> t a -> aSource
-
-A variant of foldl that has no base case, and thus may only be applied to non-empty structures.
-
-foldl1 f = foldl1 f . toList
-
-XXX END DIGRESSION
--}
-  
 testGraphEqSuite :: Test
 testGraphEqSuite = TestList
   [ testGraphEq (tLab ll1 ll2) (tEq ll1 ll2) gg1 gg2
@@ -1010,6 +979,29 @@ testGraphEqSelSuite = TestList
   , testGraphEq "g10-g10a" True g10 g10a
   ]
 
+showLabel :: RDFLabel -> String
+showLabel = (" " ++) . show
+
+testGraphFoldSuite :: Test
+testGraphFoldSuite = TestList
+  [ 
+    testEq "fold0"    (mempty :: RDFGraph) (F.fold [])
+  , testEq "foldE"    (mempty :: RDFGraph) (F.fold [mempty])
+  , testEq "foldEE"   (mempty :: RDFGraph) (F.fold [mempty,mempty])
+  , testEq "foldg1"   g1                   (F.fold [g1])
+  , testEq "foldg1E"  g1                   (F.fold [g1,mempty])
+  , testEq "foldEg1"  g1                   (F.fold [mempty,g1])
+  , testEq "foldg1g2" fg1g2                (F.fold [g1,g2])
+  , testEq "foldg2g1" fg1g2                (F.fold [g2,g1])
+  , testEq "foldMap0" ""                   (F.foldMap showLabel (mempty::RDFGraph))
+  , testEq "foldMapg1"                    
+    (concatMap showLabel [s1,p1,o1])
+    (F.foldMap showLabel g1)
+  , testEq "foldMapg1f2"                    
+    (concatMap showLabel $ s2 : concatMap (\(Arc s p o) -> [s,p,o]) g2Labels ++ [s1,p1,o1])
+    (F.foldMap showLabel g1f2)
+  ]
+  
 ------------------------------------------------------------
 --  Test updating formulae
 ------------------------------------------------------------
@@ -1569,6 +1561,7 @@ allTests = TestList
   , testStmtEqSuite
   , testGraphEqSuite
   , testGraphEqSelSuite
+  , testGraphFoldSuite
   , testGraphFormulaSuite
   , testGraphTranslateSuite
   , testMergeSuite

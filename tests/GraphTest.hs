@@ -16,10 +16,13 @@
 
 module Main where
 
+import qualified Data.Foldable as F
+
 import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
         assertEqual, assertBool,
         runTestTT )
+
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust)
 
@@ -1765,6 +1768,8 @@ allTests = TestList
   , testGraphEqSuitePart
   , testGraphEqSuite
   , testGraphEqSuiteMore
+    -- test of Foldable instance of Arc
+  , TestCase (assertEqual "fold Arc" [1::Int,2,4] (F.fold (Arc [1::Int] [2] [4])))
   ]
 
 main :: IO ()
