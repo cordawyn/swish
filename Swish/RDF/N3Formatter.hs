@@ -799,7 +799,7 @@ formatLabel _ lab@(Res sn) =
 -- correct).
 --      
 formatLabel _ (Lit lit (Just dtype)) 
-  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer, xsd_double] = return $ lit
+  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer, xsd_double] = return lit
   | otherwise = return $ quoteStr lit ++ formatAnnotation dtype
 formatLabel _ (Lit lit Nothing) = return $ quoteStr lit
 

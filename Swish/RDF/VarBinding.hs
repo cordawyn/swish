@@ -61,6 +61,8 @@ import Data.List
 --  Query variable bindings
 ------------------------------------------------------------
 
+-- TODO: is it worth making a Monoid instance of VarBinding?
+
 -- |VarBinding is the type of an arbitrary variable bindings
 --  value, where the type of the bound values is not specified.
 --

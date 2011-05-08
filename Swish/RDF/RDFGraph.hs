@@ -112,7 +112,7 @@ import Data.Char (isDigit)
 import Data.List (intersect, union, findIndices)
 import Data.Ord (comparing)
 import Data.String (IsString(..))
-import Data.Time (UTCTime, Day, parseTime, formatTime)
+import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
 import System.Locale (defaultTimeLocale)  
 import Text.Printf
 
@@ -382,10 +382,9 @@ fromUTCFormat = formatTime defaultTimeLocale "%FT%T%QZ"
 fromDayFormat :: Day -> String
 fromDayFormat = formatTime defaultTimeLocale "%FZ"
   
-toUTCFormat :: String -> Maybe UTCTime
-toUTCFormat inVal = 
-  let fmt = "%FT%T%Q"
-      fmtHHMM = fmt ++ "%z"
+toTimeFormat :: (ParseTime a) => String -> String -> Maybe a
+toTimeFormat fmt inVal =
+  let fmtHHMM = fmt ++ "%z"
       fmtZ = fmt ++ "Z"
       pt f = parseTime defaultTimeLocale f inVal
   in case pt fmtHHMM of
@@ -393,18 +392,12 @@ toUTCFormat inVal =
     _ -> case pt fmtZ of
       o@(Just _) -> o
       _ -> pt fmt 
+  
+toUTCFormat :: String -> Maybe UTCTime
+toUTCFormat = toTimeFormat "%FT%T%Q"
     
 toDayFormat :: String -> Maybe Day
-toDayFormat inVal = 
-  let fmt = "%F"
-      fmtHHMM = fmt ++ "%z"
-      fmtZ = fmt ++ "Z"
-      pt f = parseTime defaultTimeLocale f inVal
-  in case pt fmtHHMM of
-    o@(Just _) -> o
-    _ -> case pt fmtZ of
-      o@(Just _) -> o
-      _ -> pt fmt 
+toDayFormat = toTimeFormat "%F"
     
 instance ToRDFLabel UTCTime where
   toRDFLabel = flip Lit (Just xsd_dateTime) . fromUTCFormat

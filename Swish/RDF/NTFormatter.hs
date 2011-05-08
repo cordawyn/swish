@@ -169,7 +169,7 @@ which we expand upon here to match the NT syntax.
 -}
 
 quoteStr :: String -> String
-quoteStr  st = ['"'] ++ quote st ++ ['"']
+quoteStr  st = '"' : quote st ++ "\""
 
 quote :: String -> String
 quote []           = ""

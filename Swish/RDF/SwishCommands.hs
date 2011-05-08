@@ -363,7 +363,7 @@ swishParse mfpath inp = do
         Right res -> return $ Just res
              
   case fmt of
-    N3 -> readIn (`parseN3` (Just buri))
+    N3 -> readIn (`parseN3` Just buri)
     NT -> readIn parseNT
     {-
     _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError >>
