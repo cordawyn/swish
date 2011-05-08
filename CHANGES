@@ -2,11 +2,11 @@
 
   - NSGraph:
 
-    - added Monoid instance with a Label constraint
+    - added Monoid instance with a Label constraint.
 
   - RDFLabel:
 
-    - added IsString instance
+    - added IsString instance.
 
     - added ToRDFLabel and FromRDFLabel type classes for converting to
       and from RDFLabel along with instances for some standard Haskell
@@ -19,12 +19,12 @@
 
   - QName and ScopedName:
 
-    - added IsString instance
+    - added IsString instance.
 
   - UTCTime support (To/FromRDFLabel) has required adding old-locale
     and time to the package constraints.
 
-  - added xsd_dateTime export to Swish.RDF.Vocabulary
+  - added xsd_dateTime export to Swish.RDF.Vocabulary.
 
   - added Swish and Swish.RDF modules for documentation purposes.
 
@@ -34,7 +34,7 @@
     "true"^^xsd:boolean, "1"^^xsd:integer, "1.2"^^xsd:decimal
     and "1.2e34"^^xsd:double.
 
-  - improved test coverage
+  - improved test coverage.
 
 0.3.0.3:
 
