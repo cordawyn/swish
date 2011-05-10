@@ -25,12 +25,11 @@ import Swish.RDF.N3Parser (parseN3fromString)
 
 import Swish.RDF.RDFGraph
     ( RDFGraph
-    , RDFLabel(..), ToRDFLabel(..)
+    , RDFLabel(..)
     , NSGraph(..)
     , NamespaceMap
     , LookupFormula(..)
-    , emptyRDFGraph, toRDFGraph
-      -- Export selected RDFLabel values
+    , emptyRDFGraph, toRDFGraph, toRDFTriple
     , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
     , res_owl_sameAs
     )
@@ -44,6 +43,8 @@ import Swish.Utils.LookupMap
 import Swish.RDF.GraphClass (Arc, arc)
 
 import Swish.RDF.Vocabulary (langName)
+
+import Data.String (IsString(..))
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -630,16 +631,20 @@ graph_b5    = toGraph [arc b1 res_rdf_type o1,
 
 -- datatype/literal graphs
 
-graph_l1, graph_l2, graph_l3 :: RDFGraph
+graph_l1, graph_l2, graph_l3, graph_l4 :: RDFGraph
 graph_l1 = toGraph [arc s1 p1 lfr]
 graph_l2 = toGraph [arc s1 p1 lfoobar]
 graph_l3 = 
-  let gtmp = toGraph [arc s1 p1 (toRDFLabel (12::Int)),
-                      arc s1 p1 (toRDFLabel (23.4::Float)),
-                      arc s1 p1 (toRDFLabel ((-2.304e-108)::Double)),
-                      arc s1 p1 (toRDFLabel True)
+  let tf a = toRDFTriple s1 p1 a
+      gtmp = toGraph [tf (12::Int),
+                      tf (23.4::Float),
+                      tf ((-2.304e-108)::Double),
+                      tf True
                       ]
   in gtmp { namespaces = mapAdd (namespaces gtmp) (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") }
+graph_l4 = toGraph [ toRDFTriple s1 p1 "A string with \"quotes\""
+                   , toRDFTriple s2 p2 (Lit "A typed string with \"quotes\"" (Just (fromString "urn:a#b")))
+                   ]                    
                     
 ------------------------------------------------------------
 --  Trivial formatter tests
@@ -873,6 +878,12 @@ simpleN3Graph_l3 =
   "                  12,\n" ++ 
   "                  \"2.34E1\"^^xsd:float,                  true .\n"
   
+simpleN3Graph_l4 :: String
+simpleN3Graph_l4 =
+  commonPrefixes ++
+  "base1:s1 base1:p1 \"\"\"A string with \"quotes\\\"\"\"\" .\n" ++
+  "base2:s2 base2:p2 \"\"\"A typed string with \"quotes\\\"\"\"\"^^<urn:a#b> .\n"
+
 trivialTestSuite :: Test
 trivialTestSuite = TestList
  [ formatTest "trivialTest01" g1np simpleN3Graph_g1_01
@@ -904,6 +915,7 @@ trivialTestSuite = TestList
  , formatTest "lit1"   graph_l1   simpleN3Graph_l1  
  , formatTest "lit2"   graph_l2   simpleN3Graph_l2
  , formatTest "lit3"   graph_l3   simpleN3Graph_l3
+ , formatTest "lit4"   graph_l4   simpleN3Graph_l4
    
  , formatTest "trivialTestx4" x4 exoticN3Graph_x4
  , formatTest "trivialTestx5" x5 exoticN3Graph_x5

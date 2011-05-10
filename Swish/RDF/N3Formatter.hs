@@ -796,7 +796,8 @@ formatLabel _ lab@(Res sn) =
       return name
 
 -- We assume there that the values are valid (e.g. that lit is syntactically
--- correct).
+-- correct). TODO: this turns out to be incorrect, since the canonical XSD
+-- representation does not match the format supported by N3, or so it seems.      
 --      
 formatLabel _ (Lit lit (Just dtype)) 
   | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer, xsd_double] = return lit
@@ -820,6 +821,9 @@ the string.
 There is also no need to restrict the string to the
 ASCII character set; this could be an option but we
 can also leave Unicode as is (or at least convert to UTF-8).
+
+If we use """ to surround the string then we protect the
+last character if it is a " (assuming it isn't protected).
 -}
 
 quoteStr :: String -> String
@@ -829,13 +833,21 @@ quoteStr st =
       qch = replicate n '"'                              
   in qch ++ qst ++ qch
 
--- if the first element is True then we need to 
--- quote " and new lines.
+-- The boolean flag is True if the string is being displayed
+-- with single quotes, which should mean that there are
+-- no newline or quote characters in the string.
+--
+-- TODO: when flag == False need to worry about n > 2 quotes
+-- in a row.
 --
 quote :: Bool -> String -> String
 quote _     []           = ""
-quote True  ('"': st)    = '\\':'"': quote True  st
-quote True  ('\n':st)    = '\\':'n': quote True  st
+quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
+                         | otherwise  = c : '\\' : '"' : []
+
+-- quote True  ('"': st)    = '\\':'"': quote True  st  -- this should not happen
+-- quote True  ('\n':st)    = '\\':'n': quote True  st  -- this should not happen
+
 quote True  ('\t':st)    = '\\':'t': quote True  st
 quote False ('"': st)    =      '"': quote False st
 quote False ('\n':st)    =     '\n': quote False st

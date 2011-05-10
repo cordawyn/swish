@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.3.1.0
+Version:            0.3.1.1
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,8 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Major Changes:
+  .
+  [Version 0.3.1.1] Bug fixes to N3 output (string handling).
   .
   [Version 0.3.1.0] Added the `Swish.RDF.RDFGraph.ToRDFLabel` and
   `Swish.RDF.RDFGraph.FromRDFLabel` classes and the 
