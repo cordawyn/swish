@@ -146,36 +146,18 @@ makeRDFModifierFn ::
     RDFDatatypeVal vt -> ModifierFn vt -> RDFModifierFn
 makeRDFModifierFn dtval fn ivs =
     let
-        ivals = mapM (rdfNodeExtract dtval) ivs
+        ivals = mapM (fromRDFLabel dtval) ivs
         ovals | isJust ivals = fn (fromJust ivals)
               | otherwise    = []
     in
-        fromMaybe [] $ mapM (rdfNodeInject dtval) ovals
-
--- |Extract datatyped value from 'RDFLabel' value, or return @Nothing@.
---
-rdfNodeExtract :: RDFDatatypeVal vt -> RDFLabel -> Maybe vt
-rdfNodeExtract dtval node
-    | isDatatyped dtname node = mapL2V dtmap $ getLiteralText node
-    | otherwise               = Nothing
-    where
-        dtname = tvalName dtval
-        dtmap  = tvalMap  dtval
-
--- |Return new RDF literal node with a representation of the supplied
---  value, or @Nothing@.
---
-rdfNodeInject :: RDFDatatypeVal vt -> vt -> Maybe RDFLabel
-rdfNodeInject dtval val = maybeNode valstr
-    where
-        valstr = mapV2L (tvalMap  dtval) val
-        maybeNode Nothing    = Nothing
-        maybeNode (Just str) = Just $ Lit str (Just (tvalName dtval))
+        fromMaybe [] $ mapM (toRDFLabel dtval) ovals
 
 ------------------------------------------------------------
 --  Helpers to map between datatype values and RDFLabels
 ------------------------------------------------------------
 
+-- | Convert from a typed literal to a Haskell value,
+-- with the possibility of failure.
 fromRDFLabel ::
     RDFDatatypeVal vt -> RDFLabel -> Maybe vt
 fromRDFLabel dtv lab
@@ -185,6 +167,8 @@ fromRDFLabel dtv lab
         dtnam = tvalName dtv
         dtmap = tvalMap dtv
 
+-- | Convert a Haskell value to a typed literal (label),
+-- with the possibility of failure.
 toRDFLabel :: RDFDatatypeVal vt -> vt -> Maybe RDFLabel
 toRDFLabel dtv =
     liftM (makeDatatypedLiteral dtnam) . mapV2L dtmap
@@ -192,6 +176,7 @@ toRDFLabel dtv =
         dtnam = tvalName dtv
         dtmap = tvalMap dtv
 
+-- | Create a typed literal from the given value.
 makeDatatypedLiteral :: ScopedName -> String -> RDFLabel
 makeDatatypedLiteral dtnam strval =
     Lit strval (Just dtnam)

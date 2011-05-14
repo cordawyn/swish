@@ -67,5 +67,6 @@ Some things I want to/should do (not in order)
   Errr, there is Swish.RDF.Datatype which looks to have the
   semantics we need (ie remove the To/FromRDFLabel typeclasses); 
   it may still be useful to have a typeclass for conversion between
-  strings and values for the formatter/parser code.
+  strings and values for the formatter/parser code (such as,
+  perhaps, Swish.RDF.Datatype.DatatypeMap)
 

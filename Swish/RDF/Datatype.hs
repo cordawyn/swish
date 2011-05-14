@@ -1000,7 +1000,7 @@ listFnApp _ _ [] = error "listFnApp called with an empty list" -- -Wall
 --  * supertypes may be introduced retrospectively,
 --
 --  * the relationship expressed with respect to a single datatype
---      cannot indicate hiow to do injections/restrictions between the
+--      cannot indicate how to do injections/restrictions between the
 --      underlying value types.
 --
 --  [@ex@]      is the type of expression with which the datatype may be used.

@@ -220,6 +220,9 @@ The conversion for XSD types attempts to use the
 canonical form described in section 2.3.1 of
 <http://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#lexical-space>.
   
+Note that this is very similar to
+'Swish.RDF.RDFDatatype.toRDFLabel' and should be moved into
+a @Swish.RDF.Datatype@ module.
 -}
 
 class ToRDFLabel a where
@@ -247,6 +250,9 @@ types (out-of-band values result in @Nothing@):
 
  - @xsd:date@ to @Day@
 
+Note that this is very similar to
+'Swish.RDF.RDFDatatype.fromRDFLabel' and should be moved into
+a @Swish.RDF.Datatype@ module.
 -}
 
 class FromRDFLabel a where
