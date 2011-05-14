@@ -417,6 +417,7 @@ newGenerationMap (LabelMap g lvs) = LabelMap (g+1) lvs
 --
 assignLabelMap :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
 assignLabelMap ns lmap = foldl (flip assignLabelMap1) lmap ns
+-- TODO: foldl to foldl' ?
 
 assignLabelMap1 :: (Label lb) => lb -> LabelMap lb -> LabelMap lb
 assignLabelMap1 lab (LabelMap g lvs) = LabelMap g lvs'
@@ -533,7 +534,7 @@ remapLabels gs lmap@(LabelMap gen _) ls =
 -- | Return list of distinct labels used in a graph
 
 graphLabels :: (Label lb) => [Arc lb] -> [lb]
-graphLabels gs = nub $ concatMap arcLabels gs
+graphLabels = nub . concatMap arcLabels
 
 {-  OLD CODE:
 graphLabels gs = graphLabels1 gs []

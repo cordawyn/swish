@@ -58,3 +58,14 @@ Some things I want to/should do (not in order)
 - remove the containedIn function of the LDGraph type class,
   or implement it. It is currently unused in the code base.
 
+- would it make sense to add some form of XSDType type class which
+  would contain to/from and show canonical String methods and some
+  form of equality test; these could then be used to create the
+  RDFLabel instances and the showCanon RDFLabel routine? Need to think
+  about this as technically it need not be restricted to XSD types.
+
+  Errr, there is Swish.RDF.Datatype which looks to have the
+  semantics we need (ie remove the To/FromRDFLabel typeclasses); 
+  it may still be useful to have a typeclass for conversion between
+  strings and values for the formatter/parser code.
+

@@ -1191,7 +1191,7 @@ bOne, b20, b221, b23e4 :: RDFLabel
 bOne  = Lit "1" $ Just xsd_integer
 b20   = Lit "2.0" $ Just xsd_decimal
 b221  = Lit "-2.21" $ Just xsd_decimal
-b23e4 = Lit "-2.3e-4" $ Just xsd_double
+b23e4 = Lit "-2.3E-4" $ Just xsd_double
 
 lit_g4 :: RDFGraph
 lit_g4 = mempty {

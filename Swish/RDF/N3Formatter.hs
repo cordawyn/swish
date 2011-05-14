@@ -90,7 +90,7 @@ import Swish.Utils.LookupMap
 import Swish.Utils.Namespace
     ( ScopedName(..), getScopeURI )
 
-import Data.Char (ord, isDigit)
+import Data.Char (ord, isDigit, toLower)
 
 import Data.List (foldl', delete, groupBy, partition, sort)
 
@@ -795,12 +795,14 @@ formatLabel _ lab@(Res sn) =
       queueFormula lab
       return name
 
--- We assume there that the values are valid (e.g. that lit is syntactically
--- correct). TODO: this turns out to be incorrect, since the canonical XSD
--- representation does not match the format supported by N3, or so it seems.      
+-- The canonical notation for xsd:double in XSD, with an upper-case E,
+-- does not match the syntax used in N3, so we need to convert here.     
+-- Rather than converting back to a Double and then displaying that       
+-- we just convert E to e for now.      
 --      
 formatLabel _ (Lit lit (Just dtype)) 
-  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer, xsd_double] = return lit
+  | dtype == xsd_double = return $ map toLower lit
+  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer] = return lit
   | otherwise = return $ quoteStr lit ++ formatAnnotation dtype
 formatLabel _ (Lit lit Nothing) = return $ quoteStr lit
 
@@ -843,7 +845,7 @@ quoteStr st =
 quote :: Bool -> String -> String
 quote _     []           = ""
 quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
-                         | otherwise  = c : '\\' : '"' : []
+                         | otherwise  = [c, '\\', '"']
 
 -- quote True  ('"': st)    = '\\':'"': quote True  st  -- this should not happen
 -- quote True  ('\n':st)    = '\\':'n': quote True  st  -- this should not happen

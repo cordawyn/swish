@@ -79,7 +79,7 @@ import Swish.RDF.Vocabulary
     , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
     , owl_sameAs, log_implies
     -- , xsd_type
-    , xsd_boolean, xsd_float, xsd_double, xsd_integer
+    , xsd_boolean, xsd_decimal, xsd_float, xsd_double, xsd_integer
     , xsd_dateTime, xsd_date                                                
     )
 
@@ -108,7 +108,7 @@ import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 import Network.URI (URI, parseURI, uriToString)
 
 import Data.Monoid (Monoid(..))
-import Data.Char (isDigit)
+import Data.Char (isDigit, toLower)
 import Data.List (intersect, union, findIndices)
 import Data.Ord (comparing)
 import Data.String (IsString(..))
@@ -116,7 +116,6 @@ import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
 import System.Locale (defaultTimeLocale)  
 import Text.Printf
 
------------------------------------------------------------
 -- | RDF graph node values
 --
 --  cf. <http://www.w3.org/TR/rdf-concepts/#section-Graph-syntax>
@@ -136,10 +135,6 @@ import Text.Printf
 --  (c) a \"NoNode\" option is defined.
 --      This might otherwise be handled by @Maybe (RDFLabel g)@.
 --
-
--- TODO: should Lit be split up so that can easily differentiate between
--- a type and a language tag
-
 data RDFLabel =
       Res ScopedName                    -- ^ resource
     | Lit String (Maybe ScopedName)     -- ^ literal [type/language]
@@ -147,14 +142,33 @@ data RDFLabel =
     | Var String                        -- ^ variable (not used in ordinary graphs)
     | NoNode                            -- ^ no node  (not used in ordinary graphs)
 
+-- TODO: should Lit be split up so that can easily differentiate between
+-- a type and a language tag?
+
+-- | Define equality of nodes possibly based on different graph types.
+--
+-- The equality of literals is taken from section 6.5.1 ("Literal
+-- Equality") of the RDF Concepts and Abstract Document,
+-- <http://www.w3.org/TR/2004/REC-rdf-concepts-20040210/#section-Literal-Equality>.
+--
 instance Eq RDFLabel where
-    (==) = labelEq
+    Res q1   == Res q2   = q1 == q2
+    Blank b1 == Blank b2 = b1 == b2
+    Var v1   == Var v2   = v1 == v2
+
+    Lit s1 Nothing   == Lit s2 Nothing   = s1 == s2
+    Lit s1 (Just t1) == Lit s2 (Just t2) = s1 == s2 && (t1 == t2 ||
+                                                        (isLang t1 && isLang t2 &&
+                                                         (map toLower . langTag) t1 == (map toLower . langTag) t2))
+    
+    _  == _ = False
 
 instance Show RDFLabel where
     show (Res sn)           = show sn
     show (Lit st Nothing)   = quote st
     show (Lit st (Just nam))
         | isLang nam = quote st ++ "@"  ++ langTag nam
+        | nam `elem` [xsd_boolean, xsd_double, xsd_decimal, xsd_integer] = st
         | otherwise  = quote st ++ "^^" ++ show nam
     show (Blank ln)         = "_:"++ln
     show (Var ln)           = '?' : ln
@@ -277,15 +291,18 @@ instance FromRDFLabel String where
   fromRDFLabel (Lit xs Nothing) = Just xs
   fromRDFLabel _ = Nothing
 
+-- | Converts to a literal with a @xsd:boolean@ datatype.
 instance ToRDFLabel Bool where
   toRDFLabel b = Lit (if b then "true" else "false") (Just xsd_boolean)
                                                  
+strToBool :: String -> Maybe Bool
+strToBool s | s `elem` ["1", "true"]  = Just True
+            | s `elem` ["0", "false"] = Just False
+            | otherwise               = Nothing
+
+-- | Converts from a literal with a @xsd:boolean@ datatype.
 instance FromRDFLabel Bool where
-  fromRDFLabel = fLabel conv xsd_boolean
-    where
-      conv s | s `elem` ["1", "true"]  = Just True
-             | s `elem` ["0", "false"] = Just False
-             | otherwise               = Nothing
+  fromRDFLabel = fLabel strToBool xsd_boolean
 
 fromRealFloat :: (RealFloat a, PrintfArg a) => ScopedName -> a -> RDFLabel
 fromRealFloat dtype f | isNaN f      = toL "NaN"
@@ -294,8 +311,8 @@ fromRealFloat dtype f | isNaN f      = toL "NaN"
                         where
                           toL = flip Lit (Just dtype)
 
-toRealFloat :: (RealFloat a, Read a) => (a -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
-toRealFloat conv = fLabel rconv
+strToRealFloat :: (RealFloat a, Read a) => (a -> Maybe a) -> String -> Maybe a
+strToRealFloat conv = rconv
     where
       rconv "NaN"  = Just (0.0/0.0) -- how best to create a NaN?
       rconv "INF"  = Just (1.0/0.0) -- ditto for Infinity
@@ -306,23 +323,29 @@ toRealFloat conv = fLabel rconv
         | last istr == '.' = maybeRead (istr ++ "0") >>= conv
         | otherwise        = maybeRead istr >>= conv
       
-instance ToRDFLabel Float where
-  toRDFLabel = fromRealFloat xsd_float
-  
-instance FromRDFLabel Float where
-  fromRDFLabel = toRealFloat conv xsd_float
-    where
-      -- assume that an invalid value (NaN/Inf) from maybeRead means
+strToFloat :: String -> Maybe Float
+strToFloat = 
+  let -- assume that an invalid value (NaN/Inf) from maybeRead means
       -- that the value is out of bounds for Float so we do not
       -- convert
       conv f | isNaN f || isInfinite f = Nothing
              | otherwise               = Just f
+  in strToRealFloat conv
+
+strToDouble :: String -> Maybe Double      
+strToDouble = strToRealFloat Just
+
+instance ToRDFLabel Float where
+  toRDFLabel = fromRealFloat xsd_float
+  
+instance FromRDFLabel Float where
+  fromRDFLabel = fLabel strToFloat xsd_float
                  
 instance ToRDFLabel Double where
   toRDFLabel = fromRealFloat xsd_double
   
 instance FromRDFLabel Double where
-  fromRDFLabel = toRealFloat Just xsd_double
+  fromRDFLabel = fLabel strToDouble xsd_double
   
 -- TODO: are there subtypes of xsd::integer that are  
 --       useful here?  
@@ -341,14 +364,18 @@ the Int range; instead it overflows. So instead of
 we convert via Integer.
 -}
 
-instance FromRDFLabel Int where
-  fromRDFLabel = fLabel (\istr -> maybeRead istr >>= conv) xsd_integer
-    where
-      conv :: Integer -> Maybe Int
+strToInt :: String -> Maybe Int
+strToInt s = 
+  let conv :: Integer -> Maybe Int
       conv i = 
         let lb = fromIntegral (minBound :: Int)
             ub = fromIntegral (maxBound :: Int)
         in if (i >= lb) && (i <= ub) then Just (fromIntegral i) else Nothing
+  
+  in maybeRead s >>= conv
+
+instance FromRDFLabel Int where
+  fromRDFLabel = fLabel strToInt xsd_integer
 
 instance ToRDFLabel Integer where
   toRDFLabel = tLabel xsd_integer id
@@ -436,7 +463,10 @@ instance FromRDFLabel URI where
 --
 --  Used for hashing, so that equivalent labels always return
 --  the same hash value.
-    
+--    
+--  It is being updated to use XSD canonical forms where  
+--  available.
+--  
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++getScopedNameURI sn++">"
 showCanon (Lit st (Just nam))
@@ -444,20 +474,6 @@ showCanon (Lit st (Just nam))
         | otherwise  = quote st ++ "^^" ++ getScopedNameURI nam
 showCanon s                  = show s
 
-
--- | Define equality of nodes possibly based on different graph types.
---
--- The version of equality defined here is not strictly RDF abstract syntax
--- equality, but my interpretation of equivalence for the purposes of
--- entailment, in the absence of any specific datatype knowledge other
--- than XML literals.
---
-labelEq :: RDFLabel -> RDFLabel -> Bool
-labelEq (Res q1)            (Res q2)        = q1 == q2
-labelEq (Blank s1)          (Blank s2)      = s1 == s2
-labelEq (Var v1)            (Var v2)        = v1 == v2
-labelEq (Lit s1 t1)         (Lit s2 t2)     = s1 == s2 && t1 == t2
-labelEq _                   _               = False
 
 ---------------------------------------------------------
 --  Selected RDFLabel values
@@ -682,18 +698,21 @@ data NSGraph lb = NSGraph
 getNamespaces :: NSGraph lb -> NamespaceMap
 getNamespaces = namespaces
 
+-- | Replace the namespace information in the graph.
 setNamespaces      :: NamespaceMap -> NSGraph lb -> NSGraph lb
 setNamespaces ns g = g { namespaces=ns }
 
 getFormulae :: NSGraph lb -> FormulaMap lb
 getFormulae = formulae
 
+-- | Replace the formulae in the graph.
 setFormulae      :: FormulaMap lb -> NSGraph lb -> NSGraph lb
 setFormulae fs g = g { formulae=fs }
 
 getFormula     :: (Label lb) => NSGraph lb -> lb -> Maybe (NSGraph lb)
 getFormula g l = mapFindMaybe l (formulae g)
 
+-- | Add (or replace) a formula.
 setFormula     :: (Label lb) => Formula lb -> NSGraph lb -> NSGraph lb
 setFormula f g = g { formulae=mapReplaceOrAdd f (formulae g) }
 
@@ -706,7 +725,8 @@ instance (Label lb) => LDGraph NSGraph lb where
     setArcs as g = g { statements=as }
     containedIn = error "containedIn for LDGraph NSGraph lb is undefined!" -- TODO: should there be one defined?
 
--- Optimized method to add arc .. don't check for duplicates.
+-- | Add an arc to the graph. It does not check for duplicates
+-- nor does it relabel any blank nodes in the input arc.
 addArc :: (Label lb) => Arc lb -> NSGraph lb -> NSGraph lb
 addArc ar gr = gr { statements=addSetElem ar (statements gr) }
 
@@ -751,7 +771,7 @@ showArcs p g = foldr ((++) . (pp ++) . show) "" (getArcs g)
         pp = "\n    " ++ p
 
 grEq :: (Label lb) => NSGraph lb -> NSGraph lb -> Bool
-grEq g1 g2 = fst ( grMatchMap g1 g2 )
+grEq g1 = fst . grMatchMap g1
 
 grMatchMap :: (Label lb) =>
     NSGraph lb -> NSGraph lb -> (Bool, LabelMap (ScopedLabel lb))
@@ -765,7 +785,8 @@ grMatchMap g1 g2 =
 --  needed to neep variable nodes from the two graphs distinct in
 --  the resulting graph.
 --        
---  Currently formulae are not preserved across a merge.
+--  Currently formulae are not guaranteed to be preserved across a
+--  merge.
 --        
 merge :: (Label lb) => NSGraph lb -> NSGraph lb -> NSGraph lb
 merge gr1 gr2 =

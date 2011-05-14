@@ -44,6 +44,7 @@ import Swish.RDF.GraphClass (Arc, arc)
 
 import Swish.RDF.Vocabulary (langName)
 
+import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 
 import Test.HUnit
@@ -636,11 +637,17 @@ graph_l1 = toGraph [arc s1 p1 lfr]
 graph_l2 = toGraph [arc s1 p1 lfoobar]
 graph_l3 = 
   let tf a = toRDFTriple s1 p1 a
-      gtmp = toGraph [tf (12::Int),
-                      tf (23.4::Float),
-                      tf ((-2.304e-108)::Double),
-                      tf True
-                      ]
+      gtmp = toGraph [ tf True
+                     , tf (12::Int)
+                       
+                       -- so, issue over comparing -2.304e-108 and value read in from string
+                       -- due to comparing a ScopedName instance built from a RDFLabel
+                       -- as the hash used in the comparison is based on the Show value
+                       -- but then why isn't this a problem for Float
+                       
+                     , tf ((-2.304e-108)::Double)
+                     , tf (23.4::Float)  
+                     ]
   in gtmp { namespaces = mapAdd (namespaces gtmp) (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") }
 graph_l4 = toGraph [ toRDFTriple s1 p1 "A string with \"quotes\""
                    , toRDFTriple s2 p2 (Lit "A typed string with \"quotes\"" (Just (fromString "urn:a#b")))
@@ -873,11 +880,11 @@ simpleN3Graph_l3 :: String
 simpleN3Graph_l3 =
   "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" ++ 
   commonPrefixes ++ 
-  "\n" ++ -- TODO: why do we need this?
-  "base1:s1 base1:p1 -2.304E-108,\n" ++ 
-  "                  12,\n" ++ 
-  "                  \"2.34E1\"^^xsd:float,                  true .\n"
-  
+  "\n" ++ -- TODO: why do we need this newline?
+  "base1:s1 base1:p1 \"2.34E1\"^^xsd:float,\n" ++ 
+  "                  -2.304e-108,\n" ++ 
+  "                  12,                  true .\n"
+
 simpleN3Graph_l4 :: String
 simpleN3Graph_l4 =
   commonPrefixes ++
@@ -974,8 +981,8 @@ roundTripTest lab gr =
     where
         out     = formatGraphAsString gr
         (pe,pg) = case parseN3fromString out of
-            Right g -> ("",g)
-            Left  s -> (s,emptyRDFGraph)
+            Right g -> ("", g)
+            Left  s -> (s, mempty)
 
 --  Full round trip from graph source.  This test may pick up some errors
 --  the bnode generation logic that are not tested by hand-assembled graph
@@ -989,12 +996,12 @@ fullRoundTripTest lab grstr =
       ]
     where
         (_,gr) = case parseN3fromString grstr of
-            Right g -> ("",g)
-            Left  s -> (s,emptyRDFGraph)
+            Right g -> ("", g)
+            Left  s -> (s, mempty)
         out     = formatGraphAsString gr
         (pe,pg) = case parseN3fromString out of
-            Right g -> ("",g)
-            Left  s -> (s,emptyRDFGraph)
+            Right g -> ("", g)
+            Left  s -> (s, mempty)
 
 roundTripTestSuite :: Test
 roundTripTestSuite = TestList
@@ -1008,6 +1015,7 @@ roundTripTestSuite = TestList
   , roundTripTest "l1"    graph_l1
   , roundTripTest "l2"    graph_l2
   , roundTripTest "l3"    graph_l3
+  , roundTripTest "l4"    graph_l4
       
     -- roundTripTest07 = roundTripTest "07" g1f1 -- formula is a named node
   , roundTripTest "08" g1f2
@@ -1020,6 +1028,11 @@ roundTripTestSuite = TestList
     -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
   , fullRoundTripTest "18" simpleN3Graph_g1_08
   
+  , fullRoundTripTest "l1"    simpleN3Graph_l1
+  , fullRoundTripTest "l2"    simpleN3Graph_l2
+  , fullRoundTripTest "l3"    simpleN3Graph_l3
+  , fullRoundTripTest "l4"    simpleN3Graph_l4
+      
   ]
 
 ------------------------------------------------------------

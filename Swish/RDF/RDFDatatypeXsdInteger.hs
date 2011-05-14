@@ -155,10 +155,9 @@ rdfDatatypeValXsdInteger = DatatypeVal
 
 -- |relXsdInteger contains arithmetic and other relations for xsd:Integer values.
 --
---  The functions are inspired by those defined by CWM as math: properties.
---  (cf. http://www.w3.org/2000/10/swap/doc/CwmBuiltins.html)
+--  The functions are inspired by those defined by CWM as math: properties
+--  (<http://www.w3.org/2000/10/swap/doc/CwmBuiltins.html>).
 --
-
 relXsdInteger :: [DatatypeRel Integer]
 relXsdInteger =
     [ relXsdIntegerAbs
@@ -293,8 +292,8 @@ relXsdIntegerGe = mkIntRel2 "ge" (lcomp (>=))
 -- |modXsdInteger contains variable binding modifiers for xsd:Integer values.
 --
 --  The functions are selected from those defined by CWM as math:
---  properties.
---  (cf. http://www.w3.org/2000/10/swap/doc/CwmBuiltins.html)
+--  properties
+--  (<http://www.w3.org/2000/10/swap/doc/CwmBuiltins.html>).
 --
 modXsdInteger :: [RDFDatatypeMod Integer]
 modXsdInteger =

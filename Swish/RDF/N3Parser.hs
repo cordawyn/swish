@@ -32,16 +32,6 @@
 --
 --  UTF-8 handling is not really tested.
 --
---  Several items seem to be allowed (from looking at N3 test suites and files
---  'in the wild') that are not given supported by the N3 grammar [1]. We try
---  to support these, including
---
---    - \"@:@\" and \"@base:@\" as valid QNames (ie a blank local component)
---
---    - @true@ and @false@ as well as @\@true@ and @\@false@
---
---    - use of lower-case characters for @\\u@ and @\\U@ escape codes
---
 --  No performance testing has been applied.
 --
 --  Not all N3 grammar elements are supported, including:
@@ -81,6 +71,7 @@ where
 
 import Swish.RDF.RDFGraph
     ( RDFGraph, RDFLabel(..)
+    , ToRDFLabel(..)
     , NamespaceMap
     , LookupFormula(..) 
     , addArc 
@@ -959,11 +950,21 @@ integer ::=	[-+]?[0-9]+
 numericliteral ::=		|	decimal
 		|	double
 		|	integer
+
+TODO: we could convert via something like
+
+  maybeRead value :: Double >>= Just . toRDFLabel
+
+which would mean we store the canonical XSD value in the
+label, but it is not useful for the xsd:decimal case
+since we currently don't have a Haskell type that
+goes with it.
 -}
 
 numericLiteral :: N3Parser RDFLabel
 numericLiteral =
-  try (mkTypedLit xsd_double <$> n3double)
+  -- try (mkTypedLit xsd_double <$> n3double)
+  try (d2s <$> n3double)
   <|> try (mkTypedLit xsd_decimal <$> n3decimal)
   <|> mkTypedLit xsd_integer <$> n3integer
   <?> "numericliteral"
@@ -984,6 +985,11 @@ n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many1 digit )
            
 n3double :: N3Parser String  
 n3double = (++) <$> n3decimal <*> ( (:) <$> oneOf "eE" <*> n3integer )
+
+-- convert a double, as returned by n3double, into it's
+-- canonical XSD form
+d2s :: String -> RDFLabel
+d2s s = toRDFLabel (read s :: Double)
 
 {-
 propertylist ::=		|	verb object objecttail propertylisttail
