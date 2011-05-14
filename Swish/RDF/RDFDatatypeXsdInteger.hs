@@ -10,8 +10,8 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module defines the structures used by swish to represent and
---  manipulate RDF datatypes.
+--  This module defines the structures used by Swish to represent and
+--  manipulate RDF @xsd:integer@ datatyped literals.
 --
 --------------------------------------------------------------------------------
 
