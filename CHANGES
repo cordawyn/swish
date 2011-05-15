@@ -1,3 +1,29 @@
+0.3.1.1:
+
+  - N3 I/O: 
+
+    - strings ending in a double-quote character are now written out
+      correctly.
+
+    - xsd:double values are not written using XSD canonical
+      form/capital E but with using a lower-case exponent.
+
+    - in input, xsd:double literals are converted to XSD canonical
+      form (as stored in 'RDFLabel'), which can make simple textual
+      comparison of literals fail.
+
+  - RDFLabel:
+
+    - the Eq instance now ignores the case of the language tag for
+      literals
+
+    - the Show instance uses the XSD canonical form for xsd:boolean,
+      xsd:integer, xsd:decimal and xsd:double literals. 
+
+  - The ToRDFLable and FromRDFLabel classes replicate
+    existing functionality in Swish.RDF.RDFDatatype; this should
+    be cleaned up.
+
 0.3.1.0:
 
   - NSGraph:

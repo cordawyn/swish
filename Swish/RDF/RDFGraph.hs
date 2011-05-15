@@ -470,9 +470,6 @@ instance FromRDFLabel URI where
 --  Used for hashing, so that equivalent labels always return
 --  the same hash value.
 --    
---  It is being updated to use XSD canonical forms where  
---  available.
---  
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++getScopedNameURI sn++">"
 showCanon (Lit st (Just nam))

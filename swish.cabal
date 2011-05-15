@@ -46,7 +46,18 @@ Description:
   .
   Major Changes:
   .
-  [Version 0.3.1.1] Bug fixes to N3 handling (string and numeric literals).
+  [Version 0.3.1.1] Bug fixes for N3 format: strings ending in a 
+  double quote character are now written out correctly and
+  @xsd:double@ values are not written using XSD canonical form/capital
+  @E@ but with a lower-case @e@. On input of N3,
+  literals that match @xsd:double@ are converted to XSD canonical form
+  (as stored in 'RDFLabel'), which can make simple textual comparison
+  of literals fail. The 'Eq' instance of 'RDFLabel' now ignores the
+  case of the language tag for literals and the 'Show' instance 
+  uses XSD canonical form for @xsd:boolean@, @xsd:integer@,
+  @xsd:decimal@ and @xsd:double@ literals. 
+  Noted that the 'ToRDFLable' and 'FromRDFLabel' classes replicate
+  existing functionality in the "Swish.RDF.RDFDatatype" module.
   .
   [Version 0.3.1.0] Added the `Swish.RDF.RDFGraph.ToRDFLabel` and
   `Swish.RDF.RDFGraph.FromRDFLabel` classes and the 
