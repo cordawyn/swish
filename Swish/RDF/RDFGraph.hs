@@ -97,7 +97,8 @@ import Swish.Utils.ListHelpers (addSetElem)
 import Swish.Utils.LookupMap
     ( LookupMap(..), LookupEntryClass(..)
     , listLookupMap
-    , mapFind, mapFindMaybe, mapReplaceOrAdd, mapVals, mapKeys )
+    , mapFind, mapFindMaybe, mapReplaceOrAdd, mapAddIfNew
+    , mapVals, mapKeys )
 
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
@@ -109,7 +110,7 @@ import Network.URI (URI, parseURI, uriToString)
 
 import Data.Monoid (Monoid(..))
 import Data.Char (isDigit, toLower)
-import Data.List (intersect, union, findIndices)
+import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
 import Data.String (IsString(..))
 import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
@@ -467,7 +468,7 @@ instance FromRDFLabel URI where
 
 -- | Get the canonical string for RDF label.
 --
---  Used for hashing, so that equivalent labels always return
+--  This is used for hashing, so that equivalent labels always return
 --  the same hash value.
 --    
 showCanon :: RDFLabel -> String
@@ -921,8 +922,27 @@ trybnodes (nr,nx) = [ makeLabel (nr++show n) | n <- iterate (+1) nx ]
 type RDFGraph = NSGraph RDFLabel
 
 -- |Create a new RDF graph from a supplied list of arcs
+--
+-- This version will attempt to fill up the namespace map
+-- of the graph based on the input labels (including datatypes
+-- on literals). For faster
+-- creation of a graph you can use:
+--
+-- > emptyRDFGraph { statements = arcs }
+--
+-- which is how this routine was defined in version @0.3.1.1@
+-- and earlier.
+--
 toRDFGraph :: [Arc RDFLabel] -> RDFGraph
-toRDFGraph arcs = emptyRDFGraph { statements = arcs }
+-- toRDFGraph arcs = emptyRDFGraph { statements = arcs }
+toRDFGraph arcs = 
+  let lbls = concatMap (\(Arc s p o) -> [s,p,o]) arcs
+      ns1  = map (snScope . getScopedName) (filter isUri lbls)
+      ns2  = map (snScope . getDataType) (filter isTypedLiteral lbls)
+      getDataType (Lit _ (Just dt)) = dt
+      getDataType _ = nullScopedName -- should not happen
+      nsmap = foldl' mapAddIfNew emptyNamespaceMap (ns1++ns2)
+  in emptyRDFGraph { namespaces = nsmap, statements = arcs }
 
 -- |Create a new, empty RDF graph.
 emptyRDFGraph :: RDFGraph

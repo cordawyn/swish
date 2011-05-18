@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.3.1.1
+Version:            0.3.1.2
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,10 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Major Changes:
+  .
+  [Version 0.3.1.2] 'Swish.RDF.RDFGraph.toRDFGraph' now sets up the
+  namespace map of the graph based on the input labels (previously it
+  left the map empty).
   .
   [Version 0.3.1.1] Bug fixes for N3 format: strings ending in a 
   double quote character are now written out correctly and

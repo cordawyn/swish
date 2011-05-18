@@ -38,11 +38,12 @@ import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
-    , emptyLookupMap, makeLookupMap, mapAdd )
+    , emptyLookupMap
+    , makeLookupMap)
 
 import Swish.RDF.GraphClass (Arc, arc)
 
-import Swish.RDF.Vocabulary (langName)
+import Swish.RDF.Vocabulary (langName, namespaceRDF, namespaceXSD)
 
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
@@ -166,7 +167,7 @@ nslist = makeLookupMap
     ]
 
 g1np :: RDFGraph
-g1np = toRDFGraph [t01]
+g1np = emptyRDFGraph { namespaces = makeLookupMap [base1], statements = [t01] }
 
 toGraph :: [Arc RDFLabel] -> RDFGraph
 toGraph arcs = (toRDFGraph arcs) {namespaces = nslist}
@@ -212,7 +213,7 @@ g1f3 = NSGraph
 ----
 
 g2, g3, g4, g5, g6, g7 :: RDFGraph
-g2 = toGraph [t01,t02,t03]
+g2 = toRDFGraph [t01,t02,t03]
 g3 = toGraph [t01,t04]
 g4 = toGraph [t01,t05]
 g5 = toGraph [t01,t02,t03,t04,t05]
@@ -611,24 +612,24 @@ graph_c3    = toGraph [arc s1 p1 b1,
 
 graph_b1, graph_b1rev, graph_b2, graph_b2rev, graph_b3, 
   graph_b4, graph_b5 :: RDFGraph
-graph_b1    = toGraph [arc s1 p1 b1]
-graph_b1rev = toGraph [arc b1 p1 o1]
-graph_b2    = toGraph [arc s1 p1 b1,
-                       arc b1 p2 l1,
-                       arc b1 o2 o3]
-graph_b2rev = toGraph [arc b1 p2 l1,
-                       arc b1 o2 o3,
-                       arc b1 p1 o1]
-graph_b3    = toGraph [arc s1 p1 b1,
-                       arc b1 p2 l2,
-                       arc b1 o2 o3,
-                       arc s1 p2 b2,
-                       arc s2 p2 o2]
-graph_b4    = toGraph [arc b1 res_rdf_type o1,
-                       arc b2 res_rdf_type o2]
-graph_b5    = toGraph [arc b1 res_rdf_type o1,
-                       arc b2 p2 o2,
-                       arc b3 res_rdf_type o3]
+graph_b1    = toRDFGraph [arc s1 p1 b1]
+graph_b1rev = toRDFGraph [arc b1 p1 o1]
+graph_b2    = toRDFGraph [arc s1 p1 b1,
+                          arc b1 p2 l1,
+                          arc b1 o2 o3]
+graph_b2rev = toRDFGraph [arc b1 p2 l1,
+                          arc b1 o2 o3,
+                          arc b1 p1 o1]
+graph_b3    = toRDFGraph [arc s1 p1 b1,
+                          arc b1 p2 l2,
+                          arc b1 o2 o3,
+                          arc s1 p2 b2,
+                          arc s2 p2 o2]
+graph_b4    = toRDFGraph [arc b1 res_rdf_type o1,
+                          arc b2 res_rdf_type o2]
+graph_b5    = toRDFGraph [arc b1 res_rdf_type o1,
+                          arc b2 p2 o2,
+                          arc b3 res_rdf_type o3]
 
 -- datatype/literal graphs
 
@@ -637,18 +638,23 @@ graph_l1 = toGraph [arc s1 p1 lfr]
 graph_l2 = toGraph [arc s1 p1 lfoobar]
 graph_l3 = 
   let tf a = toRDFTriple s1 p1 a
-      gtmp = toGraph [ tf True
-                     , tf (12::Int)
-                       
-                       -- so, issue over comparing -2.304e-108 and value read in from string
-                       -- due to comparing a ScopedName instance built from a RDFLabel
-                       -- as the hash used in the comparison is based on the Show value
-                       -- but then why isn't this a problem for Float
-                       
-                     , tf ((-2.304e-108)::Double)
-                     , tf (23.4::Float)  
-                     ]
+      arcs = [ tf True
+             , tf (12::Int)
+               
+               -- so, issue over comparing -2.304e-108 and value read in from string
+               -- due to comparing a ScopedName instance built from a RDFLabel
+               -- as the hash used in the comparison is based on the Show value
+               -- but then why isn't this a problem for Float
+               
+             , tf ((-2.304e-108)::Double)
+             , tf (23.4::Float)  
+             ]
+  {-             
+      gtmp = toRDFGraph arcs
   in gtmp { namespaces = mapAdd (namespaces gtmp) (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") }
+  -}
+  in toRDFGraph arcs
+   
 graph_l4 = toGraph [ toRDFTriple s1 p1 "A string with \"quotes\""
                    , toRDFTriple s2 p2 (Lit "A typed string with \"quotes\"" (Just (fromString "urn:a#b")))
                    ]                    
@@ -679,14 +685,36 @@ diagTest lab gr out =
     where
       (res,nmap,ngen,trc) = formatGraphDiag gr
 
+mkPrefix :: String -> Namespace -> String
+mkPrefix lbl ns = "@prefix " ++ lbl ++ ": <" ++ nsURI ns ++ "> .\n"
+
+prefixList :: [String]
+prefixList = 
+  [ mkPrefix "base1" base1
+  , mkPrefix "base2" base2
+  , mkPrefix "base3" base3
+  , mkPrefix "base4" base4
+  , mkPrefix "rdf"   namespaceRDF
+  , mkPrefix "xsd"   namespaceXSD
+  ]
+
 commonPrefixes :: String
-commonPrefixes =
-    "@prefix base1: <" ++ nsURI base1 ++ "> .\n" ++
-    "@prefix base2: <" ++ nsURI base2 ++ "> .\n" ++
-    "@prefix base3: <" ++ nsURI base3 ++ "> .\n" ++
-    "@prefix base4: <" ++ nsURI base4 ++ "> .\n"
+commonPrefixes = commonPrefixesN [0..3]
+
+commonPrefixesN :: [Int] -> String
+commonPrefixesN = concatMap (prefixList !!)
+
+commonPrefixes21 :: String
+commonPrefixes21 = concatMap (prefixList !!) [1, 0]
+
+commonPrefixes321 :: String
+commonPrefixes321 = concatMap (prefixList !!) [2, 1, 0]
+
+commonPrefixes132 :: String
+commonPrefixes132 = concatMap (prefixList !!) [0, 2, 1]
 
 --  Single statement using <uri> form
+
 simpleN3Graph_g1_01 :: String
 simpleN3Graph_g1_01 =
     "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> " ++
@@ -824,40 +852,40 @@ previous tests.
 
 simpleN3Graph_b1 :: String
 simpleN3Graph_b1 =
-    commonPrefixes ++
+    head prefixList ++
     "base1:s1 base1:p1 [] .\n"
 
 simpleN3Graph_b1rev :: String
 simpleN3Graph_b1rev =
-    commonPrefixes ++
+    head prefixList ++
     "[\n base1:p1 base1:o1\n] .\n"
 
 simpleN3Graph_b2 :: String
 simpleN3Graph_b2 =
-    commonPrefixes ++
+    commonPrefixesN [2,1,0] ++
     "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b2rev :: String
 simpleN3Graph_b2rev =
-    commonPrefixes ++
+    commonPrefixesN [0,2,1] ++
     "[\n base1:p1 base1:o1 ;\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b3 :: String
 simpleN3Graph_b3 =
-    commonPrefixes ++
+    commonPrefixesN [2,1,0] ++
     "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
     "         base2:p2 [] .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
 simpleN3Graph_b4 :: String
 simpleN3Graph_b4 =
-  commonPrefixes ++
+  commonPrefixesN [1,0,4] ++
   "[\n a base1:o1\n] .\n" ++ 
   "[\n a base2:o2\n] .\n"
 
 simpleN3Graph_b5 :: String
 simpleN3Graph_b5 =
-  commonPrefixes ++
+  commonPrefixesN [2,1,0,4] ++
   "[\n a base1:o1\n] .\n" ++ 
   "[\n base2:p2 base2:o2\n] .\n" ++
   "[\n a base3:o3\n] .\n"
@@ -878,8 +906,7 @@ simpleN3Graph_l2 =
   
 simpleN3Graph_l3 :: String
 simpleN3Graph_l3 =
-  "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" ++ 
-  commonPrefixes ++ 
+  commonPrefixesN [5,0] ++
   "\n" ++ -- TODO: why do we need this newline?
   "base1:s1 base1:p1 \"2.34E1\"^^xsd:float,\n" ++ 
   "                  -2.304e-108,\n" ++ 
@@ -893,8 +920,8 @@ simpleN3Graph_l4 =
 
 trivialTestSuite :: Test
 trivialTestSuite = TestList
- [ formatTest "trivialTest01" g1np simpleN3Graph_g1_01
- , formatTest "trivialTest02" g1   simpleN3Graph_g1_02
+ [ -- formatTest "trivialTest01" g1np simpleN3Graph_g1_01  - no longer valid as now add in a prefix/namespace declaration
+   formatTest "trivialTest02" g1   simpleN3Graph_g1_02
  , formatTest "trivialTest03" g1b1 simpleN3Graph_g1_03
  , formatTest "trivialTest04" g1a1 simpleN3Graph_g1_04
  , formatTest "trivialTest05" g1l1 simpleN3Graph_g1_05
