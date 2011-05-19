@@ -261,9 +261,11 @@ class FromRDFLabel a where
 
 -- instances for type conversion to/from RDFLabel
   
+-- | This is just `id`.
 instance ToRDFLabel RDFLabel where
   toRDFLabel = id
   
+-- | This is just `Just . id`.  
 instance FromRDFLabel RDFLabel where
   fromRDFLabel = Just . id
   
@@ -284,30 +286,36 @@ fLabel _    _     _ = Nothing
 tLabel :: (Show a) => ScopedName -> (String -> String) -> a -> RDFLabel                      
 tLabel dtype conv = flip Lit (Just dtype) . conv . show                      
 
+-- | The character is converted to an untyped literal of length one.
 instance ToRDFLabel Char where
   toRDFLabel = flip Lit Nothing . (:[])
 
+-- | The label must be an untyped literal containing a single character.
 instance FromRDFLabel Char where
   fromRDFLabel (Lit [c] Nothing) = Just c
   fromRDFLabel _ = Nothing
 
+-- | Strings are converted to untyped literals.
 instance ToRDFLabel String where
   toRDFLabel = flip Lit Nothing
 
+-- | Only untyped literals are converted to strings.
 instance FromRDFLabel String where
   fromRDFLabel (Lit xs Nothing) = Just xs
   fromRDFLabel _ = Nothing
 
--- | Converts to a literal with a @xsd:boolean@ datatype.
-instance ToRDFLabel Bool where
-  toRDFLabel b = Lit (if b then "true" else "false") (Just xsd_boolean)
-                                                 
 strToBool :: String -> Maybe Bool
 strToBool s | s `elem` ["1", "true"]  = Just True
             | s `elem` ["0", "false"] = Just False
             | otherwise               = Nothing
 
--- | Converts from a literal with a @xsd:boolean@ datatype.
+-- | Converts to a literal with a @xsd:boolean@ datatype.
+instance ToRDFLabel Bool where
+  toRDFLabel b = Lit (if b then "true" else "false") (Just xsd_boolean)
+                                                 
+-- | Converts from a literal with a @xsd:boolean@ datatype. The
+-- literal can be any of the supported XSD forms - e.g. \"0\" or
+-- \"true\".
 instance FromRDFLabel Bool where
   fromRDFLabel = fLabel strToBool xsd_boolean
 
@@ -342,15 +350,21 @@ strToFloat =
 strToDouble :: String -> Maybe Double      
 strToDouble = strToRealFloat Just
 
+-- | Converts to a literal with a @xsd:float@ datatype.
 instance ToRDFLabel Float where
   toRDFLabel = fromRealFloat xsd_float
   
+-- | Converts from a literal with a @xsd:float@ datatype.
+-- The conversion will fail if the value is outside the valid range of
+-- a Haskell `Float`.
 instance FromRDFLabel Float where
   fromRDFLabel = fLabel strToFloat xsd_float
                  
+-- | Converts to a literal with a @xsd:double@ datatype.
 instance ToRDFLabel Double where
   toRDFLabel = fromRealFloat xsd_double
   
+-- | Converts from a literal with a @xsd:double@ datatype.
 instance FromRDFLabel Double where
   fromRDFLabel = fLabel strToDouble xsd_double
   
@@ -359,6 +373,8 @@ instance FromRDFLabel Double where
 --         
 -- TODO: add in support for Int8/..., Word8/...  
 --  
+
+-- | Converts to a literal with a @xsd:integer@ datatype.
 instance ToRDFLabel Int where
   toRDFLabel = tLabel xsd_integer id
 
@@ -381,12 +397,17 @@ strToInt s =
   
   in maybeRead s >>= conv
 
+-- | Converts from a literal with a @xsd:integer@ datatype.
+-- The conversion will fail if the value is outside the valid range of
+-- a Haskell `Int`.
 instance FromRDFLabel Int where
   fromRDFLabel = fLabel strToInt xsd_integer
 
+-- | Converts to a literal with a @xsd:integer@ datatype.
 instance ToRDFLabel Integer where
   toRDFLabel = tLabel xsd_integer id
 
+-- | Converts from a literal with a @xsd:integer@ datatype.
 instance FromRDFLabel Integer where
   fromRDFLabel = fLabel maybeRead xsd_integer
 
@@ -433,35 +454,45 @@ toUTCFormat = toTimeFormat "%FT%T%Q"
 toDayFormat :: String -> Maybe Day
 toDayFormat = toTimeFormat "%F"
     
+-- | Converts to a literal with a @xsd:datetime@ datatype.
 instance ToRDFLabel UTCTime where
   toRDFLabel = flip Lit (Just xsd_dateTime) . fromUTCFormat
   
+-- | Converts from a literal with a @xsd:datetime@ datatype.
 instance FromRDFLabel UTCTime where
   fromRDFLabel = fLabel toUTCFormat xsd_dateTime
   
+-- | Converts to a literal with a @xsd:date@ datatype.
 instance ToRDFLabel Day where
   toRDFLabel = flip Lit (Just xsd_date) . fromDayFormat
 
+-- | Converts from a literal with a @xsd:date@ datatype.
 instance FromRDFLabel Day where
   fromRDFLabel = fLabel toDayFormat xsd_date
   
+-- | Converts to a Resource.
 instance ToRDFLabel ScopedName where  
   toRDFLabel = Res
 
+-- | Converts from a Resource.
 instance FromRDFLabel ScopedName where
   fromRDFLabel (Res sn) = Just sn
   fromRDFLabel _        = Nothing
   
+-- | Converts to a Resource.
 instance ToRDFLabel QName where  
   toRDFLabel = Res . makeQNameScopedName
   
+-- | Converts from a Resource.
 instance FromRDFLabel QName where
   fromRDFLabel (Res sn) = Just $ getQName sn
   fromRDFLabel _        = Nothing
   
+-- | Converts to a Resource.
 instance ToRDFLabel URI where  
   toRDFLabel u = Res $ makeUriScopedName $ uriToString id u ""
   
+-- | Converts from a Resource.
 instance FromRDFLabel URI where
   fromRDFLabel (Res sn) = parseURI $ getScopedNameURI sn
   fromRDFLabel _        = Nothing
@@ -489,8 +520,8 @@ res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil,
   res_rdfd_maxCardinality, res_owl_sameAs, res_log_implies
   :: RDFLabel
 
-res_rdf_type                = Res rdf_type
-res_rdf_first               = Res rdf_first
+res_rdf_type                = Res rdf_type 
+res_rdf_first               = Res rdf_first 
 res_rdf_rest                = Res rdf_rest
 res_rdf_nil                 = Res rdf_nil
 res_rdfs_member             = Res rdfs_member
@@ -586,7 +617,7 @@ type RDFTriple = Arc RDFLabel
 
 -- | Convert 3 RDF labels to a RDF triple.
 --
---   See also `arcFromTriple`.
+--   See also `Swish.RDF.GraphClass.arcFromTriple`.
 toRDFTriple :: 
   (ToRDFLabel s, ToRDFLabel p, ToRDFLabel o) 
   => s -- ^ Subject 
@@ -598,7 +629,7 @@ toRDFTriple s p o =
 
 -- | Extract the contents of a RDF triple.
 --
---   See also `arcToTriple`.
+--   See also `Swish.RDF.GraphClass.arcToTriple`.
 fromRDFTriple :: 
   (FromRDFLabel s, FromRDFLabel p, FromRDFLabel o) 
   => RDFTriple 
@@ -620,14 +651,15 @@ instance LookupEntryClass RevNamespace String String where
 
 type RevNamespaceMap = LookupMap RevNamespace
 
+-- | Create an emoty namespace map.
 emptyNamespaceMap :: NamespaceMap
 emptyNamespaceMap = LookupMap []
 
 -- | Graph formula entry
 
 data LookupFormula lb gr = Formula
-    { formLabel :: lb
-    , formGraph :: gr
+    { formLabel :: lb -- ^ The label for the formula
+    , formGraph :: gr -- ^ The contents of the formula
     }
 
 instance (Eq lb, Eq gr) => Eq (LookupFormula lb gr) where
@@ -648,6 +680,7 @@ type Formula lb = LookupFormula lb (NSGraph lb)
 
 type FormulaMap lb = LookupMap (LookupFormula lb (NSGraph lb))
 
+-- | Create an empty formula map.
 emptyFormulaMap :: FormulaMap RDFLabel
 emptyFormulaMap = LookupMap []
 
@@ -691,14 +724,29 @@ formulaEntryMapM f (Formula k gr) =
     
 -}
 
--- | Memory-based graph with namespaces and subgraphs
+{-|
 
+Memory-based graph with namespaces and subgraphs.
+
+The primary means for adding arcs to an existing graph
+are: 
+
+ - `setArcs` from the `LDGraph` instance, which replaces the 
+    existing set of arcs and does not change the namespace 
+    map.
+
+ - `addArc` which checks that the arc is unknown before
+    adding it but does not change the namespace map or
+    re-label any blank nodes in the arc.
+
+-}
 data NSGraph lb = NSGraph
-    { namespaces :: NamespaceMap
-    , formulae   :: FormulaMap lb
-    , statements :: [Arc lb]
+    { namespaces :: NamespaceMap    -- ^ the namespaces to use
+    , formulae   :: FormulaMap lb   -- ^ any associated formulae (a.k.a. sub- or named- graps)
+    , statements :: [Arc lb]        -- ^ the statements in the graph
     }
 
+-- | Retrieve the namespace map in the graph.
 getNamespaces :: NSGraph lb -> NamespaceMap
 getNamespaces = namespaces
 
@@ -706,6 +754,7 @@ getNamespaces = namespaces
 setNamespaces      :: NamespaceMap -> NSGraph lb -> NSGraph lb
 setNamespaces ns g = g { namespaces=ns }
 
+-- | Retrieve the formulae in the graph.
 getFormulae :: NSGraph lb -> FormulaMap lb
 getFormulae = formulae
 
@@ -713,6 +762,7 @@ getFormulae = formulae
 setFormulae      :: FormulaMap lb -> NSGraph lb -> NSGraph lb
 setFormulae fs g = g { formulae=fs }
 
+-- | Find a formula in the graph, if it exists.
 getFormula     :: (Label lb) => NSGraph lb -> lb -> Maybe (NSGraph lb)
 getFormula g l = mapFindMaybe l (formulae g)
 
@@ -729,8 +779,11 @@ instance (Label lb) => LDGraph NSGraph lb where
     setArcs as g = g { statements=as }
     containedIn = error "containedIn for LDGraph NSGraph lb is undefined!" -- TODO: should there be one defined?
 
--- | Add an arc to the graph. It does not check for duplicates
--- nor does it relabel any blank nodes in the input arc.
+{-|
+Add an arc to the graph. It does not relabel any blank nodes in the input arc,
+nor does it change the namespace map, 
+but it does ensure that the arc is unknown before adding it.
+-}
 addArc :: (Label lb) => Arc lb -> NSGraph lb -> NSGraph lb
 addArc ar gr = gr { statements=addSetElem ar (statements gr) }
 
@@ -803,9 +856,13 @@ merge gr1 gr2 =
         add gr1 (remapLabels dupbn allbn id gr2)
 
 -- |Return list of all labels (including properties) in the graph
---  satisfying a supplied filter predicate.
+--  satisfying a supplied filter predicate. This routine
+--  includes the labels in any formulae.
 allLabels :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
-allLabels p gr = filter p (unionNodes p (formulaNodes p gr) (labels gr) )
+allLabels p gr = filter p (unionNodes p (formulaNodes p gr) (labels gr) ) 
+                 
+{- TODO: is the leading 'filter p' needed in allLabels?
+-}
 
 -- |Return list of all subjects and objects in the graph
 --  satisfying a supplied filter predicate.
@@ -828,7 +885,7 @@ formulaNodes p gr = foldl (unionNodes p) fkeys (map (allLabels p) fvals)
 unionNodes :: (Label lb) => (lb -> Bool) -> [lb] -> [lb] -> [lb]
 unionNodes p ls1 ls2 = ls1 `union` filter p ls2
 
--- |Remap selected nodes in graph:
+-- |Remap selected nodes in graph.
 --
 --  This is the node renaming operation that prevents graph-scoped
 --  variable nodes from being merged when two graphs are merged.
@@ -933,7 +990,7 @@ type RDFGraph = NSGraph RDFLabel
 -- which is how this routine was defined in version @0.3.1.1@
 -- and earlier.
 --
-toRDFGraph :: [Arc RDFLabel] -> RDFGraph
+toRDFGraph :: [RDFTriple] -> RDFGraph
 -- toRDFGraph arcs = emptyRDFGraph { statements = arcs }
 toRDFGraph arcs = 
   let lbls = concatMap (\(Arc s p o) -> [s,p,o]) arcs
@@ -942,9 +999,13 @@ toRDFGraph arcs =
       getDataType (Lit _ (Just dt)) = dt
       getDataType _ = nullScopedName -- should not happen
       nsmap = foldl' mapAddIfNew emptyNamespaceMap (ns1++ns2)
-  in emptyRDFGraph { namespaces = nsmap, statements = arcs }
+  in mempty { namespaces = nsmap, statements = arcs }
 
 -- |Create a new, empty RDF graph.
+--
+-- This uses `mempty` from the `Monoid` instance
+-- of `NSGraph`.
+--
 emptyRDFGraph :: RDFGraph
 emptyRDFGraph = mempty 
 
@@ -955,7 +1016,7 @@ emptyRDFGraph = mempty
 --  [[[TODO:  I think this may be redundant - the default graph
 --  class has an update method which accepts a function to update
 --  the arcs, not touching other parts of the graph value.]]]
-updateRDFGraph :: RDFGraph -> [Arc RDFLabel] -> RDFGraph
+updateRDFGraph :: RDFGraph -> [RDFTriple] -> RDFGraph
 updateRDFGraph gr as = gr { statements=as }
 -}
 

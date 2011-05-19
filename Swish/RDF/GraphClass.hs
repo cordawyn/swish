@@ -36,14 +36,17 @@ import qualified Data.Traversable as T
 
 import Data.List (union, (\\))
 
--- | Labelled Directed Graph class
---
---  Minimum required implementation:  `setArcs`, `getArcs` and `containedIn`.
---
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
 --  the constraint on the label type seems to prevent that.
 --  So I've just declared specific instances to be Functors.
 --
+
+{-|
+Labelled Directed Graph class
+
+Minimum required implementation:  `setArcs`, `getArcs` and `containedIn`
+(although @containedIn@ may be removed as it is currently unused).
+-}
 class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     where
     --  empty graph
@@ -84,6 +87,8 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     nodes g     = foldl union [] (map arcNodes (getArcs g))
     
     -- | Test for graph containment in another.
+    --
+    -- At present this is unused and may be removed in a future release.
     containedIn :: lg lb -> lg lb -> Bool 
     
     -- | Update the arcs in a graph using a supplied function.
@@ -98,9 +103,13 @@ TODO:
   This means adding the emptyGr function to the interface
 -}
 
--- |Function to replace arcs in a graph with a given list of arcs
+-- |Function to replace arcs in a graph with a given list of arcs.
+--
+-- This is identical to @flip setArcs@ and so may be removed.
+--    
 replaceArcs :: (LDGraph lg lb) => lg lb -> [Arc lb] -> lg lb
-replaceArcs gr as = update (const as) gr
+replaceArcs = flip setArcs
+-- replaceArcs gr as = update (const as) gr
 
 -- | Label class
 --
@@ -135,15 +144,22 @@ class (Eq lb, Show lb, Ord lb) => Label lb where
 
 -- | Arc type
 
-data Arc lb = Arc { asubj, apred, aobj :: lb }
-    deriving (Eq, Functor, F.Foldable, T.Traversable)
+data Arc lb = Arc 
+              { asubj :: lb  -- ^ The subject of the arc.
+              , apred :: lb  -- ^ The predicate (property) of the arc.
+              , aobj :: lb   -- ^ The object of the arc.
+              }
+            deriving (Eq, Functor, F.Foldable, T.Traversable)
 
+-- | Return the subject of the arc.
 arcSubj :: Arc lb -> lb
 arcSubj = asubj
 
+-- | Return the predicate (property) of the arc.
 arcPred :: Arc lb -> lb
 arcPred = apred
 
+-- | Return the object of the arc.
 arcObj :: Arc lb -> lb
 arcObj = aobj
 
@@ -154,10 +170,11 @@ arc :: lb      -- ^ The subject of the arc.
        -> Arc lb
 arc = Arc
 
+-- | Convert an Arc into a tuple.
 arcToTriple :: Arc lb -> (lb,lb,lb)
 arcToTriple (Arc s p o) = (s, p, o)
--- arcToTriple a = (asubj a,apred a,aobj a)
 
+-- | Create an Arc from a tuple.
 arcFromTriple :: (lb,lb,lb) -> Arc lb
 arcFromTriple (s,p,o) = Arc s p o
 
@@ -182,6 +199,7 @@ instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =
         "("++ show lb1 ++","++ show lb2 ++","++ show lb3 ++")"
 
+-- | Identify arcs.
 type Selector lb = Arc lb -> Bool
 
 hasLabel :: (Eq lb) => lb -> Arc lb -> Bool
