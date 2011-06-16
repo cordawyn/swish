@@ -25,6 +25,7 @@ import Test.HUnit
 
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust)
+import Data.Ord (comparing)
 
 import Swish.Utils.ListHelpers
 import Swish.Utils.MiscHelpers
@@ -93,7 +94,7 @@ tstLabelMap :: (Label lb) => Int -> [(lb,LabelIndex)] -> LabelMap lb
 tstLabelMap gen lvs = LabelMap gen (makeLookupMap $ makeEntries lvs)
 
 makeEntries :: (Label lb) => [(lb,LabelIndex)] -> [LabelEntry lb]
-makeEntries lvs = map newEntry lvs
+makeEntries = map newEntry
 
 labelMapSortByVal :: (Label lb) => LabelMap lb -> LabelMap lb
 labelMapSortByVal (LabelMap gen lm) = LabelMap gen (mapSortByVal lm)
@@ -104,7 +105,7 @@ labelMapSortByVal (LabelMap gen lm) = LabelMap gen (mapSortByVal lm)
 
 -- select
 
-testSelect :: String -> [Char] -> [Char] -> Test
+testSelect :: String -> String -> String -> Test
 testSelect lab = testeq ("Select"++lab )
 
 isOne :: Int -> Bool
@@ -112,13 +113,11 @@ isOne = (1 ==)
 
 testSelect01, testSelect02, testSelect03, testSelect04 :: Test
 testSelect01 = testSelect "01"
-                (select isOne [0,1,2,0,1,2] ['a','b','c','a','b','c'])
-                ['b','b']
+                (select isOne [0,1,2,0,1,2] "abcabc") "bb"
 testSelect02 = testSelect "02"
-                (select isOne [1,1,1,1,1,1] ['a','b','c','a','b','c'])
-                ['a','b','c','a','b','c']
+                (select isOne [1,1,1,1,1,1] "abcabc") "abcabc"
 testSelect03 = testSelect "03"
-                (select isOne [0,0,0,0,0,0] ['a','b','c','a','b','c'])
+                (select isOne [0,0,0,0,0,0] "abcabc")
                 []
 testSelect04 = testSelect "04"
                 (select isOne []            []                       )
@@ -135,16 +134,16 @@ testSelectSuite = TestList
 mf   :: Int -> Char
 mf n = "_abcde" !! n
 
-testMapset :: String -> [Int] -> [Char] -> Test
+testMapset :: String -> [Int] -> String -> Test
 testMapset lab l1s l2s = testeq ("Mapset"++lab ) l2s (mapset mf l1s)
 
 testMapsetSuite :: Test
 testMapsetSuite = TestList
-    [ testMapset "01" [0,1,2,3,4,5] ['_','a','b','c','d','e']
-    , testMapset "02" [1,1,3,3,5,5] ['a','c','e']
-    , testMapset "03" [5,4,3,2,1,0] ['e','d','c','b','a','_']
+    [ testMapset "01" [0,1,2,3,4,5] "_abcde"
+    , testMapset "02" [1,1,3,3,5,5] "ace"
+    , testMapset "03" [5,4,3,2,1,0] "edcba_"
     , testMapset "04" []            []
-    , testMapset "05" [1,2,3,4,5,0] ['a','b','c','d','e','_']
+    , testMapset "05" [1,2,3,4,5,0] "abcde_"
     ]
 
 -- subset
@@ -170,7 +169,7 @@ testHash :: String -> Bool -> Int -> Int -> Test
 testHash lab eq h1 h2 = testeq ("Hash"++lab ) eq (h1 == h2)
 
 testHashEq :: String -> Int -> Int -> Test
-testHashEq lab h1 h2  = testeq ("Hash"++lab ) h1 h2
+testHashEq lab = testeq ("Hash"++lab ) 
 
 testHashSuite :: Test
 testHashSuite = TestList
@@ -455,8 +454,9 @@ testLabelOrdSuite = TestList
     testLab a b = a ++ "-" ++ b
     testOrd a b
       | testEq a b = EQ
-      | otherwise  = compare (fromJust $ elemIndex a nodeorder)
-                      (fromJust $ elemIndex b nodeorder)
+      | otherwise  = comparing fromJust
+                     (elemIndex a nodeorder)
+                     (elemIndex b nodeorder)
     testEq  a b = (a == b)        ||
             (a,b) `elem` nodeeqlist ||
             (b,a) `elem` nodeeqlist
@@ -1760,7 +1760,7 @@ allTests = TestList
   , testGraphSuite
   , testLabelEqSuite
   , testLabelOrdSuite
-  , TestCase (assertBool "arc neq" ((Arc True True True) /= (Arc True True False))) -- silly test of Eq instance
+  , TestCase (assertBool "arc neq" (Arc True True True /= Arc True True False)) -- silly test of Eq instance
   , testStmtEqSuite
   , testLabelMapSuite
   , testGraphMatchSupportSuite

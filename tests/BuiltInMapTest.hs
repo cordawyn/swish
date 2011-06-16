@@ -116,16 +116,15 @@ instance (Eq a) => Eq (MaybeListTest a) where
 instance (Show a) => Show (MaybeListTest a) where
     show (MaybeListTest a) = show a
 
+testMaker :: (Show b, Eq b) => (a -> b) -> String -> String -> a -> a -> Test
+testMaker conv l1 l2 x y =
+  TestCase (assertEqual ("testEqual:" ++ l1 ++ ":" ++ l2) (conv x) (conv y))
+  
 testEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testEqv lab a1 a2 =
-    TestCase ( assertEqual ("testEqv:"++lab) (ListTest a1) (ListTest a2) )
+testEqv = testMaker ListTest "Eqv"
 
 testEqvEqv :: (Eq a, Show a) => String -> [[a]] -> [[a]] -> Test
-testEqvEqv lab a1 a2 =
-    TestCase ( assertEqual ("testEqvEqv:"++lab) ma1 ma2 )
-    where
-        ma1 = ListTest $ map ListTest a1
-        ma2 = ListTest $ map ListTest a2
+testEqvEqv = testMaker (ListTest . map ListTest) "EqvEqv"
 
 testHasEqv :: (Eq a, Show a) => String -> [a] -> [[a]] -> Test
 testHasEqv lab a1 a2 =
@@ -135,11 +134,7 @@ testHasEqv lab a1 a2 =
         ma2 = map ListTest a2
 
 testMaybeEqv :: (Eq a, Show a) => String -> Maybe [a] -> Maybe [a] -> Test
-testMaybeEqv lab a1 a2 =
-    TestCase ( assertEqual ("testMaybeEqv:"++lab) ma1 ma2 )
-    where
-        ma1 = (MaybeListTest a1)
-        ma2 = (MaybeListTest a2)
+testMaybeEqv = testMaker MaybeListTest "MaybeEqv"
 
 ------------------------------------------------------------
 --  Test finding built-in variable binding modifiers

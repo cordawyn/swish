@@ -51,7 +51,7 @@ instance (Eq a, Show a, Eq b, Show b)
     => LookupEntryClass (GenMapEntry a b) a b
     where
         keyVal   (E k v) = (k,v)
-        newEntry (k,v)   = (E k v)
+        newEntry (k,v)   = E k v
 
 instance (Eq a, Show a, Eq b, Show b) => Show (GenMapEntry a b) where
     show = entryShow
@@ -104,7 +104,7 @@ lm08 = mapDelete lm07 3
 lm09 = mapDeleteAll lm08 2
 
 la10 :: [String]
-la10 = mapApplyToAll lm03 (flip replicate '*')
+la10 = mapApplyToAll lm03 (`replicate` '*')
 
 lt11, lt12, lt13, lt14 :: String
 lt11 = mapTranslate lm03 la10 1 "****"
@@ -376,10 +376,10 @@ mapMergeSuite =
 -- Rather late in the day, generic versions of the testing functions used earlier
 type TestMapG a b = LookupMap (GenMapEntry a b)
 
-newMapG :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> (TestMapG a b)
+newMapG :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> TestMapG a b
 newMapG es = makeLookupMap (map newEntry es)
 
-testLookupMapG :: (Eq a, Show a, Eq b, Show b) => String -> (TestMapG a b) -> [(a,b)] -> Test
+testLookupMapG :: (Eq a, Show a, Eq b, Show b) => String -> TestMapG a b -> [(a,b)] -> Test
 testLookupMapG lab m1 m2 = testeq ("LookupMapG"++lab ) (newMapG m2) m1
 testLookupMapM ::
     (Eq a, Show a, Eq b, Show b, Monad m,
@@ -402,7 +402,7 @@ tm103 = mapTranslateVals length tm102
 tf104 :: (LookupEntryClass a Int [b],
           LookupEntryClass c String Int) =>
          a -> c
-tf104 e = newEntry ( (flip replicate '#') k, 5-(length v) ) where (k,v) = keyVal e
+tf104 e = newEntry (replicate k '#', 5 - length v) where (k,v) = keyVal e
 
 tm104 :: RevTestMap
 tm104 = mapTranslateEntries tf104 tm101

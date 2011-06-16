@@ -130,17 +130,16 @@ testQNameEq lab eq n1 n2 =
     TestCase ( assertEqual ("testQNameEq:"++lab) eq (n1==n2) )
 -}
 
+testSameAs :: (Ord a) => String -> String -> [a] -> [a] -> Test
+testSameAs l1 l2 x y =
+  let z = sort x == sort y
+  in TestCase (assertBool ("testSameAs:" ++ l1 ++ ":" ++ l2) z)
+     
 testSameAxioms :: String -> [RDFFormula] -> [RDFFormula] -> Test
-testSameAxioms lab as1 as2 =
-    TestCase ( assertBool ("testSameAxioms:"++lab) sameas )
-    where
-        sameas = (sort as1) == (sort as2)
+testSameAxioms = testSameAs "Axioms"
 
 testSameRules :: String -> [RDFRule] -> [RDFRule] -> Test
-testSameRules lab rs1 rs2 =
-    TestCase ( assertBool ("testSameRules:"++lab) samers )
-    where
-        samers = (sort rs1) == (sort rs2)
+testSameRules = testSameAs "Rules"
 
 ------------------------------------------------------------
 --  Common values

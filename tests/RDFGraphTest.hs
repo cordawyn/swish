@@ -63,6 +63,7 @@ import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust)
+import Data.Ord (comparing)
 
 import System.Locale (defaultTimeLocale)
 import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
@@ -650,7 +651,7 @@ tnn06, tnn07, tnn08 :: RDFLabel
 (tnn06 : tnn07 : tnn08 : _ ) = newNodes s1 [b1,b3,v1,v2,tnns3]
 
 tnn09 :: RDFLabel
-tnn09 = (newNodes l1 [b1,b3,v1,v2,tnns3])!!2
+tnn09 = newNodes l1 [b1,b3,v1,v2,tnns3] !! 2
 
 tnns1, tnns2, tnns3, tnns4, tnnl1 :: RDFLabel
 tnns1 = Blank "Res_s1"
@@ -679,7 +680,7 @@ testNewNodeSuite = TestList
 testLabelOrd :: String -> Ordering -> RDFLabel -> RDFLabel -> Test
 testLabelOrd lab order n1 n2 =
     TestCase ( assertEqual
-               ("testLabelOrd:"++lab++"["++(show n1)++","++(show n2)++"]")
+               ("testLabelOrd:"++lab++"["++show n1++","++show n2++"]")
                order (compare n1 n2) )
 
 nodeorder :: [String]
@@ -713,8 +714,9 @@ testNodeOrdSuite = TestList
     tLab ll1 ll2 = ll1 ++ "-" ++ ll2
     tOrd ll1 ll2
       | tEq ll1 ll2  = EQ
-      | otherwise    = compare (fromJust $ elemIndex ll1 nodeorder)
-                               (fromJust $ elemIndex ll2 nodeorder)
+      | otherwise    = comparing fromJust 
+                       (elemIndex ll1 nodeorder)
+                       (elemIndex ll2 nodeorder)
     tEq  ll1 ll2 = (ll1 == ll2)        ||
            (ll1,ll2) `elem` nodeeqlist ||
            (ll2,ll1) `elem` nodeeqlist
@@ -1306,11 +1308,11 @@ testMerge lab a1 a2 gr =
             
 assertGrHelper :: String -> RDFGraph -> RDFGraph -> Bool -> Assertion
 assertGrHelper lbl gg1 gg2 = assertBool $ 
-    lbl++"\nExpected: "++(show gg1)++"\nObtained: "++(show gg2)
+    lbl++"\nExpected: "++ show gg1 ++"\nObtained: "++ show gg2
   
 assertGrEquiv :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEquiv lbl gg1 gg2 = 
-  assertGrHelper lbl gg1 gg2 $ (getArcs gg1) `equiv` (getArcs gg2)
+  assertGrHelper lbl gg1 gg2 $ getArcs gg1 `equiv` getArcs gg2
 
 assertGrEq :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEq lbl gg1 gg2 = 

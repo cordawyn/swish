@@ -46,7 +46,7 @@ import Test.HUnit
 
 import Control.Monad (unless)
 import Data.List (union, intersect)
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, isNothing, fromJust)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -78,7 +78,7 @@ testJust lab av =
 
 testNothing :: String -> Maybe a -> Test
 testNothing lab av =
-    TestCase ( assertBool ("testJust:"++lab) (not $ isJust av) )
+    TestCase ( assertBool ("testJust:"++lab) (isNothing av) )
 
 -- Compare lists and lists of lists and Maybe lists for set equivalence:
 
@@ -122,8 +122,8 @@ testMaybeEqv :: (Eq a, Show a) => String -> Maybe [a] -> Maybe [a] -> Test
 testMaybeEqv lab a1 a2 =
     TestCase ( assertEqual ("testMaybeEqv:"++lab) ma1 ma2 )
     where
-        ma1 = (MaybeListTest a1)
-        ma2 = (MaybeListTest a2)
+        ma1 = MaybeListTest a1
+        ma2 = MaybeListTest a2
 
 ------------------------------------------------------------
 --  Define and variable bindings
@@ -175,45 +175,48 @@ vb16str = "[(1,\"a\"),(2,\"b\"),(3,\"c\"),(4,\"dd\"),(5,\"ee\")]"
 vb21str = vb2str
 vb44str = vb4str
 
+vbFull :: VarBinding a b -> Bool
+vbFull = not . vbNull
+
 testVarBindingSuite :: Test
 testVarBindingSuite = 
   TestList
-  [ test   "testVarBinding01" $ (vb1==vb2)
-  , test   "testVarBinding02" $ (vb1/=vb3)
-  , test   "testVarBinding03" $ (vb1/=vb4)
+  [ test   "testVarBinding01" (vb1==vb2)
+  , test   "testVarBinding02" (vb1/=vb3)
+  , test   "testVarBinding03" (vb1/=vb4)
   , testEq "testVarBinding04" vb1str  $ show vb1
   , testEq "testVarBinding05" vb2str  $ show vb2
   , testEq "testVarBinding06" vb4str  $ show vb4
   , testEq "testVarBinding10" [1,2,3] $ boundVars vb1
   , testEq "testVarBinding11" [3,2,1] $ boundVars vb2
   , testEq "testVarBinding12" []      $ boundVars vb4
-  , test   "testVarBinding20" $ (subBinding vb1 vb2)
-  , test   "testVarBinding21" $ (subBinding vb1 vb3)
+  , test   "testVarBinding20" (subBinding vb1 vb2)
+  , test   "testVarBinding21" (subBinding vb1 vb3)
   , test   "testVarBinding22" $ not (subBinding vb1 vb4)
-  , test   "testVarBinding23" $ (subBinding vb2 vb1)
+  , test   "testVarBinding23" (subBinding vb2 vb1)
   , test   "testVarBinding24" $ not (subBinding vb3 vb1)
-  , test   "testVarBinding25" $ (subBinding vb4 vb1)
-  , test   "testVarBinding26" $ (subBinding vb4 vb4)
+  , test   "testVarBinding25" (subBinding vb4 vb1)
+  , test   "testVarBinding26" (subBinding vb4 vb4)
   , testEq "testVarBinding30"  0 $ applyVarBinding vb5 0
   , testEq "testVarBinding31" 11 $ applyVarBinding vb5 1
   , testEq "testVarBinding32" 22 $ applyVarBinding vb5 2
   , testEq "testVarBinding33" 33 $ applyVarBinding vb5 3
   , testEq "testVarBinding34"  4 $ applyVarBinding vb5 4
   , testEq "testVarBinding35" 11 $ applyVarBinding vb5 11
-  , test   "testVarBinding40" $ not (vbNull vb12)
-  , test   "testVarBinding41" $ not (vbNull vb13)
-  , test   "testVarBinding42" $ not (vbNull vb14)
-  , test   "testVarBinding43" $ not (vbNull vb16)
-  , test   "testVarBinding44" $ not (vbNull vb21)
-  , test   "testVarBinding45" $ (vbNull vb44)
-  , test   "testVarBinding50" $ (subBinding vb12 vb13)
-  , test   "testVarBinding51" $ (subBinding vb12 vb14)
-  , test   "testVarBinding52" $ (subBinding vb12 vb16)
-  , test   "testVarBinding53" $ (subBinding vb12 vb21)
+  , test   "testVarBinding40" (vbFull vb12)
+  , test   "testVarBinding41" (vbFull vb13)
+  , test   "testVarBinding42" (vbFull vb14)
+  , test   "testVarBinding43" (vbFull vb16)
+  , test   "testVarBinding44" (vbFull vb21)
+  , test   "testVarBinding45" (vbNull vb44)
+  , test   "testVarBinding50" (subBinding vb12 vb13)
+  , test   "testVarBinding51" (subBinding vb12 vb14)
+  , test   "testVarBinding52" (subBinding vb12 vb16)
+  , test   "testVarBinding53" (subBinding vb12 vb21)
   , test   "testVarBinding54" $ not (subBinding vb12 vb44)
   , test   "testVarBinding55" $ not (subBinding vb13 vb12)
-  , test   "testVarBinding56" $ (subBinding vb14 vb12)
-  , test   "testVarBinding57" $ (subBinding vb44 vb12)
+  , test   "testVarBinding56" (subBinding vb14 vb12)
+  , test   "testVarBinding57" (subBinding vb44 vb12)
   , test   "testVarBinding58" $ not (subBinding vb16 vb12)
   , testEq "testVarBinding60" vb12str $ show vb12
   , testEq "testVarBinding61" vb13str $ show vb13
@@ -256,7 +259,7 @@ vb9m    = makeVarBinding [("i",9)]
 vbm1 :: VarBindingModify String Int
 vbm1 = VarBindingModify
     { vbmName  = swishName "vbm1"
-    , vbmApply = map (\vb -> joinVarBindings vb vb9m)
+    , vbmApply = map (`joinVarBindings` vb9m)
     , vbmVocab = boundVars vb9m
     , vbmUsage = [boundVars vb9m]
     }
@@ -327,7 +330,7 @@ testVarModifySuite =
   , testEq "testVarModifyName02"
       (swishName "vbm2") $ vbmName vbm2
   , testEq "testVarModify20" 2 $ length vb12m2
-  , testEq "testVarModify21" vb1m $ vb12m2!!0
+  , testEq "testVarModify21" vb1m $ head vb12m2
   , testEq "testVarModify22" vb2m $ vb12m2!!1
   , testEq "testVarModify23" (Just []) $
       vbmCompatibility vbm2 ["a","b"]
@@ -340,10 +343,10 @@ testVarModifySuite =
   , testEq "testVarModifyName03"
       (swishName "vbm3") $ vbmName vbm3
   , testEq "testVarModify30" 4 $ length vb16m3
-  , testEq "testVarModify31" vb5m $ (vb16m3!!0)
-  , testEq "testVarModify32" vb5m $ (vb16m3!!1)
-  , testEq "testVarModify33" vb5m $ (vb16m3!!2)
-  , testEq "testVarModify34" vb5m $ (vb16m3!!3)
+  , testEq "testVarModify31" vb5m (head vb16m3)
+  , testEq "testVarModify32" vb5m (vb16m3!!1)
+  , testEq "testVarModify33" vb5m (vb16m3!!2)
+  , testEq "testVarModify34" vb5m (vb16m3!!3)
   , testEq "testVarModify35" (Just ["c"]) $
       vbmCompatibility vbm3 ["a","b"]
   , testEq "testVarModify36" (Just ["b"]) $
@@ -549,10 +552,10 @@ testVarComposeSuite =
   , testEqv "testVarCompose35" [vbabcd,vbabcd,vbabcd] $
      vbmApply vbm43 [vbac,vbad,vbcd]
     
-  , test   "testVarCompose41" $ not (isJust vbm56)
-  , test   "testVarCompose42" $ not (isJust vbm65)
-  , test   "testVarCompose43" $ not (isJust vbm78)
-  , test   "testVarCompose44" $     (isJust vbm87)
+  , test   "testVarCompose41" (isNothing vbm56)
+  , test   "testVarCompose42" (isNothing vbm65)
+  , test   "testVarCompose43" (isNothing vbm78)
+  , test   "testVarCompose44" (isJust    vbm87)
   , testEqvEqv "testVarCompose45" vbm87usage $
      vbmUsage (fromJust vbm87)
 
@@ -650,7 +653,7 @@ compResult = map makeVarBinding
     [ [ ("a",1), ("b",2), ("c",3), ("d",4), ("e",7) ] ]
 
 compApply :: [VarBindingModify String Int] -> [VarBinding String Int]
-compApply vbms = (vbmApply (head vbms)) compBindings
+compApply vbms = vbmApply (head vbms) compBindings
 
 jcompab, jcompac, jcompad, jcompae,
   jcompba, jcompbc, jcompbd, jcompbe,
@@ -673,22 +676,22 @@ testFindCompSuite :: Test
 testFindCompSuite = 
   TestList
   [ testEq "testVarModifyName08" (swishName "__vbm4_vbm3__vbm9_") $
-                        vbmName (compad!!0)
+                        vbmName (head compad)
   , testEq "testVarModifyName08" (swishName "__vbm4_vbm9__vbm3_") $
                         vbmName (compad!!1)
  
-  , testEq "testFindComp01" 1 $ (length compab)
-  , testEq "testFindComp02" 3 $ (length compac)
-  , testEq "testFindComp03" 2 $ (length compad)
-  , testEq "testFindComp04" 0 $ (length compae)
-  , testEq "testFindComp05" 1 $ (length compba)
-  , testEq "testFindComp06" 1 $ (length compbc)
-  , testEq "testFindComp07" 0 $ (length compbd)
-  , testEq "testFindComp08" 0 $ (length compbe)
-  , testEq "testFindComp09" 3 $ (length compca)
-  , testEq "testFindComp10" 3 $ (length compcd)
-  , testEq "testFindComp11" 1 $ (length compce)
-  , testEq "testFindComp12" 1 $ (length compde)
+  , testEq "testFindComp01" 1 (length compab)
+  , testEq "testFindComp02" 3 (length compac)
+  , testEq "testFindComp03" 2 (length compad)
+  , testEq "testFindComp04" 0 (length compae)
+  , testEq "testFindComp05" 1 (length compba)
+  , testEq "testFindComp06" 1 (length compbc)
+  , testEq "testFindComp07" 0 (length compbd)
+  , testEq "testFindComp08" 0 (length compbe)
+  , testEq "testFindComp09" 3 (length compca)
+  , testEq "testFindComp10" 3 (length compcd)
+  , testEq "testFindComp11" 1 (length compce)
+  , testEq "testFindComp12" 1 (length compde)
     
   , testEqv "testFindComp21" compvocab $ vbmVocab (head compab)
   , testEqv "testFindComp22" compvocab $ vbmVocab (head compac)
@@ -710,15 +713,15 @@ testFindCompSuite =
   , testHasEqv "testFindComp38" ["a","b","d"] $ vbmUsage (head compce)
   , testHasEqv "testFindComp39" ["a","b","c"] $ vbmUsage (head compde)
 
-  , testEqv "testFindComp41" compResult $ (compApply compab)
-  , testEqv "testFindComp42" compResult $ (compApply compac)
-  , testEqv "testFindComp43" compResult $ (compApply compad)
-  , testEqv "testFindComp44" compResult $ (compApply compba)
-  , testEqv "testFindComp45" compResult $ (compApply compbc)
-  , testEqv "testFindComp46" compResult $ (compApply compca)
-  , testEqv "testFindComp47" compResult $ (compApply compcd)
-  , testEqv "testFindComp48" compResult $ (compApply compce)
-  , testEqv "testFindComp49" compResult $ (compApply compde)
+  , testEqv "testFindComp41" compResult (compApply compab)
+  , testEqv "testFindComp42" compResult (compApply compac)
+  , testEqv "testFindComp43" compResult (compApply compad)
+  , testEqv "testFindComp44" compResult (compApply compba)
+  , testEqv "testFindComp45" compResult (compApply compbc)
+  , testEqv "testFindComp46" compResult (compApply compca)
+  , testEqv "testFindComp47" compResult (compApply compcd)
+  , testEqv "testFindComp48" compResult (compApply compce)
+  , testEqv "testFindComp49" compResult (compApply compde)
     
   , testJust    "testFindComp51" jcompab
   , testJust    "testFindComp52" jcompac

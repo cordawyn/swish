@@ -182,7 +182,7 @@ testPartQNameSuite =
 --  Maybe Qname comparison
 ------------------------------------------------------------
 
-testMaybeQNameEq :: String -> Bool -> (Maybe QName) -> (Maybe QName) -> Test
+testMaybeQNameEq :: String -> Bool -> Maybe QName -> Maybe QName -> Test
 testMaybeQNameEq lab eq n1 n2 =
     TestCase ( assertEqual ("testMaybeQNameEq:"++lab) eq (n1==n2) )
 

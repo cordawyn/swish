@@ -65,7 +65,7 @@ import Data.List (intercalate)
 --  Generic item parsing test wrapper
 ------------------------------------------------------------
 
-type ParseFromString a = String -> (Either String a)
+type ParseFromString a = String -> Either String a
 
 parseItemTest :: (Eq a, Show a) => ParseFromString a -> a
                  -> String -> String -> a -> String -> Test
@@ -1372,7 +1372,7 @@ keywordTestSuite = TestList
 --
 
 failTest :: String -> String -> String -> Test
-failTest lbl gr pe = parseTest lbl gr emptyRDFGraph pe
+failTest lbl gr = parseTest lbl gr emptyRDFGraph 
 
 failN3Graph_g1 :: String
 failN3Graph_g1 =

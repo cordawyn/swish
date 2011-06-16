@@ -587,7 +587,7 @@ test2 =
   , testEq "testResult24" 1 (length fwd24)
   , testIn "testResult24a" result24a fwd24
   , testEq "testBwd24"  4 (length bwd24)
-  , testIn "testBwd24a1" bwd24a1 (bwd24!!0)
+  , testIn "testBwd24a1" bwd24a1 (head bwd24)
   , testIn "testBwd24a2" bwd24a2 (bwd24!!1)
   , testIn "testBwd24a3" bwd24a3 (bwd24!!2)
   , testIn "testBwd24a4" bwd24a4 (bwd24!!3)

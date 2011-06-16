@@ -24,8 +24,8 @@ import Swish.RDF.N3Formatter
 import Swish.RDF.N3Parser (parseN3fromString)
 
 import Swish.RDF.RDFGraph
-    ( RDFGraph
-    , RDFLabel(..)
+    ( RDFGraph, RDFTriple
+    , RDFLabel(..), ToRDFLabel
     , NSGraph(..)
     , NamespaceMap
     , LookupFormula(..)
@@ -637,7 +637,8 @@ graph_l1, graph_l2, graph_l3, graph_l4 :: RDFGraph
 graph_l1 = toGraph [arc s1 p1 lfr]
 graph_l2 = toGraph [arc s1 p1 lfoobar]
 graph_l3 = 
-  let tf a = toRDFTriple s1 p1 a
+  let tf :: ToRDFLabel a => a -> RDFTriple
+      tf = toRDFTriple s1 p1
       arcs = [ tf True
              , tf (12::Int)
                
