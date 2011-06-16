@@ -848,6 +848,9 @@ commonPrefixes =
     "@prefix base2 : <" ++ nsURI base2 ++ "> . \n" ++
     "@prefix base3 : <" ++ nsURI base3 ++ "> . \n"
 
+rdfPrefix :: String
+rdfPrefix = "@prefix rdf: <" ++ nsURI namespaceRDF ++ ">.\n"
+
 --  Single statement using <uri> form
 simpleN3Graph_g1_01 :: String
 simpleN3Graph_g1_01 =
@@ -1088,7 +1091,7 @@ simpleN3Graph_g12 =
 --  Literals with dataype and language
 simpleN3Graph_g17 :: String
 simpleN3Graph_g17 =
-    commonPrefixes ++
+    commonPrefixes ++ rdfPrefix ++ 
     " base1:s1 base1:p1 \"chat\"@fr . \n "                          ++
     " base2:s2 base2:p2 \"<br/>\"^^rdf:XMLLiteral . \n "            ++
     " base3:s3 base3:p3 \"<em>chat</em>\"^^rdf:XMLLiteral . \n "

@@ -13,6 +13,10 @@
 --  This module defines some datatypes and functions that are
 --  used to define rules and rulesets over RDF graphs.
 --
+--  For the routines that accept a graph in N3 format, the following
+--  namespaces are pre-defined for use by the graph:
+--     `rdf:` and `rdfs:`.
+--
 --------------------------------------------------------------------------------
 
 module Swish.RDF.RDFRuleset
@@ -75,8 +79,7 @@ import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..) )
 
-import Swish.RDF.Vocabulary
-    ( swishName )
+import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 
 {-
 import Swish.RDF.Proof
@@ -237,10 +240,18 @@ querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 --  Method for creating an RDF formula value from N3 text
 ------------------------------------------------------------
 
+prefixRDF :: String
+prefixRDF =
+    "@prefix rdf:  <" ++ nsURI namespaceRDF  ++ "> . \n" ++
+    "@prefix rdfs: <" ++ nsURI namespaceRDFS ++ "> . \n" ++
+    -- "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
+    " \n"
+
 -- |Helper function to parse a string containing Notation3
 --  and return the corresponding RDFGraph value.
+--
 makeRDFGraphFromN3String :: String -> RDFGraph
-makeRDFGraphFromN3String str = case parseN3fromString str of
+makeRDFGraphFromN3String str = case parseN3fromString (prefixRDF ++ str) of
     Left  msg -> error msg
     Right gr  -> gr
 

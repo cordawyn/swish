@@ -260,7 +260,7 @@ parseAnyfromString :: N3Parser a      -- ^ parser to apply
                       -> String       -- ^ input to be parsed
                       -> Either String a
 parseAnyfromString parser mbase input =
-  let pmap   = LookupMap prefixTable
+  let pmap   = LookupMap [] -- [Namespace "" "#"] -- [] -- emptyLookupMap -- LookupMap prefixTable
       muri   = fmap makeQNameScopedName mbase
       smap   = LookupMap $ specialTable muri
       pstate = N3State
@@ -306,11 +306,24 @@ parseNameFromString :: String -> Either String String
 parseNameFromString =
     parseAnyfromString n3Name Nothing
 
+{-
+This has been made tricky by the attempt to remove the default list
+of prefixes from the starting point of a N3 parse and the subsequent
+attempt to add every new namespace we come across to the parser state.
+
+So we add in the original default namespaces for testing, since
+this routine is really for testing.
+-}
+
+addTestPrefixes :: N3Parser ()
+addTestPrefixes = updateState $ \st -> st { prefixUris = LookupMap prefixTable } -- should append to existing map
+
 parsePrefixFromString :: String -> Either String Namespace
 parsePrefixFromString =
     parseAnyfromString p Nothing
       where
         p = do
+          addTestPrefixes
           pref <- n3Name
           st   <- getState
           return (getPrefixNs st pref)   -- map prefix to namespace
@@ -325,8 +338,8 @@ parseLexURIrefFromString =
     parseAnyfromString lexUriRef Nothing
 
 parseURIref2FromString :: String -> Either String ScopedName
-parseURIref2FromString =
-    parseAnyfromString n3symbol Nothing
+parseURIref2FromString = 
+    parseAnyfromString (addTestPrefixes >> n3symbol) Nothing
     -- parseAnyfromString uriRef2 Nothing
 
 ----------------------------------------------------------------------
@@ -382,13 +395,35 @@ getScopedNameURI' :: URI -> String
 getScopedNameURI' = showURI
 -- getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
 
+-- ensure that the namespace for the scoped name is defined;
+-- based on setPrefix/addPrefix
+--
+setNamespace :: Namespace -> N3State -> N3State
+setNamespace ns st = 
+  let p' = mapReplaceOrAdd ns (prefixUris st)
+  in st { prefixUris = p' }
+  
+addNamespace :: ScopedName -> N3Parser ()
+addNamespace (ScopedName ns _) = updateState $ setNamespace ns
+
+-- updated to now make sure that the namespace for the label
+-- exists. is this overkill here?
+--
+-- TODO: this is to be cleaned up to avoid so much
+-- state access and avoid some unnescessary code
+--
 operatorLabel :: ScopedName -> N3Parser RDFLabel
 {-
 operatorLabel snam = do
   s <- getState
   return $ Res $ getPrefixScopedName s snam
--}
+
 operatorLabel snam = (Res . flip getPrefixScopedName snam) <$> getState
+
+-}
+operatorLabel snam = do
+  addNamespace snam 
+  (Res . flip getPrefixScopedName snam) <$> getState
 
 {-
 Add statement to graph in N3 parser state.
@@ -1061,6 +1096,11 @@ verb ::=		|	 "<="
 		|	 "@has"  expression
 		|	 "@is"  expression  "@of" 
 		|	expression
+
+Note that we need to ensure that the necesary namespaces
+are added to the store when we process a short-form, but
+we delegate that responsibility to operatorLabel.
+
 -}
 
 verb :: N3Parser (RDFLabel -> RDFLabel -> AddStatement, RDFLabel)

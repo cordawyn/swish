@@ -35,8 +35,7 @@ import Swish.Utils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
     )
 
-import Swish.Utils.ShowM
-    ( ShowM(..) )
+import Swish.Utils.ShowM (ShowM(..))
 
 ------------------------------------------------------------
 --  Expressions

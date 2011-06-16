@@ -34,16 +34,23 @@ import Swish.Utils.Namespace
     , ScopedName(..)
     )
 
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..) )
+import Swish.RDF.Rule (Formula(..), Rule(..))
 
 import Swish.Utils.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
     , mapFindMaybe
     )
 
-import Data.Maybe
-    ( fromMaybe, listToMaybe, mapMaybe )
+{-
+Used for the Show instance of Ruleset, which was
+used for debugging but has been removed as not
+really needed by the general user.
+
+import Swish.Utils.ShowM (ShowM(..))
+import Data.List (intercalate)
+-}
+
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 
 -- | Ruleset, having namespace, axioms and rules
 
@@ -52,6 +59,19 @@ data Ruleset ex = Ruleset
     , rsAxioms    :: [Formula ex]
     , rsRules     :: [Rule ex]
     }
+
+{-
+
+Used for debugging.
+
+instance (ShowM ex) => Show (Ruleset ex) where
+  show (Ruleset ns axs rls) = 
+    intercalate "\n" 
+    [ "Ruleset: " ++ show ns
+    , "Axioms:" ]
+    ++ (showsFormulae "\n" axs 
+       (intercalate "\n" ("Rules:" : map show rls))) ""
+-}
 
 instance Eq (Ruleset ex) where
     r1 == r2 = rsNamespace r1 == rsNamespace r2
@@ -79,18 +99,19 @@ getRulesetAxioms = rsAxioms
 getRulesetRules :: Ruleset ex -> [Rule ex]
 getRulesetRules = rsRules
 
--- | Find a named axiom or rule in a ruleset or proof context
-
+-- | Find a named axiom in a ruleset.
 getRulesetAxiom :: ScopedName -> Ruleset ex -> Maybe (Formula ex)
 getRulesetAxiom nam rset =
     mapFindMaybe nam (LookupMap (getRulesetAxioms rset))
     -- listToMaybe $ filter ( (matchName nam) . formName ) $ getRulesetAxioms rset
 
+-- | Find a named rule in a ruleset. 
 getRulesetRule :: ScopedName -> Ruleset ex -> Maybe (Rule ex)
 getRulesetRule nam rset =
     mapFindMaybe nam (LookupMap (getRulesetRules rset))
     -- listToMaybe $ filter ( (matchName nam) . ruleName ) $ getRulesetRules rset
 
+-- | Find a named axiom or rule in a proof context.
 getContextAxiom :: ScopedName -> Formula ex -> [Ruleset ex] -> Formula ex
 getContextAxiom nam def rsets = fromMaybe def (getMaybeContextAxiom nam rsets)
     {-

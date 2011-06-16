@@ -73,9 +73,7 @@ import Swish.Utils.Namespace
     )
 
 import Swish.RDF.Vocabulary
-    ( namespaceRDF
-    , namespaceRDFS
-    , namespaceRDFD
+    ( namespaceRDFD
     , scopeRDF
     , scopeRDFS
     , scopeRDFD
@@ -91,7 +89,7 @@ import Control.Monad (liftM)
 
 makeFormula :: Namespace -> String -> String -> RDFFormula
 makeFormula scope local gr =
-    makeRDFFormula scope local (prefixRDF++gr)
+    makeRDFFormula scope local gr
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter
 requireAny = varFilterDisjunction
@@ -219,13 +217,6 @@ vb8t = vb7 == [vb8]
 ------------------------------------------------------------
 --  Common definitions
 ------------------------------------------------------------
-
-prefixRDF :: String
-prefixRDF =
-    "@prefix rdf:  <" ++ nsURI namespaceRDF  ++ "> . \n" ++
-    "@prefix rdfs: <" ++ nsURI namespaceRDFS ++ "> . \n" ++
-    "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    " \n"
 
 ------------------------------------------------------------
 --  Define RDF axioms

@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.3.1.2
+Version:            0.3.2.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -44,7 +44,11 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
-  Major Changes:
+  Changes:
+  .
+  [Version 0.3.2.0] The N3 parser no longer assumes a set of pre-defined namespaces.
+  There is no API change worthy of a bump to the minor version number, but it
+  is a large-enough change in behaviour that I felt the need for the update.
   .
   [Version 0.3.1.2] 'Swish.RDF.RDFGraph.toRDFGraph' now sets up the
   namespace map of the graph based on the input labels (previously it

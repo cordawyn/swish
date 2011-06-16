@@ -133,10 +133,11 @@ rdfDatatypeXsdInteger = Datatype rdfDatatypeValXsdInteger
 --  Implmentation of RDFDatatypeVal for xsd:integer
 ------------------------------------------------------------
 
--- |Define Datatype value for xsd:integer
+-- |Define Datatype value for @xsd:integer@.
+--
 --  Members of this datatype are positive or negative integer values.
 --
---  The lexical form consists of an option @+@ or @-@
+--  The lexical form consists of an optional @+@ or @-@
 --  followed by a sequence of decimal digits.
 --
 --  The canonical lexical form has leading zeros and @+@ sign removed.

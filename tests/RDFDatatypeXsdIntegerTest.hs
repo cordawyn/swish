@@ -91,7 +91,7 @@ import Test.HUnit
 
 import Control.Monad (unless)
 
-import Data.Maybe (isJust, fromMaybe)
+import Data.Maybe (isJust, isNothing, fromMaybe)
 
 
 ------------------------------------------------------------
@@ -128,7 +128,7 @@ testJust lab av =
 
 testNothing :: String -> Maybe a -> Test
 testNothing lab av =
-    TestCase ( assertBool ("testJust:"++lab) (not $ isJust av) )
+    TestCase ( assertBool ("testJust:"++lab) (isNothing av) )
 
 -- Compare lists and lists of lists and Maybe lists for set equivalence:
 
@@ -172,15 +172,15 @@ testMaybeEqv :: (Eq a, Show a) => String -> Maybe [a] -> Maybe [a] -> Test
 testMaybeEqv lab a1 a2 =
     TestCase ( assertEqual ("testMaybeEqv:"++lab) ma1 ma2 )
     where
-        ma1 = (MaybeListTest a1)
-        ma2 = (MaybeListTest a2)
+        ma1 = MaybeListTest a1
+        ma2 = MaybeListTest a2
 
 ------------------------------------------------------------
 --  Misc values
 ------------------------------------------------------------
 
 xsd_int_name :: String -> ScopedName
-xsd_int_name nam  = ScopedName namespaceXsdInteger nam
+xsd_int_name = ScopedName namespaceXsdInteger 
 
 axiomXsdIntegerDT :: ScopedName
 axiomXsdIntegerDT       = xsd_int_name "dt"
@@ -226,11 +226,11 @@ testDatatypeSuite =
   [ testEq  "testDatatype01" typeNameXsdInteger $
     typeName rdfDatatypeXsdInteger
   , testEq  "testDatatype02" namespaceXsdInteger $
-    rsNamespace (typeRules rdfDatatypeXsdInteger)
+    rsNamespace xsdIntRules
   , testEqv "testDatatype03" axiomsXsdInteger $
-    rsAxioms (typeRules rdfDatatypeXsdInteger)
+    rsAxioms xsdIntRules
   , testEqv "testDatatype04" rulesXsdInteger $
-    rsRules (typeRules rdfDatatypeXsdInteger)
+    rsRules xsdIntRules
   , testEq "testDatatype05" axiomXsdIntegerDT $
     formName (getXsdIntegerAxiom axiomXsdIntegerDT)
   , testEq "testDatatype06" ruleXsdIntegerAbs $
@@ -308,9 +308,9 @@ testVmod2, testVmod3, testVmod4 ::
   String -> Maybe (RDFDatatypeMod Integer)
   -> [RDFVarBinding] -> [RDFVarBinding]
   -> Test
-testVmod2 = testVmodN [(Var "a"),(Var "b")]
-testVmod3 = testVmodN [(Var "a"),(Var "b"),(Var "c")]
-testVmod4 = testVmodN [(Var "a"),(Var "b"),(Var "c"),(Var "d")]
+testVmod2 = testVmodN [Var "a", Var "b"]
+testVmod3 = testVmodN [Var "a", Var "b", Var "c"]
+testVmod4 = testVmodN [Var "a", Var "b", Var "c", Var "d"]
 
 --  make various kinds of RDF variable bindings
 
@@ -1548,7 +1548,7 @@ pvRules :: [RDFRule]
 -- pvRules = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdInteger gr
 pvRules = typeMkRules rdfDatatypeXsdInteger gr
     where
-        gr = (mkGraph pvRulesStr)
+        gr = mkGraph pvRulesStr
 
 pvRulesStr :: String
 pvRulesStr =

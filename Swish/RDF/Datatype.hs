@@ -85,6 +85,11 @@ import Swish.Utils.ListHelpers
     , deleteIndex
     )
 
+-- used to add Show instances for structures during debugging
+-- but backed out again.
+--
+-- import Swish.Utils.ShowM (ShowM(..))
+
 import Data.Maybe( isJust, catMaybes )
 
 import Control.Monad( join, liftM )
@@ -121,15 +126,15 @@ typeMkRules (Datatype dtv) = tvalMkRules dtv
 typeMkModifiers :: Datatype ex lb vn -> [OpenVarBindingModify lb vn]
 typeMkModifiers (Datatype dtv) = tvalMkMods dtv
 
--- |Get named axiom from Datatype value
+-- |Get the named axiom from a Datatype value.
 getTypeAxiom :: ScopedName -> Datatype ex lb vn -> Maybe (Formula ex)
 getTypeAxiom nam dt = getRulesetAxiom nam (typeRules dt)
 
--- |Get named rule from Datatype value
+-- |Get the named rule from a Datatype value.
 getTypeRule :: ScopedName -> Datatype ex lb vn -> Maybe (Rule ex)
-getTypeRule  nam dt = getRulesetRule  nam (typeRules dt)
+getTypeRule nam dt = getRulesetRule nam (typeRules dt)
 
--- |Get canonical form of datatype value
+-- |Get the canonical form of a datatype value.
 typeMkCanonicalForm :: Datatype ex lb vn -> String -> Maybe String
 typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 
@@ -142,8 +147,8 @@ typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 --
 --  A datatype is specified with respect to (polymophic in) a given
 --  type of (syntactic) expression with which it may be used, and
---  a value type (whos existence is hidden as an existential type
---  within `DatatypeMap`.
+--  a value type (whose existence is hidden as an existential type
+--  within `DatatypeMap`).
 --
 --  (I tried hiding the value type with an internal existential
 --  declaration, but that wouldn't wash.  Hence this two-part
@@ -241,6 +246,11 @@ data DatatypeVal ex vt lb vn = DatatypeVal
                                 --  value for @tvalRel@.
     }
 
+{-
+instance ShowM ex => Show (DatatypeVal ex vt lb vn) where
+  show dv = "DatatypeVal: " ++ show (tvalName dv) ++ "\n -> rules:\n" ++ show (tvalRules dv)
+-}
+
 --  Other accessor functions
 
 getDTRel ::
@@ -253,7 +263,7 @@ getDTMod ::
 getDTMod nam dtv =
     mapFindMaybe nam (LookupMap (tvalMod dtv))
 
--- |Get canonical form of datatype value, or @Nothing@.
+-- |Get the canonical form of a datatype value, or @Nothing@.
 --
 tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> String -> Maybe String
 tvalMkCanonicalForm dtv str = can
@@ -269,8 +279,8 @@ tvalMkCanonicalForm dtv str = can
 --
 data DatatypeMap vt = DatatypeMap
     { mapL2V  :: String -> Maybe vt
-                            -- ^ Function to map lexical string to
-                            --   datatype value.  This effectively
+                            -- ^ Function to map a lexical string to
+                            --   the datatype value.  This effectively
                             --   defines the lexical space of the
                             --   datatype to be all strings for which
                             --   yield a value other than @Nothing@.

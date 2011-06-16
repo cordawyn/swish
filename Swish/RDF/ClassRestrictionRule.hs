@@ -21,7 +21,7 @@ module Swish.RDF.ClassRestrictionRule
     , makeDatatypeRestriction, makeDatatypeRestrictionFn
     , makeRDFClassRestrictionRules
     , makeRDFDatatypeRestrictionRules
-    , falseGraph, falseGraphStr
+    , falseGraph, falseGraphStr       
     )
 where
 

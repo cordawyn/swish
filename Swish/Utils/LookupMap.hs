@@ -91,6 +91,19 @@ instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
 data LookupMap a = LookupMap [a]
   deriving (Functor, F.Foldable, T.Traversable)
 
+{- 
+TODO: could add
+
+instance Monoid (LookupMap a) where
+    mempty = LookupMap []
+    mappend = mapMerge
+
+but may need constraints on a, do not
+want to add instances at this time, and is
+it really useful? 
+
+-}
+
 gLM :: LookupMap a -> [a]
 gLM (LookupMap es) = es
 

@@ -1,3 +1,13 @@
+0.3.2.0:
+
+  - Swish.RDF.N3Parser:
+
+    - the parser no longer has a set of pre-defined namespaces with
+      the aim of reducing un-needed statements on output.
+
+  There is no API change worthy of a bump of the minor version but
+  the behavioural change is large enough to make it worth while.
+
 0.3.1.2:
 
   - Swish.RDF.RDFGraph:
