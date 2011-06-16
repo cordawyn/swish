@@ -80,17 +80,16 @@ import Swish.RDF.RDFGraph
     , emptyRDFGraph
     )
 
-import Swish.RDF.GraphClass
-    ( arc )
+import Swish.RDF.GraphClass (arc)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
-    , mapFind, mapFindMaybe, mapReplaceOrAdd )
+    , LookupEntryClass(..)
+    , mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace )
 
 import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
-    , getScopePrefix 
     , getScopedNameURI
     , makeScopedName, makeUriScopedName
     , makeQNameScopedName
@@ -198,14 +197,6 @@ getSUri st nam = getScopedNameURI $ getSName st nam
 --  Map prefix to namespace
 getPrefixNs :: N3State -> String -> Namespace
 getPrefixNs st pre = Namespace pre (mapPrefix (prefixUris st) pre)
-
---  Map ScopedName using prefix table
---  (Ignore URI in supplied ScopedName)
-getPrefixScopedName :: N3State -> ScopedName -> ScopedName
-getPrefixScopedName st snam = ScopedName (getPrefixNs st pre) loc
-    where
-        pre = getScopePrefix snam
-        loc = snLocal snam
 
 getKeywordsList :: N3State -> [String]
 getKeywordsList = keywordsList
@@ -395,36 +386,40 @@ getScopedNameURI' :: URI -> String
 getScopedNameURI' = showURI
 -- getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
 
--- ensure that the namespace for the scoped name is defined;
--- based on setPrefix/addPrefix
---
-setNamespace :: Namespace -> N3State -> N3State
-setNamespace ns st = 
-  let p' = mapReplaceOrAdd ns (prefixUris st)
-  in st { prefixUris = p' }
-  
-addNamespace :: ScopedName -> N3Parser ()
-addNamespace (ScopedName ns _) = updateState $ setNamespace ns
-
--- updated to now make sure that the namespace for the label
--- exists. is this overkill here?
---
--- TODO: this is to be cleaned up to avoid so much
--- state access and avoid some unnescessary code
---
-operatorLabel :: ScopedName -> N3Parser RDFLabel
 {-
-operatorLabel snam = do
-  s <- getState
-  return $ Res $ getPrefixScopedName s snam
+Since operatorLabel can be used to add a label with an 
+unknown namespace, we need to ensure that the namespace
+is added if not known. If the namespace prefix is already
+in use then it is over-written (rather than add a new
+prefix for the label).
 
-operatorLabel snam = (Res . flip getPrefixScopedName snam) <$> getState
-
+TODO:
+  - could we use the reverse lookupmap functionality to
+    find if the given namespace URI is in the namespace
+    list? If it is, use it's key otherwise do a
+    mapReplaceOrAdd for the input namespace.
+    
 -}
-operatorLabel snam = do
-  addNamespace snam 
-  (Res . flip getPrefixScopedName snam) <$> getState
-
+operatorLabel :: ScopedName -> N3Parser RDFLabel
+operatorLabel snam@(ScopedName sns _) = do
+  st <- getState
+  let opmap = prefixUris st
+      pkey = entryKey sns
+      pval = entryVal sns
+      
+      rval = Res snam
+      
+  -- the lookup and the replacement could be fused
+  case mapFindMaybe pkey opmap of
+    Just val | val == pval -> return rval
+             | otherwise   -> do
+               setState $ st { prefixUris = mapReplace opmap sns }
+               return rval
+    
+    _ -> do
+      setState $ st { prefixUris = mapAdd opmap sns }
+      return rval
+        
 {-
 Add statement to graph in N3 parser state.
 
@@ -1096,10 +1091,6 @@ verb ::=		|	 "<="
 		|	 "@has"  expression
 		|	 "@is"  expression  "@of" 
 		|	expression
-
-Note that we need to ensure that the necesary namespaces
-are added to the store when we process a short-form, but
-we delegate that responsibility to operatorLabel.
 
 -}
 
