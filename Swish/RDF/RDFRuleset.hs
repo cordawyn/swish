@@ -15,7 +15,7 @@
 --
 --  For the routines that accept a graph in N3 format, the following
 --  namespaces are pre-defined for use by the graph:
---     `rdf:` and `rdfs:`.
+--     @rdf:@ and @rdfs:@.
 --
 --------------------------------------------------------------------------------
 
