@@ -88,8 +88,7 @@ import Control.Monad (liftM)
 ------------------------------------------------------------
 
 makeFormula :: Namespace -> String -> String -> RDFFormula
-makeFormula scope local gr =
-    makeRDFFormula scope local gr
+makeFormula = makeRDFFormula
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter
 requireAny = varFilterDisjunction
