@@ -1,3 +1,9 @@
+0.3.2.1:
+
+  - Swish.Utils.LookupMap:
+
+    - noted that mapSortByKey and mapSortByVal are deprecated.
+
 0.3.2.0:
 
   - Swish.RDF.N3Parser:

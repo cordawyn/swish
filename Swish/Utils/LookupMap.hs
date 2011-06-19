@@ -34,9 +34,14 @@ module Swish.Utils.LookupMap
     , mapApplyToAll, mapTranslate
     , mapEq, mapKeys, mapVals
     , mapSelect, mapMerge
-    , mapSortByKey, mapSortByVal
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
+    -- * Deprecated routines
+    --
+    -- These routines will be removed at the next minor release of
+    -- of Swish (0.3.3.0).
+    --
+    , mapSortByKey, mapSortByVal
     )
     where
 
@@ -107,14 +112,15 @@ it really useful?
 gLM :: LookupMap a -> [a]
 gLM (LookupMap es) = es
 
+-- TODO:  See also 'mapEq'
+--  (why not just use that for the Eq instance?  I don't know:  it's probably historic.)
+--
+
 -- |Define equality of 'LookupMap' values based on equality of entries.
 --
 --  (This is possibly a poor definition, as it is dependent on ordering
 --  of list members.  But it passes all current test cases, and is used
 --  only for testing.)
---
---  See also 'mapEq'
---  (why not just use that here?  I don't know:  it's probably historic.)
 --
 instance (Eq a) => Eq (LookupMap a) where
     LookupMap es1 == LookupMap es2 = es1 == es2
@@ -174,10 +180,7 @@ reverseLookupMap = fmap reverseEntry
 --
 keyOrder :: (LookupEntryClass a k v, Ord k)
     =>  a -> a -> Ordering
-keyOrder e1 e2 = compare k1 k2
-    where
-        (k1,_) = keyVal e1
-        (k2,_) = keyVal e2
+keyOrder = comparing entryKey
 
 --  Local helper function to build a new LookupMap from
 --  a new entry and an exiting map.
@@ -262,7 +265,7 @@ mapReplaceMap :: (LookupEntryClass a k v) =>
     LookupMap a -> LookupMap a -> LookupMap a
 mapReplaceMap (LookupMap (e:es)) newmap = mapCons e' more where
     more  = mapReplaceMap (LookupMap es) newmap
-    e'    = newEntry (k,mapFind v k newmap)
+    e'    = newEntry (k, mapFind v k newmap)
     (k,v) = keyVal e
 mapReplaceMap (LookupMap []) _ = LookupMap []
 
@@ -343,13 +346,13 @@ mapEq es1 es2 =
 --
 mapKeys :: (LookupEntryClass a k v) =>
     LookupMap a -> [k]
-mapKeys (LookupMap es) = L.nub $ map (fst . keyVal) es
+mapKeys (LookupMap es) = L.nub $ map entryKey es
 
 -- |Return list of distinct values in a supplied LookupMap
 --
 mapVals :: (Eq v, LookupEntryClass a k v) =>
     LookupMap a -> [v]
-mapVals (LookupMap es) = L.nub $ map (snd . keyVal) es
+mapVals (LookupMap es) = L.nub $ map entryVal es
 
 -- |Select portion of a lookup map that corresponds to
 --  a supplied list of keys
@@ -359,7 +362,7 @@ mapSelect :: (LookupEntryClass a k v) =>
 mapSelect (LookupMap es) ks =
     LookupMap $ filter (keyIn ks) es
     where
-        keyIn iks e = fst (keyVal e) `elem` iks
+        keyIn iks e = entryKey e `elem` iks
 
 -- |Merge two lookup maps, ensuring that if the same key appears
 --  in both maps it is associated with the same value.
@@ -383,8 +386,6 @@ mapMerge (LookupMap s1) (LookupMap s2) =
 -- |Creates a new map that is the same as the supplied map, except
 --  that its entries are sorted by key value.
 --
---  (What's this used for?  It should be redundant.)
---
 mapSortByKey :: (LookupEntryClass a k v, Ord k) =>
     LookupMap a -> LookupMap a
 mapSortByKey (LookupMap es) =
@@ -392,8 +393,6 @@ mapSortByKey (LookupMap es) =
 
 -- |Creates a new map that is the same as the supplied map, except
 --  that its entries are sorted by key value.
---
---  (What's this used for?  It should be redundant.)
 --
 mapSortByVal :: (LookupEntryClass a k v, Ord v) =>
     LookupMap a -> LookupMap a
