@@ -36,12 +36,14 @@ module Swish.Utils.LookupMap
     , mapSelect, mapMerge
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
+
     -- * Deprecated routines
     --
-    -- These routines will be removed at the next minor release of
-    -- of Swish (0.3.3.0).
+    -- | These routines will be removed at the next minor release of
+    -- of Swish (@0.3.3@).
     --
     , mapSortByKey, mapSortByVal
+
     )
     where
 
@@ -49,9 +51,15 @@ import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 import qualified Data.List as L
 
+import Control.Arrow (first, second)
+
 import Data.Ord (comparing)
 
-import Swish.Utils.ListHelpers ( equiv )
+import Swish.Utils.ListHelpers (equiv)
+
+-- this is in Data.Tuple in base 4.3
+swap :: (a,b) -> (b,a)
+swap (a,b) = (b,a)
 
 ------------------------------------------------------------
 --  Class for lookup map entries
@@ -66,18 +74,24 @@ class (Eq k, Show k) => LookupEntryClass a k v | a -> k, a -> v
     where
         newEntry    :: (k,v) -> a
         keyVal      :: a -> (k,v)
+        
         entryKey    :: a -> k
-        entryKey e = k where (k,_) = keyVal e
+        entryKey = fst . keyVal
+        
         entryVal    :: a -> v
-        entryVal e = v where (_,v) = keyVal e
+        entryVal = snd . keyVal
+                             
         entryEq     :: (Eq v) => a -> a -> Bool
         entryEq e1 e2 = keyVal e1 == keyVal e2
+        
         entryShow   :: (Show v) => a -> String
         entryShow e = show k ++ ":" ++ show v where (k,v) = keyVal e
+                                                    
         kmap :: (LookupEntryClass a2 k2 v) => (k -> k2) -> a -> a2
-        kmap f e    = newEntry (f $ entryKey e,entryVal e)
+        kmap f = newEntry . first f . keyVal
+        
         vmap :: (LookupEntryClass a2 k v2) => (v -> v2) -> a -> a2
-        vmap f e    = newEntry (entryKey e,f $ entryVal e)
+        vmap f = newEntry . second f . keyVal
 
 -- |Predefine a pair of appropriate values as a valid lookup table entry
 --  (i.e. an instance of LookupEntryClass).
@@ -166,7 +180,7 @@ listLookupMap = gLM
 --
 reverseEntry :: (LookupEntryClass a1 k v, LookupEntryClass a2 v k)
     => a1 -> a2
-reverseEntry e = newEntry (v,k) where (k,v) = keyVal e
+reverseEntry = newEntry . swap . keyVal
 
 -- |Given a lookup map, return a new map that can be used
 --  in the opposite direction of lookup.
@@ -419,11 +433,11 @@ mapTranslateVals f = fmap (vmap f)
 --  supplied map with complete entries replaced according to
 --  a supplied function.
 --
--- Since 'LookupMap' now has a 'Functor' instance this is just 'fmap'
 mapTranslateEntries :: (a1 -> a2) -> LookupMap a1 -> LookupMap a2
 mapTranslateEntries = fmap
 
--- |A monadic form of `mapTranslateEntries`.
+-- |A monadic form of `mapTranslateEntries` which is
+-- the same as `Data.Traversable.mapM`.
 --
 -- Since `LookupMap` now has a `Data.Traversable.Traversable` instance
 -- this is just `T.mapM`.
