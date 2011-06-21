@@ -34,7 +34,7 @@ where
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
-import Data.List (union, (\\))
+import Data.List (foldl', union, (\\))
 
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
 --  the constraint on the label type seems to prevent that.
@@ -78,13 +78,13 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     -- that is, any label that appears in the subject,
     -- predicate or object position of an `Arc`.
     labels      :: lg lb -> [lb]
-    labels g    = foldl union [] (map arcLabels (getArcs g))
+    labels g    = foldl' union [] (map arcLabels (getArcs g))
     
     -- | Enumerate the distinct nodes contained in a graph;
     -- that is, any label that appears in the subject
     -- or object position of an `Arc`.
     nodes       :: lg lb -> [lb]
-    nodes g     = foldl union [] (map arcNodes (getArcs g))
+    nodes g     = foldl' union [] (map arcNodes (getArcs g))
     
     -- | Test for graph containment in another.
     --

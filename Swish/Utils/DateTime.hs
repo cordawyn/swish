@@ -12,7 +12,8 @@
 --
 --  This Module defines a collection of date/time manipulation functions. It
 --  is deprecated - since it's functionality is available from other
---  modules - and will be removed in a future release.
+--  modules - and will be removed in the next minor release of Swish
+--  (@0.3.3@).
 --
 --------------------------------------------------------------------------------
 --

@@ -29,14 +29,12 @@ import Swish.RDF.GraphClass
     -- , hasLabel, arcLabels
     )
 
-import Data.List
-    ( partition )
+import Data.List (foldl', partition)
 
 import Control.Monad.State
     ( MonadState(..), State, evalState )
 
-import Data.Maybe
-    ( isJust, fromJust, mapMaybe )
+import Data.Maybe (isJust, fromJust, mapMaybe)
 
 
 ------------------------------------------------------------
@@ -476,7 +474,7 @@ removeBy1 cmp a0 (a:as) sofar
 -- |Reverse first argument, prepending the result to the second argument
 --
 reverseTo :: [a] -> [a] -> [a]
-reverseTo front back = foldl (flip (:)) back front
+reverseTo front back = foldl' (flip (:)) back front
 
 -- |Remove each element from a list, returning a list of pairs,
 --  each of which is the element removed and the list remaining.

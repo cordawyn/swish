@@ -59,7 +59,7 @@ newQName :: String -> String -> QName
 newQName = QName
 
 qnameFromPair :: (String,String) -> QName
-qnameFromPair (ns,ln) = QName ns ln
+qnameFromPair = uncurry QName
 
 qnameFromURI :: String -> QName
 qnameFromURI = qnameFromPair . splitURI

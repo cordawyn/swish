@@ -871,7 +871,7 @@ allNodes p = unionNodes p [] . nodes
 
 -- | List all nodes in graph formulae satisfying a supplied predicate
 formulaNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
-formulaNodes p gr = foldl (unionNodes p) fkeys (map (allLabels p) fvals)
+formulaNodes p gr = foldl' (unionNodes p) fkeys (map (allLabels p) fvals)
     where
         -- fm :: (Label lb) => FormulaMap lb
         --                     LookupMap LookupFormula (NSGraph lb) lb

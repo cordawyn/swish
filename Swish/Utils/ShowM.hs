@@ -24,7 +24,14 @@
 --------------------------------------------------------------------------------
 
 module Swish.Utils.ShowM
-    ( ShowM(..), showm
+    ( ShowM(..), 
+      
+      -- * Deprecated routine
+      --
+      -- | This routine will be removed at the next minor release of
+      -- of Swish (@0.3.3@).
+      --
+      showm
     )
 where
 

@@ -1,8 +1,10 @@
 0.3.2.1:
 
-  - Swish.Utils.LookupMap:
+  - use foldl' rather than foldl in some modules
 
-    - noted that mapSortByKey and mapSortByVal are deprecated.
+  - Swish.Utils.*:
+
+    - marked routines as deprecated
 
 0.3.2.0:
 

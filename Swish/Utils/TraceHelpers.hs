@@ -10,11 +10,8 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module provides access to tracing functions from the pre-2003
---  Hugs trace module.  Over time, it may accumulate other tracing
---  functions that I find useful.
---
---  This should probably just be replaced by "Debug.Trace".
+--  This module is deprecated and will be removed in the next minor
+--  release of Swish (@0.3.3@).
 --
 --------------------------------------------------------------------------------
 

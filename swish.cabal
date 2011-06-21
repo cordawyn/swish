@@ -46,8 +46,8 @@ Description:
   .
   Changes:
   .
-  [Version 0.3.2.1] Marked `mapSortByKey` and `mapSortByVal` from
-  "Swish.Utils.LookupMap" as deprecated.
+  [Version 0.3.2.1] Marked a number of routines from the Swish.Utils modules
+  as deprecated. Use foldl' rather than foldl.
   .
   [Version 0.3.2.0] The N3 parser no longer assumes a set of pre-defined namespaces.
   There is no API change worthy of a bump to the minor version number, but it

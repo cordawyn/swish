@@ -10,17 +10,29 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module defines some generic list and related helper functions
+--  This module defines a random set of helper functions
 --  used by the graph handling code.
 --
 --------------------------------------------------------------------------------
 
 module Swish.Utils.MiscHelpers
-      ( assert, lower, stricmp, quote, hash, hashModulus )
+      ( hash -- RDFGraph, GraphMem, GraphMatch
+      , hashModulus -- GraphMatch
+      
+        -- * Deprecated routines
+        --
+        -- | These routines will be removed at the next minor release of
+        -- of Swish (@0.3.3@).
+        --
+      , assert -- GraphMatch QUS: can we use Control.Exception.assert?
+      , stricmp
+      , lower -- Vocabulary
+      , quote -- RDFGraph
+ 
+      )
 where
 
-import Data.Char
-    ( toLower )
+import Data.Char (toLower)
 
 ------------------------------------------------------------
 --  assert test

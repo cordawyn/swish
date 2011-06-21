@@ -10,22 +10,58 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module defines some generic list and related helper functions.
+--  This module defines some generic list and related helper functions. Although
+--  some routines are explicitly marked as deprecated, the intention is to
+--  move this functionality into the modules that need it, or replace it by
+--  other modules, where possible.
 --
 --------------------------------------------------------------------------------
 
-module Swish.Utils.ListHelpers
-      ( select, mapset, deleteIndex
-      , subset, equiv, hasPartitions, addSetElem
-      , headOrNothing
-      , pairUngroup, pairsUngroup, pairSort, pairGroup
-      , breakAll
-      , powerSet, combinations
-      , permutations, listProduct
-      , powerSequences, powerSequences_len, powerSequences_inf
-      , flist, ffold, allf, anyf, allp, anyp )
-where
+{-
+TODO:
 
+The plan is to use modules such as Data.Set where appropriate.
+
+-}
+
+module Swish.Utils.ListHelpers
+       ( -- list of Swish.RDF.xxx modules the routine is used in
+         select  -- GraphMatch
+       , deleteIndex -- Datatype
+       , subset -- Proof, RDFProof, VarBinding [also defined in Utils.PartOrderedCollection]
+       , equiv -- GraphMatch, RDFRuleset, SwishScript, VarBinding, Utils.LookupMap
+       , addSetElem -- RDFGraph
+       , headOrNothing -- VarBinding
+       , pairUngroup -- GraphMatch
+       , pairSort -- GraphMatch
+       , pairGroup -- GraphMatch
+       , breakAll -- SwishMain
+       , powerSet -- ClassRestrictionRule, RDFProof
+       , permutations -- VarBinding
+       , listProduct -- RDFQuery
+       , powerSequences_len -- RDFProof
+       , flist -- Datatype, RDFProof, RDFRuleset, SwishScript, VarBinding
+       , allp -- RDFQuery
+       , anyp -- RDFQuery
+        
+        -- * Deprecated routines
+        --
+        -- | These routines will be removed at the next minor release of
+        -- of Swish (@0.3.3@).
+        --
+       , mapset
+       , pairsUngroup
+       , ffold
+       , hasPartitions
+       , powerSequences
+       , powerSequences_inf
+       , allf
+       , anyf
+       , combinations -- used by powerSet
+        
+      )
+where
+  
 import Data.Ord (comparing)  
 import Data.List (union, intersect, sortBy, groupBy)
 
@@ -71,6 +107,9 @@ testdi = and
 
 ------------------------------------------------------------
 --  Set functions
+--
+--  NOTE: to change to Data.Set then Eq a constraint will 
+--        likely need changing to Ord a
 ------------------------------------------------------------
 
 -- |Subset test

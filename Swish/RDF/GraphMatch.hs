@@ -32,14 +32,18 @@ module Swish.RDF.GraphMatch
         graphMatch1, graphMatch2, equivalenceClasses, reclassify
       ) where
 
-import Swish.Utils.LookupMap
-import Swish.Utils.ListHelpers
-import Swish.Utils.MiscHelpers
--- import Swish.Utils.TraceHelpers( trace, traceShow )
-import Swish.RDF.GraphClass
 import Data.Ord (comparing)
-import Data.List( nub, sortBy, partition )
+import Data.List (foldl', nub, sortBy, partition)
 import qualified Data.List
+
+import Swish.RDF.GraphClass (Arc(..), Label(..),
+                             arc, arcSubj, arcPred, arcObj, arcLabels,
+                             hasLabel, arcToTriple)
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),
+                              makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
+                              mapAddIfNew, mapReplaceMap, mapMerge)
+import Swish.Utils.ListHelpers (select, equiv, pairSort, pairGroup, pairUngroup)
+import Swish.Utils.MiscHelpers (assert, hash, hashModulus)
 
 --------------------------
 --  Label index value type
@@ -361,7 +365,7 @@ graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
 showLabelMap :: (Label lb) => LabelMap lb -> String
 showLabelMap (LabelMap gn lmap) =
     "LabelMap gen="++ Prelude.show gn ++", map="++
-    foldl (++) "" (map (("\n    "++) . Prelude.show) es)
+    foldl' (++) "" (map (("\n    "++) . Prelude.show) es)
     where
         es = listLookupMap lmap
 
@@ -416,8 +420,7 @@ newGenerationMap (LabelMap g lvs) = LabelMap (g+1) lvs
 --  value, as they may be matched with each other.
 --
 assignLabelMap :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
-assignLabelMap ns lmap = foldl (flip assignLabelMap1) lmap ns
--- TODO: foldl to foldl' ?
+assignLabelMap ns lmap = foldl' (flip assignLabelMap1) lmap ns
 
 assignLabelMap1 :: (Label lb) => lb -> LabelMap lb -> LabelMap lb
 assignLabelMap1 lab (LabelMap g lvs) = LabelMap g lvs'
@@ -535,16 +538,6 @@ remapLabels gs lmap@(LabelMap gen _) ls =
 
 graphLabels :: (Label lb) => [Arc lb] -> [lb]
 graphLabels = nub . concatMap arcLabels
-
-{-  OLD CODE:
-graphLabels gs = graphLabels1 gs []
-
-graphLabels1 (t:gs) ls = graphLabels1 gs $
-                         foldl (flip addSetElem) ls (arcLabels t)
-graphLabels1 [] ls     = ls
--}
-
--- addSetElem ::  lb -> [lb] -> [lb]
 
 -- | Calculate a signature value for each arc that can be used in constructing an
 --   adjacency based value for a node.  The adjacancy value for a label is obtained

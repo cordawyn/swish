@@ -66,18 +66,14 @@ import Swish.RDF.Rule
     , bwdCheckInference
     )
 
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    )
+import Swish.RDF.VarBinding (VarBinding(..))
 
 import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
     )
 
-import Swish.RDF.Vocabulary
-    ( namespaceRDFD
-    )
+import Swish.RDF.Vocabulary (namespaceRDFD)
 
 import Swish.Utils.PartOrderedCollection
     ( minima, maxima
@@ -91,19 +87,12 @@ import Swish.Utils.LookupMap
     , mapFindMaybe
     )
 
-import Swish.Utils.ListHelpers
-    ( powerSet )
+import Swish.Utils.ListHelpers (powerSet)
+
+import Control.Monad (liftM)
 
 import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
-
-import Data.List
-    ( delete, nub, (\\) )
-
-import Control.Monad
-    ( liftM )
-
-import Swish.Utils.TraceHelpers
-    ( trace )
+import Data.List (delete, nub, (\\))
 
 ------------------------------------------------------------
 --  Class restriction data type
@@ -196,16 +185,6 @@ makeRDFClassRestrictionRules crs gr =
 makeRestrictionRule1 ::
     [ClassRestriction] -> RDFGraph -> RDFVarBinding -> Maybe RDFRule
 makeRestrictionRule1 crs gr vb =
-    {-
-    trace "\nmakeRestrictionRule1:" $
-    -- seq (traceShow "\ngr:" gr)
-    seq (traceShow "\nvb:" vb) $
-    seq (traceShow "\nc:" c) $
-    seq (traceShow "\np:" p) $
-    seq (traceShow "\nr:" r) $
-    seq (traceShow "\nps:" ps) $
-    -- seq (traceShow "\nrn:" rn) $
-    -}
     makeRestrictionRule2 rn c ps cs
     where
         c  = fromMaybe NoNode $ vbMap vb (Var "c")
@@ -220,11 +199,6 @@ makeRestrictionRule2 ::
     Maybe ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int]
     -> Maybe RDFRule
 makeRestrictionRule2 (Just restriction) cls@(Res cname) props cs =
-    {-
-    trace "\nmakeRestrictionRule2:" $
-    seq (traceShow "\ncls:" cls)
-    seq (traceShow "\nprops:" props) $
-    -}
     Just restrictionRule
     where
         restrictionRule = Rule
@@ -235,9 +209,8 @@ makeRestrictionRule2 (Just restriction) cls@(Res cname) props cs =
             , bwdApply = bwdApplyRestriction restriction cls props cs
             , checkInference = bwdCheckInference restrictionRule
             }
-makeRestrictionRule2 _ _ _ _ =
-    trace "\nmakeRestrictionRule: missing class restriction"
-    Nothing
+makeRestrictionRule2 _ _ _ _ = Nothing
+    -- trace "\nmakeRestrictionRule: missing class restriction"
 
 --  Forward apply class restriction.
 fwdApplyRestriction ::
@@ -266,12 +239,6 @@ fwdApplyRestriction1 ::
     ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int] -> RDFGraph
     -> Maybe [RDFGraph]
 fwdApplyRestriction1 restriction ci props cs antgr =
-    {-
-    trace "\nfwdApplyRestriction1:" $
-    seq (traceShow "\nci:" ci)
-    seq (traceShow "\nprops:" props)
-    seq (traceShow "\nantgr:" antgr) $
-    -}
     if grConsistent then Just newgrs else Nothing
     where
         --  Apply restriction to graph
@@ -318,12 +285,6 @@ bwdApplyRestriction1 ::
     -> Maybe [[RDFGraph]]
 bwdApplyRestriction1 restriction cls ci props cs congr =
     if grConsistent then Just grss else Nothing
-    {-
-    trace "\nfwdApplyRestriction1:" $
-    seq (traceShow "\nci:" ci)
-    seq (traceShow "\nprops:" props)
-    seq (traceShow "\ncongr:" congr) $
-    -}
     where
         --  Apply restriction to graph
         (grConsistent,pvs,cts,_) =

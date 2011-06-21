@@ -21,15 +21,26 @@
 --
 --------------------------------------------------------------------------------
 
+-- at present the only user of this module is Swish.RDF.ClassRestrictionRule
+
 module Swish.Utils.PartOrderedCollection
     ( PartCompare
-    , minima, maxima
-    , partCompareEq, partCompareOrd, partComparePair
-    , partCompareListPartOrd, partCompareListOrd
-    , partCompareMaybe, partCompareListMaybe
+    , minima
+    , maxima
+    , partCompareEq
+    , partComparePair
+    , partCompareListMaybe
     , partCompareListSubset
+    , partCompareListPartOrd
+    , partCompareMaybe
+        
+      -- the following are currently unused
+    , partCompareOrd
+    , partCompareListOrd 
     )
-where
+    where
+
+import Data.List (foldl')
 
 ------------------------------------------------------------
 --  Type of partial compare function
@@ -49,7 +60,7 @@ type PartCompare a = a -> a -> Maybe Ordering
 --  for which there is no larger element in the list.
 --
 maxima :: PartCompare a -> [a] -> [a]
-maxima cmp as = foldl add [] as
+maxima cmp as = foldl' add [] as
     where
         add []     e = [e]
         add ms@(m:mr) e = case cmp m e of

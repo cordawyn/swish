@@ -41,20 +41,13 @@ import Swish.Utils.LookupMap
     , makeLookupMap, mapFindMaybe
     )
 
-import Swish.Utils.Namespace
-    ( ScopedName(..) )
+import Swish.Utils.Namespace (ScopedName(..))
+import Swish.RDF.Vocabulary (swishName)
+import Swish.Utils.ListHelpers (equiv, subset, flist, headOrNothing, permutations)
 
-import Swish.RDF.Vocabulary
-    ( swishName )
+import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 
-import Swish.Utils.ListHelpers
-    ( equiv, subset, flist, headOrNothing, permutations )
-
-import Data.Maybe
-    ( mapMaybe, fromMaybe, isJust, fromJust, listToMaybe )
-
-import Data.List
-    ( find, intersect, union, (\\) )
+import Data.List (find, intersect, union, (\\), foldl')
 
 
 ------------------------------------------------------------
@@ -377,8 +370,7 @@ composeCheckSequence vars vbms = useWith vars $ composeSequence vbms
 composeSequence :: (Eq a) => [VarBindingModify a b]
     -> Maybe (VarBindingModify a b)
 composeSequence [] = Just varBindingId
-composeSequence (vbm:vbms) =
-    foldl composePair (Just vbm) vbms
+composeSequence (vbm:vbms) = foldl' composePair (Just vbm) vbms
 
 -- |Compose a pair of variable binding modifiers, returning
 --  @Just (composed modifier)@, or @Nothing@.

@@ -34,7 +34,7 @@ import Swish.Utils.ShowM (ShowM(..))
 
 import Swish.Utils.ListHelpers (subset)
 
-import Data.List (union, intersect, intercalate)
+import Data.List (union, intersect, intercalate, foldl')
 import Data.Maybe (catMaybes, isNothing)
 
 ------------------------------------------------------------
@@ -73,7 +73,7 @@ proofRules = concatMap rsRules . proofContext
 
 -- |Return list of axioms actually referenced by a proof
 proofAxiomsUsed :: Proof ex -> [Formula ex]
-proofAxiomsUsed proof = foldl union [] $ map stepAxioms (proofChain proof)
+proofAxiomsUsed proof = foldl' union [] $ map stepAxioms (proofChain proof)
     where
         stepAxioms st = stepAnt st `intersect` proofAxioms proof
 
@@ -103,7 +103,7 @@ checkProof1 rules prev (st:steps) res =
 checkStep :: 
   (Expression ex) 
   => [Rule ex]   -- ^ rules
-  -> [ex]        -- ^ a ntecedants
+  -> [ex]        -- ^ antecedants
   -> Step ex     -- ^ the step to validate
   -> Bool        -- ^ @True@ if the step is valid
 
