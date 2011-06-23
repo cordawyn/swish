@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.3.2.1
+Version:            0.4.0.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,9 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.4.0.0] Moving to using polyparse for parsing and @Text@ rather than
+  @String@ where appropriate.
   .
   [Version 0.3.2.1] Marked a number of routines from the Swish.Utils modules
   as deprecated. Use foldl' rather than foldl.
@@ -138,12 +141,13 @@ Flag  hpc
 Library
    Build-Depends:
       base >=3 && < 5,
+      text == 0.11.*,
       binary == 0.5.*,
       bytestring == 0.9.*,
       containers == 0.3.*,
       array == 0.3.*,
       parallel == 2.2.*,
-      parsec == 2.1.*,
+      polyparse == 1.6.*,
       random == 1.0.*,
       old-time == 1.0.*, old-locale == 1.0.*, time == 1.1.*,
       mtl >= 1 && < 3,

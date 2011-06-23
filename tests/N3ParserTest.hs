@@ -17,12 +17,14 @@
 module Main where
 
 import Swish.RDF.N3Parser
-    ( parseN3fromString, parseN3
+    ( parseN3fromString -- , parseN3
     , parseTextFromString, parseAltFromString
     , parseNameFromString, parsePrefixFromString
     , parseAbsURIrefFromString, parseLexURIrefFromString
     , parseURIref2FromString
     )
+
+import qualified Swish.RDF.N3Parser as N3P
 
 import Swish.RDF.RDFGraph
     ( RDFGraph, RDFLabel(..), NSGraph(..)
@@ -59,7 +61,13 @@ import Swish.RDF.GraphClass (Arc, arc)
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
 import Data.Monoid (Monoid(..))
-import Data.List (intercalate)
+
+import qualified Data.Text.Lazy as T
+
+-- temporary routine during text conversion
+
+parseN3 :: String -> Maybe QName -> N3P.ParseResult
+parseN3 inp mbase = N3P.parseN3 (T.pack inp) mbase
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper
@@ -1097,6 +1105,7 @@ simpleN3Graph_g17 =
     " base3:s3 base3:p3 \"<em>chat</em>\"^^rdf:XMLLiteral . \n "
 
 emsg16 :: String
+{- parsec error
 emsg16 = intercalate "\n" [
   "",
   "@prefix base1 : <http://id.ninebynine.org/wip/2003/test/graph1/node/> . base1:s1 base1:p1 base1:o1 .  **** ",
@@ -1106,7 +1115,8 @@ emsg16 = intercalate "\n" [
   "unexpected \"*\"",
   "expecting declaration, \"@\", pathitem or end of input"
   ]
-
+-}
+emsg16 = "Expected end of input (EOF)"
 
 simpleTestSuite :: Test
 simpleTestSuite = TestList
@@ -1380,6 +1390,7 @@ failN3Graph_g1 =
     " base1:s1 base2:p2 unknown3:o3 . "
 
 fail1 :: String
+{- parsec error
 fail1 = intercalate "\n" [
          "",
          "@prefix base3 : <http://id.ninebynine.org/wip/2003/test/graph3/node> . ",
@@ -1389,6 +1400,8 @@ fail1 = intercalate "\n" [
          "",
          "unexpected Prefix 'unknown3:' not bound."
         ]
+-}
+fail1 = "When looking for a non-empty sequence with separators:\n\tPrefix 'unknown3:' not bound."
 
 failTestSuite :: Test
 failTestSuite = TestList

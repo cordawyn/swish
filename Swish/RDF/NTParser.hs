@@ -14,8 +14,6 @@
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
 --  the supplied NTriples input string, or an error indication.
 --
---  Uses the Parsec monadic parser library.
---
 -- REFERENCES:
 --
 -- 1 <http://www.w3.org/TR/rdf-testcases/#ntriples>
@@ -29,6 +27,7 @@ module Swish.RDF.NTParser
     , parseNT      
     , parsefromString
     
+      {-
     -- * Exports for parsers that embed NTriples in a bigger syntax
     , NTParser, NTState(..)
     , ntripleDoc
@@ -37,7 +36,8 @@ module Swish.RDF.NTParser
     , subject, predicate, object
     , uriref, urirefLbl
     , nodeID, literal, language
-
+      -}
+      
     )
 where
 
@@ -47,31 +47,40 @@ import Swish.RDF.RDFGraph
     , emptyRDFGraph
     )
 
-import Swish.RDF.GraphClass
-    ( arc )
+import Swish.RDF.GraphClass (arc)
 
-import Swish.Utils.Namespace
-    ( ScopedName(..)
-    , makeUriScopedName
-    )
+import Swish.Utils.Namespace (ScopedName(..), makeUriScopedName)
 
 import Swish.RDF.Vocabulary (langName)
 
+import Swish.RDF.RDFParser ( ParseResult
+    , ignore
+    , skipMany
+               , noneOf
+    , char
+      , string
+    , eoln
+    , fullStop
+    )
+  
+{-
 import Swish.RDF.RDFParser
     ( ParseResult, RDFParser
     , ignore
     , annotateParsecError
     )
+-}
 
 import Control.Applicative
 import Control.Monad (when)
 
 import Network.URI (parseURI)
 
+import qualified Data.Text.Lazy as T
 import Data.Char (chr) 
 import Data.Maybe (fromMaybe, isNothing)
 
-import Text.ParserCombinators.Parsec hiding (many, optional, (<|>))
+import Text.ParserCombinators.Poly.StateText
 
 ----------------------------------------------------------------------
 -- Define parser state and helper functions
@@ -83,9 +92,10 @@ data NTState = NTState
         }
 
 --  Return function to update graph in NT parser state,
---  using the supplied function of a graph
---  (use returned function with Parsec updateState)
-updateGraph :: ( RDFGraph -> RDFGraph ) -> NTState -> NTState
+--  using the supplied function of a graph. This is for use
+--  with stUpdate.
+--
+updateGraph :: (RDFGraph -> RDFGraph) -> NTState -> NTState
 updateGraph f s = s { graphState = f (graphState s) }
 
 ----------------------------------------------------------------------
@@ -93,20 +103,19 @@ updateGraph f s = s { graphState = f (graphState s) }
 --  accepts a string and returns a graph or error
 ----------------------------------------------------------------------
 
-type NTParser a = RDFParser NTState a
+type NTParser a = Parser NTState a
 
 -- | Parse a string.
 -- 
 parseNT ::
-  String -- ^ input in NTriples format.
+  T.Text -- ^ input in NTriples format.
   -> ParseResult
-parseNT = parsefromString ntripleDoc
--- parseNT = either Error Result . parsefromString ntripleDoc
+parseNT = parsefromText ntripleDoc
 
 {-
 -- useful for testing
 test :: String -> RDFGraph
-test = either error id . parsefromString ntripleDoc
+test = either error id . parseNT
 -}
 
 -- | Function to supply initial context and parse supplied term.
@@ -117,21 +126,22 @@ parsefromString ::
     NTParser a      -- ^ parser to apply
     -> String       -- ^ input to be parsed
     -> Either String a
-parsefromString parser input =
-        let
-            pstate = NTState
+parsefromString parser = parsefromText parser . T.pack
+
+-- | Function to supply initial context and parse supplied term.
+--
+parsefromText :: 
+    NTParser a      -- ^ parser to apply
+    -> T.Text       -- ^ input to be parsed
+    -> Either String a
+parsefromText parser input =
+        let istate = NTState
                     { graphState = emptyRDFGraph
                     }
-            result = runParser parser pstate "" input
-        in
-            case result of
-                Right res -> Right res
-                Left  err -> Left $ annotateParsecError 1 (lines input) err
-
+            (result, _, _) = runParser parser istate input
+        in result 
+           
 -- helper routines
-
-fullStop :: NTParser ()
-fullStop = ignore (char '.')
 
 {-
 lineFeed :: NTParser ()
@@ -141,7 +151,7 @@ lineFeed = ignore (char '\r')
 -- Add statement to graph in NT parser state
 
 addStatement :: RDFLabel -> RDFLabel -> RDFLabel -> NTParser ()
-addStatement s p o = updateState (updateGraph (addArc (arc s p o) ))
+addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 
 ----------------------------------------------------------------------
 --  Syntax productions
@@ -178,10 +188,10 @@ line = skipMany ws *> optional (comment <|> triple) *> eoln
 -}
 
 ntripleDoc :: NTParser RDFGraph
-ntripleDoc = graphState <$> (sepBy line eoln *> optional eoln *> skipMany ws *> eof *> getState)
+ntripleDoc = graphState <$> (sepBy line eoln *> optional eoln *> skipWS *> eof *> stGet)
 
 line :: NTParser ()
-line = skipMany ws *> ignore (optional (comment <|> triple))
+line = skipWS *> ignore (optional (comment <|> triple))
 
 {-
 ws	::=	space | tab	
@@ -189,25 +199,33 @@ ws	::=	space | tab
 Could use whiteSpace rule here, but that would permit
 constructs (e.g. comments) where we do not support them.
 -}
+
+isWS :: Char -> Bool
+isWS = (`elem` " \t")
+
+{-
 ws :: NTParser ()
-ws = ignore (char ' ' <|> tab) <?> "white space (' ' or tab)"
+-- ws = ignore (char ' ' <|> tab)
+ws = ignore $ satisfy isWS
+-}
+           
+skipWS :: NTParser ()
+skipWS = ignore $ manySatisfy isWS
+
+skip1WS :: NTParser ()
+skip1WS = ignore $ many1Satisfy isWS
 
 {-
 comment	::=	'#' ( character - ( cr | lf ) )*	
 -}
 
 comment :: NTParser ()
-comment = char '#' *> skipMany (noneOf "\r\n") <?> "comment line"
+comment = char '#' *> skipMany (noneOf "\r\n")
 
 {-
 eoln	::=	cr | lf | cr lf	
 -}
 
-eoln :: NTParser ()
--- eoln = ignore (newline <|> (lineFeed *> optional newline))
-eoln = ignore (try (string "\r\n") <|> string "\r" <|> string "\n")
-       <?> "new line"
-       
 {-
 name	::=	[A-Za-z][A-Za-z0-9]*	
 -}
@@ -216,8 +234,10 @@ hChars, bChars :: String
 hChars = ['a'..'z'] ++ ['A'..'Z']
 bChars = hChars ++ ['0'..'9']
 
+-- cons is not particularly efficient
 name :: NTParser String
-name = (:) <$> oneOf hChars <*> many (oneOf bChars)
+-- name = (:) <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars)
+name = T.unpack <$> (T.cons <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars))
 
 {-
 triple	::=	subject ws+ predicate ws+ object ws* '.' ws*	
@@ -225,16 +245,24 @@ triple	::=	subject ws+ predicate ws+ object ws* '.' ws*
 -}
 
 triple :: NTParser ()
-triple = do
-  s <- subject
-  skipMany1 ws
-  p <- predicate
-  skipMany1 ws
-  o <- object
-  skipMany ws
-  fullStop
-  skipMany ws
-  addStatement s p o
+triple = 
+  {- tryin to be fancy but addStatement is a Parser not a pure function
+  addStatement 
+  <$> (subject <* skip1WS)
+  <*> (predicate <* skip1WS)
+  <*> (object <* (skipWS *> fullStop *> skipWS))
+  -}
+  
+  do
+    s <- subject
+    skip1WS
+    p <- predicate
+    skip1WS
+    o <- object
+    skipWS
+    fullStop
+    skipWS
+    addStatement s p o
 
 {-
 subject	::=	uriref | nodeID	
@@ -259,9 +287,12 @@ absoluteURI	::=	character+ with escapes as defined in section URI References
 
 uriref :: NTParser ScopedName
 uriref = do
-  ustr <- char '<' *> manyTill character (char '>')
+  -- not ideal, as want to reject invalid characters immediately rather than via parseURI
+  ustr <- T.unpack <$> (bracket (char '<') (char '>') $ many1Satisfy (/= '>'))
+  -- ustr <- bracket (char '<') (char '>') $ many1 character -- looks like need to exclude > from character
+  -- ustr <- char '<' *> manyTill character (char '>')
   when (isNothing (parseURI ustr)) $
-    fail ("Invalid URI: <" ++ ustr ++ ">")
+    failBad ("Invalid URI: <" ++ ustr ++ ">")
   return $ makeUriScopedName ustr
 
 urirefLbl :: NTParser RDFLabel
@@ -272,7 +303,7 @@ nodeID	::=	'_:' name
 -}
 
 nodeID :: NTParser RDFLabel
-nodeID = Blank <$> (string "_:" *> name) <?> "blank node (_:label)"
+nodeID = Blank <$> (string "_:" *> name)
 
 {-  
 literal	::=	langString | datatypeString	
@@ -285,7 +316,7 @@ string	::=	character* with escapes as defined in section Strings
 -}
 
 literal :: NTParser RDFLabel
-literal = Lit <$> between (char '"') (char '"') (many character) <*> optionMaybe dtlang
+literal = Lit <$> bracket (char '"') (char '"') (many character) <*> optional dtlang
 
 dtlang :: NTParser ScopedName
 dtlang = 
@@ -294,9 +325,9 @@ dtlang =
 
 language :: NTParser ScopedName
 language = do
-  h <- many1 (oneOf ['a'..'z'])
-  mt <- optionMaybe ( (:) <$> char '-' <*> many1 (oneOf (['a'..'z'] ++ ['0'..'9'])) )
-  return $ langName $ h ++ fromMaybe "" mt
+  h <- many1Satisfy (`elem` ['a'..'z'])
+  mt <- optional ( T.cons <$> char '-' <*> many1Satisfy (`elem` (['a'..'z'] ++ ['0'..'9'])) )
+  return $ langName $ T.unpack $ T.append h $ fromMaybe T.empty mt
 
 {-
 String handling: 
@@ -344,23 +375,23 @@ asciiCharsNT :: String
 asciiCharsNT = filter (`notElem` "\\\"") asciiChars
 
 ntHexDigit :: NTParser Char
-ntHexDigit = oneOf $ ['0'..'9'] ++ ['A'..'F']
+ntHexDigit = satisfy (`elem` ['0'..'9'] ++ ['A'..'F'])
 
 hex4 :: NTParser Char
 hex4 = do
-  digs <- count 4 ntHexDigit
+  digs <- exactly 4 ntHexDigit
   let dstr = "0x" ++ digs
       dchar = read dstr :: Int
   return $ chr dchar
         
 hex8 :: NTParser Char
 hex8 = do
-  digs <- count 8 ntHexDigit
+  digs <- exactly 8 ntHexDigit
   let dstr = "0x" ++ digs
       dchar = read dstr :: Int
   if dchar <= 0x10FFFF
     then return $ chr dchar
-    else unexpected "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
+    else failBad "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
 
 protectedChar :: NTParser Char
 protectedChar =
@@ -374,7 +405,7 @@ protectedChar =
 
 character :: NTParser Char
 character = (char '\\' *> protectedChar)
-      <|> (oneOf asciiCharsNT <?> "ASCII character")
+      <|> (satisfy (`elem` asciiCharsNT))
 
 --------------------------------------------------------------------------------
 --

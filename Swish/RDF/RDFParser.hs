@@ -22,10 +22,24 @@ module Swish.RDF.RDFParser
     , prefixTable, specialTable
 
     -- parser
-    , ParseResult, RDFParser
-    , n3Style, n3Lexer
+    , ParseResult
     , ignore
-    , annotateParsecError
+    , char
+    , ichar
+    , string
+    , symbol
+    , lexeme
+    , notFollowedBy
+    , whiteSpace
+    , skipMany
+    , skipMany1
+    , endBy
+    , sepEndBy
+    , sepEndBy1
+    , manyTill
+    , noneOf
+    , eoln
+    , fullStop
     , mkTypedLit
     )
 where
@@ -57,41 +71,13 @@ import Swish.RDF.Vocabulary
     , default_base
     )
 
-import Control.Applicative
-import Control.Monad (MonadPlus(..), ap)
+import qualified Data.Text.Lazy as T
+import Text.ParserCombinators.Poly.StateText
 
-import Text.ParserCombinators.Parsec (GenParser, ParseError, char, letter, alphaNum, errorPos, sourceLine, sourceColumn)
-import Text.ParserCombinators.Parsec.Error (errorMessages, showErrorMessages)
-import Text.ParserCombinators.Parsec.Language (emptyDef)
-import qualified Text.ParserCombinators.Parsec.Token as P
-
+import Data.Char (isSpace)
 import Data.Maybe (fromMaybe)
 
 -- Code
-
-{-|
-The language definition for N3-style formats.
--}
-
-n3Style :: P.LanguageDef st
-n3Style =
-        emptyDef
-            { P.commentStart   = ""
-            , P.commentEnd     = ""
-            , P.commentLine    = "#"
-            , P.nestedComments = True
-            , P.identStart     = letter <|> char '_'      -- oneOf "_"
-            , P.identLetter    = alphaNum <|> char '_'
-            , P.reservedNames  = []
-            , P.reservedOpNames= []
-            , P.caseSensitive  = True
-            }
-
-{-|
-The lexer for N3 style languages.
--}
-n3Lexer :: P.TokenParser st
-n3Lexer = P.makeTokenParser n3Style
 
 -- | Type for special name lookup table
 type SpecialMap = LookupMap (String,ScopedName)
@@ -125,26 +111,85 @@ specialTable mbase =
     ("base",      fromMaybe default_base mbase ) 
   ]
 
-----------------------------------------------------------------------
---  Define top-level parser function:
---  accepts a string and returns a graph or error
-----------------------------------------------------------------------
+-- Parser routines, heavily based on Parsec
 
-type RDFParser a b = GenParser Char a b
-
--- Applicative/Alternative are defined for us in Parsec 3
-instance Applicative (GenParser a b) where
-  pure = return
-  (<*>) = ap
-  
-instance Alternative (GenParser a b) where
-  empty = mzero
-  (<|>) = mplus
-  
 type ParseResult = Either String RDFGraph
 
-ignore :: (Monad m) => m a -> m ()
-ignore p = p >> return ()
+ignore :: (Applicative f) => f a -> f ()
+ignore f = f *> pure ()
+
+char :: Char -> Parser s Char
+char c = satisfy (==c)
+
+ichar :: Char -> Parser s ()
+ichar = ignore . char
+
+-- TODO: is there a better way to do this?
+string :: String -> Parser s String
+string s = mapM char s
+  
+skipMany :: Parser s a -> Parser s ()
+skipMany = ignore . many
+  
+skipMany1 :: Parser s a -> Parser s ()
+skipMany1 = ignore . many1
+  
+endBy :: Parser s a -> Parser s b -> Parser s [a]
+endBy p sep = many (p <* sep)
+
+sepEndBy :: Parser s a -> Parser s b -> Parser s [a]
+sepEndBy p sep = sepEndBy1 p sep <|> pure []
+
+-- is the separator optional?
+sepEndBy1 :: Parser s a -> Parser s b -> Parser s [a]
+sepEndBy1 p sep = do
+  x <- p
+  (sep *> ((x:) <$> sepEndBy p sep)) <|> return [x]
+  
+manyTill :: Parser s a -> Parser s b -> Parser s [a]
+manyTill p end = go
+  where
+    go = (end *> return [])
+         <|>
+         ((:) <$> p <*> go)
+
+
+noneOf :: String -> Parser s Char           
+noneOf istr = satisfy (`notElem` istr)
+           
+fullStop :: Parser s ()
+fullStop = ichar '.'
+
+eoln :: Parser s ()
+-- eoln = ignore (newline <|> (lineFeed *> optional newline))
+-- eoln = ignore (try (string "\r\n") <|> string "\r" <|> string "\n")
+eoln = ignore (oneOf [string "\r\n", string "\r", string "\n"])
+       
+notFollowedBy :: (Char -> Bool) -> Parser s ()
+notFollowedBy p = do
+  c <- next
+  if p c 
+    then fail $ "Unexpected character: " ++ show [c]
+    else reparse $ T.singleton c
+
+symbol :: String -> Parser s String
+symbol = lexeme . string
+
+lexeme :: Parser s a -> Parser s a
+lexeme p = p <* whiteSpace
+
+whiteSpace :: Parser s ()
+whiteSpace = skipMany (simpleSpace <|> oneLineComment)
+
+simpleSpace :: Parser s ()
+simpleSpace = ignore $ many1Satisfy isSpace
+
+oneLineComment :: Parser s ()
+oneLineComment = ichar '#' *> manySatisfy (/= '\n') *> pure ()
+
+{-
+
+Not sure we can get this with polyparse
 
 -- | Annotate a Parsec error with the local context - i.e. the actual text
 -- that caused the error and preceeding/succeeding lines (if available)
@@ -181,6 +226,8 @@ annotateParsecError extraLines ls err =
                (errorMessages err)
 
     in unlines eHdr ++ eMsg
+
+-}
 
 -- | Create a typed literal.
 mkTypedLit ::

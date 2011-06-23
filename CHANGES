@@ -1,3 +1,11 @@
+0.4.0.0:
+
+  - Use polyparse rather than parsec-2 for parsing. As part of this, the
+    parsing is done using Text rather than String values. At present the
+    RDFLabel and RDFGraph classes have not been updated to use Text (so
+    some conversion between the two types is introduced). The eventual
+    plan is to use Text internally.
+
 0.3.2.1:
 
   - use foldl' rather than foldl in some modules

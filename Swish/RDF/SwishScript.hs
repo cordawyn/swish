@@ -66,7 +66,7 @@ module Swish.RDF.SwishScript
       
       -- * Parsing
       
-      parseScriptFromString 
+      parseScriptFromText 
     )
 where
 
@@ -106,12 +106,12 @@ import Swish.RDF.RDFGraph
     , merge, add
     )
 
+import Swish.RDF.RDFParser (whiteSpace, lexeme, symbol, eoln, manyTill)
+
 import Swish.RDF.N3Parser
-    ( parseAnyfromString
+    ( parseAnyfromText
     , parseN3      
     , N3Parser, N3State(..)
-    , whiteSpace, symbol, lexeme
-    , eof, identLetter
     , getPrefix
     , subgraph
     , n3symbol -- was uriRef2,
@@ -150,23 +150,12 @@ import Swish.Utils.LookupMap
 import Swish.Utils.ListHelpers
     ( equiv, flist )
 
-import Text.ParserCombinators.Parsec
-    ( (<?>) 
-    -- , (<|>)
-    -- , many
-    , manyTill
-    , option, sepBy, between, try, notFollowedBy
-    , string, anyChar
-    , getState
-    )
-
-import Control.Applicative
-
-import Control.Monad.State
-    ( modify, gets, lift
-    )
+import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy.IO as IO
+import Text.ParserCombinators.Poly.StateText
 
 import Control.Monad (unless, when, liftM)
+import Control.Monad.State (modify, gets, lift)
 
 import Data.List (isPrefixOf)
 
@@ -183,15 +172,18 @@ import qualified System.IO.Error as IO
 -- 
 
 -- | Parser for Swish script processor
-parseScriptFromString :: 
+parseScriptFromText :: 
   Maybe QName -- ^ Default base for the script
-  -> String -- ^ Swish script
+  -> T.Text   -- ^ Swish script
   -> Either String [SwishStateIO ()]
-parseScriptFromString = parseAnyfromString script 
+parseScriptFromText = parseAnyfromText script 
 
 ----------------------------------------------------------------------
 --  Syntax productions
 ----------------------------------------------------------------------
+
+between :: Parser s lbr -> Parser s rbr -> Parser s a -> Parser s a
+between = bracket
 
 n3SymLex :: N3Parser ScopedName
 n3SymLex = lexeme n3symbol
@@ -234,11 +226,11 @@ command =
   <|> checkProofCmd
   <|> fwdChain
   <|> bwdChain
-  <?> "script command"
 
 prefixLine :: N3Parser (SwishStateIO ())
 prefixLine = do
-  try $ isymbol "@prefix"
+  -- try $ isymbol "@prefix"
+  isymbol "@prefix"
   getPrefix
   whiteSpace
   isymbol "."
@@ -306,7 +298,7 @@ defineRule =
             ; ags <- graphOrList
             ; isymbol "=>"
             ; cg  <- graphExpr
-            ; vms <- option [] varModifiers
+            ; vms <- varModifiers <|> pure []
             ; return $ ssDefineRule rn ags cg vms
             }
 
@@ -356,8 +348,8 @@ fwdChain =
             ; ags <- graphOrList
             ; isymbol "=>"
             ; cn  <- n3SymLex
-            ; s <- getState             :: N3Parser N3State
-            ; let prefs = prefixUris s  :: NamespaceMap
+            ; s <- stGet
+            ; let prefs = prefixUris s
             ; return $ ssFwdChain sn rn ags cn prefs
             }
 
@@ -371,8 +363,8 @@ bwdChain =
             ; cg  <- graphExpr
             ; isymbol "<="
             ; an  <- n3SymLex
-            ; s <- getState             :: N3Parser N3State
-            ; let prefs = prefixUris s  :: NamespaceMap
+            ; s <- stGet
+            ; let prefs = prefixUris s
             ; return $ ssBwdChain sn rn cg an prefs
             }
 
@@ -380,17 +372,13 @@ bwdChain =
 --  Syntax clause helpers
 ----------------------------------------------------------------------
 
+-- TODO: is the loss of identLetter a problem?
 commandName :: String -> N3Parser ()
-commandName cmd = try (string cmd *> notFollowedBy identLetter *> whiteSpace)
-
--- taken from NTParser
-eoln :: N3Parser ()
--- eoln = ignore (newline <|> (lineFeed *> optional newline))
-eoln = (try (string "\r\n") <|> string "\r" <|> string "\n") >> return ()
-       <?> "new line"
+-- commandName cmd = try (string cmd *> notFollowedBy identLetter *> whiteSpace)
+commandName cmd = symbol cmd *> pure ()
 
 restOfLine :: N3Parser String
-restOfLine = manyTill anyChar eoln <* whiteSpace
+restOfLine = manyTill (satisfy (const True)) eoln <* whiteSpace
   
 br :: N3Parser a -> N3Parser a
 br = between (symbol "(") (symbol ")")
@@ -405,7 +393,6 @@ nameOrList :: N3Parser [ScopedName]
 nameOrList =
   (toList <$> n3SymLex)      
   <|> nameList
-  <?> "Name, or list of names"
   
 graphExpr :: N3Parser (SwishStateIO (Either String RDFGraph))
 graphExpr =
@@ -414,34 +401,29 @@ graphExpr =
         do  { f <- formulaExpr
             ; return $ liftM (liftM formExpr) f
             }
-    <?>
-        "Graph expression, graph name or named graph definition"
 
 graphOnly :: N3Parser (SwishStateIO (Either String RDFGraph))
 graphOnly =
         do  { isymbol "{"
             ; b <- newBlankNode
-            ; g <- subgraph b       :: N3Parser RDFGraph
+            ; g <- subgraph b
             ; isymbol "}"
-            ; s <- getState
+            ; s <- stGet
             ; let gp = setNamespaces (prefixUris s) g
             ; return $ return (Right gp)
             }
 
 graphList :: N3Parser [SwishStateIO (Either String RDFGraph)]
 graphList = br (many graphExpr)
-    <?> "List of graphs"
 
 graphOrList :: N3Parser [SwishStateIO (Either String RDFGraph)]
 graphOrList =
   (toList <$> graphExpr)
   <|> graphList
-  <?> "Graph, or list of graphs"
 
 formulaExpr :: N3Parser (SwishStateIO (Either String RDFFormula))
 formulaExpr = 
   (n3SymLex >>= namedGraph)
-  <?> "Formula (name or named graph)"
 
 namedGraph :: ScopedName -> N3Parser (SwishStateIO (Either String RDFFormula))
 namedGraph n =
@@ -450,7 +432,6 @@ namedGraph n =
 
 formulaList :: N3Parser [SwishStateIO (Either String RDFFormula)]
 formulaList = between (symbol "(") (symbol ")") (many formulaExpr)
-    <?> "List of formulae (names or named graphs)"
 
 varModifiers :: N3Parser [(ScopedName,[RDFLabel])]
 varModifiers = symbol "|" *> varModList
@@ -923,19 +904,19 @@ ssBwdChain sn rn cgf an prefs =
 --  Temporary implementation:  just read local file WNH     
 --  (Add logic to separate filenames from URIs, and
 --  attempt HTTP GET, or similar.)
-getResourceData :: Maybe String -> SwishStateIO (Either String String)
+getResourceData :: Maybe String -> SwishStateIO (Either String T.Text)
 getResourceData muri =
     case muri of
         Nothing  -> fromStdin
         Just uri -> fromUri uri
     where
     fromStdin =
-        do  { dat <- lift getContents
+        do  { dat <- lift IO.getContents
             ; return $ Right dat
             }
     fromUri = fromFile
     fromFile uri | "file://" `isPrefixOf` uri = do
-      dat <- lift $ readFile $ drop 7 uri
+      dat <- lift $ IO.readFile $ drop 7 uri
       return $ Right dat
                  | otherwise = error $ "Unsupported file name for read: " ++ uri
                                

@@ -17,7 +17,8 @@
 
 module Main where
 
-import Swish.RDF.NTParser (parseNT)
+-- import Swish.RDF.NTParser (parseNT)
+import qualified Swish.RDF.NTParser as NTP
 import Swish.RDF.NTFormatter (formatGraphAsString)
 
 import Swish.RDF.RDFGraph
@@ -35,6 +36,13 @@ import Swish.RDF.GraphClass (arc)
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual, runTestTT )
+
+import qualified Data.Text.Lazy as T
+
+-- temporary routine during text conversion
+
+parseNT :: String -> NTP.ParseResult
+parseNT = NTP.parseNT . T.pack
 
 ------------------------------------------------------------
 --  Parser tests
