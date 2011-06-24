@@ -49,7 +49,8 @@ module Swish.RDF.Vocabulary
 where
 
 import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
-import Swish.Utils.MiscHelpers (lower)
+
+import Data.Char (toLower)
 
 ------------------------------------------------------------
 --  Define some common namespace values
@@ -125,7 +126,7 @@ namespaceLang
     -- To be replaced by urn:ietf:params:lang?
 
 langName :: String -> ScopedName
-langName = ScopedName namespaceLang . lower
+langName = ScopedName namespaceLang . map toLower
 
 langTag :: ScopedName -> String
 langTag = snLocal

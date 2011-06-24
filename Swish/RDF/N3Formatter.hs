@@ -65,8 +65,9 @@ import Swish.RDF.RDFGraph (
   getArcs, labels,
   setNamespaces, getNamespaces,
   getFormulae,
-  emptyRDFGraph,
-  res_rdf_first, res_rdf_rest, res_rdf_nil
+  emptyRDFGraph
+  , quote
+  , res_rdf_first, res_rdf_rest, res_rdf_nil
   )
 
 import Swish.RDF.Vocabulary (
@@ -90,11 +91,9 @@ import Swish.Utils.LookupMap
 import Swish.Utils.Namespace
     ( ScopedName(..), getScopeURI )
 
-import Data.Char (ord, isDigit, toLower)
+import Data.Char (isDigit, toLower)
 
 import Data.List (foldl', delete, groupBy, partition, sort)
-
-import Text.Printf (printf)
 
 import Control.Monad (liftM, when)
 import Control.Monad.State (State, get, put, runState)
@@ -814,9 +813,6 @@ formatAnnotation a  | isLang a  = '@' : langTag a
                     | otherwise = '^':'^': showScopedName a
 
 {-
-Swish.Utils.MiscHelpers contains a quote routine
-which we expand upon here to match the N3 syntax.
-
 We have to decide whether to use " or """ to quote
 the string.
 
@@ -835,41 +831,6 @@ quoteStr st =
       qch = replicate n '"'                              
   in qch ++ qst ++ qch
 
--- The boolean flag is True if the string is being displayed
--- with single quotes, which should mean that there are
--- no newline or quote characters in the string.
---
--- TODO: when flag == False need to worry about n > 2 quotes
--- in a row.
---
-quote :: Bool -> String -> String
-quote _     []           = ""
-quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
-                         | otherwise  = [c, '\\', '"']
-
--- quote True  ('"': st)    = '\\':'"': quote True  st  -- this should not happen
--- quote True  ('\n':st)    = '\\':'n': quote True  st  -- this should not happen
-
-quote True  ('\t':st)    = '\\':'t': quote True  st
-quote False ('"': st)    =      '"': quote False st
-quote False ('\n':st)    =     '\n': quote False st
-quote False ('\t':st)    =     '\t': quote False st
-quote f ('\r':st)    = '\\':'r': quote f st
-quote f ('\\':st)    = '\\':'\\': quote f st -- not sure about this
-quote f (c:st) = 
-  let nc = ord c
-      rst = quote f st
-      
-      -- lazy way to convert to a string
-      hstr = printf "%08X" nc
-      ustr = hstr ++ rst
-
-  in if nc > 0xffff 
-     then '\\':'U': ustr
-     else if nc > 0x7e || nc < 0x20
-          then '\\':'u': drop 4 ustr
-          else c : rst
-                      
 formatNodeId :: RDFLabel -> Formatter String
 formatNodeId lab@(Blank (lnc:_)) =
     if isDigit lnc then mapBlankNode lab else return $ show lab

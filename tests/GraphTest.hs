@@ -42,10 +42,7 @@ import Swish.RDF.GraphMatch
         graphLabels, assignLabelMap, newGenerationMap,
         graphMatch1, equivalenceClasses
       )
-import Swish.Utils.LookupMap
-      ( LookupEntryClass(..), makeLookupMap
-      , mapSortByVal
-      )
+import Swish.Utils.LookupMap (LookupEntryClass(..), makeLookupMap)
 
 default ( Int )
 
@@ -96,9 +93,6 @@ tstLabelMap gen lvs = LabelMap gen (makeLookupMap $ makeEntries lvs)
 makeEntries :: (Label lb) => [(lb,LabelIndex)] -> [LabelEntry lb]
 makeEntries = map newEntry
 
-labelMapSortByVal :: (Label lb) => LabelMap lb -> LabelMap lb
-labelMapSortByVal (LabelMap gen lm) = LabelMap gen (mapSortByVal lm)
-
 ------------------------------------------------------------
 --  Graph helper function tests
 ------------------------------------------------------------
@@ -127,23 +121,6 @@ testSelectSuite :: Test
 testSelectSuite = TestList
     [
     testSelect01, testSelect02, testSelect03, testSelect04
-    ]
-
--- mapset
-
-mf   :: Int -> Char
-mf n = "_abcde" !! n
-
-testMapset :: String -> [Int] -> String -> Test
-testMapset lab l1s l2s = testeq ("Mapset"++lab ) l2s (mapset mf l1s)
-
-testMapsetSuite :: Test
-testMapsetSuite = TestList
-    [ testMapset "01" [0,1,2,3,4,5] "_abcde"
-    , testMapset "02" [1,1,3,3,5,5] "ace"
-    , testMapset "03" [5,4,3,2,1,0] "edcba_"
-    , testMapset "04" []            []
-    , testMapset "05" [1,2,3,4,5,0] "abcde_"
     ]
 
 -- subset
@@ -1753,7 +1730,6 @@ testGraphEqSuiteMore = TestList
 allTests :: Test
 allTests = TestList
   [ testSelectSuite
-  , testMapsetSuite
   , testSubsetSuite
   , testHashSuite
   , testLabSuite

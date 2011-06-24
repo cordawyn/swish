@@ -26,7 +26,8 @@ module Swish.RDF.RDFGraph
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp, isUri, isBlank, isQueryVar
     , getLiteralText, getScopedName, makeBlank
-                                     
+    , quote
+      
       -- * RDF Graphs
     , RDFTriple
     , toRDFTriple, fromRDFTriple
@@ -91,7 +92,7 @@ import Swish.RDF.GraphClass
 import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
 
 import Swish.Utils.QName (QName)
-import Swish.Utils.MiscHelpers (hash, quote)
+import Swish.Utils.MiscHelpers (hash)
 import Swish.Utils.ListHelpers (addSetElem)
 
 import Swish.Utils.LookupMap
@@ -109,7 +110,7 @@ import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 import Network.URI (URI, parseURI, uriToString)
 
 import Data.Monoid (Monoid(..))
-import Data.Char (isDigit, toLower)
+import Data.Char (ord, isDigit, toLower)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
 import Data.String (IsString(..))
@@ -166,11 +167,11 @@ instance Eq RDFLabel where
 
 instance Show RDFLabel where
     show (Res sn)           = show sn
-    show (Lit st Nothing)   = quote st
+    show (Lit st Nothing)   = quote1Str st
     show (Lit st (Just nam))
-        | isLang nam = quote st ++ "@"  ++ langTag nam
+        | isLang nam = quote1Str st ++ "@"  ++ langTag nam
         | nam `elem` [xsd_boolean, xsd_double, xsd_decimal, xsd_integer] = st
-        | otherwise  = quote st ++ "^^" ++ show nam
+        | otherwise  = quote1Str st ++ "^^" ++ show nam
     show (Blank ln)         = "_:"++ln
     show (Var ln)           = '?' : ln
     show NoNode             = "<NoNode>"
@@ -505,10 +506,53 @@ instance FromRDFLabel URI where
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++getScopedNameURI sn++">"
 showCanon (Lit st (Just nam))
-        | isLang nam = quote st ++ "@"  ++ langTag nam
-        | otherwise  = quote st ++ "^^" ++ getScopedNameURI nam
+        | isLang nam = quote1Str st ++ "@"  ++ langTag nam
+        | otherwise  = quote1Str st ++ "^^" ++ getScopedNameURI nam
 showCanon s                  = show s
 
+{-
+N3-style quoting rules for a string.
+
+The boolean flag is True if the string is being displayed
+with single quotes, which means that newlines and quote 
+characters need protecting.
+
+TODO: when flag == False need to worry about n > 2 quotes
+in a row.
+-}
+
+quote :: Bool -> String -> String
+quote _     []           = ""
+quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
+                         | otherwise  = [c, '\\', '"']
+
+quote True  ('"': st)    = '\\':'"': quote True  st
+quote True  ('\n':st)    = '\\':'n': quote True  st
+
+quote True  ('\t':st)    = '\\':'t': quote True  st
+quote False ('"': st)    =      '"': quote False st
+quote False ('\n':st)    =     '\n': quote False st
+quote False ('\t':st)    =     '\t': quote False st
+quote f ('\r':st)    = '\\':'r': quote f st
+quote f ('\\':st)    = '\\':'\\': quote f st -- not sure about this
+quote f (c:st) = 
+  let nc = ord c
+      rst = quote f st
+      
+      -- lazy way to convert to a string
+      hstr = printf "%08X" nc
+      ustr = hstr ++ rst
+
+  in if nc > 0xffff 
+     then '\\':'U': ustr
+     else if nc > 0x7e || nc < 0x20
+          then '\\':'u': drop 4 ustr
+          else c : rst
+
+-- surround a string with quotes ("...")
+
+quote1Str :: String -> String
+quote1Str s = '"' : quote False s ++ ['"']
 
 ---------------------------------------------------------
 --  Selected RDFLabel values

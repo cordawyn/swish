@@ -6,6 +6,18 @@
     some conversion between the two types is introduced). The eventual
     plan is to use Text internally.
 
+  - removed Swish.Utils.DateTime and Swish.Utils.TraceHelpers
+
+  - removed the following exported symbols from Swish.Utils.LookupMap:
+        mapSortByKey, mapSortByVal
+
+  - removed the following exported symbols from Swish.Utils.ListHelpers:
+        allf, anyf, combinations, ffold, hasPartitions,
+        mapset, pairsUngroup, powerSequences, powerSequences_inf
+
+  - removed the following exported symbols from Swish.Utils.MiscHelpers:
+        assert, stricmp, lower, quote
+
 0.3.2.1:
 
   - use foldl' rather than foldl in some modules

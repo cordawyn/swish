@@ -32,6 +32,8 @@ module Swish.RDF.GraphMatch
         graphMatch1, graphMatch2, equivalenceClasses, reclassify
       ) where
 
+import Control.Exception.Base (assert)
+
 import Data.Ord (comparing)
 import Data.List (foldl', nub, sortBy, partition)
 import qualified Data.List
@@ -43,7 +45,7 @@ import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),
                               makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                               mapAddIfNew, mapReplaceMap, mapMerge)
 import Swish.Utils.ListHelpers (select, equiv, pairSort, pairGroup, pairUngroup)
-import Swish.Utils.MiscHelpers (assert, hash, hashModulus)
+import Swish.Utils.MiscHelpers (hash, hashModulus)
 
 --------------------------
 --  Label index value type
@@ -357,8 +359,8 @@ graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
         --  NOTE:  final test is call of external matchable function
         glp = [ (l1,l2) | l1 <- ls1 , l2 <- ls2 , matchable l1 l2 ]
     in
-        assert (ev1==ev2) "GraphMatch2: Equivalence class value mismatch" $
-        try glp
+        assert (ev1==ev2) -- "GraphMatch2: Equivalence class value mismatch" $
+        $ try glp
 
 -- | Returns a string representation  of a LabelMap value
 --
@@ -491,7 +493,7 @@ reclassify ::
   --     then `True`, otherwise `False`.
 
 reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
-    assert (gen1==gen2) "Label map generation mismatch"
+    assert (gen1==gen2) -- "Label map generation mismatch"
       (LabelMap gen1 lm',ecpairs',newPart,matchPart)
     where
         LabelMap gen1 lm1 =

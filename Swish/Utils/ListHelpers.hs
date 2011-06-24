@@ -10,10 +10,7 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module defines some generic list and related helper functions. Although
---  some routines are explicitly marked as deprecated, the intention is to
---  move this functionality into the modules that need it, or replace it by
---  other modules, where possible.
+--  This module defines some generic list and related helper functions. 
 --
 --------------------------------------------------------------------------------
 
@@ -44,26 +41,11 @@ module Swish.Utils.ListHelpers
        , allp -- RDFQuery
        , anyp -- RDFQuery
         
-        -- * Deprecated routines
-        --
-        -- | These routines will be removed at the next minor release of
-        -- of Swish (@0.3.3@).
-        --
-       , mapset
-       , pairsUngroup
-       , ffold
-       , hasPartitions
-       , powerSequences
-       , powerSequences_inf
-       , allf
-       , anyf
-       , combinations -- used by powerSet
-        
       )
 where
   
 import Data.Ord (comparing)  
-import Data.List (union, intersect, sortBy, groupBy)
+import Data.List (sortBy, groupBy)
 
 ------------------------------------------------------------
 --  Generic helpers
@@ -77,11 +59,6 @@ select f (e1:l1) (e2:l2)
     | f e1      = e2 : select f l1 l2
     | otherwise = select f l1 l2
 select _ _ _    = error "select supplied with different length lists"
-
--- |Collect set of values from list under supplied mapping function
-mapset :: Eq b => ( a -> b ) -> [a] -> [b]
-mapset _ []    = []
-mapset f (e:l) = [f e] `union` mapset f l
 
 -- |Delete the n'th element of a list, returning the result
 --
@@ -122,14 +99,6 @@ a `subset` b    = and [ ma `elem` b | ma <- a ]
 equiv           :: (Eq a) => [a] -> [a] -> Bool
 a `equiv` b     = a `subset` b && b `subset` a
 
--- |Set partition test
---
---  Is it possible to be more efficient here?
---  Maybe something like sort\/merge\/compare?
-hasPartitions   :: (Eq a) => [a] -> ([a],[a]) -> Bool
-a `hasPartitions` (b1,b2) =
-    null (b1 `intersect` b2) && (a `equiv` (b1 `union` b2))
-
 -- |Add element to set
 
 addSetElem :: (Eq a) => a -> [a] -> [a]
@@ -159,9 +128,6 @@ pairSelect p f as = map f (filter p as)
 
 pairUngroup :: (a,[b]) -> [(a,b)]
 pairUngroup (a,bs) = [ (a,b) | b <- bs ]
-
-pairsUngroup :: [(a,[b])] -> [(a,b)]
-pairsUngroup ps = [ (a,b) | (a,bs) <- ps, b <- bs ]
 
 pairSort :: (Ord a) => [(a,b)] -> [(a,b)]
 pairSort = sortBy (comparing fst)
@@ -295,12 +261,6 @@ lp (as:ass) = concatMap (\a -> (map (a:) (lp ass))) as
 --  Powersequence (?) -- all sequences from some base values
 ------------------------------------------------------------
 
--- |Function to choose all sequences of any length
---  from a supplied set of values, returned in
---  increasing length.
-powerSequences :: [a] -> [[a]]
-powerSequences rs = concat $ powerSeq_bylen rs [[]]
-
 -- |Construct list of lists of sequences of increasing length
 powerSeq_bylen :: [a] -> [[a]] -> [[[a]]]
 powerSeq_bylen rs ps = ps : powerSeq_bylen rs (powerSeq_next rs ps)
@@ -313,32 +273,6 @@ powerSeq_next rs rss = [ h:t | t <- rss, h <- rs ]
 -- |Return all powersequences of a given length
 powerSequences_len :: Int -> [a] -> [[a]]
 powerSequences_len len rs = powerSeq_bylen rs [[]] !! len
-
--- |Return all powersequences of indefinite length
---  Observe that any such powersequence will consist of a sequence
---  of a finite length sequence followed by an indefinite number of
---  copies of the head of the base set.  To prevent duplicates, the
---  generator constructs only sequences that do not end in the first
---  member of the base set.
-powerSequences_inf :: [a] -> [[a]]
-powerSequences_inf rs =
-    map (++pst) $ [] : concat (powerSeq_bylen rs psh)
-    where
-        psh = map (:[]) (tail rs)
-        pst = repeat $ head rs
-
-{- Powersequence tests
-t0 = [1,2,3,4,5,6]
-t1 = powerSequences t0
-t2 = take 15 t1
-t3 = powerSequences_len 3 t0
-t4 = powerSequences_inf t0
-t5 = map (take 6) $ take 15 t4
-t6 = take 15 (powerSequences_len 6 t0)
-t7 = t5 == t6
-t8 = powerSequences_len1 3 t0
-t9 = t8 == t3
--}
 
 ------------------------------------------------------------
 --  Functions, lists and monads
@@ -371,51 +305,6 @@ fmonad fm a =
 
 {-
 fmonadtest = fmonad [(1*),(2*),(3*)] 3 -- [3,6,9]
--}
-
--- |Fold result from list of functions applied to some value,
---  returning the result of the fold.
---
---  This is similar to the 'ap' function in the Monad library.
---
-ffold :: (b->c->c) -> c -> [a->b] -> a -> c
-ffold rf ri fs v = foldr rf ri (flist fs v)
-
-{-
-ffoldtest0 = ffold ge4and True [(1+),(2+),(3+)] 0     -- False
-ffoldtest1 = ffold ge4and True [(1+),(2+),(3+)] 1     -- False
-ffoldtest2 = ffold ge4and True [(1+),(2+),(3+)] 2     -- False
-ffoldtest3 = ffold ge4and True [(1+),(2+),(3+)] 3     -- True
-ge4and v b = (v>=4 && b)
-ffoldtest  = and [not ffoldtest0,not ffoldtest1,not ffoldtest2,ffoldtest3]
--}
-
--- |Test if application of all functions in list to a given value
---  satisfies a given condition
---
-allf :: (b->Bool)  -> [a->b] -> a -> Bool
-allf pf fs a = all pf (flist fs a)
-
-{-
-allftest0 = allf (>=4) [(1+),(2+),(3+)] 0     -- False
-allftest1 = allf (>=4) [(1+),(2+),(3+)] 1     -- False
-allftest2 = allf (>=4) [(1+),(2+),(3+)] 2     -- False
-allftest3 = allf (>=4) [(1+),(2+),(3+)] 3     -- True
-allftest  = and [not allftest0,not allftest1,not allftest2,allftest3]
--}
-
--- |Test if application of any functions in list to a given value
---  satisfies a given condition
---
-anyf :: (b->Bool)  -> [a->b] -> a -> Bool
-anyf pf fs a = any pf (flist fs a)
-
-{-
-anyftest0 = anyf (>=4) [(1+),(2+),(3+)] 0     -- False
-anyftest1 = anyf (>=4) [(1+),(2+),(3+)] 1     -- True
-anyftest2 = anyf (>=4) [(1+),(2+),(3+)] 2     -- True
-anyftest3 = anyf (>=4) [(1+),(2+),(3+)] 3     -- True
-anyftest  = and [not anyftest0,anyftest1,anyftest2,anyftest3]
 -}
 
 -- |Test if a value satisfies all predicates in a list

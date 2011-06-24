@@ -47,7 +47,10 @@ Description:
   Changes:
   .
   [Version 0.4.0.0] Moving to using polyparse for parsing and @Text@ rather than
-  @String@ where appropriate.
+  @String@ where appropriate. Removed the Swish.Utils.DateTime and Swish.Utils.TraceHelpers
+  modules. Symbols have been removed from the export lists of the following modules:
+  Swish.Utils.LookupMap, Swish.Utils.ListHelpers, Swish.Utils.MiscHelpers,
+  Swish.Utils.ShowM.
   .
   [Version 0.3.2.1] Marked a number of routines from the Swish.Utils modules
   as deprecated. Use foldl' rather than foldl.
@@ -149,7 +152,8 @@ Library
       parallel == 2.2.*,
       polyparse == 1.6.*,
       random == 1.0.*,
-      old-time == 1.0.*, old-locale == 1.0.*, time == 1.1.*,
+      -- old-time == 1.0.*, 
+      old-locale == 1.0.*, time == 1.1.*,
       mtl >= 1 && < 3,
       HUnit == 1.2.*,
       network >= 2.2 && < 2.4,
@@ -192,7 +196,6 @@ Library
       Swish.RDF.SwishScript
       Swish.RDF.VarBinding
       Swish.RDF.Vocabulary
-      Swish.Utils.DateTime
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
       Swish.Utils.MiscHelpers
@@ -200,7 +203,6 @@ Library
       Swish.Utils.PartOrderedCollection
       Swish.Utils.QName
       Swish.Utils.ShowM
-      Swish.Utils.TraceHelpers
 
    other-modules:
       -- Paths_swish
