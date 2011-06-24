@@ -285,9 +285,13 @@ swishOutputGraph _ hnd = do
         out <- gets $ formatter . graph
         lift $ hPutStrLn hnd (out "")
         
+      writeOutT formatter = do
+        out <- gets $ formatter . graph
+        lift $ IO.hPutStrLn hnd out
+        
   case fmt of
     N3 -> writeOut N3F.formatGraphAsShowS
-    NT -> writeOut NTF.formatGraphAsShowS
+    NT -> writeOutT NTF.formatGraphAsLazyText
     -- _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError
 
 ------------------------------------------------------------

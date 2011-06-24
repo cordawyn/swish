@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module implements a NTriples parser (see [1]), returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
@@ -56,9 +57,9 @@ import Swish.RDF.Vocabulary (langName)
 import Swish.RDF.RDFParser ( ParseResult
     , ignore
     , skipMany
-               , noneOf
+    , noneOf
     , char
-      , string
+    , string
     , eoln
     , fullStop
     )
@@ -76,7 +77,10 @@ import Control.Monad (when)
 
 import Network.URI (parseURI)
 
-import qualified Data.Text.Lazy as T
+import qualified Data.Text      as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Read as R
+
 import Data.Char (chr) 
 import Data.Maybe (fromMaybe, isNothing)
 
@@ -108,7 +112,7 @@ type NTParser a = Parser NTState a
 -- | Parse a string.
 -- 
 parseNT ::
-  T.Text -- ^ input in NTriples format.
+  L.Text -- ^ input in NTriples format.
   -> ParseResult
 parseNT = parsefromText ntripleDoc
 
@@ -126,13 +130,13 @@ parsefromString ::
     NTParser a      -- ^ parser to apply
     -> String       -- ^ input to be parsed
     -> Either String a
-parsefromString parser = parsefromText parser . T.pack
+parsefromString parser = parsefromText parser . L.pack
 
 -- | Function to supply initial context and parse supplied term.
 --
 parsefromText :: 
     NTParser a      -- ^ parser to apply
-    -> T.Text       -- ^ input to be parsed
+    -> L.Text       -- ^ input to be parsed
     -> Either String a
 parsefromText parser input =
         let istate = NTState
@@ -237,7 +241,7 @@ bChars = hChars ++ ['0'..'9']
 -- cons is not particularly efficient
 name :: NTParser String
 -- name = (:) <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars)
-name = T.unpack <$> (T.cons <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars))
+name = L.unpack <$> (L.cons <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars))
 
 {-
 triple	::=	subject ws+ predicate ws+ object ws* '.' ws*	
@@ -288,7 +292,7 @@ absoluteURI	::=	character+ with escapes as defined in section URI References
 uriref :: NTParser ScopedName
 uriref = do
   -- not ideal, as want to reject invalid characters immediately rather than via parseURI
-  ustr <- T.unpack <$> (bracket (char '<') (char '>') $ many1Satisfy (/= '>'))
+  ustr <- L.unpack <$> (bracket (char '<') (char '>') $ many1Satisfy (/= '>'))
   -- ustr <- bracket (char '<') (char '>') $ many1 character -- looks like need to exclude > from character
   -- ustr <- char '<' *> manyTill character (char '>')
   when (isNothing (parseURI ustr)) $
@@ -316,7 +320,10 @@ string	::=	character* with escapes as defined in section Strings
 -}
 
 literal :: NTParser RDFLabel
-literal = Lit <$> bracket (char '"') (char '"') (many character) <*> optional dtlang
+literal = Lit <$> ntstring <*> optional dtlang
+
+ntstring :: NTParser String
+ntstring = bracket (char '"') (char '"') (many character)
 
 dtlang :: NTParser ScopedName
 dtlang = 
@@ -326,8 +333,8 @@ dtlang =
 language :: NTParser ScopedName
 language = do
   h <- many1Satisfy (`elem` ['a'..'z'])
-  mt <- optional ( T.cons <$> char '-' <*> many1Satisfy (`elem` (['a'..'z'] ++ ['0'..'9'])) )
-  return $ langName $ T.unpack $ T.append h $ fromMaybe T.empty mt
+  mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (`elem` (['a'..'z'] ++ ['0'..'9'])) )
+  return $ langName $ L.unpack $ L.append h $ fromMaybe L.empty mt
 
 {-
 String handling: 
@@ -368,11 +375,17 @@ This escaping satisfies the [CHARMOD] section Reference Processing Model on maki
 
 -}
 
+{-
 asciiChars :: String
 asciiChars = map chr [0x20..0x7e]
 
 asciiCharsNT :: String
 asciiCharsNT = filter (`notElem` "\\\"") asciiChars
+-}
+
+-- 0x22 is " and 0x5c is \
+asciiChars :: String
+asciiChars = map chr $ 0x20 : 0x21 : [0x23..0x5b] ++ [0x5d..0x7e]
 
 ntHexDigit :: NTParser Char
 ntHexDigit = satisfy (`elem` ['0'..'9'] ++ ['A'..'F'])
@@ -380,19 +393,23 @@ ntHexDigit = satisfy (`elem` ['0'..'9'] ++ ['A'..'F'])
 hex4 :: NTParser Char
 hex4 = do
   digs <- exactly 4 ntHexDigit
-  let dstr = "0x" ++ digs
-      dchar = read dstr :: Int
-  return $ chr dchar
+  let mhex = R.hexadecimal (T.pack digs)
+  case mhex of
+    Left emsg     -> failBad $ "Internal error: unable to parse hex4: " ++ emsg
+    Right (v, "") -> return $ chr v
+    Right (_, vs) -> failBad $ "Internal error: hex4 has remained of " ++ T.unpack vs
         
 hex8 :: NTParser Char
 hex8 = do
   digs <- exactly 8 ntHexDigit
-  let dstr = "0x" ++ digs
-      dchar = read dstr :: Int
-  if dchar <= 0x10FFFF
-    then return $ chr dchar
-    else failBad "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
-
+  let mhex = R.hexadecimal (T.pack digs)
+  case mhex of
+    Left emsg     -> failBad $ "Internal error: unable to parse hex8: " ++ emsg
+    Right (v, "") -> if v <= 0x10FFFF
+                     then return $ chr v
+                     else failBad "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
+    Right (_, vs) -> failBad $ "Internal error: hex8 has remained of " ++ T.unpack vs
+        
 protectedChar :: NTParser Char
 protectedChar =
   (char 't' *> return '\t')
@@ -404,8 +421,9 @@ protectedChar =
   <|> (char 'U' *> hex8)
 
 character :: NTParser Char
-character = (char '\\' *> protectedChar)
-      <|> (satisfy (`elem` asciiCharsNT))
+character = 
+  (char '\\' *> protectedChar)
+  <|> (satisfy (`elem` asciiChars))
 
 --------------------------------------------------------------------------------
 --
