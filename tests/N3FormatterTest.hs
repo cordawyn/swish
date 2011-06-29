@@ -17,8 +17,7 @@
 module Main where
 
 import Swish.RDF.N3Formatter
-    ( formatGraphAsStringNl
-    , formatGraphAsString
+    ( formatGraphAsText
     , formatGraphDiag )
 
 import Swish.RDF.N3Parser (parseN3fromString)
@@ -48,9 +47,16 @@ import Swish.RDF.Vocabulary (langName, namespaceRDF, namespaceXSD)
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual, runTestTT )
+
+formatGraphAsString :: RDFGraph -> String
+formatGraphAsString = T.unpack . formatGraphAsText
 
 ------------------------------------------------------------
 --  Common test wrappers
@@ -673,18 +679,19 @@ formatTest lab gr out =
       [ TestCase ( assertEqual ("formatTest:"++lab) out res )
       ]
     where
-      res = formatGraphAsStringNl gr
+      res = formatGraphAsString gr
 
 diagTest :: String -> RDFGraph -> String -> Test
 diagTest lab gr out =
     TestList
-      [ TestCase ( assertEqual ("diag:text:"++lab) out (res "") )
+      [ TestCase ( assertEqual ("diag:text:"++lab) out resStr )
       , TestCase ( assertEqual ("diag:map:"++lab) emptyLookupMap nmap )
       , TestCase ( assertEqual ("diag:gen:"++lab) 0 ngen )
       , TestCase ( assertEqual ("diag:trc:"++lab) [] trc )
       ]
     where
-      (res,nmap,ngen,trc) = formatGraphDiag gr
+      (res,nmap,ngen,trc) = formatGraphDiag "\n" True gr
+      resStr = L.unpack $ B.toLazyText res
 
 mkPrefix :: String -> Namespace -> String
 mkPrefix lbl ns = "@prefix " ++ lbl ++ ": <" ++ nsURI ns ++ "> .\n"
@@ -733,14 +740,12 @@ simpleN3Graph_g1_03 :: String
 simpleN3Graph_g1_03 =
     commonPrefixes ++
     "[\n base1:p1 base1:o1\n] .\n"
-    -- "_:b1 base1:p1 base1:o1 .\n"
 
 --  Single auto-allocated blank node
 simpleN3Graph_g1_04 :: String
 simpleN3Graph_g1_04 =
     commonPrefixes ++
     "[\n base1:p1 base1:o1\n] .\n"
-    -- "_:_1 base1:p1 base1:o1 .\n"
 
 --  Single literal object
 simpleN3Graph_g1_05 :: String
@@ -805,7 +810,8 @@ simpleN3Graph_x13a :: String
 simpleN3Graph_x13a =
     commonPrefixes ++
     "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> " ++ b1s ++ " ;\n"++
-    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2s ++ " " ++ b3s ++ " ) .\n"
+    -- "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2s ++ " " ++ b3s ++ " ) .\n"
+    "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2s ++ " " ++ b3s ++ " ) .\n"
     where
       b1s = "[\n base1:p1 base1:o1\n]"
       b2s = "[\n base1:p1 base2:o2\n]"
@@ -843,7 +849,8 @@ simpleN3Graph_c3 :: String
 simpleN3Graph_c3 =
     commonPrefixes ++
     "base1:s1 base1:p1 " ++ collItems ++ " ;\n" ++
-    "         base2:p2 () .\n" ++
+    -- "         base2:p2 () .\n" ++
+    "     base2:p2 () .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
 {-
@@ -864,18 +871,23 @@ simpleN3Graph_b1rev =
 simpleN3Graph_b2 :: String
 simpleN3Graph_b2 =
     commonPrefixesN [2,1,0] ++
-    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+    -- "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b2rev :: String
 simpleN3Graph_b2rev =
     commonPrefixesN [0,2,1] ++
-    "[\n base1:p1 base1:o1 ;\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+    "[\n base1:p1 base1:o1 ;\n     base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
+
+    -- "[\n base1:p1 base1:o1 ;\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b3 :: String
 simpleN3Graph_b3 =
     commonPrefixesN [2,1,0] ++
-    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
-    "         base2:p2 [] .\n" ++
+    -- "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
+    -- "         base2:p2 [] .\n" ++
+    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
+    "     base2:p2 [] .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
 simpleN3Graph_b4 :: String
@@ -910,8 +922,13 @@ simpleN3Graph_l3 =
   commonPrefixesN [5,0] ++
   "\n" ++ -- TODO: why do we need this newline?
   "base1:s1 base1:p1 \"2.34E1\"^^xsd:float,\n" ++ 
+  "     -2.304e-108,\n" ++ 
+  "     12,     true .\n"
+
+{-
   "                  -2.304e-108,\n" ++ 
   "                  12,                  true .\n"
+-}
 
 simpleN3Graph_l4 :: String
 simpleN3Graph_l4 =

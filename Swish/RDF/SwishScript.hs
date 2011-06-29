@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@ License     :  GPL V2
 
 Maintainer  :  Douglas Burke
 Stability   :  experimental
-Portability :  H98
+Portability :  OverloadedStrings
 
 This module implements the Swish script processor:  it parses a script
 from a supplied string, and returns a list of Swish state transformer
@@ -120,14 +121,11 @@ import Swish.RDF.N3Parser
     , newBlankNode
     )
 
-import Swish.RDF.N3Formatter
-    ( formatGraphAsShowS )
+import Swish.RDF.N3Formatter (formatGraphAsBuilder)
 
-import Swish.RDF.Datatype
-    ( typeMkRules )
+import Swish.RDF.Datatype (typeMkRules)
 
-import Swish.RDF.Proof
-    ( explainProof, showsProof )
+import Swish.RDF.Proof (explainProof, showsProof)
 
 import Swish.RDF.Ruleset
     ( makeRuleset, getRulesetRule, getMaybeContextRule )
@@ -136,27 +134,22 @@ import Swish.RDF.Rule
     ( Formula(..), Rule(..) -- , RuleMap
     )
 
-import Swish.RDF.VarBinding
-    ( composeSequence )
+import Swish.RDF.VarBinding (composeSequence)
 
-import Swish.Utils.Namespace
-    ( ScopedName(..) )
-
+import Swish.Utils.Namespace (ScopedName(..))
 import Swish.Utils.QName (QName, qnameFromURI)
+import Swish.Utils.LookupMap (mapReplaceOrAdd)
+import Swish.Utils.ListHelpers (equiv, flist)
 
-import Swish.Utils.LookupMap
-    ( mapReplaceOrAdd )
-
-import Swish.Utils.ListHelpers
-    ( equiv, flist )
-
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.IO as IO
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+import qualified Data.Text.Lazy.IO as LIO
 import Text.ParserCombinators.Poly.StateText
 
 import Control.Monad (unless, when, liftM)
 import Control.Monad.State (modify, gets, lift)
 
+import Data.Monoid (Monoid(..))
 import Data.List (isPrefixOf)
 
 import qualified System.IO.Error as IO
@@ -174,7 +167,7 @@ import qualified System.IO.Error as IO
 -- | Parser for Swish script processor
 parseScriptFromText :: 
   Maybe QName -- ^ Default base for the script
-  -> T.Text   -- ^ Swish script
+  -> L.Text   -- ^ Swish script
   -> Either String [SwishStateIO ()]
 parseScriptFromText = parseAnyfromText script 
 
@@ -524,7 +517,7 @@ ssWriteList muri gf comment =
         do  { esgs <- gf
             ; case esgs of
                 Left  er   -> modify $ setError ("Cannot write list: "++er)
-                Right []   -> putResourceData Nothing (("# " ++ comment ++ "\n+ Swish: Writing empty list")++)
+                Right []   -> putResourceData Nothing (B.fromLazyText (L.concat ["# ", L.pack comment, "\n+ Swish: Writing empty list"]))
                 Right [gr] -> ssWriteGraph muri gr comment
                 Right grs  -> mapM_ writegr (zip [(0::Int)..] grs)
                   where
@@ -568,9 +561,9 @@ ssWrite muri gf comment =
 
 ssWriteGraph :: Maybe String -> RDFGraph -> String -> SwishStateIO ()
 ssWriteGraph muri gr comment =
-    putResourceData muri ((c++) . formatGraphAsShowS gr)
+    putResourceData muri (c `mappend` formatGraphAsBuilder gr)
     where
-        c = "# "++comment++"\n"
+        c = B.fromLazyText $ L.concat ["# ", L.pack comment, "\n"]
 
 ssMerge ::
     ScopedName -> [SwishStateIO (Either String RDFGraph)]
@@ -785,8 +778,10 @@ ssCheckProof pn sns igf stfs rgf =
             ; when False $ case proof of
                     (Left  _)  -> return ()
                     (Right pr) -> putResourceData Nothing $
-                                    (("Proof "++show pn++"\n")++)
-                                    . showsProof "\n" pr
+                                    B.fromLazyText (L.concat ["Proof ", L.pack (show pn), "\n"])
+                                    `mappend`
+                                    B.fromString (showsProof "\n" pr "\n")
+                                    -- TODO: clean up
             ; let checkproof = case proof of
                     (Left  er) -> setError er
                     (Right pr) ->
@@ -904,26 +899,26 @@ ssBwdChain sn rn cgf an prefs =
 --  Temporary implementation:  just read local file WNH     
 --  (Add logic to separate filenames from URIs, and
 --  attempt HTTP GET, or similar.)
-getResourceData :: Maybe String -> SwishStateIO (Either String T.Text)
+getResourceData :: Maybe String -> SwishStateIO (Either String L.Text)
 getResourceData muri =
     case muri of
         Nothing  -> fromStdin
         Just uri -> fromUri uri
     where
     fromStdin =
-        do  { dat <- lift IO.getContents
+        do  { dat <- lift LIO.getContents
             ; return $ Right dat
             }
     fromUri = fromFile
     fromFile uri | "file://" `isPrefixOf` uri = do
-      dat <- lift $ IO.readFile $ drop 7 uri
+      dat <- lift $ LIO.readFile $ drop 7 uri
       return $ Right dat
                  | otherwise = error $ "Unsupported file name for read: " ++ uri
                                
 --  Temporary implementation:  just write local file
 --  (Need to add logic to separate filenames from URIs, and
 --  attempt HTTP PUT, or similar.)
-putResourceData :: Maybe String -> ShowS -> SwishStateIO ()
+putResourceData :: Maybe String -> B.Builder -> SwishStateIO ()
 putResourceData muri gsh =
     do  { ios <- lift $ IO.try $
             case muri of
@@ -936,10 +931,10 @@ putResourceData muri gsh =
             Right a   -> return a
         }
     where
-        toStdout  = putStrLn gstr
-        toUri uri | "file://" `isPrefixOf` uri = writeFile (drop 7 uri) gstr
+        toStdout  = LIO.putStrLn gstr
+        toUri uri | "file://" `isPrefixOf` uri = LIO.writeFile (drop 7 uri) gstr
                   | otherwise = error $ "Unsupported file name for write: " ++ uri
-        gstr = gsh "\n"
+        gstr = B.toLazyText gsh
 
 {- $syntax
 

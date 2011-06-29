@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module implements a Notation 3 formatter (see [1], [2] and [3]),
 --  for an RDFGraph value.
@@ -49,10 +50,10 @@ GraphPartition module.
 
 module Swish.RDF.N3Formatter
     ( NodeGenLookupMap
-    , formatGraphAsStringNl
-    , formatGraphAsString
-    , formatGraphAsShowS
-    , formatGraphIndent
+    , formatGraphAsText
+    , formatGraphAsLazyText
+    , formatGraphAsBuilder
+    , formatGraphIndent  
     , formatGraphDiag
     )
 where
@@ -78,8 +79,7 @@ import Swish.RDF.Vocabulary (
   , xsd_boolean, xsd_decimal, xsd_integer, xsd_double 
   )
 
-import Swish.RDF.GraphClass
-    ( Arc(..) )
+import Swish.RDF.GraphClass (Arc(..))
 
 import Swish.Utils.LookupMap
     ( LookupEntryClass(..)
@@ -93,21 +93,23 @@ import Swish.Utils.Namespace
 
 import Data.Char (isDigit, toLower)
 
-import Data.List (foldl', delete, groupBy, partition, sort)
+import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
 
+import Data.Monoid (Monoid(..))
 import Control.Monad (liftM, when)
-import Control.Monad.State (State, get, put, runState)
+import Control.Monad.State (State, modify, get, put, runState)
 
-----------------------------------------------------------------------
---  Ouptut string concatenation
-----------------------------------------------------------------------
---
---  Function puts uses the shows mechanism to avoid the cost of
---  quadratic string concatenation times.  (Use function composition to
---  concatenate strings thus reprersented.)
+-- it strikes me that using Lazy Text here is likely to be
+-- wrong; however I have done no profiling to back this
+-- assumption up!
 
-puts :: String -> ShowS
-puts = showString
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+
+-- temporary conversion
+quoteB :: Bool -> String -> B.Builder
+quoteB f v = B.fromString $ quote f v
 
 ----------------------------------------------------------------------
 --  Graph formatting state monad
@@ -123,7 +125,7 @@ type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
 
 data N3FormatterState = N3FS
-    { indent    :: String
+    { indent    :: L.Text
     , lineBreak :: Bool
     , graph     :: RDFGraph
     , subjs     :: SubjTree RDFLabel
@@ -177,29 +179,23 @@ emptyNgs = Ngs
 data LabelContext = SubjContext | PredContext | ObjContext
                     deriving (Eq, Show)
 
-getIndent :: Formatter String
+getIndent :: Formatter L.Text
 getIndent = indent `liftM` get
 
-setIndent :: String -> Formatter ()
-setIndent ind = do
-  st <- get
-  put $ st { indent = ind }
+setIndent :: L.Text -> Formatter ()
+setIndent ind = modify $ \st -> st { indent = ind }
 
 getLineBreak :: Formatter Bool
 getLineBreak = lineBreak `liftM` get
 
 setLineBreak :: Bool -> Formatter ()
-setLineBreak brk = do
-  st <- get
-  put $ st {lineBreak = brk}
+setLineBreak brk = modify $ \st -> st { lineBreak = brk }
 
 getNgs :: Formatter NodeGenState
 getNgs = nodeGenSt `liftM` get
 
 setNgs :: NodeGenState -> Formatter ()
-setNgs ngs = do
-  st <- get
-  put $ st { nodeGenSt = ngs }
+setNgs ngs = modify $ \st -> st { nodeGenSt = ngs }
 
 getPrefixes :: Formatter NamespaceMap
 getPrefixes = prefixes `liftM` getNgs
@@ -208,17 +204,13 @@ getSubjs :: Formatter (SubjTree RDFLabel)
 getSubjs = subjs `liftM` get
 
 setSubjs :: SubjTree RDFLabel -> Formatter ()
-setSubjs sl = do
-  st <- get
-  put $ st { subjs = sl }
+setSubjs sl = modify $ \st -> st { subjs = sl }
 
 getProps :: Formatter (PredTree RDFLabel)
 getProps = props `liftM` get
 
 setProps :: PredTree RDFLabel -> Formatter ()
-setProps ps = do
-  st <- get
-  put $ st { props = ps }
+setProps ps = modify $ \st -> st { props = ps }
 
 {-
 getObjs :: Formatter ([RDFLabel])
@@ -355,23 +347,6 @@ extractList lctxt ln = do
 
     Nothing -> return Nothing
   
-{-
--- for safety I am assuming no ordering of the subject tree
--- but really should be using one of the container types
---    
-deleteItems :: (Eq a) => [(a,b)] -> [a] -> [(a,b)]
-deleteItems [] _  = []
-deleteItems os [] = os
-deleteItems os (x:xs) =
-  deleteItems (deleteItem os x) xs
-    
-deleteItem :: (Eq a) => [(a,b)] -> a -> [(a,b)]
-deleteItem os x =
-  case removeItem os x of
-    Just (_, rest) -> rest
-    Nothing -> os
--}
-
 {-|
 Removes the first occurrence of the item from the
 association list, returning it's contents and the rest
@@ -386,70 +361,51 @@ removeItem os x =
 
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
---  accepts a graph and returns a string
 ----------------------------------------------------------------------
 
-formatGraphAsStringNl :: RDFGraph -> String
-formatGraphAsStringNl gr = formatGraphAsShowS gr "\n"
+formatGraphAsText :: RDFGraph -> T.Text
+formatGraphAsText = L.toStrict . formatGraphAsLazyText
 
-formatGraphAsString :: RDFGraph -> String
-formatGraphAsString gr = formatGraphAsShowS gr ""
-
-formatGraphAsShowS :: RDFGraph -> ShowS
-formatGraphAsShowS = formatGraphIndent "\n" True
-{- old code:
-    where
-        (out,_,_,_) = formatGraphDiag gr
--}
-
-formatGraphIndent :: String -> Bool -> RDFGraph -> ShowS
-{- working version
-formatGraphIndent ind dopref gr = out
-    where
-        (_,out) = formatGraphDiag1 ind dopref emptyLookupMap gr
--}
-formatGraphIndent ind dopref = fst . formatGraphDiag1 ind dopref emptyLookupMap
-{-      
-formatGraphIndent ind dopref gr = out
-    where
-        (out',fgs) = formatGraphDiag1 ind dopref emptyLookupMap gr
-        tbuff = traceBuf fgs
-        -- tr = if null tbuff then "" else "\nDEBUG:\n" ++ concat (reverse tbuff)
-        tr = ""
-        out = out' . (++ tr)
--}
-        
+formatGraphAsLazyText :: RDFGraph -> L.Text
+formatGraphAsLazyText = B.toLazyText . formatGraphAsBuilder
+  
+formatGraphAsBuilder :: RDFGraph -> B.Builder
+formatGraphAsBuilder = formatGraphIndent "\n" True
+  
+formatGraphIndent :: String -> Bool -> RDFGraph -> B.Builder
+formatGraphIndent indnt flag gr = 
+  let (res, _, _, _) = formatGraphDiag indnt flag gr
+  in res
+  
 -- | Format graph and return additional information
-formatGraphDiag ::
-    RDFGraph -> (ShowS,NodeGenLookupMap,Int,[String])
-formatGraphDiag gr = (out,nodeMap ngs,nodeGen ngs,traceBuf fgs)
-    where
-        (out,fgs) = formatGraphDiag1 "\n" True emptyLookupMap gr
-        ngs       = nodeGenSt fgs
-
---  Internal function starts with supplied prefix table and indent string,
---  and returns final state and formatted string.
---  This is provided for diagnostic access to the final state
-formatGraphDiag1 :: String -> Bool -> NamespaceMap -> RDFGraph -> (ShowS,N3FormatterState)
-formatGraphDiag1 ind dopref pref gr = 
-    let fg = formatGraph ind " ." False dopref gr
-        ngs = emptyNgs {
-                prefixes=pref,
-                nodeGen=findMaxBnode gr
-              }
+formatGraphDiag :: 
+     String  -- ^ indentation
+    -> Bool    -- ^ are prefixes to be generated?
+    -> RDFGraph 
+    -> (B.Builder, NodeGenLookupMap, Int, [String])
+formatGraphDiag indnt flag gr = 
+  let fg  = formatGraph (L.pack indnt) " .\n" False flag gr
+      ngs = emptyNgs {
+        prefixes = emptyLookupMap,
+        nodeGen  = findMaxBnode gr
+        }
              
-    in runState fg (emptyN3FS ngs)
+      (out, fgs) = runState fg (emptyN3FS ngs)
+      ogs        = nodeGenSt fgs
+  
+  in (out, nodeMap ogs, nodeGen ogs, traceBuf fgs)
 
 ----------------------------------------------------------------------
 --  Formatting as a monad-based computation
 ----------------------------------------------------------------------
 
--- ind      is indentation string
--- end      is ending string to be placed after final statement
--- dobreak  is True if a line break is to be inserted at the start
--- dopref   is True if prefix strings are to be generated
---
-formatGraph :: String -> String -> Bool -> Bool -> RDFGraph -> Formatter ShowS
+formatGraph :: 
+  L.Text        -- indentation string
+  -> L.Text     -- text to be placed after final statement
+  -> Bool       -- True if a line break is to be inserted at the start
+  -> Bool       -- True if prefix strings are to be generated
+  -> RDFGraph 
+  -> Formatter B.Builder
 formatGraph ind end dobreak dopref gr = do
   setIndent ind
   setLineBreak dobreak
@@ -457,23 +413,29 @@ formatGraph ind end dobreak dopref gr = do
   
   fp <- if dopref
         then formatPrefixes (getNamespaces gr)
-        else return $ puts ""
+        else return mempty
   more <- moreSubjects
   if more
     then do
       fr <- formatSubjects
-      return $ fp . fr . puts end
+      return $ mconcat [fp, fr, B.fromLazyText end]
     else return fp
 
-formatPrefixes :: NamespaceMap -> Formatter ShowS
+formatPrefixes :: NamespaceMap -> Formatter B.Builder
 formatPrefixes pmap = do
   let mls = map (pref . keyVal) (listLookupMap pmap)
   ls <- sequence mls
-  return $ puts $ concat ls
+  return $ mconcat ls
     where
-      pref (p,u) = nextLine $ "@prefix "++p++": <"++ quote True u ++"> ."
+      pref (p,u) = nextLine $ mconcat ["@prefix ", B.fromString p, ": <", quoteB True u, "> ."]
 
-formatSubjects :: Formatter ShowS
+{-
+NOTE:
+I expect there to be confusion below where I need to
+convert from Text to Builder
+-}
+
+formatSubjects :: Formatter B.Builder
 formatSubjects = do
   sb    <- nextSubject
   sbstr <- formatLabel SubjContext sb
@@ -482,15 +444,12 @@ formatSubjects = do
   if flagP
     then do
       prstr <- formatProperties sb sbstr
-      -- fmstr <- formatFormulae ""
       flagS <- moreSubjects
       if flagS
         then do
           fr <- formatSubjects
-          return $ puts (prstr ++ " .") . fr
-          -- return $ puts (prstr ++ fmstr ++ " .") . fr
-        else return $ puts prstr
-        -- else return $ puts $ prstr ++ fmstr
+          return $ mconcat [prstr, " .", fr]
+        else return prstr
            
     else do
       txt <- nextLine sbstr
@@ -499,108 +458,89 @@ formatSubjects = do
       if flagS
         then do
           fr <- formatSubjects
-          return $ puts (txt ++ " .") . fr
-        else return $ puts txt
+          return $ mconcat [txt, " .", fr]
+        else return txt
 
-formatProperties :: RDFLabel -> String -> Formatter String
+{-
+TODO: now we are throwing a Builder around it is awkward to
+get the length of the text to calculate the indentation
+
+So
+
+  a) change the indentation scheme
+  b) pass around text instead of builder
+
+mkIndent :: L.Text -> L.Text
+mkIndent inVal = L.replicate (L.length inVal) " "
+-}
+
+hackIndent :: B.Builder
+hackIndent = "    "
+
+formatProperties :: RDFLabel -> B.Builder -> Formatter B.Builder
 formatProperties sb sbstr = do
   pr <- nextProperty sb
   prstr <- formatLabel PredContext pr
-  obstr <- formatObjects sb pr (sbstr++" "++prstr)
+  obstr <- formatObjects sb pr $ mconcat [sbstr, " ", prstr]
   more  <- moreProperties
-  let sbindent = replicate (length sbstr) ' '
+  let sbindent = hackIndent -- mkIndent sbstr
   if more
     then do
       fr <- formatProperties sb sbindent
-      nl <- nextLine $ obstr ++ " ;"
-      return $ nl ++ fr
+      nl <- nextLine $ obstr `mappend` " ;"
+      return $ nl `mappend` fr
     else nextLine obstr
 
-formatObjects :: RDFLabel -> RDFLabel -> String -> Formatter String
+formatObjects :: RDFLabel -> RDFLabel -> B.Builder -> Formatter B.Builder
 formatObjects sb pr prstr = do
   ob    <- nextObject sb pr
   obstr <- formatLabel ObjContext ob
   more  <- moreObjects
   if more
     then do
-      let prindent = replicate (length prstr) ' '
+      let prindent = hackIndent -- mkIndent prstr
       fr <- formatObjects sb pr prindent
-      nl <- nextLine $ prstr ++ " " ++ obstr ++ ","
-      return $ nl ++ fr
-    else return $ prstr ++ " " ++ obstr
+      nl <- nextLine $ mconcat [prstr, " ", obstr, ","]
+      return $ nl `mappend` fr
+    else return $ mconcat [prstr, " ", obstr]
 
-{-
-formatFormulae :: String -> Formatter String
-formatFormulae fp = do
-  more  <- moreFormulae
-  if more
-    then do
-      fnlgr <- nextFormula
-      fnstr <- formatFormula fnlgr
-      formatFormulae $ fp ++ " ." ++ fnstr
-    else return fp
-
-TODO: need to remove the use of :-. It's not clear to me whether
-we are guaranteed that fn is only used once in the graph - ie
-if it is safe to inline this formula at the label location.
-
-formatFormula :: (RDFLabel,RDFGraph) -> Formatter String
-formatFormula (fn,gr) = do
-  fnstr <- formatLabel SubjContext fn
-  f1str <- nextLine $ fnstr ++ " :-"
-  f2str <- nextLine "    {"
-  ngs0  <- getNgs
-  ind   <- getIndent
-  let grm = formatGraph (ind++"    ") "" True False
-            (setNamespaces emptyNamespaceMap gr)
-            
-      (f3str, fgs') = runState grm (emptyN3FS ngs0)
-
-  setNgs (nodeGenSt fgs')
-  f4str <- nextLine "    }"
-  return $ f1str ++ f2str ++ f3str f4str
-
--}
-
---- DJB's version of formatFormula when it can be inserted inline
-insertFormula :: RDFGraph -> Formatter String
+insertFormula :: RDFGraph -> Formatter B.Builder
 insertFormula gr = do
   ngs0  <- getNgs
   ind   <- getIndent
-  let grm = formatGraph (ind++"    ") "" True False
+  let grm = formatGraph (ind `mappend` "    ") "" True False
             (setNamespaces emptyNamespaceMap gr)
 
       (f3str, fgs') = runState grm (emptyN3FS ngs0)
 
   setNgs (nodeGenSt fgs')
   f4str <- nextLine " } "
-  return $ " { " ++ f3str f4str
+  return $ mconcat [" { ",f3str, f4str]
 
 {-
 Add a list inline. We are given the labels that constitute
 the list, in order, so just need to display them surrounded
 by ().
 -}
-insertList :: [RDFLabel] -> Formatter String
+insertList :: [RDFLabel] -> Formatter B.Builder
 insertList [] = return "()" -- not convinced this can happen
 insertList xs = do
   ls <- mapM (formatLabel ObjContext) xs
-  return $ "( " ++ unwords ls ++ " )"
-  
-  
+  return $ (mconcat $ "( " : intersperse " " ls) `mappend` " )"
+    
 {-
 Add a blank node inline.
 -}
 
-insertBnode :: LabelContext -> RDFLabel -> Formatter String  
+insertBnode :: LabelContext -> RDFLabel -> Formatter B.Builder
 insertBnode SubjContext lbl = do
   flag <- moreProperties
   txt <- if flag
-         then liftM (++"\n") $ formatProperties lbl ""
+         then (`mappend` "\n") `liftM` formatProperties lbl ""
          else return ""
 
   -- TODO: handle indentation?
-  return $ "[" ++ txt ++ "]"
+  return $ mconcat ["[", txt, "]"]
 
 insertBnode _ lbl = do
   ost <- get
@@ -628,7 +568,7 @@ insertBnode _ lbl = do
   put nst
   flag <- moreProperties
   txt <- if flag
-         then liftM (++"\n") $ formatProperties lbl ""
+         then (`mappend` "\n") `liftM` formatProperties lbl ""
          else return ""
 
   -- TODO: how do we restore the original set up?
@@ -644,13 +584,13 @@ insertBnode _ lbl = do
              }
 
   -- TODO: handle indentation?
-  return $ "[" ++ txt ++ "]"
+  return $ mconcat ["[", txt, "]"]
   
 ----------------------------------------------------------------------
 --  Formatting helpers
 ----------------------------------------------------------------------
 
-setGraph        :: RDFGraph -> Formatter ()
+setGraph :: RDFGraph -> Formatter ()
 setGraph gr = do
   st <- get
 
@@ -669,11 +609,23 @@ setGraph gr = do
 
   put nst
 
-moreSubjects    :: Formatter Bool
-moreSubjects    = (not . null . subjs) `liftM` get
+hasMore :: (N3FormatterState -> [b]) -> Formatter Bool
+hasMore lens = (not . null . lens) `liftM` get
 
-nextSubject     :: Formatter RDFLabel
-nextSubject     = do
+moreSubjects :: Formatter Bool
+moreSubjects = hasMore subjs
+-- moreSubjects = (not . null . subjs) `liftM` get
+
+moreProperties :: Formatter Bool
+moreProperties = hasMore props
+-- moreProperties = (not . null . props) `liftM` get
+
+moreObjects :: Formatter Bool
+moreObjects = hasMore objs
+-- moreObjects = (not . null . objs) `liftM` get
+
+nextSubject :: Formatter RDFLabel
+nextSubject = do
   st <- get
 
   let sb:sbs = subjs st
@@ -685,10 +637,7 @@ nextSubject     = do
   put nst
   return $ fst sb
 
-moreProperties  :: Formatter Bool
-moreProperties  = (not . null . props) `liftM` get
-
-nextProperty    :: RDFLabel -> Formatter RDFLabel
+nextProperty :: RDFLabel -> Formatter RDFLabel
 nextProperty _ = do
   st <- get
 
@@ -700,11 +649,7 @@ nextProperty _ = do
   put nst
   return $ fst pr
 
-
-moreObjects     :: Formatter Bool
-moreObjects     = (not . null . objs) `liftM` get
-
-nextObject      :: RDFLabel -> RDFLabel -> Formatter RDFLabel
+nextObject :: RDFLabel -> RDFLabel -> Formatter RDFLabel
 nextObject _ _ = do
   st <- get
 
@@ -714,12 +659,12 @@ nextObject _ _ = do
   put nst
   return ob
 
-nextLine        :: String -> Formatter String
+nextLine :: B.Builder -> Formatter B.Builder
 nextLine str = do
   ind <- getIndent
   brk <- getLineBreak
   if brk
-    then return $ ind++str
+    then return $ B.fromLazyText ind `mappend` str
     else do
       --  After first line, always insert line break
       setLineBreak True
@@ -753,8 +698,8 @@ specialTable =
   , (log_implies, "=>")
   , (rdf_nil, "()")
   ]
-  
-formatLabel :: LabelContext -> RDFLabel -> Formatter String
+
+formatLabel :: LabelContext -> RDFLabel -> Formatter B.Builder
 {-
 formatLabel lab@(Blank (_:_)) = do
   name <- formatNodeId lab
@@ -781,7 +726,7 @@ formatLabel lctxt lab@(Blank (_:_)) = do
 
 formatLabel _ lab@(Res sn) = 
   case lookup sn specialTable of
-    Just txt -> return $ quote True txt -- TODO: do we need to quote?
+    Just txt -> return $ quoteB True txt -- TODO: do we need to quote?
     Nothing -> do
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
@@ -789,8 +734,9 @@ formatLabel _ lab@(Res sn) =
           premap = reverseLookupMap pr :: RevNamespaceMap
           prefix = mapFindMaybe nsuri premap
           name   = case prefix of
-                     Just p -> quote True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> "<"++ quote True (nsuri++local) ++">"
+                     Just p -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
+                     _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
+      
       queueFormula lab
       return name
 
@@ -800,17 +746,17 @@ formatLabel _ lab@(Res sn) =
 -- we just convert E to e for now.      
 --      
 formatLabel _ (Lit lit (Just dtype)) 
-  | dtype == xsd_double = return $ map toLower lit
-  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer] = return lit
-  | otherwise = return $ quoteStr lit ++ formatAnnotation dtype
+  | dtype == xsd_double = return $ B.fromString $ map toLower lit
+  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer] = return $ B.fromString lit
+  | otherwise = return $ quoteStr lit `mappend` formatAnnotation dtype
 formatLabel _ (Lit lit Nothing) = return $ quoteStr lit
 
-formatLabel _ lab = return $ show lab
+formatLabel _ lab = return $ B.fromString $ show lab
 
 -- the annotation for a literal (ie type or language)
-formatAnnotation :: ScopedName -> String
-formatAnnotation a  | isLang a  = '@' : langTag a
-                    | otherwise = '^':'^': showScopedName a
+formatAnnotation :: ScopedName -> B.Builder
+formatAnnotation a  | isLang a  = "@" `mappend` (B.fromString (langTag a))
+                    | otherwise = "^^" `mappend` (showScopedName a)
 
 {-
 We have to decide whether to use " or """ to quote
@@ -824,19 +770,19 @@ If we use """ to surround the string then we protect the
 last character if it is a " (assuming it isn't protected).
 -}
 
-quoteStr :: String -> String
+quoteStr :: String -> B.Builder
 quoteStr st = 
-  let qst = quote (n==1) st
+  let qst = quoteB (n==1) st
       n = if '\n' `elem` st || '"' `elem` st then 3 else 1
-      qch = replicate n '"'                              
-  in qch ++ qst ++ qch
+      qch = B.fromString (replicate n '"')
+  in mconcat [qch, qst, qch]
 
-formatNodeId :: RDFLabel -> Formatter String
+formatNodeId :: RDFLabel -> Formatter B.Builder
 formatNodeId lab@(Blank (lnc:_)) =
-    if isDigit lnc then mapBlankNode lab else return $ show lab
+    if isDigit lnc then mapBlankNode lab else return $ B.fromString $ show lab
 formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to shut up -Wall
 
-mapBlankNode :: RDFLabel -> Formatter String
+mapBlankNode :: RDFLabel -> Formatter B.Builder
 mapBlankNode lab = do
   ngs <- getNgs
   let cmap = nodeMap ngs
@@ -851,18 +797,18 @@ mapBlankNode lab = do
     n -> return n
   
   -- TODO: is this what we want?
-  return $ "_:swish" ++ show nv
+  return $ "_:swish" `mappend` B.fromString (show nv)
 
 -- TODO: need to be a bit more clever with this than we did in NTriples
 --       not sure the following counts as clever enough ...
 --  
-showScopedName :: ScopedName -> String
+showScopedName :: ScopedName -> B.Builder
 {-
 showScopedName (ScopedName n l) = 
   let uri = nsURI n ++ l
   in quote uri
 -}
-showScopedName = quote True . show
+showScopedName = quoteB True . show
 
 ----------------------------------------------------------------------
 --  Graph-related helper functions
