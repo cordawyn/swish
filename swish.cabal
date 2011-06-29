@@ -150,7 +150,7 @@ Library
       containers == 0.3.*,
       array == 0.3.*,
       parallel == 2.2.*,
-      polyparse == 1.6.*,
+      polyparse >= 1.6 && < 1.8,
       random == 1.0.*,
       -- old-time == 1.0.*, 
       old-locale == 1.0.*, time == 1.1.*,
