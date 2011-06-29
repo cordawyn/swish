@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  Support for the RDF Parsing modules.
 --
@@ -41,6 +42,8 @@ module Swish.RDF.RDFParser
     , eoln
     , fullStop
     , mkTypedLit
+    , hex4
+    , hex8
     )
 where
 
@@ -71,10 +74,13 @@ import Swish.RDF.Vocabulary
     , default_base
     )
 
-import qualified Data.Text.Lazy as T
+import qualified Data.Text      as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Read as R
+
 import Text.ParserCombinators.Poly.StateText
 
-import Data.Char (isSpace)
+import Data.Char (isSpace, isHexDigit, chr)
 import Data.Maybe (fromMaybe)
 
 -- Code
@@ -170,7 +176,7 @@ notFollowedBy p = do
   c <- next
   if p c 
     then fail $ "Unexpected character: " ++ show [c]
-    else reparse $ T.singleton c
+    else reparse $ L.singleton c
 
 symbol :: String -> Parser s String
 symbol = lexeme . string
@@ -236,6 +242,36 @@ mkTypedLit ::
   -> RDFLabel
 mkTypedLit u v = Lit v (Just u)
 
+{-
+Handle hex encoding; the spec for N3 and NTriples suggest that
+only upper-case A..F are valid but you can find lower-case values
+out there so support these too.
+-}
+
+hexDigit :: Parser a Char
+-- hexDigit = satisfy (`elem` ['0'..'9'] ++ ['A'..'F'])
+hexDigit = satisfy isHexDigit
+
+hex4 :: Parser a Char
+hex4 = do
+  digs <- exactly 4 hexDigit
+  let mhex = R.hexadecimal (T.pack digs)
+  case mhex of
+    Left emsg     -> failBad $ "Internal error: unable to parse hex4: " ++ emsg
+    Right (v, "") -> return $ chr v
+    Right (_, vs) -> failBad $ "Internal error: hex4 has remained of " ++ T.unpack vs
+        
+hex8 :: Parser a Char
+hex8 = do
+  digs <- exactly 8 hexDigit
+  let mhex = R.hexadecimal (T.pack digs)
+  case mhex of
+    Left emsg     -> failBad $ "Internal error: unable to parse hex8: " ++ emsg
+    Right (v, "") -> if v <= 0x10FFFF
+                     then return $ chr v
+                     else failBad "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
+    Right (_, vs) -> failBad $ "Internal error: hex8 has remained of " ++ T.unpack vs
+        
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke

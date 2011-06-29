@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +8,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  OverloadedStrings
+--  Portability :  H98
 --
 --  This Module implements a NTriples parser (see [1]), returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
@@ -62,6 +61,8 @@ import Swish.RDF.RDFParser ( ParseResult
     , string
     , eoln
     , fullStop
+    , hex4
+    , hex8
     )
   
 {-
@@ -77,9 +78,7 @@ import Control.Monad (when)
 
 import Network.URI (parseURI)
 
-import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L
-import qualified Data.Text.Read as R
 
 import Data.Char (chr) 
 import Data.Maybe (fromMaybe, isNothing)
@@ -387,29 +386,6 @@ asciiCharsNT = filter (`notElem` "\\\"") asciiChars
 asciiChars :: String
 asciiChars = map chr $ 0x20 : 0x21 : [0x23..0x5b] ++ [0x5d..0x7e]
 
-ntHexDigit :: NTParser Char
-ntHexDigit = satisfy (`elem` ['0'..'9'] ++ ['A'..'F'])
-
-hex4 :: NTParser Char
-hex4 = do
-  digs <- exactly 4 ntHexDigit
-  let mhex = R.hexadecimal (T.pack digs)
-  case mhex of
-    Left emsg     -> failBad $ "Internal error: unable to parse hex4: " ++ emsg
-    Right (v, "") -> return $ chr v
-    Right (_, vs) -> failBad $ "Internal error: hex4 has remained of " ++ T.unpack vs
-        
-hex8 :: NTParser Char
-hex8 = do
-  digs <- exactly 8 ntHexDigit
-  let mhex = R.hexadecimal (T.pack digs)
-  case mhex of
-    Left emsg     -> failBad $ "Internal error: unable to parse hex8: " ++ emsg
-    Right (v, "") -> if v <= 0x10FFFF
-                     then return $ chr v
-                     else failBad "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
-    Right (_, vs) -> failBad $ "Internal error: hex8 has remained of " ++ T.unpack vs
-        
 protectedChar :: NTParser Char
 protectedChar =
   (char 't' *> return '\t')

@@ -111,18 +111,20 @@ import Swish.RDF.RDFParser
     , prefixTable
     , specialTable
     , ignore
-      , notFollowedBy
-        , endBy
-          , sepEndBy
-            , manyTill
-        , noneOf
-      , char
-        , ichar
-          , string
-            , symbol
-              , lexeme
-                , whiteSpace
+    , notFollowedBy
+    , endBy
+    , sepEndBy
+    , manyTill
+    , noneOf
+    , char
+    , ichar
+    , string
+    , symbol
+    , lexeme
+    , whiteSpace
     , mkTypedLit
+    , hex4  
+    , hex8  
     )
 
 import Control.Applicative
@@ -132,7 +134,7 @@ import Network.URI (URI,
                     relativeTo,
                     parseURI, parseURIReference, uriToString)
 
-import Data.Char (isSpace, isDigit, isHexDigit, chr) 
+import Data.Char (isSpace, isDigit, chr) 
 import Data.Maybe (fromMaybe, fromJust)
 
 import qualified Data.Text.Lazy as T
@@ -316,7 +318,6 @@ parsePrefixFromString =
 parseAbsURIrefFromString :: String -> Either String String
 parseAbsURIrefFromString =
     parseAnyfromString (fmap showURI explicitURI) Nothing
-    -- parseAnyfromString absUriRef Nothing
 
 parseLexURIrefFromString :: String -> Either String String
 parseLexURIrefFromString =
@@ -325,7 +326,6 @@ parseLexURIrefFromString =
 parseURIref2FromString :: String -> Either String ScopedName
 parseURIref2FromString = 
     parseAnyfromString (addTestPrefixes *> n3symbol) Nothing
-    -- parseAnyfromString uriRef2 Nothing
 
 ----------------------------------------------------------------------
 --  Syntax productions
@@ -342,7 +342,7 @@ fullStop = ignore $ symbol "."
 br :: String -> String -> N3Parser a -> N3Parser a
 br lsym rsym = bracket (symbol lsym) (symbol rsym)
 
--- to male porting from parsec to polyparse easier
+-- to make porting from parsec to polyparse easier
 between :: Parser s lbr -> Parser s rbr -> Parser s a -> Parser s a
 between = bracket
 
@@ -498,30 +498,8 @@ asciiCharsN3 = filter (`notElem` "\\\"") asciiChars
 
 -}
 
--- the grammer has only upper-case A-F but some lower case values
--- seen in the wild, so support them
---
-ntHexDigit :: N3Parser Char
-ntHexDigit = satisfy isHexDigit
-
 digit :: N3Parser Char
 digit = satisfy isDigit
-
-hex4 :: N3Parser Char
-hex4 = do
-  digs <- exactly 4 ntHexDigit
-  let dstr = "0x" ++ digs
-      dchar = read dstr :: Int
-  return $ chr dchar
-        
-hex8 :: N3Parser Char
-hex8 = do
-  digs <- exactly 8 ntHexDigit
-  let dstr = "0x" ++ digs
-      dchar = read dstr :: Int
-  if dchar <= 0x10FFFF
-    then return $ chr dchar
-    else fail "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
 
 {-
 This is very similar to NTriples accept that also allow the escaping of '
