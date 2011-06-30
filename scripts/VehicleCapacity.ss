@@ -8,8 +8,7 @@
 @prefix pv:  <http://id.ninebynine.org/wip/2003/swishtest/pv/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix xsd_integer: <http://id.ninebynine.org/2003/XMLSchema/integer#> .
-@prefix rs_rdf:  <http://id.ninebynine.org/2003/Ruleset/rdf#> .
-@prefix rs_rdfs: <http://id.ninebynine.org/2003/Ruleset/rdfs#> .
+@prefix rdfd:    <http://id.ninebynine.org/2003/rdfext/rdfd#> .
 @prefix :   <http://id.ninebynine.org/default/> .
 
 

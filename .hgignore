@@ -5,6 +5,10 @@ syntax: glob
 *.o
 *.tix
 
+scripts/Example1.n3
+scripts/data/TestMerge.n3
+scripts/data/TestMerge.n3m
+
 syntax: regexp
 (.*/)?\#[^/]*\#$
 

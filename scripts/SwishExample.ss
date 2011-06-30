@@ -21,6 +21,13 @@
 # file, and to graphs created by scripted inferences,
 # but are not applied to any graphs read in from an external source.
 
+# NOTE: the automatic prefix declarations are no-longer provided by
+#       Swish
+#
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdfd:  <http://id.ninebynine.org/2003/rdfext/rdfd#> .
+
 @prefix ex:  <http://id.ninebynine.org/wip/2003/swishtest/> .
 @prefix pv:  <http://id.ninebynine.org/wip/2003/swishtest/pv/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -28,14 +35,6 @@
 @prefix rs_rdf:  <http://id.ninebynine.org/2003/Ruleset/rdf#> .
 @prefix rs_rdfs: <http://id.ninebynine.org/2003/Ruleset/rdfs#> .
 @prefix :   <http://id.ninebynine.org/default/> .
-
-# Additionally, prefix declarations are provided automatically for:
-#    @prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-#    @prefix rdfs:  <file:///E:/Download/www.w3.org/2000/01/rdf-schema#> .
-#    @prefix rdfd:  <http://id.ninebynine.org/2003/rdfext/rdfd#> .
-#    @prefix rdfo:  <http://id.ninebynine.org/2003/rdfext/rdfo#> .
-#    @prefix owl:   <http://www.w3.org/2002/07/owl#> .
-
 
 # -- Simple named graph declarations --
 
