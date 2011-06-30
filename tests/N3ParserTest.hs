@@ -67,7 +67,7 @@ import qualified Data.Text.Lazy as T
 -- temporary routine during text conversion
 
 parseN3 :: String -> Maybe QName -> N3P.ParseResult
-parseN3 inp mbase = N3P.parseN3 (T.pack inp) mbase
+parseN3 inp = N3P.parseN3 (T.pack inp) 
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper

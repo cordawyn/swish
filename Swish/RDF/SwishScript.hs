@@ -415,8 +415,7 @@ graphOrList =
   <|> graphList
 
 formulaExpr :: N3Parser (SwishStateIO (Either String RDFFormula))
-formulaExpr = 
-  (n3SymLex >>= namedGraph)
+formulaExpr = n3SymLex >>= namedGraph
 
 namedGraph :: ScopedName -> N3Parser (SwishStateIO (Either String RDFFormula))
 namedGraph n =

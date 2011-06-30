@@ -132,7 +132,7 @@ ichar = ignore . char
 
 -- TODO: is there a better way to do this?
 string :: String -> Parser s String
-string s = mapM char s
+string = mapM char
   
 skipMany :: Parser s a -> Parser s ()
 skipMany = ignore . many

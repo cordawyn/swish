@@ -526,7 +526,7 @@ insertList :: [RDFLabel] -> Formatter B.Builder
 insertList [] = return "()" -- not convinced this can happen
 insertList xs = do
   ls <- mapM (formatLabel ObjContext) xs
-  return $ (mconcat $ "( " : intersperse " " ls) `mappend` " )"
+  return $ mconcat ("( " : intersperse " " ls) `mappend` " )"
     
 {-
 Add a blank node inline.
@@ -755,8 +755,8 @@ formatLabel _ lab = return $ B.fromString $ show lab
 
 -- the annotation for a literal (ie type or language)
 formatAnnotation :: ScopedName -> B.Builder
-formatAnnotation a  | isLang a  = "@" `mappend` (B.fromString (langTag a))
-                    | otherwise = "^^" `mappend` (showScopedName a)
+formatAnnotation a  | isLang a  = "@" `mappend` B.fromString (langTag a)
+                    | otherwise = "^^" `mappend` showScopedName a
 
 {-
 We have to decide whether to use " or """ to quote

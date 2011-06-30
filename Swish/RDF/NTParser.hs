@@ -291,7 +291,7 @@ absoluteURI	::=	character+ with escapes as defined in section URI References
 uriref :: NTParser ScopedName
 uriref = do
   -- not ideal, as want to reject invalid characters immediately rather than via parseURI
-  ustr <- L.unpack <$> (bracket (char '<') (char '>') $ many1Satisfy (/= '>'))
+  ustr <- L.unpack <$> bracket (char '<') (char '>') (many1Satisfy (/= '>'))
   -- ustr <- bracket (char '<') (char '>') $ many1 character -- looks like need to exclude > from character
   -- ustr <- char '<' *> manyTill character (char '>')
   when (isNothing (parseURI ustr)) $
@@ -399,7 +399,7 @@ protectedChar =
 character :: NTParser Char
 character = 
   (char '\\' *> protectedChar)
-  <|> (satisfy (`elem` asciiChars))
+  <|> satisfy (`elem` asciiChars)
 
 --------------------------------------------------------------------------------
 --
