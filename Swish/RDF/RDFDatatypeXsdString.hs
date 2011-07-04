@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate RDF @xsd:string@ datatyped literals.
@@ -28,7 +30,7 @@ where
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFRuleset
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     , makeRDFFormula
     , makeN3ClosureRule
     )
@@ -43,10 +45,7 @@ import Swish.RDF.RDFDatatype
     )
 
 import Swish.RDF.RDFGraph (RDFLabel(..))
-
-import Swish.RDF.ClassRestrictionRule
-    ( makeRDFDatatypeRestrictionRules
-    )
+import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
 
 import Swish.RDF.Datatype
     ( Datatype(..)
@@ -60,7 +59,6 @@ import Swish.RDF.Datatype
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
-
 import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Swish.RDF.Vocabulary
@@ -77,7 +75,10 @@ import Swish.RDF.VarBinding
     , VarBindingModify(..)
     )
 
+import Data.Monoid(Monoid(..))
+
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Misc values
@@ -94,14 +95,6 @@ typeNameXsdString  = ScopedName namespaceXSD nameXsdString
 -- |Namespace for @xsd:string@ datatype functions
 namespaceXsdString :: Namespace
 namespaceXsdString = namespaceXsdType nameXsdString
-
---  Helper to catenate strings with newline separator,
---  used for making textual representations of graphs.
---  (the newline makes N3 parser diagnostics easier to interpret)
---
-infixr 5 +++
-(+++) :: String -> ShowS
-(+++) str = ((str++"\n")++)
 
 ------------------------------------------------------------
 --  Declare exported RDFDatatype value for xsd:integer
@@ -225,22 +218,25 @@ rdfRulesetXsdString :: RDFRuleset
 rdfRulesetXsdString =
     makeRuleset namespaceXsdString axiomsXsdString rulesXsdString
 
-mkPrefix :: Namespace -> String
-mkPrefix ns =
-    "@prefix " ++ nsPrefix ns ++ ": <" ++ nsURI ns ++ "> . \n"
+mkPrefix :: Namespace -> B.Builder
+mkPrefix (Namespace prefix uri) =
+  let p = B.fromString prefix
+      u = B.fromString uri
+  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
 
-prefixXsdString :: String
-prefixXsdString =
-    mkPrefix namespaceRDF  ++
-    mkPrefix namespaceRDFS ++
-    mkPrefix namespaceRDFD ++
-    mkPrefix namespaceXSD  ++
-    mkPrefix namespaceXsdString ++
-    " \n"
-
-mkAxiom :: String -> String -> RDFFormula
+prefixXsdString :: B.Builder
+prefixXsdString = 
+  mconcat
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+  , mkPrefix namespaceRDFD
+  , mkPrefix namespaceXSD
+  , mkPrefix namespaceXsdString
+  ]
+  
+mkAxiom :: String -> B.Builder -> RDFFormula
 mkAxiom local gr =
-    makeRDFFormula namespaceXsdString local (prefixXsdString++gr)
+    makeRDFFormula namespaceXsdString local (prefixXsdString `mappend` gr)
 
 axiomsXsdString :: [RDFFormula]
 axiomsXsdString =
@@ -254,19 +250,22 @@ rulesXsdStringRestriction :: [RDFRule]
 rulesXsdStringRestriction =
     makeRDFDatatypeRestrictionRules rdfDatatypeValXsdString gr
     where
-        gr = makeRDFGraphFromN3String rulesXsdStringStr
+        gr = makeRDFGraphFromN3Builder rulesXsdStringBuilder
 
-rulesXsdStringStr :: String
-rulesXsdStringStr = prefixXsdString
-    +++ "xsd_string:Eq a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_string:eq ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_string:Ne a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_string:ne ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-
+rulesXsdStringBuilder :: B.Builder
+rulesXsdStringBuilder = 
+  mconcat
+  [ prefixXsdString
+    , "xsd_string:Eq a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_string:eq ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_string:Ne a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_string:ne ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    ]
+  
 rulesXsdStringClosure :: [RDFRule]
 rulesXsdStringClosure =
     [ xsdstrls

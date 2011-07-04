@@ -31,16 +31,11 @@ import Swish.RDF.RDFVarBinding (RDFVarBinding)
 
 import Swish.RDF.RDFRuleset
     ( RDFRule 
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     )
 
-import Swish.RDF.RDFDatatype
-    ( RDFDatatypeMod
-    , applyRDFDatatypeMod
-    )
-
+import Swish.RDF.RDFDatatype (RDFDatatypeMod, applyRDFDatatypeMod)
 import Swish.RDF.RDFGraph (RDFLabel(..), RDFGraph)
-
 import Swish.RDF.ClassRestrictionRule (falseGraphStr)
 
 import Swish.RDF.Datatype
@@ -54,24 +49,11 @@ import Swish.RDF.Datatype
     )
 
 import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
-
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..)
-    , nullFormula, nullRule
-    )
-
+import Swish.RDF.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.RDF.VarBinding (makeVarBinding)
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , makeScopedName
-    )
-
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), makeScopedName)
 import Swish.RDF.Vocabulary (namespaceDefault)
-
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
-
 import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
@@ -82,9 +64,11 @@ import Test.HUnit
     )
 
 import Control.Monad (unless)
+import Data.Monoid (Monoid(..))
 import Data.Maybe (isJust, isNothing, fromMaybe)
 
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -836,10 +820,13 @@ testVarModifySuite = TestList
 --  Test rules defined for datatype
 ------------------------------------------------------------
 
+-- TODO: convert to using a Builder as input
 mkGraph :: String -> RDFGraph
-mkGraph grstr = makeRDFGraphFromN3String (prefixXsdInteger++base++grstr)
-    where
-        base = "@prefix : <"++nsURI namespaceDefault++"> . \n"
+mkGraph grstr = 
+  let base = "@prefix : <" `mappend` (ns `mappend` "> . \n")
+      ns = B.fromString $ nsURI namespaceDefault
+      gr = B.fromString grstr
+  in makeRDFGraphFromN3Builder (prefixXsdInteger `mappend` (base `mappend` gr))
 
 testRuleFwd :: String -> Maybe (Rule RDFGraph) -> String -> [String] -> Test
 testRuleFwd lab (Just rule) antstr constrs =

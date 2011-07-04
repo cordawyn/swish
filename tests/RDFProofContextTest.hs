@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains RDF proof-checking test cases based on the RDF
 --  semantics specifications, as capured in module RDFProofContext.
@@ -17,45 +19,23 @@
 
 module Main where
 
-import Swish.RDF.BuiltInMap
-    ( rdfRulesetMap, allRulesets )
-
-import Swish.RDF.RDFProofContext
-    ( rulesetRDF
-    , rulesetRDFS
-    , rulesetRDFD )
-
-import Swish.RDF.RDFProof
-    ( RDFProof, RDFProofStep
-    , makeRDFProof, makeRDFProofStep )
+import Swish.RDF.BuiltInMap (rdfRulesetMap, allRulesets)
+import Swish.RDF.RDFProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
+import Swish.RDF.RDFProof (RDFProof, RDFProofStep, makeRDFProof, makeRDFProofStep )
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFRuleset
     , nullRDFFormula
     , makeRDFFormula )
 
-import Swish.RDF.RDFGraph
-    ( RDFGraph )
+import Swish.RDF.RDFGraph (RDFGraph)
+import Swish.RDF.RDFGraphShowM ()
+import Swish.RDF.Proof (Step(..), checkProof, checkStep, explainProof)
+import Swish.RDF.Ruleset (getContextAxiom, getContextRule)
+import Swish.RDF.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 
-import Swish.RDF.RDFGraphShowM()
-
-import Swish.RDF.Proof
-    ( Step(..)
-    , checkProof, checkStep
-    , explainProof)
-
-import Swish.RDF.Ruleset
-    ( getContextAxiom, getContextRule )
-
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..)
-    , nullFormula, nullRule )
-
-import Swish.Utils.Namespace
-    ( Namespace(..), ScopedName(..) )
-
-import Swish.Utils.LookupMap
-    ( mapFindMaybe )
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.LookupMap (mapFindMaybe)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -73,8 +53,10 @@ import Test.HUnit
     , assertBool, assertEqual
     , runTestTT )
 
-import Data.Maybe
-    ( isJust, isNothing, fromJust, fromMaybe )
+import Data.Monoid (Monoid(..))
+import Data.Maybe (isJust, isNothing, fromJust, fromMaybe)
+
+import qualified Data.Text.Lazy.Builder as B
 
 --  misc helpers
 
@@ -122,9 +104,9 @@ testProofStep lab valid rules antes step =
 
 --  Various support methods
 
-makeFormula :: Namespace -> String -> String -> RDFFormula
+makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
 makeFormula scope local gr =
-    makeRDFFormula scope local (prefix++gr)
+    makeRDFFormula scope local (prefix `mappend` gr)
 
 getRule :: String -> RDFRule
 getRule nam = getContextRule (makeSName nam) nullRule $
@@ -147,14 +129,22 @@ makeSName nam = ScopedName ns loc
 
 --  Common definitions
 
-prefix :: String
+mkPrefix :: Namespace -> B.Builder
+mkPrefix (Namespace prfix uri) =
+  let p = B.fromString prfix
+      u = B.fromString uri
+  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+
+prefix :: B.Builder
 prefix =
-    "@prefix rdf:  <" ++ nsURI namespaceRDF  ++ "> . \n" ++
-    "@prefix rdfs: <" ++ nsURI namespaceRDFS ++ "> . \n" ++
-    "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    "@prefix xsd:  <" ++ nsURI namespaceXSD  ++ "> . \n" ++
-    "@prefix ex:   <http://example.org/> . \n" ++
-    " \n"
+  mconcat 
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+  , mkPrefix namespaceRDFD
+  , mkPrefix namespaceXSD
+    -- TODO: should the following use scopeex instead?
+  , mkPrefix (Namespace "ex" "http://example.org/")
+  ]
 
 scopeex :: Namespace
 scopeex   = Namespace "ex"   "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
@@ -192,10 +182,10 @@ ant01, con01, bwd01 :: RDFGraph
 ant01  = formExpr $ makeFormula scopeex "ant01" 
     "ex:s ex:p1 ex:o1 ; ex:p2 ex:o2 ."
 con01  = formExpr $ makeFormula scopeex "con01" $
-    "ex:p1 rdf:type rdf:Property ." ++
+    "ex:p1 rdf:type rdf:Property ." `mappend`
     "ex:p2 rdf:type rdf:Property ."
 bwd01  = formExpr $ makeFormula scopeex "bwd01a" $
-    "_:s1 ex:p1 _:o1 . " ++
+    "_:s1 ex:p1 _:o1 . " `mappend`
     "_:s2 ex:p2 _:o2 . "
 
 --  Simple rule test - no match forward or backward
@@ -234,15 +224,15 @@ rdfr2  = getRule "rs_rdf:r2"
 
 ant03, con03lg, con03r2 :: RDFGraph
 ant03  = formExpr $ makeFormula scopeex "ant03" $
-    "ex:s ex:p1  \"lit1\"^^rdf:XMLLiteral ; " ++
-    "     ex:p2a \"lit2\"^^rdf:XMLLiteral ; " ++
+    "ex:s ex:p1  \"lit1\"^^rdf:XMLLiteral ; " `mappend`
+    "     ex:p2a \"lit2\"^^rdf:XMLLiteral ; " `mappend`
     "     ex:p2b \"lit2\"^^rdf:XMLLiteral ."
 con03lg  = formExpr $ makeFormula scopeex "con03" $
-    "ex:s ex:p1 _:l1 ; ex:p2a _:l2; ex:p2b _:l2 ." ++
-    "_:l1 rdf:_allocatedTo \"lit1\"^^rdf:XMLLiteral ." ++
+    "ex:s ex:p1 _:l1 ; ex:p2a _:l2; ex:p2b _:l2 ." `mappend`
+    "_:l1 rdf:_allocatedTo \"lit1\"^^rdf:XMLLiteral ." `mappend`
     "_:l2 rdf:_allocatedTo \"lit2\"^^rdf:XMLLiteral ."
 con03r2  = formExpr $ makeFormula scopeex "con03" $
-    "_:l1 rdf:type rdf:XMLLiteral ." ++
+    "_:l1 rdf:type rdf:XMLLiteral ." `mappend`
     "_:l2 rdf:type rdf:XMLLiteral ."
 
 --  Rule with member property test, match forwards and backwards
@@ -256,13 +246,13 @@ rdfcp  = getRule "rs_rdf:cp1"
 
 ant04, con04, bwd04 :: RDFGraph
 ant04  = formExpr $ makeFormula scopeex "ant04" $
-    "ex:s rdf:_123 ex:o1 ; " ++
+    "ex:s rdf:_123 ex:o1 ; " `mappend`
     "     rdf:_2   ex:o2 . "
 con04  = formExpr $ makeFormula scopeex "con04" $
-    "rdf:_123 rdf:type rdf:Property ." ++
+    "rdf:_123 rdf:type rdf:Property ." `mappend`
     "rdf:_2   rdf:type rdf:Property ."
 bwd04  = formExpr $ makeFormula scopeex "bwd04a" $
-    "_:s1 rdf:_123 _:o1 . " ++
+    "_:s1 rdf:_123 _:o1 . " `mappend`
     "_:s2 rdf:_2   _:o2 . "
 
 --  Rule with disjunction test, match forwards and backwards
@@ -277,17 +267,17 @@ rdfsr3 = getRule "rs_rdfs:r3"
 
 ant05, con05, bwd05 :: RDFGraph
 ant05  = formExpr $ makeFormula scopeex "ant05" $
-    "ex:s ex:p1 ex:o1 ; "        ++
-    "     ex:p2 _:o2  . "        ++
-    "ex:p1 rdfs:range ex:pr1 . " ++
+    "ex:s ex:p1 ex:o1 ; "        `mappend`
+    "     ex:p2 _:o2  . "        `mappend`
+    "ex:p1 rdfs:range ex:pr1 . " `mappend`
     "ex:p2 rdfs:range ex:pr2 . "
 con05  = formExpr $ makeFormula scopeex "con05" $
-    "ex:o1 rdf:type ex:pr1 ." ++
+    "ex:o1 rdf:type ex:pr1 ." `mappend`
     "_:o2  rdf:type ex:pr2 ."
 bwd05  = formExpr $ makeFormula scopeex "bwd05a" $
-    "_:s1 _:p1 ex:o1 . "        ++
-    "_:s2 _:p2 _:o2  . "        ++
-    "_:p1 rdfs:range ex:pr1 . " ++
+    "_:s1 _:p1 ex:o1 . "        `mappend`
+    "_:s2 _:p2 _:o2  . "        `mappend`
+    "_:p1 rdfs:range ex:pr1 . " `mappend`
     "_:p2 rdfs:range ex:pr2 . "
 
 --  Rule with disjunction test, fail forwards
@@ -299,15 +289,15 @@ bwd05  = formExpr $ makeFormula scopeex "bwd05a" $
 
 ant06, con06, bwd06, chk06 :: RDFGraph
 ant06  = formExpr $ makeFormula scopeex "ant06" $
-    "ex:s ex:p1 \"lit1\" . "     ++
+    "ex:s ex:p1 \"lit1\" . "     `mappend`
     "ex:p1 rdfs:range ex:pr1 . "
 con06  = formExpr $ makeFormula scopeex "con06" 
     "_:o1  rdf:type ex:pr1 ."
 bwd06  = formExpr $ makeFormula scopeex "bwd06a" $
-    "_:s1 _:p1 _:o1 . "      ++
+    "_:s1 _:p1 _:o1 . "      `mappend`
     "_:p1 rdfs:range ex:pr1 . "
 chk06  = formExpr $ makeFormula scopeex "bwd06a" $
-    "_:s1 _:p1 \"lit1\" . "      ++
+    "_:s1 _:p1 \"lit1\" . "      `mappend`
     "_:p1 rdfs:range ex:pr1 . "
 
 --  Collected rule tests
@@ -374,7 +364,7 @@ rdfBase02, rdfCon02a, rdfGoal02 :: RDFFormula
 rdfBase02  = makeFormula scopeex "rdfBase02" 
                 "ex:s ex:p \"l1\"^^rdf:XMLLiteral ."
 rdfCon02a  = makeFormula scopeex "rdfStep02a" $
-                "ex:s ex:p _:lll . "             ++
+                "ex:s ex:p _:lll . "             `mappend`
                 "_:lll rdf:_allocatedTo \"l1\"^^rdf:XMLLiteral . "
 rdfGoal02  = makeFormula scopeex "rdfGoal02" 
                 "_:lll rdf:type rdf:XMLLiteral . "
@@ -391,7 +381,7 @@ rdfBase03, rdfCon03a, rdfGoal03 :: RDFFormula
 rdfBase03  = makeFormula scopeex "rdfBase03" 
                 "ex:s ex:p ex:o ."
 rdfCon03a  = makeFormula scopeex "rdfStep03a" $
-                "ex:s ex:p _:lll . "             ++
+                "ex:s ex:p _:lll . "             `mappend`
                 "_:lll rdf:_allocatedTo \"l1\"^^rdf:XMLLiteral . "
 rdfGoal03  = makeFormula scopeex "rdfGoal03" 
                 "_:lll rdf:type rdf:XMLLiteral . "
@@ -433,8 +423,8 @@ rdfStep05b = makeRDFProofStep (getRule "rs_rdf:se")
 
 rdfGoal05 :: RDFFormula
 rdfGoal05  = makeFormula scopeex "rdfGoal05" $
-                "ex:s _:p _:n ."               ++
-                "_:p  rdf:type rdf:Property ." ++
+                "ex:s _:p _:n ."               `mappend`
+                "_:p  rdf:type rdf:Property ." `mappend`
                 "_:n  rdf:type rdf:List ."
                 
 rdfProof05 :: RDFProof
@@ -458,8 +448,8 @@ rdfProof06 = makeRDFProof rdfsContext rdfBase05 rdfGoal05
 
 rdfBase07 :: RDFFormula
 rdfBase07  = makeFormula scopeex "rdfBase07" $
-                "ex:s1 ex:p1 \"lll\" ." ++
-                "ex:s2 ex:p2 \"lll\" ." ++
+                "ex:s1 ex:p1 \"lll\" ." `mappend`
+                "ex:s2 ex:p2 \"lll\" ." `mappend`
                 "ex:s3 ex:p3 \"mmm\" ."
                 
 rdfStep07a :: RDFProofStep                
@@ -467,10 +457,10 @@ rdfStep07a = makeRDFProofStep (getRule "rs_rdf:lg") [rdfBase07]  rdfCons07a
 
 rdfCons07a :: RDFFormula
 rdfCons07a = makeFormula scopeex "rdfCons07a" $
-                "ex:s1 ex:p1 _:l ."              ++
-                "ex:s2 ex:p2 _:l ."              ++
-                "_:l rdf:_allocatedTo \"lll\" ." ++
-                "ex:s3 ex:p3 _:m ."              ++
+                "ex:s1 ex:p1 _:l ."              `mappend`
+                "ex:s2 ex:p2 _:l ."              `mappend`
+                "_:l rdf:_allocatedTo \"lll\" ." `mappend`
+                "ex:s3 ex:p3 _:m ."              `mappend`
                 "_:m rdf:_allocatedTo \"mmm\" ."
                 
 rdfStep07b :: RDFProofStep                
@@ -478,7 +468,7 @@ rdfStep07b = makeRDFProofStep (getRule "rs_rdfs:r1") [rdfCons07a]  rdfCons07b
 
 rdfCons07b :: RDFFormula
 rdfCons07b = makeFormula scopeex "rdfCons07a" $
-                "_:l rdf:type rdfs:Literal ." ++
+                "_:l rdf:type rdfs:Literal ." `mappend`
                 "_:m rdf:type rdfs:Literal ."
 
 rdfStep07c :: RDFProofStep
@@ -487,8 +477,8 @@ rdfStep07c = makeRDFProofStep (getRule "rs_rdf:sub")
 
 rdfGoal07 :: RDFFormula
 rdfGoal07  = makeFormula scopeex "rdfGoal07" $
-                "ex:s1 ex:p1 _:l ."           ++
-                "ex:s2 ex:p2 _:l ."           ++
+                "ex:s1 ex:p1 _:l ."           `mappend`
+                "ex:s2 ex:p2 _:l ."           `mappend`
                 "_:l rdf:type rdfs:Literal ."
 
 rdfProof07 :: RDFProof
@@ -556,7 +546,7 @@ rdfStep09b = makeRDFProofStep (getRule "rs_rdf:lg")
              
 rdfCons09b :: RDFFormula
 rdfCons09b = makeFormula scopeex "rdfCons09b" $
-                "ex:s ex:p _:l ." ++
+                "ex:s ex:p _:l ." `mappend`
                 "_:l rdf:_allocatedTo \"10\"^^xsd:integer ."
 
 rdfStep09c :: RDFProofStep
@@ -573,8 +563,8 @@ rdfStep09d = makeRDFProofStep (getRule "rs_rdf:sub")
              
 rdfGoal09 :: RDFFormula             
 rdfGoal09  = makeFormula scopeex "rdfGoal09" $
-                "ex:s ex:p  \"10\"^^xsd:integer ."           ++
-                "_:l rdf:_allocatedTo \"10\"^^xsd:integer ." ++
+                "ex:s ex:p  \"10\"^^xsd:integer ."           `mappend`
+                "_:l rdf:_allocatedTo \"10\"^^xsd:integer ." `mappend`
                 "_:l rdf:type xsd:integer ."
 
 rdfProof09 :: RDFProof
@@ -612,7 +602,7 @@ rdfRule10 = testEq "rdfRule10" "xsd_string:ls" $
 
 rdfBase10 :: RDFFormula
 rdfBase10  = makeFormula scopeex "rdfBase10" $
-                "ex:s ex:p \"abc\" . " ++
+                "ex:s ex:p \"abc\" . " `mappend`
                 "ex:s ex:p \"def\"^^xsd:string . "
                 
 rdfStep10a :: RDFProofStep                
@@ -637,8 +627,8 @@ rdfStep10c = makeRDFProofStep (getRule "rs_rdf:sub")
 
 rdfGoal10 :: RDFFormula
 rdfGoal10  = makeFormula scopeex "rdfGoal10" $
-                "ex:s ex:p \"abc\"^^xsd:string . " ++
-                "ex:s ex:p \"def\" . "             ++
+                "ex:s ex:p \"abc\"^^xsd:string . " `mappend`
+                "ex:s ex:p \"def\" . "             `mappend`
                 "xsd:string rdf:type rdfs:Datatype . "
 
 rdfProof10 :: RDFProof

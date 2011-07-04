@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains proof-context declarations based on
 --  the RDF, RDFS and RDF datatyping semantics specifications.
@@ -71,14 +73,17 @@ import Swish.RDF.Vocabulary
     , scopeRDFD
     )
 
-import Data.Maybe (isJust, fromJust)
 import Control.Monad (liftM)
+import Data.Monoid (Monoid(..))
+import Data.Maybe (isJust, fromJust)
+
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Define query binding filter auxiliaries
 ------------------------------------------------------------
 
-makeFormula :: Namespace -> String -> String -> RDFFormula
+makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
 makeFormula = makeRDFFormula
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter
@@ -799,7 +804,7 @@ rdfdr2 = makeN3ClosureModifyRule scopeRDFD "r2"
 --
 rdfdr3 :: RDFRule
 rdfdr3 = makeN3ClosureModifyRule scopeRDFD "r3"
-            ( "?d rdf:type rdfs:Datatype . ?e rdf:type rdfs:Datatype . " ++
+            ( "?d rdf:type rdfs:Datatype . ?e rdf:type rdfs:Datatype . " `mappend`
               "?a ?p ?s ." )
             "?a ?p ?t ."
             (makeVarFilterModify $ isDatatypedV "s" "d")

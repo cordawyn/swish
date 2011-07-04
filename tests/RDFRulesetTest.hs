@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,21 +10,20 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains test cases for ruleset data.
 --
 --  Note that the proof-related methods defined in RDFRuleset are tested
 --  by RDFProofTest and/or RDFProofCheck.
 --
-{--------+---------+---------+---------+---------+---------+---------+---------}
 
 module Main where
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
     , GraphClosure(..)
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     , makeRDFFormula
     , makeN3ClosureSimpleRule
     , makeNodeAllocTo
@@ -30,8 +31,7 @@ import Swish.RDF.RDFRuleset
     , graphClosureFwdApply, graphClosureBwdApply
     )
 
-import Swish.RDF.RDFQuery
-    ( rdfQueryBack, rdfQueryBackModify )
+import Swish.RDF.RDFQuery (rdfQueryBack, rdfQueryBackModify)
 
 import Swish.RDF.RDFVarBinding
     ( RDFVarBinding
@@ -68,11 +68,7 @@ import Swish.Utils.Namespace
     , makeScopedName
     )
 
-import Swish.RDF.Vocabulary
-    ( namespaceRDF
-    , namespaceOWL
-    , scopeRDF
-    )
+import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -80,8 +76,11 @@ import Test.HUnit
     , runTestTT
     )
 
+import Data.Monoid (Monoid(..))
 import Data.List (nub, sort)
 import Data.Maybe (isJust, fromJust)
+
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -167,25 +166,34 @@ rn1 :: Namespace
 rn1  = Namespace "r1" "http://id.ninebynine.org/wip/2003/rulesettest/r1"
 
 -- Common prefix declarations for graph expressions
-pref :: String
-pref =
-    "@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n" ++
-    "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . \n" ++
-    "@prefix ex:   <http://example.org/> . \n" ++
-    " \n"
+
+mkPrefix :: Namespace -> B.Builder
+mkPrefix (Namespace pfix uri) =
+  let p = B.fromString pfix
+      u = B.fromString uri
+  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+
+prefix :: B.Builder
+prefix =
+  mconcat 
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+    -- TODO: should the following use scopeex instead?
+  , mkPrefix (Namespace "ex" "http://example.org/")
+  ]
 
 a11, a12 :: RDFFormula
-a11  = makeRDFFormula rn1 "a11" (pref++"ex:R1 rdf:type ex:C1 .")
-a12  = makeRDFFormula rn1 "a12" (pref++"ex:R2 rdf:type ex:C2 .")
+a11  = makeRDFFormula rn1 "a11" $ prefix `mappend` "ex:R1 rdf:type ex:C1 ."
+a12  = makeRDFFormula rn1 "a12" $ prefix `mappend` "ex:R2 rdf:type ex:C2 ."
 
 r11, r12 :: RDFRule
 r11  = makeN3ClosureSimpleRule rn1 "r11"
-            ( pref++"?r1 rdf:type ex:C1 . ?r2 rdf:type ex:C2 ." )
-            ( pref++"?r1 ex:P1 ?r2 ." )
+            ( prefix `mappend` "?r1 rdf:type ex:C1 . ?r2 rdf:type ex:C2 ." )
+            ( prefix `mappend` "?r1 ex:P1 ?r2 ." )
 
 r12  = makeN3ClosureSimpleRule rn1 "r12"
-            ( pref++"?r1 rdf:type ex:C1 . ?r2 rdf:type ex:C2 ." )
-            ( pref++"?r2 ex:P2 ?r1 ." )
+            ( prefix `mappend` "?r1 rdf:type ex:C1 . ?r2 rdf:type ex:C2 ." )
+            ( prefix `mappend` "?r2 ex:P2 ?r1 ." )
 
 --  Basic formula and rule comparison tests
 --  (tests support code added in module Proof.hs)
@@ -243,19 +251,12 @@ testRulesetSuite =
 --  Component tests for RDF proof context
 ------------------------------------------------------------
 
-prefix :: String
-prefix =
-    "@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n" ++
-    "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . \n" ++
-    "@prefix ex:   <http://example.org/> . \n" ++
-    " \n"
-
 scopeex :: Namespace
 scopeex = Namespace "ex" "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
-makeFormula :: Namespace -> String -> String -> RDFFormula
+makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
 makeFormula scope local gr =
-    makeRDFFormula scope local (prefix++gr)
+    makeRDFFormula scope local $ prefix `mappend` gr
 
 allocateTo :: String -> String -> [RDFLabel] -> RDFVarBindingModify
 allocateTo bv av = makeNodeAllocTo (Var bv) (Var av)
@@ -269,8 +270,8 @@ queryBack qas = rdfQueryBack (toRDFGraph qas)
 -- Backward chaining rdf:r2
 
 rdfr2ant, rdfr2con :: RDFGraph
-rdfr2ant  = makeRDFGraphFromN3String "?x ?a ?l . "
-rdfr2con  = makeRDFGraphFromN3String "?x ?a ?b . ?b rdf:type rdf:XMLLiteral ."
+rdfr2ant  = makeRDFGraphFromN3Builder "?x ?a ?l . "
+rdfr2con  = makeRDFGraphFromN3Builder "?x ?a ?b . ?b rdf:type rdf:XMLLiteral ."
 
 rdfr2modv :: RDFVarBindingModify
 rdfr2modv = allocateTo "b" "l" $ allLabels labelIsVar rdfr2ant
@@ -296,8 +297,8 @@ rdfr2rul = Rule
 
 con03 :: RDFGraph
 con03 = formExpr $ makeFormula scopeex "con03" $
-    "ex:s ex:p1 _:l1 ; ex:p2a _:l2; ex:p2b _:l2 ." ++
-    "_:l1 rdf:type rdf:XMLLiteral ." ++
+    "ex:s ex:p1 _:l1 ; ex:p2a _:l2; ex:p2b _:l2 ." `mappend`
+    "_:l1 rdf:type rdf:XMLLiteral ." `mappend`
     "_:l2 rdf:type rdf:XMLLiteral ."
 
 v_a, v_b, v_x :: RDFLabel
