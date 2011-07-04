@@ -17,14 +17,11 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFProofContext
-    ( rulesetRDF
-    , rulesetRDFS
-    , rulesetRDFD )
-where
+module Swish.RDF.RDFProofContext ( rulesetRDF 
+                                 , rulesetRDFS
+                                 , rulesetRDFD) where
 
-import Swish.RDF.BuiltInDatatypes
-    ( findRDFDatatype )
+import Swish.RDF.BuiltInDatatypes (findRDFDatatype)
 
 import Swish.RDF.RDFProof
     ( makeRdfSubgraphEntailmentRule
@@ -74,7 +71,6 @@ import Swish.RDF.Vocabulary
     , scopeRDFD
     )
 
-import qualified Data.Text as T
 import Data.Maybe (isJust, fromJust)
 import Control.Monad (liftM)
 
@@ -162,7 +158,7 @@ sameDatatypedValueApply val1 typ1 val2 typ2 vbind =
 getCanonical :: RDFLabel -> RDFLabel -> RDFLabel -> Maybe RDFLabel
 getCanonical v1 t1 t2 =
     if isDatatyped dqn1 v1 && isJust mdt1 then
-        liftM mkLit $ typeMkCanonicalForm dt1 (T.unpack (getLiteralText v1))
+        liftM mkLit $ typeMkCanonicalForm dt1 (getLiteralText v1)
     else
         Nothing
     where
@@ -170,7 +166,7 @@ getCanonical v1 t1 t2 =
         dqn2  = getRes t2
         mdt1  = findRDFDatatype dqn1
         dt1   = fromJust mdt1
-        mkLit st = Lit (T.pack st) (Just dqn2)
+        mkLit = flip Lit (Just dqn2)
 
         getRes (Res dqnam) = dqnam
         getRes x = error $ "Expected a Resource, sent " ++ show x -- for -Wall

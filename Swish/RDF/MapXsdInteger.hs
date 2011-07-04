@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,21 +10,19 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines the datatytpe mapping and relation values
 --  used for RDF dataype xsd:integer
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.MapXsdInteger
-    ( mapXsdInteger
-    )
-where
+module Swish.RDF.MapXsdInteger (mapXsdInteger) where
 
-import Swish.RDF.Datatype
-    ( DatatypeMap(..)
-    )
+import Swish.RDF.Datatype (DatatypeMap(..))
+
+import qualified Data.Text as T
+import qualified Data.Text.Read as T
 
 ------------------------------------------------------------
 --  Implementation of DatatypeMap for xsd:integer
@@ -33,32 +33,16 @@ import Swish.RDF.Datatype
 --
 mapXsdInteger :: DatatypeMap Integer
 mapXsdInteger = DatatypeMap
-    { -- mapL2V :: String -> Maybe Integer
-      mapL2V = fromString
-      
-      -- mapV2L :: Integer -> Maybe String
-    , mapV2L = Just . show
+    { -- mapL2V :: T.Text -> Maybe Integer
+      mapL2V = \txt -> case (T.signed T.decimal) txt of
+         Right (val, "") -> Just val
+         _ -> Nothing
+         
+      -- mapV2L :: Integer -> Maybe T.Text
+      -- TODO: for now convert via String as issues with text-format
+      --       (inability to use with ghci)   
+    , mapV2L = Just . T.pack . show
     }
-
--- basic little parser for integer values;
--- do we need to bother about rejecting 
--- input like "-000" or "+0"?
---
-fromString :: String -> Maybe Integer
-fromString ('-':xs) = fs False xs
-fromString ('+':xs) = fs True xs
-fromString xs       = fs True xs
-
-fs :: Bool -> String -> Maybe Integer
-fs _ [] = Nothing
-fs f is = 
-  let val = go is []
-      
-      go [] ys = Just $ read $ reverse ys
-      go (x:xs) ys | x `elem` ['0'..'9'] = go xs (x:ys)
-                   | otherwise           = Nothing
-        
-  in if f then val else fmap ((-1) *) val
 
 --------------------------------------------------------------------------------
 --

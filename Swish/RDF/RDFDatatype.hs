@@ -160,7 +160,7 @@ makeRDFModifierFn dtval fn ivs =
 fromRDFLabel ::
     RDFDatatypeVal vt -> RDFLabel -> Maybe vt
 fromRDFLabel dtv lab
-    | isDatatyped dtnam lab = mapL2V dtmap $ T.unpack $ getLiteralText lab
+    | isDatatyped dtnam lab = mapL2V dtmap $ getLiteralText lab
     | otherwise             = Nothing
     where
         dtnam = tvalName dtv
@@ -176,9 +176,9 @@ toRDFLabel dtv =
         dtmap = tvalMap dtv
 
 -- | Create a typed literal from the given value.
-makeDatatypedLiteral :: ScopedName -> String -> RDFLabel
-makeDatatypedLiteral dtnam strval =
-    Lit (T.pack strval) (Just dtnam)
+makeDatatypedLiteral :: ScopedName -> T.Text -> RDFLabel
+makeDatatypedLiteral dtnam txtval =
+    Lit txtval (Just dtnam)
 
 --------------------------------------------------------------------------------
 --

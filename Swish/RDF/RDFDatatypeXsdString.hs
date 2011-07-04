@@ -15,6 +15,8 @@
 --
 --------------------------------------------------------------------------------
 
+-- TODO: this should convert to/from T.Text rather than String
+
 module Swish.RDF.RDFDatatypeXsdString
     ( rdfDatatypeXsdString
     , rdfDatatypeValXsdString
@@ -31,9 +33,7 @@ import Swish.RDF.RDFRuleset
     , makeN3ClosureRule
     )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBindingModify
-    )
+import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
 
 import Swish.RDF.RDFDatatype
     ( RDFDatatype
@@ -42,8 +42,7 @@ import Swish.RDF.RDFDatatype
     , makeRdfDtOpenVarBindingModifiers
     )
 
-import Swish.RDF.RDFGraph
-    ( RDFLabel(..) )
+import Swish.RDF.RDFGraph (RDFLabel(..))
 
 import Swish.RDF.ClassRestrictionRule
     ( makeRDFDatatypeRestrictionRules
@@ -60,14 +59,9 @@ import Swish.RDF.Datatype
     , makeVmod_2_0
     )
 
-import Swish.RDF.Ruleset
-    ( makeRuleset 
-    )
+import Swish.RDF.Ruleset (makeRuleset)
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -82,6 +76,8 @@ import Swish.RDF.VarBinding
     , addVarBinding
     , VarBindingModify(..)
     )
+
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Misc values
@@ -139,10 +135,10 @@ rdfDatatypeValXsdString = DatatypeVal
 --
 mapXsdString :: DatatypeMap String
 mapXsdString = DatatypeMap
-    { -- mapL2V :: String -> Maybe String
-      mapL2V = Just
-      -- mapV2L :: String -> Maybe String
-    , mapV2L = Just
+    { -- mapL2V :: T.Text -> Maybe String
+      mapL2V = Just . T.unpack
+      -- mapV2L :: String -> Maybe T.Text
+    , mapV2L = Just . T.pack
     }
 
 -- |relXsdString contains useful relations for @xsd:string@ values.

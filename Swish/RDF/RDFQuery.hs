@@ -72,7 +72,7 @@ import Control.Monad.State (State, runState, modify)
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
 
-import qualified Data.Text as T
+-- import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Primitive RDF graph queries
@@ -485,7 +485,7 @@ rdfFindPredInt s p = mapMaybe getint . filter isint . pvs
             [ isDatatyped xsd_integer
             , isDatatyped xsd_nonneg_integer
             ]
-        getint = mapL2V mapXsdInteger . T.unpack . getLiteralText
+        getint = mapL2V mapXsdInteger . getLiteralText
 
 -- |Find all subjects that have a of given value for for a given predicate
 rdfFindValSubj :: RDFLabel -> RDFLabel -> RDFGraph -> [RDFLabel]

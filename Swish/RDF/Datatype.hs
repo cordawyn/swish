@@ -94,6 +94,8 @@ import Data.Maybe( isJust, catMaybes )
 
 import Control.Monad( join, liftM )
 
+import qualified Data.Text as T
+
 ------------------------------------------------------------
 --  Datatype framework
 ------------------------------------------------------------
@@ -135,7 +137,7 @@ getTypeRule :: ScopedName -> Datatype ex lb vn -> Maybe (Rule ex)
 getTypeRule nam dt = getRulesetRule nam (typeRules dt)
 
 -- |Get the canonical form of a datatype value.
-typeMkCanonicalForm :: Datatype ex lb vn -> String -> Maybe String
+typeMkCanonicalForm :: Datatype ex lb vn -> T.Text -> Maybe T.Text
 typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 
 ------------------------------------------------------------
@@ -265,7 +267,7 @@ getDTMod nam dtv =
 
 -- |Get the canonical form of a datatype value, or @Nothing@.
 --
-tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> String -> Maybe String
+tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> T.Text -> Maybe T.Text
 tvalMkCanonicalForm dtv str = can
     where
       dtmap = tvalMap dtv
@@ -275,16 +277,17 @@ tvalMkCanonicalForm dtv str = can
 -- |DatatypeMap consists of methods that perform lexical-to-value
 --  and value-to-canonical-lexical mappings for a datatype.
 --
---  The datatype mappings apply to string lexical forms.
+--  The datatype mappings apply to string lexical forms which
+--  are stored as `Data.Text`.
 --
 data DatatypeMap vt = DatatypeMap
-    { mapL2V  :: String -> Maybe vt
+    { mapL2V  :: T.Text -> Maybe vt
                             -- ^ Function to map a lexical string to
                             --   the datatype value.  This effectively
                             --   defines the lexical space of the
                             --   datatype to be all strings for which
                             --   yield a value other than @Nothing@.
-    , mapV2L  :: vt -> Maybe String
+    , mapV2L  :: vt -> Maybe T.Text
                             -- ^ Function to map a value to its canonical
                             --   lexical form, if it has such.
     }
