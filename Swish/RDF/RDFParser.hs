@@ -240,7 +240,7 @@ mkTypedLit ::
   ScopedName -- ^ the type
   -> String -- ^ the value
   -> RDFLabel
-mkTypedLit u v = Lit v (Just u)
+mkTypedLit u v = Lit (T.pack v) (Just u)
 
 {-
 Handle hex encoding; the spec for N3 and NTriples suggest that

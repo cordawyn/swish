@@ -145,6 +145,7 @@ Library
    Build-Depends:
       base >=3 && < 5,
       text == 0.11.*,
+      -- text-format == 0.2.*,
       binary == 0.5.*,
       bytestring == 0.9.*,
       containers == 0.3.*,

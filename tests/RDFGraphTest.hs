@@ -10,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains test cases for module RDFGraph.
 --
@@ -56,8 +56,10 @@ import Swish.RDF.Vocabulary
   , xsd_date
     )
 
-import qualified Data.Traversable as T
-import qualified Data.Foldable as F
+import qualified Data.Text as T
+
+import qualified Data.Traversable as Traversable
+import qualified Data.Foldable as Foldable
 
 import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
@@ -336,21 +338,21 @@ testNodeEqSuite = TestList
     
 testToConv :: 
   (ToRDFLabel a, Eq a, Show a) 
-  => String -> String -> Maybe ScopedName -> a -> Test
+  => String -> T.Text -> Maybe ScopedName -> a -> Test
 testToConv lbl sVal dtype hVal = 
   let rdfVal = Lit sVal dtype
   in testEq (":tconv:" ++ lbl) rdfVal (toRDFLabel hVal)
   
 testFrConv :: 
   (FromRDFLabel a, Eq a, Show a) 
-  => String -> String -> Maybe ScopedName -> a -> Test
+  => String -> T.Text -> Maybe ScopedName -> a -> Test
 testFrConv lbl sVal dtype hVal = 
   let rdfVal = Lit sVal dtype
   in testEq (":fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
   
 testConv :: 
   (ToRDFLabel a, FromRDFLabel a, Eq a, Show a) 
-  => String -> String -> Maybe ScopedName -> a -> Test    
+  => String -> T.Text -> Maybe ScopedName -> a -> Test    
 testConv lbl sVal dtype hVal = 
   TestList [ 
     testToConv lbl sVal dtype hVal,
@@ -459,7 +461,7 @@ Valid values for xsd:integer include -123456789012345678901234567890, 2147483647
   , testConv   "double -2.01e38" "-2.01E38" (Just xsd_double) ((-2.01e38)::Double)
   , testConv   "double 2.01e108"  "2.01E108"  (Just xsd_double) (2.01e108::Double)
   , testConv   "double -2.01e108" "-2.01E108" (Just xsd_double) ((-2.01e108)::Double)
-  
+    
     -- URI related types
   , testEq "tconv:sname s1"    s1             (toRDFLabel qb1s1)
   , testEq "fconv:sname s1"    (Just qb1s1)   (fromRDFLabel s1)
@@ -987,21 +989,21 @@ showLabel = (" " ++) . show
 testGraphFoldSuite :: Test
 testGraphFoldSuite = TestList
   [ 
-    testEq "fold0"    (mempty :: RDFGraph) (F.fold [])
-  , testEq "foldE"    (mempty :: RDFGraph) (F.fold [mempty])
-  , testEq "foldEE"   (mempty :: RDFGraph) (F.fold [mempty,mempty])
-  , testEq "foldg1"   g1                   (F.fold [g1])
-  , testEq "foldg1E"  g1                   (F.fold [g1,mempty])
-  , testEq "foldEg1"  g1                   (F.fold [mempty,g1])
-  , testEq "foldg1g2" fg1g2                (F.fold [g1,g2])
-  , testEq "foldg2g1" fg1g2                (F.fold [g2,g1])
-  , testEq "foldMap0" ""                   (F.foldMap showLabel (mempty::RDFGraph))
+    testEq "fold0"    (mempty :: RDFGraph) (Foldable.fold [])
+  , testEq "foldE"    (mempty :: RDFGraph) (Foldable.fold [mempty])
+  , testEq "foldEE"   (mempty :: RDFGraph) (Foldable.fold [mempty,mempty])
+  , testEq "foldg1"   g1                   (Foldable.fold [g1])
+  , testEq "foldg1E"  g1                   (Foldable.fold [g1,mempty])
+  , testEq "foldEg1"  g1                   (Foldable.fold [mempty,g1])
+  , testEq "foldg1g2" fg1g2                (Foldable.fold [g1,g2])
+  , testEq "foldg2g1" fg1g2                (Foldable.fold [g2,g1])
+  , testEq "foldMap0" ""                   (Foldable.foldMap showLabel (mempty::RDFGraph))
   , testEq "foldMapg1"                    
     (concatMap showLabel [s1,p1,o1])
-    (F.foldMap showLabel g1)
+    (Foldable.foldMap showLabel g1)
   , testEq "foldMapg1f2"                    
     (concatMap showLabel $ s2 : concatMap (\(Arc s p o) -> [s,p,o]) g2Labels ++ [s1,p1,o1])
-    (F.foldMap showLabel g1f2)
+    (Foldable.foldMap showLabel g1f2)
   ]
   
 ------------------------------------------------------------
@@ -1249,10 +1251,10 @@ ftm3   = LookupMap [Formula st1 gt1,Formula st2 gt2,Formula st3 gt3]
 
 gt1f1aM, gt1f1bM, gt1f2aM, gt1f2bM, gt1f5M :: Maybe RDFGraph
 gt1f1aM = Just gt1
-gt1f1bM = T.mapM translateM g1f1
+gt1f1bM = Traversable.mapM translateM g1f1
 gt1f2aM = Just gt1f2a
-gt1f2bM = T.mapM translateM g1f2
-gt1f5M = T.mapM translateM g1f5
+gt1f2bM = Traversable.mapM translateM g1f2
+gt1f5M = Traversable.mapM translateM g1f5
 
 ft1M, ft2M :: FormulaMap RDFLabel
 ft1M = getFormulae $ fromJust gt1f1bM

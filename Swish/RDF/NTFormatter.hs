@@ -142,9 +142,9 @@ carets = "^^"
 formatLabel :: RDFLabel -> Formatter B.Builder
 formatLabel lab@(Blank _) = mapBlankNode lab
 formatLabel (Res sn) = return $ showScopedName sn
-formatLabel (Lit lit Nothing) = return $ quoteStr (T.pack lit)
-formatLabel (Lit lit (Just nam)) | isLang nam = return $ mconcat [quoteStr (T.pack lit), at, B.fromString (langTag nam)]
-                                 | otherwise  = return $ mconcat [quoteStr (T.pack lit), carets, showScopedName nam]
+formatLabel (Lit lit Nothing) = return $ quoteText lit
+formatLabel (Lit lit (Just nam)) | isLang nam = return $ mconcat [quoteText lit, at, B.fromString (langTag nam)]
+                                 | otherwise  = return $ mconcat [quoteText lit, carets, showScopedName nam]
 
 -- do not expect to get the following, but include
 -- just in case rather than failing
@@ -178,8 +178,8 @@ Swish.Utils.MiscHelpers contains a quote routine
 which we expand upon here to match the NT syntax.
 -}
 
-quoteStr :: T.Text -> B.Builder
-quoteStr  st = mconcat [squote, B.fromText (quote st), squote]
+quoteText :: T.Text -> B.Builder
+quoteText  st = mconcat [squote, B.fromText (quote st), squote]
 
 {-
 QUS: should we be operating on Text like this?

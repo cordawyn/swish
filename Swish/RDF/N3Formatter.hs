@@ -91,7 +91,7 @@ import Swish.Utils.LookupMap
 import Swish.Utils.Namespace
     ( ScopedName(..), getScopeURI )
 
-import Data.Char (isDigit, toLower)
+import Data.Char (isDigit)
 
 import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
 
@@ -746,10 +746,10 @@ formatLabel _ lab@(Res sn) =
 -- we just convert E to e for now.      
 --      
 formatLabel _ (Lit lit (Just dtype)) 
-  | dtype == xsd_double = return $ B.fromString $ map toLower lit
-  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer] = return $ B.fromString lit
-  | otherwise = return $ quoteStr lit `mappend` formatAnnotation dtype
-formatLabel _ (Lit lit Nothing) = return $ quoteStr lit
+  | dtype == xsd_double = return $ B.fromText $ T.toLower lit
+  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer] = return $ B.fromText lit
+  | otherwise = return $ quoteText lit `mappend` formatAnnotation dtype
+formatLabel _ (Lit lit Nothing) = return $ quoteText lit
 
 formatLabel _ lab = return $ B.fromString $ show lab
 
@@ -770,9 +770,10 @@ If we use """ to surround the string then we protect the
 last character if it is a " (assuming it isn't protected).
 -}
 
-quoteStr :: String -> B.Builder
-quoteStr st = 
-  let qst = quoteB (n==1) st
+quoteText :: T.Text -> B.Builder
+quoteText txt = 
+  let st = T.unpack txt -- TODO: fix
+      qst = quoteB (n==1) st
       n = if '\n' `elem` st || '"' `elem` st then 3 else 1
       qch = B.fromString (replicate n '"')
   in mconcat [qch, qst, qch]

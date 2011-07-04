@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module contains test cases for module "N3Parser".
 --
@@ -62,12 +64,13 @@ import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
 import Data.Monoid (Monoid(..))
 
-import qualified Data.Text.Lazy as T
+-- import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
 
 -- temporary routine during text conversion
 
 parseN3 :: String -> Maybe QName -> N3P.ParseResult
-parseN3 inp = N3P.parseN3 (T.pack inp) 
+parseN3 inp = N3P.parseN3 (L.pack inp) 
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper

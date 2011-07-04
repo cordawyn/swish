@@ -78,6 +78,7 @@ import Control.Monad (when)
 
 import Network.URI (parseURI)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
 import Data.Char (chr) 
@@ -319,7 +320,7 @@ string	::=	character* with escapes as defined in section Strings
 -}
 
 literal :: NTParser RDFLabel
-literal = Lit <$> ntstring <*> optional dtlang
+literal = Lit <$> (T.pack <$> ntstring) <*> optional dtlang
 
 ntstring :: NTParser String
 ntstring = bracket (char '"') (char '"') (many character)

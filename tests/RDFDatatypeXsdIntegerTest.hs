@@ -25,8 +25,7 @@ import Swish.RDF.RDFDatatypeXsdInteger
     , prefixXsdInteger
     )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding )
+import Swish.RDF.RDFVarBinding (RDFVarBinding)
 
 import Swish.RDF.RDFRuleset
     ( RDFRule 
@@ -38,9 +37,7 @@ import Swish.RDF.RDFDatatype
     , applyRDFDatatypeMod
     )
 
-import Swish.RDF.RDFGraph
-    ( RDFLabel(..), RDFGraph
-    )
+import Swish.RDF.RDFGraph (RDFLabel(..), RDFGraph)
 
 import Swish.RDF.ClassRestrictionRule (falseGraphStr)
 
@@ -54,10 +51,7 @@ import Swish.RDF.Datatype
     , nullDatatypeMod
     )
 
-import Swish.RDF.Ruleset
-    ( Ruleset(..)
-    , getRulesetRule
-    )
+import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
 
 import Swish.RDF.Rule
     ( Formula(..), Rule(..)
@@ -74,13 +68,9 @@ import Swish.Utils.Namespace
 
 import Swish.RDF.Vocabulary (namespaceDefault)
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , mapFindMaybe
-    )
+import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 
-import Swish.Utils.ListHelpers
-    ( equiv )
+import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -90,9 +80,9 @@ import Test.HUnit
     )
 
 import Control.Monad (unless)
-
 import Data.Maybe (isJust, isNothing, fromMaybe)
 
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -321,10 +311,10 @@ rdfVB :: (String, String) -> (RDFLabel, RDFLabel)
 rdfVB (v,b) = (Var v,Blank b)                   -- (Variable,Blank)
 
 rdfVL :: (String, String) -> (RDFLabel, RDFLabel)
-rdfVL (v,l) = (Var v,Lit l Nothing)             -- (Variable,Untyped literal)
+rdfVL (v,l) = (Var v,Lit (T.pack l) Nothing)             -- (Variable,Untyped literal)
 
 rdfVI :: (String, String) -> (RDFLabel, RDFLabel)
-rdfVI (v,l) = (Var v,Lit l (Just typeNameXsdInteger))
+rdfVI (v,l) = (Var v,Lit (T.pack l) (Just typeNameXsdInteger))
                                                 -- (Variable,Integer literal)
 
 makeBVR :: [(String,ScopedName)] -> RDFVarBinding

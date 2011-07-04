@@ -137,7 +137,8 @@ import Network.URI (URI,
 import Data.Char (isSpace, isDigit, chr) 
 import Data.Maybe (fromMaybe, fromJust)
 
-import qualified Data.Text.Lazy as T
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
 import Text.ParserCombinators.Poly.StateText
 
 ----------------------------------------------------------------------
@@ -214,14 +215,14 @@ type N3Parser a = Parser N3State a
 parseN3fromString ::
   String -- ^ input in N3 format.
   -> ParseResult
-parseN3fromString txt = parseN3 (T.pack txt) Nothing
+parseN3fromString txt = parseN3 (L.pack txt) Nothing
 
 -- | Parse a string with an optional base URI.
 --            
 -- See also 'parseN3fromString'.            
 --
 parseN3 ::
-  T.Text -- ^ input in N3 format.
+  L.Text -- ^ input in N3 format.
   -> Maybe QName -- ^ optional base URI
   -> ParseResult
 parseN3 txt mbase = parseAnyfromText document mbase txt
@@ -238,13 +239,13 @@ parseAnyfromString :: N3Parser a      -- ^ parser to apply
                       -> Maybe QName  -- ^ base URI of the input, or @Nothing@ to use default base value
                       -> String       -- ^ input to be parsed
                       -> Either String a
-parseAnyfromString p mb = parseAnyfromText p mb . T.pack
+parseAnyfromString p mb = parseAnyfromText p mb . L.pack
 
 -- | Function to supply initial context and parse supplied term.
 --
 parseAnyfromText :: N3Parser a      -- ^ parser to apply
                     -> Maybe QName  -- ^ base URI of the input, or @Nothing@ to use default base value
-                    -> T.Text       -- ^ input to be parsed
+                    -> L.Text       -- ^ input to be parsed
                     -> Either String a
 parseAnyfromText parser mbase input =
   let pmap   = LookupMap []
@@ -465,7 +466,7 @@ n3Name :: N3Parser String
 n3Name = (:) <$> n3Init <*> n3Body
   where
     n3Init = satisfy (`elem` initChar)
-    n3Body = T.unpack <$> manySatisfy (`elem` bodyChar)
+    n3Body = L.unpack <$> manySatisfy (`elem` bodyChar)
 
 {-
 quickvariable ::=	\?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
@@ -936,7 +937,7 @@ langcode ::=	[a-z]+(-[a-z0-9]+)*
 -}
 
 literal :: N3Parser RDFLabel
-literal = Lit <$> n3string <*> optional dtlang
+literal = Lit <$> (T.pack <$> n3string) <*> optional dtlang
   
 dtlang :: N3Parser ScopedName
 dtlang = 
@@ -947,8 +948,8 @@ dtlang =
 langcode :: N3Parser ScopedName
 langcode = do
   h <- many1Satisfy (`elem` ['a'..'z'])
-  mt <- optional ( T.append <$> (char '-' *> pure (T.singleton '-')) <*> many1Satisfy (`elem` ['a'..'z'] ++ ['0'..'9']))
-  return $ langName $ T.unpack $ T.append h (fromMaybe T.empty mt)
+  mt <- optional ( L.append <$> (char '-' *> pure (L.singleton '-')) <*> many1Satisfy (`elem` ['a'..'z'] ++ ['0'..'9']))
+  return $ langName $ L.unpack $ L.append h (fromMaybe L.empty mt)
     
 {-
 decimal ::=	[-+]?[0-9]+(\.[0-9]+)?

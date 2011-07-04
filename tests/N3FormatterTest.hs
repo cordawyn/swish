@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module defines test cases for module Parse parsing functions.
 --
@@ -119,7 +120,7 @@ o1 = Res $ ScopedName base1 "o1"
 o2 = Res $ ScopedName base2 "o2"
 o3 = Res $ ScopedName base3 "o3"
 
-l1txt, l2txt, l3txt, l11txt, l12txt, l13txt, l14txt :: String
+l1txt, l2txt, l3txt, l11txt, l12txt, l13txt, l14txt :: T.Text
 l1txt = "l1"
 l2txt = "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'"
 l3txt = "l3--\r\"'\\--\x0020\&--\x00A0\&--"
@@ -662,7 +663,7 @@ graph_l3 =
   -}
   in toRDFGraph arcs
    
-graph_l4 = toGraph [ toRDFTriple s1 p1 "A string with \"quotes\""
+graph_l4 = toGraph [ toRDFTriple s1 p1 ("A string with \"quotes\"" :: RDFLabel)
                    , toRDFTriple s2 p2 (Lit "A typed string with \"quotes\"" (Just (fromString "urn:a#b")))
                    ]                    
                     
@@ -833,7 +834,7 @@ simpleN3Graph_c1rev =
     "() base1:p1 base1:o1 .\n"
 
 collItems :: String
-collItems = "( \"l1\" base2:o2 \"\"\"" ++ l2txt ++ "\"\"\" base3:o3 )"
+collItems = "( \"l1\" base2:o2 \"\"\"" ++ T.unpack l2txt ++ "\"\"\" base3:o3 )"
 
 simpleN3Graph_c2 :: String
 simpleN3Graph_c2 =
@@ -886,7 +887,7 @@ simpleN3Graph_b3 =
     commonPrefixesN [2,1,0] ++
     -- "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
     -- "         base2:p2 [] .\n" ++
-    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
+    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"" ++ T.unpack l2txt ++ "\"\"\"\n] ;\n" ++
     "     base2:p2 [] .\n" ++
     "base2:s2 base2:p2 base2:o2 .\n"
 
@@ -1146,7 +1147,7 @@ exoticN3Graph_x1 =
     "   base2:p2 base1:o1 , \n" ++
     "            base2:o2 , \n" ++
     "            base3:o3 , \n" ++
-    "            \"\"\"" ++ l2txt ++ "\"\"\"   ] . \n"
+    "            \"\"\"" ++ T.unpack l2txt ++ "\"\"\"   ] . \n"
 
 --  Simple anon nodes, with 'is ... of' and semicolons and commas
 exoticN3Graph_x2 :: String

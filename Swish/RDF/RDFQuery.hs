@@ -51,13 +51,8 @@ import Swish.RDF.RDFGraph
     , res_rdf_nil
     )
 
-import Swish.RDF.MapXsdInteger
-    ( mapXsdInteger
-    )
-
-import Swish.RDF.Datatype
-    ( DatatypeMap(..)
-    )
+import Swish.RDF.MapXsdInteger (mapXsdInteger)
+import Swish.RDF.Datatype (DatatypeMap(..))
 
 import Swish.RDF.VarBinding
     ( VarBinding(..)
@@ -67,20 +62,17 @@ import Swish.RDF.VarBinding
     , VarBindingFilter(..)
     )
 
-import Swish.RDF.Vocabulary
-    ( xsd_integer, xsd_nonneg_integer
-    )
+import Swish.RDF.Vocabulary (xsd_integer, xsd_nonneg_integer)
 
-import Swish.Utils.ListHelpers
-    ( listProduct, allp, anyp )
+import Swish.Utils.ListHelpers (listProduct, allp, anyp)
 
-import qualified Data.Traversable as T
+import qualified Data.Traversable as Traversable
 
-import Control.Monad.State
-    ( State, runState, modify )
+import Control.Monad.State (State, runState, modify)
 
-import Data.Maybe
-    ( mapMaybe, isJust, fromJust )
+import Data.Maybe (mapMaybe, isJust, fromJust)
+
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Primitive RDF graph queries
@@ -403,8 +395,7 @@ rdfQueryBackSubsBlank varss gr = [ rdfQuerySubsBlank v gr | v <- varss ]
 rdfQuerySubs2 :: RDFVarBinding -> RDFGraph -> (RDFGraph,[RDFLabel])
 rdfQuerySubs2 varb gr = (add emptyRDFGraph g,vs)
     where
-        (g,vs) = runState ( T.traverse (mapNode varb) gr ) []
-        -- (g,vs) = runState ( fmapM (mapNode varb) gr ) []
+        (g,vs) = runState ( Traversable.traverse (mapNode varb) gr ) []
 
 --  Auxiliary monad function for rdfQuerySubs2.
 --  This returns a state transformer Monad which in turn returns the
@@ -494,7 +485,7 @@ rdfFindPredInt s p = mapMaybe getint . filter isint . pvs
             [ isDatatyped xsd_integer
             , isDatatyped xsd_nonneg_integer
             ]
-        getint = mapL2V mapXsdInteger . getLiteralText
+        getint = mapL2V mapXsdInteger . T.unpack . getLiteralText
 
 -- |Find all subjects that have a of given value for for a given predicate
 rdfFindValSubj :: RDFLabel -> RDFLabel -> RDFGraph -> [RDFLabel]
