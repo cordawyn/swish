@@ -56,7 +56,7 @@ import Data.Char (toLower)
 ------------------------------------------------------------
 
 toNS :: String -> String -> Namespace
-toNS p u = Namespace (Just p) u
+toNS p = Namespace (Just p)
 
 namespaceXsdType :: String -> Namespace
 namespaceXsdType dtname = toNS ("xsd_"++dtname)

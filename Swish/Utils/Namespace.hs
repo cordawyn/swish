@@ -49,8 +49,6 @@ import qualified Data.Text.Lazy.Builder as B
 -- |A NameSpace value consists of an optional prefix and a corresponding URI.
 --
 
--- NOTE: at present there may be some semantic ambiguity about a null prefix;
---       I am taking it to mean the "default" prefix but that may not be true
 data Namespace = Namespace { nsPrefix :: Maybe String, nsURI :: String }
 
 {-
