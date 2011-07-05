@@ -68,10 +68,10 @@ import Swish.RDF.Vocabulary
     , namespaceRDFD
     , namespaceOWL
     , namespaceLOG
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil
-    , owl_sameAs, log_implies
-    , default_base
+    , rdfType
+    , rdfFirst, rdfRest, rdfNil
+    , owlSameAs, logImplies
+    , defaultBase
     )
 
 import qualified Data.Text      as T
@@ -108,13 +108,13 @@ The optional argument defines the initial base URI.
 -}
 specialTable :: Maybe ScopedName -> [(String,ScopedName)]
 specialTable mbase =
-  [ ("a",         rdf_type    ),
-    ("equals",    owl_sameAs  ),
-    ("implies",   log_implies ),
-    ("listfirst", rdf_first   ),
-    ("listrest",  rdf_rest    ),
-    ("listnull",  rdf_nil     ),
-    ("base",      fromMaybe default_base mbase ) 
+  [ ("a",         rdfType    ),
+    ("equals",    owlSameAs  ),
+    ("implies",   logImplies ),
+    ("listfirst", rdfFirst   ),
+    ("listrest",  rdfRest    ),
+    ("listnull",  rdfNil     ),
+    ("base",      fromMaybe defaultBase mbase ) 
   ]
 
 -- Parser routines, heavily based on Parsec

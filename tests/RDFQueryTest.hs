@@ -66,7 +66,7 @@ import Swish.RDF.Vocabulary
     ( namespaceRDF
     , langName
     , swishName
-    , rdf_type, rdf_XMLLiteral
+    , rdfType, rdfXMLLiteral
     )
 
 import Swish.RDF.N3Parser (parseN3fromString)
@@ -1273,8 +1273,8 @@ u_p2a = Res $ makeScopedName "" baseex "p2a"
 u_p2b = Res $ makeScopedName "" baseex "p2b"
 u_m1  = Res $ makeScopedName "" baserdf "_1"
 u_m2  = Res $ makeScopedName "" baserdf "_2"
-u_rt  = Res rdf_type
-u_xt  = Res rdf_XMLLiteral
+u_rt  = Res rdfType
+u_xt  = Res rdfXMLLiteral
 u_dt  = Res q_dattyp
 
 l_1, l_2, l_3, l_4, l_5 :: RDFLabel
@@ -1282,7 +1282,7 @@ l_1   = Lit "l1" Nothing
 l_2   = Lit "l2" (Just $ langName "fr")
 l_3   = Lit "l3" (Just q_dattyp)
 l_4   = Lit "l4" (Just q_dattyp) -- was: (Lang "fr")
-l_5   = Lit "l5" (Just rdf_XMLLiteral)
+l_5   = Lit "l5" (Just rdfXMLLiteral)
 
 b_1, b_2, b_3, b_l1, b_l2 :: RDFLabel
 b_1   = Blank "1"
@@ -1568,7 +1568,7 @@ list01 = [Res (qnlist "_1"),Res (qnlist "_2"),Res (qnlist "_3")]
 list02 = []
 
 testVal01  = testEqv "testVal01" testabc $
-                rdfFindValSubj res_rdf_type testC1 graphlist
+                rdfFindValSubj res_rdfType testC1 graphlist
 testVal02  = testEqv "testVal02" testi12 $
                 rdfFindPredVal (testabc!!0) testp graphlist
 testVal03  = testEqv "testVal03" test123 $

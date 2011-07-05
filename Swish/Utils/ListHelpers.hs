@@ -36,7 +36,7 @@ module Swish.Utils.ListHelpers
        , powerSet -- ClassRestrictionRule, RDFProof
        , permutations -- VarBinding
        , listProduct -- RDFQuery
-       , powerSequences_len -- RDFProof
+       , powerSequencesLen -- RDFProof
        , flist -- Datatype, RDFProof, RDFRuleset, SwishScript, VarBinding
        , allp -- RDFQuery
        , anyp -- RDFQuery
@@ -262,17 +262,17 @@ lp (as:ass) = concatMap (\a -> (map (a:) (lp ass))) as
 ------------------------------------------------------------
 
 -- |Construct list of lists of sequences of increasing length
-powerSeq_bylen :: [a] -> [[a]] -> [[[a]]]
-powerSeq_bylen rs ps = ps : powerSeq_bylen rs (powerSeq_next rs ps)
+powerSeqBylen :: [a] -> [[a]] -> [[[a]]]
+powerSeqBylen rs ps = ps : powerSeqBylen rs (powerSeqNext rs ps)
 
 -- |Return sequences of length n+1 given original sequence
 --  and list of all sequences of length n
-powerSeq_next :: [a] -> [[a]] -> [[a]]
-powerSeq_next rs rss = [ h:t | t <- rss, h <- rs ]
+powerSeqNext :: [a] -> [[a]] -> [[a]]
+powerSeqNext rs rss = [ h:t | t <- rss, h <- rs ]
 
 -- |Return all powersequences of a given length
-powerSequences_len :: Int -> [a] -> [[a]]
-powerSequences_len len rs = powerSeq_bylen rs [[]] !! len
+powerSequencesLen :: Int -> [a] -> [[a]]
+powerSequencesLen len rs = powerSeqBylen rs [[]] !! len
 
 ------------------------------------------------------------
 --  Functions, lists and monads

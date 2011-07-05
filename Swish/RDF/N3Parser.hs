@@ -98,10 +98,10 @@ import Swish.Utils.QName (QName, getQNameURI)
 
 import Swish.RDF.Vocabulary
     ( langName
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil
-    , owl_sameAs, log_implies
-    , xsd_boolean, xsd_integer, xsd_decimal, xsd_double
+    , rdfType
+    , rdfFirst, rdfRest, rdfNil
+    , owlSameAs, logImplies
+    , xsdBoolean, xsdInteger, xsdDecimal, xsdDouble
     )
 
 import Swish.RDF.RDFParser
@@ -428,7 +428,7 @@ other formats (e.g RDF/XML once it is supported).
 type AddStatement = RDFLabel -> N3Parser ()
 
 addStatement :: RDFLabel -> RDFLabel -> AddStatement
-addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsd_boolean, xsd_integer, xsd_decimal, xsd_double] = do 
+addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsdBoolean, xsdInteger, xsdDecimal, xsdDouble] = do 
   ost <- stGet
   let stmt = arc s p o
       oldp = prefixUris ost
@@ -851,24 +851,24 @@ adding the list contents to the graph
 pathList :: N3Parser RDFLabel
 pathList = do
   cts <- many (lexeme expression)
-  eNode <- operatorLabel rdf_nil
+  eNode <- operatorLabel rdfNil
   case cts of
     [] -> return eNode
       
     (c:cs) -> do
       sNode <- newBlankNode
-      first <- operatorLabel rdf_first
+      first <- operatorLabel rdfFirst
       addStatement sNode first c
       lNode <- foldM addElem sNode cs
-      rest <- operatorLabel rdf_rest
+      rest <- operatorLabel rdfRest
       addStatement lNode rest eNode
       return sNode
 
     where      
       addElem prevNode curElem = do
         bNode <- newBlankNode
-        first <- operatorLabel rdf_first
-        rest <- operatorLabel rdf_rest
+        first <- operatorLabel rdfFirst
+        rest <- operatorLabel rdfRest
         addStatement prevNode rest bNode
         addStatement bNode first curElem
         return bNode
@@ -922,7 +922,7 @@ boolean ::=		|	 "@false"
 -}
 
 boolean :: N3Parser RDFLabel
-boolean = mkTypedLit xsd_boolean <$> 
+boolean = mkTypedLit xsdBoolean <$> 
           (atWord "false" <|> atWord "true")
           -- (try (atWord "false") <|> atWord "true")
            
@@ -971,12 +971,12 @@ goes with it.
 
 numericLiteral :: N3Parser RDFLabel
 numericLiteral =
-  -- -- try (mkTypedLit xsd_double <$> n3double)
+  -- -- try (mkTypedLit xsdDouble <$> n3double)
   -- try (d2s <$> n3double)
-  -- <|> try (mkTypedLit xsd_decimal <$> n3decimal)
+  -- <|> try (mkTypedLit xsdDecimal <$> n3decimal)
   d2s <$> n3double
-  <|> mkTypedLit xsd_decimal <$> n3decimal
-  <|> mkTypedLit xsd_integer <$> n3integer
+  <|> mkTypedLit xsdDecimal <$> n3decimal
+  <|> mkTypedLit xsdInteger <$> n3integer
 
 n3sign :: N3Parser Char
 n3sign = char '+' <|> char '-'
@@ -1082,22 +1082,22 @@ verb =
 -- those verbs for which subject is on the right and object on the left
 verbReverse :: N3Parser RDFLabel
 verbReverse =
-  string "<=" *> operatorLabel log_implies
+  string "<=" *> operatorLabel logImplies
   <|> between (atWord "is") (atWord "of") (lexeme expression)
 
 {-
-  try (string "<=") *> operatorLabel log_implies
+  try (string "<=") *> operatorLabel logImplies
   <|> between (try (atWord "is")) (atWord "of") (lexeme expression)
 -}
 
 -- those verbs with subject on the left and object on the right
 verbForward :: N3Parser RDFLabel
 verbForward =  
-  -- (try (string "=>") *> operatorLabel log_implies)
-  (string "=>" *> operatorLabel log_implies)
-  <|> (string "=" *> operatorLabel owl_sameAs)
-  -- <|> (try (atWord "a") *> operatorLabel rdf_type)
-  <|> (atWord "a" *> operatorLabel rdf_type)
+  -- (try (string "=>") *> operatorLabel logImplies)
+  (string "=>" *> operatorLabel logImplies)
+  <|> (string "=" *> operatorLabel owlSameAs)
+  -- <|> (try (atWord "a") *> operatorLabel rdfType)
+  <|> (atWord "a" *> operatorLabel rdfType)
   <|> (atWord "has" *> lexeme expression)
   <|> lexeme expression
 

@@ -29,7 +29,7 @@ import Swish.RDF.RDFGraph
 
 import Swish.Utils.Namespace (makeUriScopedName)
 
-import Swish.RDF.Vocabulary (langName, rdf_XMLLiteral)
+import Swish.RDF.Vocabulary (langName, rdfXMLLiteral)
 
 import Swish.RDF.GraphClass (arc)
 
@@ -114,8 +114,8 @@ l4 = Lit "l4 \\" Nothing
 lfr, lgben, lxml1, lxml2 :: RDFLabel
 lfr    = Lit "chat"          (Just $ langName "fr")
 lgben  = Lit "football"      (Just $ langName "en-gb")
-lxml1  = Lit "<br/>"         (Just rdf_XMLLiteral)
-lxml2  = Lit "<em>chat</em>" (Just rdf_XMLLiteral)
+lxml1  = Lit "<br/>"         (Just rdfXMLLiteral)
+lxml2  = Lit "<em>chat</em>" (Just rdfXMLLiteral)
 
 b1 , b2 :: RDFLabel
 b1 = Blank "x1"

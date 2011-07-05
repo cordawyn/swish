@@ -34,8 +34,8 @@ import Swish.RDF.RDFGraph
     , merge
     , toRDFGraph, emptyRDFGraph
     , Arc(..)
-    , res_rdf_type
-    , res_rdfd_maxCardinality
+    , resRdfType
+    , resRdfdMaxCardinality
     )
 
 import Swish.RDF.RDFRuleset (RDFRule, makeRDFGraphFromN3Builder)
@@ -176,7 +176,7 @@ makeRestrictionRule1 crs gr vb =
         p  = fromMaybe NoNode $ vbMap vb (Var "p")
         r  = fromMaybe NoNode $ vbMap vb (Var "r")
         cs = filter (>0) $ map fromInteger $
-             rdfFindPredInt c res_rdfd_maxCardinality gr
+             rdfFindPredInt c resRdfdMaxCardinality gr
         ps = rdfFindList gr p
         rn = mapFindMaybe (getScopedName r) (LookupMap crs)
 
@@ -205,7 +205,7 @@ fwdApplyRestriction restriction cls props cs antgrs =
     if isJust newgrs then concat $ fromJust newgrs else [falseGraph]
     where
         -- Instances of the named class in the graph:
-        ris = nub $ rdfFindValSubj res_rdf_type cls antgr
+        ris = nub $ rdfFindValSubj resRdfType cls antgr
         --  Merge antecedent graphs into one (with bnode renaming):
         --  (Uses 'if' and 'foldl1' to avoid merging in the common case
         --  of just one graph supplied.)
@@ -248,7 +248,7 @@ bwdApplyRestriction restriction cls props cs congr =
     fromMaybe [[falseGraph]] newgrs
     where
         -- Instances of the named class in the graph:
-        ris = rdfFindValSubj res_rdf_type cls congr
+        ris = rdfFindValSubj resRdfType cls congr
         --  Apply class restriction to single instance of the restricted class
         newgr :: RDFLabel -> Maybe [[RDFGraph]]
         newgr ri = bwdApplyRestriction1 restriction cls ri props cs congr
@@ -296,7 +296,7 @@ bwdApplyRestriction1 restriction cls ci props cs congr =
         newArcs dts =
             [ Arc ci p v | mvs <- dts, (p,Just v) <- zip props mvs ]
         --  Make graphs for one alternative
-        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci res_rdf_type cls :)
+        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci resRdfType cls :)
 
 --  Helper function to select sub-tuples from which some of a set of
 --  values can be derived using a class restriction.

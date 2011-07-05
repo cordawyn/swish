@@ -50,11 +50,11 @@ module Swish.RDF.RDFGraph
     , arc, arcSubj, arcPred, arcObj, Selector
       
       -- * Export selected RDFLabel values
-    , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
-    , res_rdfs_member
-    , res_rdfd_GeneralRestriction
-    , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
-    , res_owl_sameAs, res_log_implies
+    , resRdfType, resRdfFirst, resRdfRest, resRdfNil
+    , resRdfsMember
+    , resRdfdGeneralRestriction
+    , resRdfdOnProperties, resRdfdConstraint, resRdfdMaxCardinality
+    , resOwlSameAs, resLogImplies
       
       -- * Exported for testing
     , grMatchMap, grEq
@@ -75,15 +75,14 @@ import Swish.Utils.Namespace
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , langTag, isLang
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
-    , rdfs_member
-    , rdfd_GeneralRestriction
-    , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs, log_implies
-    -- , xsd_type
-    , xsd_boolean, xsd_decimal, xsd_float, xsd_double, xsd_integer
-    , xsd_dateTime, xsd_date                                                
+    , rdfType
+    , rdfFirst, rdfRest, rdfNil, rdfXMLLiteral
+    , rdfsMember
+    , rdfdGeneralRestriction
+    , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
+    , owlSameAs, logImplies
+    , xsdBoolean, xsdDecimal, xsdFloat, xsdDouble, xsdInteger
+    , xsdDateTime, xsdDate                                                
     )
 
 import Swish.RDF.GraphClass
@@ -178,7 +177,7 @@ instance Show RDFLabel where
     show (Lit st Nothing)   = quote1Str st
     show (Lit st (Just nam))
         | isLang nam = quote1Str st ++ "@"  ++ langTag nam
-        | nam `elem` [xsd_boolean, xsd_double, xsd_decimal, xsd_integer] = T.unpack st
+        | nam `elem` [xsdBoolean, xsdDouble, xsdDecimal, xsdInteger] = T.unpack st
         | otherwise  = quote1Str st ++ "^^" ++ show nam
     show (Blank ln)         = "_:"++ln
     show (Var ln)           = '?' : ln
@@ -324,13 +323,13 @@ textToBool s | s `elem` ["1", "true"]  = Just True
 
 -- | Converts to a literal with a @xsd:boolean@ datatype.
 instance ToRDFLabel Bool where
-  toRDFLabel b = Lit (if b then "true" else "false") (Just xsd_boolean)
+  toRDFLabel b = Lit (if b then "true" else "false") (Just xsdBoolean)
                                                  
 -- | Converts from a literal with a @xsd:boolean@ datatype. The
 -- literal can be any of the supported XSD forms - e.g. \"0\" or
 -- \"true\".
 instance FromRDFLabel Bool where
-  fromRDFLabel = fLabel textToBool xsd_boolean
+  fromRDFLabel = fLabel textToBool xsdBoolean
 
 -- fromRealFloat :: (RealFloat a, Buildable a) => ScopedName -> a -> RDFLabel
 fromRealFloat :: (RealFloat a, PrintfArg a) => ScopedName -> a -> RDFLabel
@@ -397,21 +396,21 @@ textToDouble = textToRealFloat Just
 
 -- | Converts to a literal with a @xsd:float@ datatype.
 instance ToRDFLabel Float where
-  toRDFLabel = fromRealFloat xsd_float
+  toRDFLabel = fromRealFloat xsdFloat
   
 -- | Converts from a literal with a @xsd:float@ datatype.
 -- The conversion will fail if the value is outside the valid range of
 -- a Haskell `Float`.
 instance FromRDFLabel Float where
-  fromRDFLabel = fLabel textToFloat xsd_float
+  fromRDFLabel = fLabel textToFloat xsdFloat
                  
 -- | Converts to a literal with a @xsd:double@ datatype.
 instance ToRDFLabel Double where
-  toRDFLabel = fromRealFloat xsd_double
+  toRDFLabel = fromRealFloat xsdDouble
   
 -- | Converts from a literal with a @xsd:double@ datatype.
 instance FromRDFLabel Double where
-  fromRDFLabel = fLabel textToDouble xsd_double
+  fromRDFLabel = fLabel textToDouble xsdDouble
   
 -- TODO: are there subtypes of xsd::integer that are  
 --       useful here?  
@@ -421,7 +420,7 @@ instance FromRDFLabel Double where
 
 -- | Converts to a literal with a @xsd:integer@ datatype.
 instance ToRDFLabel Int where
-  toRDFLabel = tLabel xsd_integer T.pack
+  toRDFLabel = tLabel xsdInteger T.pack
 
 {-
 Since decimal will just over/under-flow when converting to Int
@@ -442,15 +441,15 @@ textToInt s =
 -- The conversion will fail if the value is outside the valid range of
 -- a Haskell `Int`.
 instance FromRDFLabel Int where
-  fromRDFLabel = fLabel textToInt xsd_integer
+  fromRDFLabel = fLabel textToInt xsdInteger
 
 -- | Converts to a literal with a @xsd:integer@ datatype.
 instance ToRDFLabel Integer where
-  toRDFLabel = tLabel xsd_integer T.pack
+  toRDFLabel = tLabel xsdInteger T.pack
 
 -- | Converts from a literal with a @xsd:integer@ datatype.
 instance FromRDFLabel Integer where
-  fromRDFLabel = fLabel (maybeRead (T.signed T.decimal)) xsd_integer
+  fromRDFLabel = fLabel (maybeRead (T.signed T.decimal)) xsdInteger
 
 {-
 Support an ISO-8601 style format supporting
@@ -497,19 +496,19 @@ toDayFormat = toTimeFormat "%F" . T.unpack
     
 -- | Converts to a literal with a @xsd:datetime@ datatype.
 instance ToRDFLabel UTCTime where
-  toRDFLabel = flip Lit (Just xsd_dateTime) . T.pack . fromUTCFormat
+  toRDFLabel = flip Lit (Just xsdDateTime) . T.pack . fromUTCFormat
   
 -- | Converts from a literal with a @xsd:datetime@ datatype.
 instance FromRDFLabel UTCTime where
-  fromRDFLabel = fLabel toUTCFormat xsd_dateTime
+  fromRDFLabel = fLabel toUTCFormat xsdDateTime
   
 -- | Converts to a literal with a @xsd:date@ datatype.
 instance ToRDFLabel Day where
-  toRDFLabel = flip Lit (Just xsd_date) . T.pack . fromDayFormat
+  toRDFLabel = flip Lit (Just xsdDate) . T.pack . fromDayFormat
 
 -- | Converts from a literal with a @xsd:date@ datatype.
 instance FromRDFLabel Day where
-  fromRDFLabel = fLabel toDayFormat xsd_date
+  fromRDFLabel = fLabel toDayFormat xsdDate
   
 -- | Converts to a Resource.
 instance ToRDFLabel ScopedName where  
@@ -598,23 +597,23 @@ quote1Str t = '"' : quote False (T.unpack t) ++ ['"']
 --  Selected RDFLabel values
 ---------------------------------------------------------
 
-res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil,
-  res_rdfs_member, res_rdfd_GeneralRestriction,
-  res_rdfd_onProperties, res_rdfd_constraint,
-  res_rdfd_maxCardinality, res_owl_sameAs, res_log_implies
+resRdfType, resRdfFirst, resRdfRest, resRdfNil,
+  resRdfsMember, resRdfdGeneralRestriction,
+  resRdfdOnProperties, resRdfdConstraint,
+  resRdfdMaxCardinality, resOwlSameAs, resLogImplies
   :: RDFLabel
 
-res_rdf_type                = Res rdf_type 
-res_rdf_first               = Res rdf_first 
-res_rdf_rest                = Res rdf_rest
-res_rdf_nil                 = Res rdf_nil
-res_rdfs_member             = Res rdfs_member
-res_rdfd_GeneralRestriction = Res rdfd_GeneralRestriction
-res_rdfd_onProperties       = Res rdfd_onProperties
-res_rdfd_constraint         = Res rdfd_constraint
-res_rdfd_maxCardinality     = Res rdfd_maxCardinality
-res_owl_sameAs              = Res owl_sameAs
-res_log_implies             = Res log_implies
+resRdfType               = Res rdfType 
+resRdfFirst               = Res rdfFirst 
+resRdfRest                = Res rdfRest
+resRdfNil                 = Res rdfNil
+resRdfsMember             = Res rdfsMember
+resRdfdGeneralRestriction = Res rdfdGeneralRestriction
+resRdfdOnProperties       = Res rdfdOnProperties
+resRdfdConstraint         = Res rdfdConstraint
+resRdfdMaxCardinality     = Res rdfdMaxCardinality
+resOwlSameAs              = Res owlSameAs
+resLogImplies             = Res logImplies
 
 ---------------------------------------------------------
 --  Additional functions on RDFLabel values
@@ -643,7 +642,7 @@ isTypedLiteral  _                = False
 
 -- |Test if supplied labal is an XML literal node
 isXMLLiteral :: RDFLabel -> Bool
-isXMLLiteral = isDatatyped rdf_XMLLiteral
+isXMLLiteral = isDatatyped rdfXMLLiteral
 
 -- |Test if supplied label is an typed literal node of a given datatype
 isDatatyped :: ScopedName -> RDFLabel -> Bool

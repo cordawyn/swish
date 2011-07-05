@@ -32,8 +32,8 @@ import Swish.RDF.RDFGraph
     ( RDFGraph, RDFLabel(..), NSGraph(..)
     , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
-    , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
-    , res_owl_sameAs, res_log_implies
+    , resRdfType, resRdfFirst, resRdfRest, resRdfNil
+    , resOwlSameAs, resLogImplies
     )
 
 import Swish.Utils.Namespace
@@ -48,11 +48,11 @@ import Swish.Utils.Namespace
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , langName
-    , rdf_XMLLiteral
-    , xsd_boolean 
-    , xsd_integer
-    , xsd_decimal 
-    , xsd_double 
+    , rdfXMLLiteral
+    , xsdBoolean 
+    , xsdInteger
+    , xsdDecimal 
+    , xsdDouble 
     )
 
 import Swish.Utils.QName (QName, qnameFromURI)
@@ -327,12 +327,12 @@ l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--" Nothing
 
 lfr, lxml, lfrxml :: RDFLabel
 lfr    = Lit "chat"          $ Just $ langName "fr"
-lxml   = Lit "<br/>"         $ Just rdf_XMLLiteral
-lfrxml = Lit "<em>chat</em>" $ Just rdf_XMLLiteral
+lxml   = Lit "<br/>"         $ Just rdfXMLLiteral
+lfrxml = Lit "<em>chat</em>" $ Just rdfXMLLiteral
 
 bTrue, bFalse :: RDFLabel
-bTrue  = Lit "true"  $ Just xsd_boolean
-bFalse = Lit "false" $ Just xsd_boolean
+bTrue  = Lit "true"  $ Just xsdBoolean
+bFalse = Lit "false" $ Just xsdBoolean
 
 f1, f2 :: RDFLabel
 f1 = Res $ ScopedName base1 "f1"
@@ -443,7 +443,7 @@ g4_1 :: RDFGraph
 g4_1 = toGraph [arc b1 p1 o1, arc b2 p2 o2]
 
 g4_2 :: RDFGraph
-g4_2 = toGraph [arc b1 res_rdf_type o1, arc b2 res_rdf_type o2]
+g4_2 = toGraph [arc b1 resRdfType o1, arc b2 resRdfType o2]
 
 g5 :: RDFGraph
 g5 = toGraph [t01,t02,t03,t04,t05]
@@ -455,12 +455,12 @@ g7 :: RDFGraph
 g7 = toGraph [t01,t07]
 
 t801, t802, t807, t808, t811, t812 :: Arc RDFLabel
-t801 = arc s1 res_rdf_type       o1
-t802 = arc s2 res_owl_sameAs     o2
+t801 = arc s1 resRdfType       o1
+t802 = arc s2 resOwlSameAs     o2
 t807 = arc o1 p1 s1
 t808 = arc s2 p1 o2
-t811 = arc s1 res_log_implies o1
-t812 = arc o2 res_log_implies s2
+t811 = arc s1 resLogImplies o1
+t812 = arc o2 resLogImplies s2
 
 g8 :: RDFGraph
 g8 = toGraph [t801,t802,t807,t808,t811,t812]
@@ -521,10 +521,10 @@ g11 = toGraph [t1111,t1112,t1113]
 
 t1211, t1221, t1222, t1223, t1224 :: Arc RDFLabel
 t1211 = arc b1 p1 o1
-t1221 = arc b2 res_rdf_first v1
-t1222 = arc b2 res_rdf_rest  b3
-t1223 = arc b3 res_rdf_first v2
-t1224 = arc b3 res_rdf_rest  res_rdf_nil
+t1221 = arc b2 resRdfFirst v1
+t1222 = arc b2 resRdfRest  b3
+t1223 = arc b3 resRdfFirst v2
+t1224 = arc b3 resRdfRest  resRdfNil
 
 g12 :: RDFGraph
 g12 = toGraph [t1211,t1221,t1222,t1223,t1224]
@@ -539,8 +539,8 @@ g17 = toGraph [t1711,t1722,t1733]
 
 tx101, tx102, tx111, tx112, tx113, tx114, tx121, tx122, tx123,
   tx124, tx125, tx126, tx127, tx128 :: Arc RDFLabel
-tx101 = arc b1 res_owl_sameAs s1
-tx102 = arc s2 res_owl_sameAs b2
+tx101 = arc b1 resOwlSameAs s1
+tx102 = arc s2 resOwlSameAs b2
 tx111 = arc b1 p1 o1
 tx112 = arc b1 p1 o2
 tx113 = arc b1 p2 o2
@@ -562,8 +562,8 @@ x1 = toGraph [tx101,tx102,
 
 tx201, tx202, tx211, tx212, tx213, tx214, tx221, tx222, tx223,
   tx224, tx225, tx226, tx227, tx228 :: Arc RDFLabel
-tx201 = arc b1 res_owl_sameAs s1
-tx202 = arc s2 res_owl_sameAs b2
+tx201 = arc b1 resOwlSameAs s1
+tx202 = arc s2 resOwlSameAs b2
 tx211 = arc b1 p1 o1
 tx212 = arc o2 p1 b1
 tx213 = arc b1 p2 o2
@@ -605,15 +605,15 @@ x3 = toGraph [tx311,tx312,tx313,tx314,
 
 tx401, tx402, tx403, tx404, tx405, tx406, tx407,
   tx408, tx409 :: Arc RDFLabel
-tx401 = arc s1 res_owl_sameAs b1
-tx402 = arc b1 res_rdf_first  o1
-tx403 = arc b1 res_rdf_rest   b2
-tx404 = arc b2 res_rdf_first  o2
-tx405 = arc b2 res_rdf_rest   b3
-tx406 = arc b3 res_rdf_first  o3
-tx407 = arc b3 res_rdf_rest   b4
-tx408 = arc b4 res_rdf_first  l1
-tx409 = arc b4 res_rdf_rest   res_rdf_nil
+tx401 = arc s1 resOwlSameAs b1
+tx402 = arc b1 resRdfFirst  o1
+tx403 = arc b1 resRdfRest   b2
+tx404 = arc b2 resRdfFirst  o2
+tx405 = arc b2 resRdfRest   b3
+tx406 = arc b3 resRdfFirst  o3
+tx407 = arc b3 resRdfRest   b4
+tx408 = arc b4 resRdfFirst  l1
+tx409 = arc b4 resRdfRest   resRdfNil
 
 x4 :: RDFGraph
 x4 = toGraph [tx401,tx402,tx403,tx404,
@@ -622,15 +622,15 @@ x4 = toGraph [tx401,tx402,tx403,tx404,
 
 tx501, tx502, tx503, tx504, tx505, tx506, tx507,
   tx508, tx509 :: Arc RDFLabel
-tx501 = arc b1 res_owl_sameAs s1
-tx502 = arc b1 res_rdf_first  o1
-tx503 = arc b1 res_rdf_rest   b2
-tx504 = arc b2 res_rdf_first  o2
-tx505 = arc b2 res_rdf_rest   b3
-tx506 = arc b3 res_rdf_first  o3
-tx507 = arc b3 res_rdf_rest   b4
-tx508 = arc b4 res_rdf_first  l1
-tx509 = arc b4 res_rdf_rest   res_rdf_nil
+tx501 = arc b1 resOwlSameAs s1
+tx502 = arc b1 resRdfFirst  o1
+tx503 = arc b1 resRdfRest   b2
+tx504 = arc b2 resRdfFirst  o2
+tx505 = arc b2 resRdfRest   b3
+tx506 = arc b3 resRdfFirst  o3
+tx507 = arc b3 resRdfRest   b4
+tx508 = arc b4 resRdfFirst  l1
+tx509 = arc b4 resRdfRest   resRdfNil
 
 x5 :: RDFGraph
 x5 = toGraph [tx501,tx502,tx503,tx504,
@@ -639,14 +639,14 @@ x5 = toGraph [tx501,tx502,tx503,tx504,
 
 tx601, tx602, tx603, tx604, tx605, tx606, tx607,
   tx608 :: Arc RDFLabel
-tx601 = arc s1 res_rdf_first o1
-tx602 = arc s1 res_rdf_rest  b2
-tx603 = arc b2 res_rdf_first o2
-tx604 = arc b2 res_rdf_rest  b3
-tx605 = arc b3 res_rdf_first o3
-tx606 = arc b3 res_rdf_rest  b4
-tx607 = arc b4 res_rdf_first l1
-tx608 = arc b4 res_rdf_rest  res_rdf_nil
+tx601 = arc s1 resRdfFirst o1
+tx602 = arc s1 resRdfRest  b2
+tx603 = arc b2 resRdfFirst o2
+tx604 = arc b2 resRdfRest  b3
+tx605 = arc b3 resRdfFirst o3
+tx606 = arc b3 resRdfRest  b4
+tx607 = arc b4 resRdfFirst l1
+tx608 = arc b4 resRdfRest  resRdfNil
 
 x6 :: RDFGraph
 x6 = toGraph [tx601,tx602,tx603,tx604,
@@ -712,12 +712,12 @@ x12    = NSGraph
 
 tx1301, tx1302, tx1303, tx1304, tx1305, tx1306, tx1307,
   tx1308, tx1309 :: Arc RDFLabel
-tx1301 = arc s1 res_rdf_first b1
-tx1302 = arc s1 res_rdf_rest  c1
-tx1303 = arc c1 res_rdf_first b2
-tx1304 = arc c1 res_rdf_rest  c2
-tx1305 = arc c2 res_rdf_first b3
-tx1306 = arc c2 res_rdf_rest  res_rdf_nil
+tx1301 = arc s1 resRdfFirst b1
+tx1302 = arc s1 resRdfRest  c1
+tx1303 = arc c1 resRdfFirst b2
+tx1304 = arc c1 resRdfRest  c2
+tx1305 = arc c2 resRdfFirst b3
+tx1306 = arc c2 resRdfRest  resRdfNil
 tx1307 = arc b1 p1 o1
 tx1308 = arc b2 p1 o2
 tx1309 = arc b3 p1 o3
@@ -730,12 +730,12 @@ x13 = toGraph [tx1301,tx1302,tx1303,tx1304,tx1305,tx1306,
 
 tx1401, tx1402, tx1403, tx1404, tx1405, tx1406, tx1407,
   tx1408, tx1409, tx1410, tx1411, tx1412 :: Arc RDFLabel
-tx1401 = arc s1 res_rdf_first b1
-tx1402 = arc s1 res_rdf_rest  c1
-tx1403 = arc c1 res_rdf_first b2
-tx1404 = arc c1 res_rdf_rest  c2
-tx1405 = arc c2 res_rdf_first b3
-tx1406 = arc c2 res_rdf_rest  res_rdf_nil
+tx1401 = arc s1 resRdfFirst b1
+tx1402 = arc s1 resRdfRest  c1
+tx1403 = arc c1 resRdfFirst b2
+tx1404 = arc c1 resRdfRest  c2
+tx1405 = arc c2 resRdfFirst b3
+tx1406 = arc c2 resRdfRest  resRdfNil
 tx1407 = arc b1 p1 o1
 tx1408 = arc b1 p2 o1
 tx1409 = arc b2 p1 o2
@@ -751,24 +751,24 @@ x14 = toGraph [tx1401,tx1402,tx1403,tx1404,tx1405,tx1406,
 
 tx1501, tx1502, tx1503, tx1504, tx1505, tx1506, tx1507,
   tx1508, tx1509 :: Arc RDFLabel
-tx1501 = arc s1 res_rdf_first b1
-tx1502 = arc s1 res_rdf_rest  c1
-tx1503 = arc c1 res_rdf_first b2
-tx1504 = arc c1 res_rdf_rest  c2
-tx1505 = arc c2 res_rdf_first b3
-tx1506 = arc c2 res_rdf_rest  res_rdf_nil
+tx1501 = arc s1 resRdfFirst b1
+tx1502 = arc s1 resRdfRest  c1
+tx1503 = arc c1 resRdfFirst b2
+tx1504 = arc c1 resRdfRest  c2
+tx1505 = arc c2 resRdfFirst b3
+tx1506 = arc c2 resRdfRest  resRdfNil
 tx1507 = arc b1 p1 o1
 tx1508 = arc b2 p2 c3
 tx1509 = arc b3 p1 o3
 
 tx1521, tx1522, tx1523, tx1524, tx1525, tx1526, tx1527,
   tx1528, tx1529 :: Arc RDFLabel
-tx1521 = arc c3 res_rdf_first b4
-tx1522 = arc c3 res_rdf_rest  c4
-tx1523 = arc c4 res_rdf_first b5
-tx1524 = arc c4 res_rdf_rest  c5
-tx1525 = arc c5 res_rdf_first b6
-tx1526 = arc c5 res_rdf_rest  res_rdf_nil
+tx1521 = arc c3 resRdfFirst b4
+tx1522 = arc c3 resRdfRest  c4
+tx1523 = arc c4 resRdfFirst b5
+tx1524 = arc c4 resRdfRest  c5
+tx1525 = arc c5 resRdfFirst b6
+tx1526 = arc c5 resRdfRest  resRdfNil
 tx1527 = arc b4 p1 o1
 tx1528 = arc b5 p1 o2
 tx1529 = arc b6 p1 o3
@@ -783,12 +783,12 @@ x15 = toGraph [tx1501,tx1502,tx1503,tx1504,tx1505,tx1506,
 
 tx1601, tx1602, tx1603, tx1604, tx1605, tx1606, tx1607,
   tx1608, tx1609, tx1610, tx1611 :: Arc RDFLabel
-tx1601 = arc s1 res_rdf_first b1
-tx1602 = arc s1 res_rdf_rest  c1
-tx1603 = arc c1 res_rdf_first b2
-tx1604 = arc c1 res_rdf_rest  c2
-tx1605 = arc c2 res_rdf_first b3
-tx1606 = arc c2 res_rdf_rest  res_rdf_nil
+tx1601 = arc s1 resRdfFirst b1
+tx1602 = arc s1 resRdfRest  c1
+tx1603 = arc c1 resRdfFirst b2
+tx1604 = arc c1 resRdfRest  c2
+tx1605 = arc c2 resRdfFirst b3
+tx1606 = arc c2 resRdfRest  resRdfNil
 tx1607 = arc b1 p1 o1
 tx1608 = arc b1 p2 o1
 tx1609 = arc b2 p2 c3
@@ -797,12 +797,12 @@ tx1611 = arc b3 p2 o3
 
 tx1621, tx1622, tx1623, tx1624, tx1625, tx1626, tx1627,
   tx1628, tx1629, tx1630, tx1631, tx1632 :: Arc RDFLabel
-tx1621 = arc c3 res_rdf_first b4
-tx1622 = arc c3 res_rdf_rest  c4
-tx1623 = arc c4 res_rdf_first b5
-tx1624 = arc c4 res_rdf_rest  c5
-tx1625 = arc c5 res_rdf_first b6
-tx1626 = arc c5 res_rdf_rest  res_rdf_nil
+tx1621 = arc c3 resRdfFirst b4
+tx1622 = arc c3 resRdfRest  c4
+tx1623 = arc c4 resRdfFirst b5
+tx1624 = arc c4 resRdfRest  c5
+tx1625 = arc c5 resRdfFirst b6
+tx1626 = arc c5 resRdfRest  resRdfNil
 tx1627 = arc b4 p1 o1
 tx1628 = arc b4 p2 o1
 tx1629 = arc b5 p1 o2
@@ -1204,26 +1204,26 @@ lit_g2 :: RDFGraph
 lit_g2 = lit_g1 { namespaces = xnslist }
 
 bOne, b20, b221, b23e4 :: RDFLabel
-bOne  = Lit "1" $ Just xsd_integer
-b20   = Lit "2.0" $ Just xsd_decimal
-b221  = Lit "-2.21" $ Just xsd_decimal
-b23e4 = Lit "-2.3E-4" $ Just xsd_double
+bOne  = Lit "1" $ Just xsdInteger
+b20   = Lit "2.0" $ Just xsdDecimal
+b221  = Lit "-2.21" $ Just xsdDecimal
+b23e4 = Lit "-2.3E-4" $ Just xsdDouble
 
 lit_g4 :: RDFGraph
 lit_g4 = mempty {
   namespaces = xnslist
   , statements = [
     arc s1 p1 b1
-    , arc b1 res_rdf_first bTrue
-    , arc b1 res_rdf_rest  b2
-    , arc b2 res_rdf_first bOne
-    , arc b2 res_rdf_rest  b3
-    , arc b3 res_rdf_first b20
-    , arc b3 res_rdf_rest  b4
-    , arc b4 res_rdf_first b221
-    , arc b4 res_rdf_rest  b5
-    , arc b5 res_rdf_first b23e4
-    , arc b5 res_rdf_rest  res_rdf_nil
+    , arc b1 resRdfFirst bTrue
+    , arc b1 resRdfRest  b2
+    , arc b2 resRdfFirst bOne
+    , arc b2 resRdfRest  b3
+    , arc b3 resRdfFirst b20
+    , arc b3 resRdfRest  b4
+    , arc b4 resRdfFirst b221
+    , arc b4 resRdfRest  b5
+    , arc b5 resRdfFirst b23e4
+    , arc b5 resRdfRest  resRdfNil
     ]
   }
 

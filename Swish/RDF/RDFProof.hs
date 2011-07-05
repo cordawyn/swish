@@ -67,7 +67,7 @@ import Swish.Utils.LookupMap
 import Swish.Utils.ListHelpers
     ( subset
     , powerSet
-    , powerSequences_len
+    , powerSequencesLen
     , flist
     )
 
@@ -219,7 +219,7 @@ rdfInstanceEntailBwdApply vocab cons =
         --  Generate a substitution for each combination of variable
         --  and vocabulary node.
         varBindings  = map (makeVarBinding . zip varNodes) vocSequences
-        vocSequences = powerSequences_len (length varNodes) vocab
+        vocSequences = powerSequencesLen (length varNodes) vocab
     in
         --  Generate a substitution for each combination of variable
         --  and vocabulary:

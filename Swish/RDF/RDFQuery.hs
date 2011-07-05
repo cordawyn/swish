@@ -46,9 +46,9 @@ import Swish.RDF.RDFGraph
     , RDFTriple
     , RDFGraph, emptyRDFGraph
     , allLabels, remapLabels
-    , res_rdf_first
-    , res_rdf_rest
-    , res_rdf_nil
+    , resRdfFirst
+    , resRdfRest
+    , resRdfNil
     )
 
 import Swish.RDF.MapXsdInteger (mapXsdInteger)
@@ -62,7 +62,7 @@ import Swish.RDF.VarBinding
     , VarBindingFilter(..)
     )
 
-import Swish.RDF.Vocabulary (xsd_integer, xsd_nonneg_integer)
+import Swish.RDF.Vocabulary (xsdInteger, xsdNonNegInteger)
 
 import Swish.Utils.ListHelpers (listProduct, allp, anyp)
 
@@ -482,8 +482,8 @@ rdfFindPredInt s p = mapMaybe getint . filter isint . pvs
     where
         pvs = rdfFindPredVal s p
         isint  = anyp
-            [ isDatatyped xsd_integer
-            , isDatatyped xsd_nonneg_integer
+            [ isDatatyped xsdInteger
+            , isDatatyped xsdNonNegInteger
             ]
         getint = mapL2V mapXsdInteger . getLiteralText
 
@@ -503,13 +503,13 @@ rdfFindList :: RDFGraph -> RDFLabel -> [RDFLabel]
 rdfFindList gr hd = findhead $ rdfFindList gr findrest
     where
         findhead  = headOr (const []) $
-                    map (:) (rdfFindPredVal hd res_rdf_first gr)
-        findrest  = headOr res_rdf_nil (rdfFindPredVal hd res_rdf_rest gr)
+                    map (:) (rdfFindPredVal hd resRdfFirst gr)
+        findrest  = headOr resRdfNil (rdfFindPredVal hd resRdfRest gr)
         {-
         findhead  = headOr (const [])
-                    [ (ob:) | Arc _ sb ob <- subgr, sb == res_rdf_first ]
-        findrest  = headOr res_rdf_nil
-                    [ ob | Arc _ sb ob <- subgr, sb == res_rdf_rest  ]
+                    [ (ob:) | Arc _ sb ob <- subgr, sb == resRdfFirst ]
+        findrest  = headOr resRdfNil
+                    [ ob | Arc _ sb ob <- subgr, sb == resRdfRest  ]
         subgr     = filter ((==) hd . arcSubj) $ getArcs gr
         -}
         headOr    = foldr const

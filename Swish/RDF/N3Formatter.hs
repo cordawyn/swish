@@ -68,15 +68,15 @@ import Swish.RDF.RDFGraph (
   getFormulae,
   emptyRDFGraph
   , quote
-  , res_rdf_first, res_rdf_rest, res_rdf_nil
+  , resRdfFirst, resRdfRest, resRdfNil
   )
 
 import Swish.RDF.Vocabulary (
   isLang, langTag, 
-  rdf_type,
-  rdf_nil,
-  owl_sameAs, log_implies
-  , xsd_boolean, xsd_decimal, xsd_integer, xsd_double 
+  rdfType,
+  rdfNil,
+  owlSameAs, logImplies
+  , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
   )
 
 import Swish.RDF.GraphClass (Arc(..))
@@ -287,7 +287,7 @@ following conditions to hold (this is only to support the
 serialisation using the '(..)' syntax and does not make any statement
 about semantics of the statements with regard to RDF Collections):
 
-  - there must be one rdf_first and one rdf_rest statement
+  - there must be one rdf_first and one rdfRest statement
   - there must be no other predicates for the label
 
 -} 
@@ -302,11 +302,11 @@ getCollection ::
      -- order).
 getCollection subjList lbl = go subjList lbl ([],[]) 
     where
-      go sl l (cs,ss) | l == res_rdf_nil = Just (sl, reverse cs, ss)
+      go sl l (cs,ss) | l == resRdfNil = Just (sl, reverse cs, ss)
                       | otherwise = do
         (pList1, sl') <- removeItem sl l
-        (pFirst, pList2) <- removeItem pList1 res_rdf_first
-        (pNext, pList3) <- removeItem pList2 res_rdf_rest
+        (pFirst, pList2) <- removeItem pList1 resRdfFirst
+        (pNext, pList3) <- removeItem pList2 resRdfRest
 
         -- QUS: could I include these checks implicitly in the pattern matches above?
         -- ie instrad of (pFirst, pos1) <- ..
@@ -329,7 +329,7 @@ extractList lctxt ln = do
   let mlst = getCollection osubjs' ln
 
       -- we only want to send in rdf:first/rdf:rest here
-      fprops = filter ((`elem` [res_rdf_first, res_rdf_rest]) . fst) oprops
+      fprops = filter ((`elem` [resRdfFirst, resRdfRest]) . fst) oprops
 
       osubjs' =
           case lctxt of
@@ -342,7 +342,7 @@ extractList lctxt ln = do
     -- sl is guaranteed to be free of (ln,fprops) here if lctxt is SubjContext
     Just (sl,ls,_) -> do
               setSubjs sl
-              when (lctxt == SubjContext) $ setProps $ filter ((`notElem` [res_rdf_first, res_rdf_rest]) . fst) oprops
+              when (lctxt == SubjContext) $ setProps $ filter ((`notElem` [resRdfFirst, resRdfRest]) . fst) oprops
               return (Just ls)
 
     Nothing -> return Nothing
@@ -693,10 +693,10 @@ nextLine str = do
 
 specialTable :: [(ScopedName, String)]
 specialTable = 
-  [ (rdf_type, "a")
-  , (owl_sameAs, "=")
-  , (log_implies, "=>")
-  , (rdf_nil, "()")
+  [ (rdfType, "a")
+  , (owlSameAs, "=")
+  , (logImplies, "=>")
+  , (rdfNil, "()")
   ]
 
 formatLabel :: LabelContext -> RDFLabel -> Formatter B.Builder
@@ -746,8 +746,8 @@ formatLabel _ lab@(Res sn) =
 -- we just convert E to e for now.      
 --      
 formatLabel _ (Lit lit (Just dtype)) 
-  | dtype == xsd_double = return $ B.fromText $ T.toLower lit
-  | dtype `elem` [xsd_boolean, xsd_decimal, xsd_integer] = return $ B.fromText lit
+  | dtype == xsdDouble = return $ B.fromText $ T.toLower lit
+  | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit
   | otherwise = return $ quoteText lit `mappend` formatAnnotation dtype
 formatLabel _ (Lit lit Nothing) = return $ quoteText lit
 

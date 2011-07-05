@@ -32,19 +32,19 @@ module Swish.RDF.Vocabulary
     , scopeRDF
     , scopeRDFS
     , scopeRDFD
-    , rdf_datatype, rdf_resource, rdf_about, rdf_ID
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
-    , rdfs_member
-    , rdfd_GeneralRestriction
-    , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs, log_implies
-    , xsd_type, xsd_string, xsd_boolean
-    , xsd_decimal, xsd_integer
-    , xsd_nonneg_integer, xsd_nonpos_integer, xsd_pos_integer, xsd_neg_integer
-    , xsd_float, xsd_double
-    , xsd_date, xsd_dateTime
-    , default_base
+    , rdfDatatype, rdfResource, rdfAbout, rdfID
+    , rdfType
+    , rdfFirst, rdfRest, rdfNil, rdfXMLLiteral
+    , rdfsMember
+    , rdfdGeneralRestriction
+    , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
+    , owlSameAs, logImplies
+    , xsdType, xsdString, xsdBoolean
+    , xsdDecimal, xsdInteger
+    , xsdNonNegInteger, xsdNonPosInteger, xsdPosInteger, xsdNegInteger
+    , xsdFloat, xsdDouble
+    , xsdDate, xsdDateTime
+    , defaultBase
     )
 where
 
@@ -154,93 +154,93 @@ scopeRDFD       =
 --  Define some common vocabulary terms
 ------------------------------------------------------------
 
-rdf_datatype            :: ScopedName
-rdf_datatype            = ScopedName namespaceRDF  "datatype"
+rdfDatatype   :: ScopedName
+rdfDatatype   = ScopedName namespaceRDF  "datatype"
 
-rdf_resource            :: ScopedName
-rdf_resource            = ScopedName namespaceRDF  "resource"
+rdfResource   :: ScopedName
+rdfResource   = ScopedName namespaceRDF  "resource"
 
-rdf_about               :: ScopedName
-rdf_about               = ScopedName namespaceRDF  "about"
+rdfAbout      :: ScopedName
+rdfAbout      = ScopedName namespaceRDF  "about"
 
-rdf_ID                  :: ScopedName
-rdf_ID                  = ScopedName namespaceRDF  "ID"
+rdfID         :: ScopedName
+rdfID         = ScopedName namespaceRDF  "ID"
 
-rdf_type                :: ScopedName
-rdf_type                = ScopedName namespaceRDF  "type"
+rdfType       :: ScopedName
+rdfType       = ScopedName namespaceRDF  "type"
 
-rdf_first               :: ScopedName
-rdf_first               = ScopedName namespaceRDF  "first"
+rdfFirst      :: ScopedName
+rdfFirst      = ScopedName namespaceRDF  "first"
 
-rdf_rest                :: ScopedName
-rdf_rest                = ScopedName namespaceRDF  "rest"
+rdfRest       :: ScopedName
+rdfRest       = ScopedName namespaceRDF  "rest"
 
-rdf_nil                 :: ScopedName
-rdf_nil                 = ScopedName namespaceRDF  "nil"
+rdfNil        :: ScopedName
+rdfNil        = ScopedName namespaceRDF  "nil"
 
-rdf_XMLLiteral          :: ScopedName
-rdf_XMLLiteral          = ScopedName namespaceRDF  "XMLLiteral"
+rdfXMLLiteral :: ScopedName
+rdfXMLLiteral = ScopedName namespaceRDF  "XMLLiteral"
 
-rdfs_member             :: ScopedName
-rdfs_member             = ScopedName namespaceRDFS "member"
+rdfsMember    :: ScopedName
+rdfsMember    = ScopedName namespaceRDFS "member"
 
-rdfd_GeneralRestriction :: ScopedName
-rdfd_GeneralRestriction = ScopedName namespaceRDFD "GeneralRestriction"
+rdfdGeneralRestriction :: ScopedName
+rdfdGeneralRestriction = ScopedName namespaceRDFD "GeneralRestriction"
 
-rdfd_onProperties       :: ScopedName
-rdfd_onProperties       = ScopedName namespaceRDFD "onProperties"
+rdfdOnProperties       :: ScopedName
+rdfdOnProperties       = ScopedName namespaceRDFD "onProperties"
 
-rdfd_constraint         :: ScopedName
-rdfd_constraint         = ScopedName namespaceRDFD "constraint"
+rdfdConstraint         :: ScopedName
+rdfdConstraint         = ScopedName namespaceRDFD "constraint"
 
-rdfd_maxCardinality     :: ScopedName
-rdfd_maxCardinality     = ScopedName namespaceRDFD "maxCardinality"
+rdfdMaxCardinality     :: ScopedName
+rdfdMaxCardinality     = ScopedName namespaceRDFD "maxCardinality"
 
-xsd_type                :: String -> ScopedName
-xsd_type                = ScopedName namespaceXSD
+xsdType                :: String -> ScopedName
+xsdType                = ScopedName namespaceXSD
 
-xsd_string              :: ScopedName
-xsd_string              = xsd_type "string"
+xsdString              :: ScopedName
+xsdString              = xsdType "string"
 
-xsd_boolean             :: ScopedName
-xsd_boolean             = xsd_type "boolean"
+xsdBoolean             :: ScopedName
+xsdBoolean             = xsdType "boolean"
 
-xsd_decimal             :: ScopedName
-xsd_decimal             = xsd_type "decimal"
+xsdDecimal             :: ScopedName
+xsdDecimal             = xsdType "decimal"
 
-xsd_integer             :: ScopedName
-xsd_integer             = xsd_type "integer"
+xsdInteger             :: ScopedName
+xsdInteger             = xsdType "integer"
 
-xsd_nonneg_integer      :: ScopedName
-xsd_nonneg_integer      = xsd_type "nonNegativeInteger"
+xsdNonNegInteger      :: ScopedName
+xsdNonNegInteger      = xsdType "nonNegativeInteger"
 
-xsd_nonpos_integer      :: ScopedName
-xsd_nonpos_integer      = xsd_type "nonPositiveInteger"
+xsdNonPosInteger      :: ScopedName
+xsdNonPosInteger      = xsdType "nonPositiveInteger"
 
-xsd_pos_integer         :: ScopedName
-xsd_pos_integer         = xsd_type "positiveInteger"
+xsdPosInteger         :: ScopedName
+xsdPosInteger         = xsdType "positiveInteger"
 
-xsd_neg_integer         :: ScopedName
-xsd_neg_integer         = xsd_type "negativeInteger"
+xsdNegInteger         :: ScopedName
+xsdNegInteger         = xsdType "negativeInteger"
 
-xsd_float               :: ScopedName
-xsd_float               = xsd_type "float"
+xsdFloat               :: ScopedName
+xsdFloat               = xsdType "float"
 
-xsd_double              :: ScopedName
-xsd_double              = xsd_type "double"
+xsdDouble              :: ScopedName
+xsdDouble              = xsdType "double"
 
-xsd_date, xsd_dateTime :: ScopedName
-xsd_date = xsd_type "date"
-xsd_dateTime = xsd_type "dateTime"
+xsdDate, xsdDateTime :: ScopedName
+xsdDate = xsdType "date"
+xsdDateTime = xsdType "dateTime"
 
-owl_sameAs              :: ScopedName
-owl_sameAs              = ScopedName namespaceOWL  "sameAs"
+owlSameAs              :: ScopedName
+owlSameAs              = ScopedName namespaceOWL  "sameAs"
 
-log_implies             :: ScopedName
-log_implies             = ScopedName namespaceLOG "implies"
+logImplies             :: ScopedName
+logImplies             = ScopedName namespaceLOG "implies"
 
-default_base            :: ScopedName
-default_base            = ScopedName namespaceDefault "base"
+defaultBase            :: ScopedName
+defaultBase            = ScopedName namespaceDefault "base"
 
 --------------------------------------------------------------------------------
 --
