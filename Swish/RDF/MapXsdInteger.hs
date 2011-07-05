@@ -34,7 +34,7 @@ import qualified Data.Text.Read as T
 mapXsdInteger :: DatatypeMap Integer
 mapXsdInteger = DatatypeMap
     { -- mapL2V :: T.Text -> Maybe Integer
-      mapL2V = \txt -> case (T.signed T.decimal) txt of
+      mapL2V = \txt -> case T.signed T.decimal txt of
          Right (val, "") -> Just val
          _ -> Nothing
          

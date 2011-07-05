@@ -51,10 +51,10 @@ import Swish.RDF.Datatype
     , BinaryFnTable,   binaryFnApp
     , BinMaybeFnTable, binMaybeFnApp
     , DatatypeMod(..) 
-    , makeVmod_1_1_inv, makeVmod_1_1
-    , makeVmod_2_1_inv, makeVmod_2_1
-    , makeVmod_2_0
-    , makeVmod_2_2
+    , makeVmod11inv, makeVmod11
+    , makeVmod21inv, makeVmod21
+    , makeVmod20
+    , makeVmod22
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
@@ -305,7 +305,7 @@ modXsdIntegerAbs :: RDFDatatypeMod Integer
 modXsdIntegerAbs = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "abs"
     , dmModf = [ f0, f1 ]
-    , dmAppf = makeVmod_1_1
+    , dmAppf = makeVmod11
     }
     where
         f0 vs@[v1,v2] = if v1 == abs v2 then vs else []
@@ -317,7 +317,7 @@ modXsdIntegerNeg :: RDFDatatypeMod Integer
 modXsdIntegerNeg = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "neg"
     , dmModf = [ f0, f1, f1 ]
-    , dmAppf = makeVmod_1_1_inv
+    , dmAppf = makeVmod11inv
     }
     where
         f0 vs@[v1,v2] = if v1 == negate v2 then vs else []
@@ -329,7 +329,7 @@ modXsdIntegerSum :: RDFDatatypeMod Integer
 modXsdIntegerSum = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "sum"
     , dmModf = [ f0, f1, f2, f2 ]
-    , dmAppf = makeVmod_2_1_inv
+    , dmAppf = makeVmod21inv
     }
     where
         f0 vs@[v1,v2,v3] = if v1 == v2+v3 then vs else []
@@ -343,7 +343,7 @@ modXsdIntegerDiff :: RDFDatatypeMod Integer
 modXsdIntegerDiff = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "diff"
     , dmModf = [ f0, f1, f2, f3 ]
-    , dmAppf = makeVmod_2_1_inv
+    , dmAppf = makeVmod21inv
     }
     where
         f0 vs@[v1,v2,v3] = if v1 == v2-v3 then vs else []
@@ -359,7 +359,7 @@ modXsdIntegerProd :: RDFDatatypeMod Integer
 modXsdIntegerProd = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "prod"
     , dmModf = [ f0, f1, f2, f2 ]
-    , dmAppf = makeVmod_2_1_inv
+    , dmAppf = makeVmod21inv
     }
     where
         f0 vs@[v1,v2,v3] = if v1 == v2*v3 then vs else []
@@ -374,7 +374,7 @@ modXsdIntegerDivMod :: RDFDatatypeMod Integer
 modXsdIntegerDivMod = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "divmod"
     , dmModf = [ f0, f1 ]
-    , dmAppf = makeVmod_2_2
+    , dmAppf = makeVmod22
     }
     where
         f0 vs@[v1,v2,v3,v4] = if (v1,v2) == divMod v3 v4 then vs else []
@@ -386,7 +386,7 @@ modXsdIntegerPower :: RDFDatatypeMod Integer
 modXsdIntegerPower = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "power"
     , dmModf = [ f0, f1 ]
-    , dmAppf = makeVmod_2_1
+    , dmAppf = makeVmod21
     }
     where
         f0 vs@[v1,v2,v3] = if Just v1 == intPower v2 v3 then vs else []
@@ -407,7 +407,7 @@ modXsdIntegerCompare ::
 modXsdIntegerCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger nam
     , dmModf = [ f0 ]
-    , dmAppf = makeVmod_2_0
+    , dmAppf = makeVmod20
     }
     where
         f0 vs@[v1,v2] = if rel v1 v2 then vs else []

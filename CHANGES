@@ -18,6 +18,9 @@
   - removed the following exported symbols from Swish.Utils.MiscHelpers:
         assert, stricmp, lower, quote
 
+  - removed _ from exported symbols; the conversion is mainly to camel case
+    but some may retain lower case parts (e.g. xxx_1_1_inv to xxx11inv).
+
 0.3.2.1:
 
   - use foldl' rather than foldl in some modules

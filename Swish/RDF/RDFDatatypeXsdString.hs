@@ -55,7 +55,7 @@ import Swish.RDF.Datatype
     , altArgs
     , UnaryFnTable,  unaryFnApp
     , DatatypeMod(..) 
-    , makeVmod_2_0
+    , makeVmod20
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
@@ -196,7 +196,7 @@ modXsdStringCompare ::
 modXsdStringCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
-    , dmAppf = makeVmod_2_0
+    , dmAppf = makeVmod20
     }
     where
         f0 vs@[v1,v2] = if rel v1 v2 then vs else []
