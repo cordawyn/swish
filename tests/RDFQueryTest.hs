@@ -1253,7 +1253,7 @@ baserdf :: String
 baserdf  = nsURI namespaceRDF
 
 q_dattyp :: ScopedName
-q_dattyp = makeScopedName "" baseex "datatype"
+q_dattyp = makeScopedName Nothing baseex "datatype"
 
 v_a, v_b, v_c, v_x, v_y, v_z :: RDFLabel
 v_a   = Var "a"
@@ -1265,14 +1265,14 @@ v_z   = Var "z"
 
 u_s, u_o, u_p, u_p1, u_p2a, u_p2b, u_m1, u_m2,
   u_rt, u_xt, u_dt :: RDFLabel
-u_s   = Res $ makeScopedName "" baseex "s"
-u_o   = Res $ makeScopedName "" baseex "o"
-u_p   = Res $ makeScopedName "" baseex "p"
-u_p1  = Res $ makeScopedName "" baseex "p1"
-u_p2a = Res $ makeScopedName "" baseex "p2a"
-u_p2b = Res $ makeScopedName "" baseex "p2b"
-u_m1  = Res $ makeScopedName "" baserdf "_1"
-u_m2  = Res $ makeScopedName "" baserdf "_2"
+u_s   = Res $ makeScopedName Nothing baseex "s"
+u_o   = Res $ makeScopedName Nothing baseex "o"
+u_p   = Res $ makeScopedName Nothing baseex "p"
+u_p1  = Res $ makeScopedName Nothing baseex "p1"
+u_p2a = Res $ makeScopedName Nothing baseex "p2a"
+u_p2b = Res $ makeScopedName Nothing baseex "p2b"
+u_m1  = Res $ makeScopedName Nothing baserdf "_1"
+u_m2  = Res $ makeScopedName Nothing baserdf "_2"
 u_rt  = Res rdfType
 u_xt  = Res rdfXMLLiteral
 u_dt  = Res q_dattyp

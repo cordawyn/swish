@@ -53,7 +53,7 @@ import Swish.RDF.Rule ( Rule(..), bwdCheckInference)
 import Swish.RDF.VarBinding (VarBinding(..))
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
-import Swish.Utils.Namespace (Namespace(..),ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..),ScopedName(..), namespaceToBuilder)
 import Swish.Utils.PartOrderedCollection
     ( minima, maxima
     , partCompareEq, partComparePair
@@ -135,10 +135,7 @@ makeDatatypeRestrictionFn dtv dtrelfn =
 ------------------------------------------------------------
 
 mkPrefix :: Namespace -> B.Builder
-mkPrefix (Namespace prefix uri) =
-  let p = B.fromString prefix
-      u = B.fromString uri
-  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+mkPrefix = namespaceToBuilder
 
 ruleQuery :: RDFGraph
 ruleQuery = makeRDFGraphFromN3Builder $

@@ -21,6 +21,9 @@
   - removed _ from exported symbols; the conversion is mainly to camel case
     but some may retain lower case parts (e.g. xxx_1_1_inv to xxx11inv).
 
+  - Namespace now uses Maybe String to store the optional prefix rather than
+    an ad-hoc ""/"?" solution.
+
 0.3.2.1:
 
   - use foldl' rather than foldl in some modules

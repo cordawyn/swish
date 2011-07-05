@@ -34,7 +34,7 @@ import Swish.RDF.RDFGraph
     , resOwlSameAs
     )
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
@@ -75,11 +75,14 @@ testGraphEq lab eq gg1 gg2 =
 --  Define some common values
 ------------------------------------------------------------
 
+toNS :: String -> String -> Namespace
+toNS p = Namespace (Just p)
+
 base1, base2, base3, base4 :: Namespace
-base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
-base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
-base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
-base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
+base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
+base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
+base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
 s1, s2, s3 :: RDFLabel
 s1 = Res $ ScopedName base1 "s1"
@@ -694,17 +697,17 @@ diagTest lab gr out =
       (res,nmap,ngen,trc) = formatGraphDiag "\n" True gr
       resStr = L.unpack $ B.toLazyText res
 
-mkPrefix :: String -> Namespace -> String
-mkPrefix lbl ns = "@prefix " ++ lbl ++ ": <" ++ nsURI ns ++ "> .\n"
+mkPrefix :: Namespace -> String
+mkPrefix = L.unpack . B.toLazyText . namespaceToBuilder
 
 prefixList :: [String]
 prefixList = 
-  [ mkPrefix "base1" base1
-  , mkPrefix "base2" base2
-  , mkPrefix "base3" base3
-  , mkPrefix "base4" base4
-  , mkPrefix "rdf"   namespaceRDF
-  , mkPrefix "xsd"   namespaceXSD
+  [ mkPrefix base1
+  , mkPrefix base2
+  , mkPrefix base3
+  , mkPrefix base4
+  , mkPrefix namespaceRDF
+  , mkPrefix namespaceXSD
   ]
 
 commonPrefixes :: String

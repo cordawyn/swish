@@ -427,7 +427,8 @@ formatPrefixes pmap = do
   ls <- sequence mls
   return $ mconcat ls
     where
-      pref (p,u) = nextLine $ mconcat ["@prefix ", B.fromString p, ": <", quoteB True u, "> ."]
+      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromString p, ": <", quoteB True u, "> ."]
+      pref (_,u)      = nextLine $ mconcat ["@prefix : <", quoteB True u, "> ."]
 
 {-
 NOTE:
@@ -733,10 +734,17 @@ formatLabel _ lab@(Res sn) =
           local  = snLocal sn
           premap = reverseLookupMap pr :: RevNamespaceMap
           prefix = mapFindMaybe nsuri premap
+          
+          name   = case prefix of
+                     Just (Just p) -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
+                     _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
+      
+      {-
           name   = case prefix of
                      Just p -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
                      _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
-      
+      -}
+          
       queueFormula lab
       return name
 

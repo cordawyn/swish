@@ -148,14 +148,20 @@ testLangEqSuite = TestList
 base1Str :: String
 base1Str = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 
--- TODO: using a base of "" or "?" causes a fromJust failure somewhere
+toNS :: String -> String -> Namespace
+toNS p = Namespace (Just p)
+
+-- TODO: basee and baseu had prefixes of "" and "?" before the conversion
+--       to using Maybe String. Now both are Nothing; is this semantically
+--       correct? Probably.
+
 basee, baseu, base1, base2, base3, base4 :: Namespace
-basee = Namespace ""      "http://example.com/a#"
-baseu = Namespace "?"     "http://example.com/"
-base1 = Namespace "base1" base1Str
-base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
-base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
-base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basee = Namespace Nothing  "http://example.com/a#"
+baseu = Namespace Nothing "http://example.com/"
+base1 = toNS "base1" base1Str
+base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
+base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
+base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
 qn1s1 :: QName
 qn1s1 = qnameFromURI $ base1Str ++ "s1"
@@ -843,7 +849,7 @@ tt05 = arc st2 p1 l4
 tt06 = arc st3 p1 l10
 
 makeNewPrefixNamespace :: (String,Namespace) -> Namespace
-makeNewPrefixNamespace (pre,ns) = Namespace pre (nsURI ns)
+makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
 
 nslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace

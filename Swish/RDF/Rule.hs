@@ -19,22 +19,15 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Rule
-    ( Expression(..), Formula(..), Rule(..), RuleMap
-    , nullScope, nullFormula, nullRule
-    , fwdCheckInference, bwdCheckInference
-    , showsFormula, showsFormulae, showsWidth
-    )
-where
+       ( Expression(..), Formula(..), Rule(..), RuleMap
+       , nullScope, nullFormula, nullRule
+       , fwdCheckInference, bwdCheckInference
+       , showsFormula, showsFormulae, showsWidth
+       )
+       where
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
-
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    )
-
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
 
 ------------------------------------------------------------
@@ -73,7 +66,7 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
 
 -- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
 nullScope :: Namespace
-nullScope = Namespace "null" "http://id.ninebynine.org/2003/Ruleset/null"
+nullScope = Namespace (Just "null") "http://id.ninebynine.org/2003/Ruleset/null"
 
 -- | The null formula.
 nullFormula :: Formula ex

@@ -71,7 +71,7 @@ import Swish.RDF.VarBinding
     , varBindingId
     )
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 
 {-
@@ -234,10 +234,7 @@ querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 ------------------------------------------------------------
 
 mkPrefix :: Namespace -> B.Builder
-mkPrefix (Namespace prefix uri) =
-  let p = B.fromString prefix
-      u = B.fromString uri
-  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+mkPrefix = namespaceToBuilder
 
 prefixRDF :: B.Builder
 prefixRDF = 

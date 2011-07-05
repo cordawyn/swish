@@ -99,7 +99,7 @@ mkGr2 = mkGr prefix2
 --  test1:  simple query with URI, literal and blank nodes.
 
 scope1 :: Namespace
-scope1 = Namespace "scope1"
+scope1 = Namespace (Just "scope1")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope1"
 
 prefix1 :: B.Builder
@@ -168,7 +168,7 @@ test1 =
 --  single relationship graph.
 
 scope2 :: Namespace
-scope2 = Namespace "scope2"
+scope2 = Namespace (Just "scope2")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope2"
 
 prefix2 :: B.Builder
@@ -560,7 +560,7 @@ test2 =
 --  test3:  check variable binding filters
 
 scope3 :: Namespace
-scope3 = Namespace "scope3"
+scope3 = Namespace (Just "scope3")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope3"
 
 query31 :: RDFGraph
@@ -638,7 +638,7 @@ test3 =
 --  Instance entailment tests
 
 scope4 :: Namespace
-scope4 = Namespace "scope4"
+scope4 = Namespace (Just "scope4")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope4"
 
 graph4 :: RDFGraph
@@ -827,7 +827,7 @@ test4 =
 --  Subgraph entailment tests
 
 scope5 :: Namespace
-scope5 = Namespace "scope5"
+scope5 = Namespace (Just "scope5")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope5"
 
 graph5 :: RDFGraph
@@ -895,7 +895,7 @@ test5 =
 --  backward chaining.  For that use instance- and subgraph- rules.
 
 scope6 :: Namespace
-scope6 = Namespace "scope6"
+scope6 = Namespace (Just "scope6")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope6"
 
 graph6 :: RDFGraph
@@ -967,7 +967,7 @@ test6 =
 --    Rh4 father _:f2, _:f2 brother Si3
 
 scope7 :: Namespace
-scope7 = Namespace "scope7"
+scope7 = Namespace (Just "scope7")
     "http://id.ninebynine.org/wip/2003/rdfprooftest/scope7"
 
 graph7 :: RDFGraph

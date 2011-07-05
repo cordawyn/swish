@@ -157,7 +157,8 @@ data N3State = N3State
         }
 
 -- | Functions to update N3State vector (use with stUpdate)
-setPrefix :: String -> String -> N3State -> N3State
+
+setPrefix :: Maybe String -> String -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
         p' = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
@@ -169,7 +170,7 @@ setSName nam snam st =  st { syntaxUris=s' }
         s' = mapReplaceOrAdd (nam,snam) (syntaxUris st)
 
 setSUri :: String -> String -> N3State -> N3State
-setSUri nam suri = setSName nam (makeScopedName "" suri "")
+setSUri nam suri = setSName nam (makeScopedName Nothing suri "")
 
 -- | Set the list of tokens that can be used without needing the leading 
 -- \@ symbol.
@@ -186,7 +187,7 @@ getSUri :: N3State -> String -> String
 getSUri st nam = getScopedNameURI $ getSName st nam
 
 --  Map prefix to namespace
-getPrefixNs :: N3State -> String -> Namespace
+getPrefixNs :: N3State -> Maybe String -> Namespace
 getPrefixNs st pre = Namespace pre (mapPrefix (prefixUris st) pre)
 
 getKeywordsList :: N3State -> [String]
@@ -269,7 +270,7 @@ parseAnyfromText parser mbase input =
         
   in case puri of
     Left emsg -> Left $ "Invalid base: " ++ emsg
-    Right p -> let (result, _, _) = runParser parser (setPrefix "" p pstate) input
+    Right p -> let (result, _, _) = runParser parser (setPrefix Nothing p pstate) input
                in result
 
 newBlankNode :: N3Parser RDFLabel
@@ -314,7 +315,7 @@ parsePrefixFromString =
           addTestPrefixes
           pref <- n3Name
           st   <- stGet
-          return (getPrefixNs st pref)   -- map prefix to namespace
+          return (getPrefixNs st (Just pref))   -- map prefix to namespace
 
 parseAbsURIrefFromString :: String -> Either String String
 parseAbsURIrefFromString =
@@ -556,13 +557,13 @@ tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n') tQuot
 getDefaultPrefix :: N3Parser Namespace
 getDefaultPrefix = do
   s <- stGet
-  return (getPrefixNs s "")
+  return (getPrefixNs s Nothing)
 
 addBase :: URI -> N3Parser ()
 addBase = stUpdate . setSUri "base" . getScopedNameURI'
 
 addPrefix :: Maybe String -> URI -> N3Parser ()
-addPrefix p = stUpdate . setPrefix (fromMaybe "" p) . getScopedNameURI'
+addPrefix p = stUpdate . setPrefix p . getScopedNameURI'
 
 {-|
 Update the set of keywords that can be given without
@@ -746,8 +747,8 @@ fullQName name = do
 findPrefix :: String -> N3Parser Namespace
 findPrefix pre = do
   st <- stGet
-  case mapFindMaybe pre (prefixUris st) of
-    Just uri -> return $ Namespace pre uri
+  case mapFindMaybe (Just pre) (prefixUris st) of
+    Just uri -> return $ Namespace (Just pre) uri
     Nothing  -> failBad $ "Prefix '" ++ pre ++ ":' not bound."
   
 localQName :: String -> N3Parser ScopedName

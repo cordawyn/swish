@@ -181,14 +181,10 @@ nameTestSuite = TestList
 parsePrefixTest :: String -> String -> Namespace -> String -> Test
 parsePrefixTest = parseItemTest parsePrefixFromString nullNamespace
 
-prefix01, prefix02 :: Namespace
-prefix01 = Namespace "pref" "pref:"
-prefix02 = Namespace "rdf" $ nsURI namespaceRDF
-
 prefixTestSuite :: Test
 prefixTestSuite = TestList
-  [ parsePrefixTest "parsePrefixTest01" "pref" prefix01 ""
-  , parsePrefixTest "parsePrefixTest02" "rdf" prefix02 ""
+  [ parsePrefixTest "parsePrefixTest01" "pref" (Namespace (Just "pref") "pref:") ""
+  , parsePrefixTest "parsePrefixTest02" "rdf" namespaceRDF ""
   ]
 
 ------------------------------------------------------------
@@ -226,9 +222,6 @@ absUriRefTestSuite = TestList
 parseUriRef2Test :: String -> String -> ScopedName -> String -> Test
 parseUriRef2Test = parseItemTest parseURIref2FromString nullScopedName
 
-uriRef01 :: String
-uriRef01 = "rdf:type "
-
 sname01 :: ScopedName
 sname01  = ScopedName namespaceRDF "type"
 
@@ -237,11 +230,11 @@ uriRef02 = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> "
 
 sname02 :: ScopedName
 sname02  =
-    makeScopedName "" "http://id.ninebynine.org/wip/2003/test/graph1/node#" "s1"
+    makeScopedName Nothing "http://id.ninebynine.org/wip/2003/test/graph1/node#" "s1"
 
 uriRef2TestSuite :: Test
 uriRef2TestSuite = TestList
-  [ parseUriRef2Test "parseUriRef2Test01" uriRef01 sname01 ""
+  [ parseUriRef2Test "parseUriRef2Test01" "rdf:type" sname01 ""
   , parseUriRef2Test "parseUriRef2Test02" uriRef02 sname02 ""
   ]
 
@@ -255,16 +248,19 @@ baseFile = "file:///dev/null"
 dqn :: QName
 dqn = qnameFromURI baseFile
 
+toNS :: String -> String -> Namespace
+toNS p = Namespace (Just p)
+
 dbase, base1, base2, base3, base4, basea :: Namespace
-dbase = Namespace ""      (baseFile ++ "#")
-base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
-base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
-base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
-base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
-basea = Namespace "a" "http://example.org/basea#"
+dbase = Namespace Nothing  (baseFile ++ "#")
+base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
+base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
+base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
+base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basea = toNS "a" "http://example.org/basea#"
 
 xsdNS :: Namespace
-xsdNS = Namespace "xsd" "http://www.w3.org/2001/XMLSchema#"
+xsdNS = toNS "xsd" "http://www.w3.org/2001/XMLSchema#"
 
 u1 :: RDFLabel
 u1 = Res $ ScopedName base1 ""
@@ -359,7 +355,7 @@ t06  = arc s3 p1 l2
 t07  = arc s3 p2 l3
 
 makeNewPrefixNamespace :: (String,Namespace) -> Namespace
-makeNewPrefixNamespace (pre,ns) = Namespace pre (nsURI ns)
+makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
 
 dg1 :: RDFGraph
 dg1 = toRDFGraph [arc ds1 dp1 do1]
@@ -385,8 +381,8 @@ dg2 = toRDFGraph
     xb3 = mU "http://example.org/ns/foo/b3"
     xc3 = mU "http://example.org/ns/foo/c3"
     
-    ns4 = Namespace "" "http://example.org/ns/foo/bar#"
-    ns5 = Namespace "" "http://example.org/ns2#"
+    ns4 = Namespace Nothing "http://example.org/ns/foo/bar#"
+    ns5 = Namespace Nothing "http://example.org/ns2#"
     mUN a b = Res (ScopedName a b)
     xa4 = mUN ns4 "a4"
     xb4 = mUN ns4 "b4"
@@ -821,7 +817,7 @@ kg1 = toRDFGraph
       [ arc b a c ]
   where
     -- the document base is set to file:///dev/null to begin with
-    ns = Namespace "" (baseFile ++ "#")
+    ns = Namespace Nothing (baseFile ++ "#")
     mUN = Res . ScopedName ns
     a = mUN "a"
     b = mUN "b"

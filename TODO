@@ -80,4 +80,4 @@ Text conversion:
       RDFDatatypeXsdString
     to convert to/from Text rather than String
 
-  - Swish.RDF.RDFProof to use Text rather than String for proofs
+  - N3FormatterTest to use Text rather than String

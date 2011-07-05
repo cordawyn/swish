@@ -156,30 +156,30 @@ testMaybeEqv lab a1 a2 =
 --  Misc values
 ------------------------------------------------------------
 
-xsd_int_name :: String -> ScopedName
-xsd_int_name = ScopedName namespaceXsdInteger 
+xsdIntName :: String -> ScopedName
+xsdIntName = ScopedName namespaceXsdInteger 
 
 axiomXsdIntegerDT :: ScopedName
-axiomXsdIntegerDT       = xsd_int_name "dt"
+axiomXsdIntegerDT       = xsdIntName "dt"
 
 ruleXsdIntegerAbs, ruleXsdIntegerNeg, ruleXsdIntegerSum,
   ruleXsdIntegerDiff, ruleXsdIntegerProd, ruleXsdIntegerDivMod,
   ruleXsdIntegerPower, ruleXsdIntegerEq, ruleXsdIntegerNe, 
   ruleXsdIntegerLt, ruleXsdIntegerLe, ruleXsdIntegerGt,
   ruleXsdIntegerGe :: ScopedName
-ruleXsdIntegerAbs       = xsd_int_name "Abs"
-ruleXsdIntegerNeg       = xsd_int_name "Neg"
-ruleXsdIntegerSum       = xsd_int_name "Sum"
-ruleXsdIntegerDiff      = xsd_int_name "Diff"
-ruleXsdIntegerProd      = xsd_int_name "Prod"
-ruleXsdIntegerDivMod    = xsd_int_name "DivMod"
-ruleXsdIntegerPower     = xsd_int_name "Power"
-ruleXsdIntegerEq        = xsd_int_name "Eq"
-ruleXsdIntegerNe        = xsd_int_name "Ne"
-ruleXsdIntegerLt        = xsd_int_name "Lt"
-ruleXsdIntegerLe        = xsd_int_name "Le"
-ruleXsdIntegerGt        = xsd_int_name "Gt"
-ruleXsdIntegerGe        = xsd_int_name "Ge"
+ruleXsdIntegerAbs       = xsdIntName "Abs"
+ruleXsdIntegerNeg       = xsdIntName "Neg"
+ruleXsdIntegerSum       = xsdIntName "Sum"
+ruleXsdIntegerDiff      = xsdIntName "Diff"
+ruleXsdIntegerProd      = xsdIntName "Prod"
+ruleXsdIntegerDivMod    = xsdIntName "DivMod"
+ruleXsdIntegerPower     = xsdIntName "Power"
+ruleXsdIntegerEq        = xsdIntName "Eq"
+ruleXsdIntegerNe        = xsdIntName "Ne"
+ruleXsdIntegerLt        = xsdIntName "Lt"
+ruleXsdIntegerLe        = xsdIntName "Le"
+ruleXsdIntegerGt        = xsdIntName "Gt"
+ruleXsdIntegerGe        = xsdIntName "Ge"
 
 ------------------------------------------------------------
 --  Basic rdfDatatypeXsdInteger tests
@@ -257,19 +257,19 @@ dmodXsdIntegerAbs, dmodXsdIntegerNeg, dmodXsdIntegerSum,
   dmodXsdIntegerLt, dmodXsdIntegerLe, dmodXsdIntegerGt, 
   dmodXsdIntegerGe :: ScopedName
 
-dmodXsdIntegerAbs    = xsd_int_name "abs"
-dmodXsdIntegerNeg    = xsd_int_name "neg"
-dmodXsdIntegerSum    = xsd_int_name "sum"
-dmodXsdIntegerDiff   = xsd_int_name "diff"
-dmodXsdIntegerProd   = xsd_int_name "prod"
-dmodXsdIntegerDivMod = xsd_int_name "divmod"
-dmodXsdIntegerPower  = xsd_int_name "power"
-dmodXsdIntegerEq     = xsd_int_name "eq"
-dmodXsdIntegerNe     = xsd_int_name "ne"
-dmodXsdIntegerLt     = xsd_int_name "lt"
-dmodXsdIntegerLe     = xsd_int_name "le"
-dmodXsdIntegerGt     = xsd_int_name "gt"
-dmodXsdIntegerGe     = xsd_int_name "ge"
+dmodXsdIntegerAbs    = xsdIntName "abs"
+dmodXsdIntegerNeg    = xsdIntName "neg"
+dmodXsdIntegerSum    = xsdIntName "sum"
+dmodXsdIntegerDiff   = xsdIntName "diff"
+dmodXsdIntegerProd   = xsdIntName "prod"
+dmodXsdIntegerDivMod = xsdIntName "divmod"
+dmodXsdIntegerPower  = xsdIntName "power"
+dmodXsdIntegerEq     = xsdIntName "eq"
+dmodXsdIntegerNe     = xsdIntName "ne"
+dmodXsdIntegerLt     = xsdIntName "lt"
+dmodXsdIntegerLe     = xsdIntName "le"
+dmodXsdIntegerGt     = xsdIntName "gt"
+dmodXsdIntegerGe     = xsdIntName "ge"
 
 testVmodN :: [RDFLabel]
     -> String -> Maybe (RDFDatatypeMod Integer)
@@ -372,7 +372,7 @@ testVarModifyAbs08 = testVmod2  "testVarModifyAbs08"
 
 testVarModifyAbs09 = testVmod2  "testVarModifyAbs09"
                     (getDTMod dmodXsdIntegerAbs rdfDatatypeValXsdInteger)
-                    [makeBVR [("b",makeScopedName "" "http://ex.org/" "123")]]
+                    [makeBVR [("b",makeScopedName Nothing "http://ex.org/" "123")]]
                     []
 
 testVarModifyAbs10 = testVmod2  "testVarModifyAbs10"

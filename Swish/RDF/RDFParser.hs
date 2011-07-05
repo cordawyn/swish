@@ -52,15 +52,8 @@ import Swish.RDF.RDFGraph
     , NamespaceMap
     )
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , mapFind 
-    )
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
+import Swish.Utils.LookupMap (LookupMap(..), mapFind)
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -89,8 +82,9 @@ import Data.Maybe (fromMaybe)
 type SpecialMap = LookupMap (String,ScopedName)
 
 -- | Lookup prefix in table and return URI or 'prefix:'
-mapPrefix :: NamespaceMap -> String -> String
-mapPrefix ps pre = mapFind (pre++":") pre ps
+mapPrefix :: NamespaceMap -> Maybe String -> String
+mapPrefix ps p@(Just pre) = mapFind (pre++":") p ps
+mapPrefix ps _ = mapFind ":" Nothing ps
 
 -- | Define default table of namespaces
 prefixTable :: [Namespace]
@@ -99,7 +93,7 @@ prefixTable =   [ namespaceRDF
                 , namespaceRDFD     -- datatypes
                 , namespaceOWL
                 , namespaceLOG
-                , Namespace "" "#" -- is this correct?
+                , Namespace Nothing "#" -- is this correct?
                 ]
 
 {-|

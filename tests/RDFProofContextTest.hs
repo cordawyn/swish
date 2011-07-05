@@ -34,7 +34,7 @@ import Swish.RDF.Proof (Step(..), checkProof, checkStep, explainProof)
 import Swish.RDF.Ruleset (getContextAxiom, getContextRule)
 import Swish.RDF.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 import Swish.Utils.LookupMap (mapFindMaybe)
 
 import Swish.RDF.Vocabulary
@@ -130,10 +130,7 @@ makeSName nam = ScopedName ns loc
 --  Common definitions
 
 mkPrefix :: Namespace -> B.Builder
-mkPrefix (Namespace prfix uri) =
-  let p = B.fromString prfix
-      u = B.fromString uri
-  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+mkPrefix = namespaceToBuilder
 
 prefix :: B.Builder
 prefix =
@@ -143,11 +140,11 @@ prefix =
   , mkPrefix namespaceRDFD
   , mkPrefix namespaceXSD
     -- TODO: should the following use scopeex instead?
-  , mkPrefix (Namespace "ex" "http://example.org/")
+  , mkPrefix (Namespace (Just "ex") "http://example.org/")
   ]
 
 scopeex :: Namespace
-scopeex   = Namespace "ex"   "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
+scopeex   = Namespace (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
 rdfContext, rdfsContext, rdfdContext, xsdintContext,
   xsdstrContext :: [RDFRuleset]

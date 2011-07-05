@@ -59,7 +59,7 @@ import Swish.RDF.Datatype
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -212,10 +212,7 @@ rdfRulesetXsdString =
     makeRuleset namespaceXsdString axiomsXsdString rulesXsdString
 
 mkPrefix :: Namespace -> B.Builder
-mkPrefix (Namespace prefix uri) =
-  let p = B.fromString prefix
-      u = B.fromString uri
-  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+mkPrefix = namespaceToBuilder
 
 prefixXsdString :: B.Builder
 prefixXsdString = 

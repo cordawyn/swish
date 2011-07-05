@@ -48,27 +48,14 @@ import Swish.RDF.RDFGraph
     , toRDFGraph
     )
     
-import Swish.RDF.VarBinding
-    ( makeVarBinding
-    , vbmCompose
-    , makeVarFilterModify
-    )
-
+import Swish.RDF.VarBinding (makeVarBinding, vbmCompose, makeVarFilterModify)
 import Swish.RDF.Ruleset
     ( makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules
     , getRulesetAxiom, getRulesetRule )
 
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..)
-    , fwdCheckInference )
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , makeScopedName
-    )
-
+import Swish.RDF.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), makeScopedName, namespaceToBuilder)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -163,22 +150,19 @@ pref_owl = nsURI namespaceOWL
 --  which may be cited by a proof.
 
 rn1 :: Namespace
-rn1  = Namespace "r1" "http://id.ninebynine.org/wip/2003/rulesettest/r1"
+rn1  = Namespace (Just "r1") "http://id.ninebynine.org/wip/2003/rulesettest/r1"
 
 -- Common prefix declarations for graph expressions
 
 mkPrefix :: Namespace -> B.Builder
-mkPrefix (Namespace pfix uri) =
-  let p = B.fromString pfix
-      u = B.fromString uri
-  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
+mkPrefix = namespaceToBuilder
 
 prefix :: B.Builder
 prefix =
   mconcat 
   [ mkPrefix namespaceRDF
   , mkPrefix namespaceRDFS
-  , mkPrefix (Namespace "ex" "http://example.org/")
+  , mkPrefix (Namespace (Just "ex") "http://example.org/")
   ]
 
 a11, a12 :: RDFFormula
@@ -251,7 +235,7 @@ testRulesetSuite =
 ------------------------------------------------------------
 
 scopeex :: Namespace
-scopeex = Namespace "ex" "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
+scopeex = Namespace (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
 makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
 makeFormula scope local gr =
@@ -306,12 +290,12 @@ v_b   = Var "b"
 v_x   = Var "x"
 
 u_s, u_p1, u_p2a, u_p2b, u_rt, u_rx :: RDFLabel
-u_s   = Res $ makeScopedName "" "http://example.org/" "s"
-u_p1  = Res $ makeScopedName "" "http://example.org/" "p1"
-u_p2a = Res $ makeScopedName "" "http://example.org/" "p2a"
-u_p2b = Res $ makeScopedName "" "http://example.org/" "p2b"
-u_rt  = Res $ makeScopedName "" pref_rdf "type"
-u_rx  = Res $ makeScopedName "" pref_rdf "XMLLiteral"
+u_s   = Res $ makeScopedName Nothing "http://example.org/" "s"
+u_p1  = Res $ makeScopedName Nothing "http://example.org/" "p1"
+u_p2a = Res $ makeScopedName Nothing "http://example.org/" "p2a"
+u_p2b = Res $ makeScopedName Nothing "http://example.org/" "p2b"
+u_rt  = Res $ makeScopedName Nothing pref_rdf "type"
+u_rx  = Res $ makeScopedName Nothing pref_rdf "XMLLiteral"
 
 b_l1, b_l2 :: RDFLabel
 b_l1  = Blank "l1"
