@@ -26,7 +26,7 @@ module Swish.RDF.RDFDatatypeXsdString
     , axiomsXsdString, rulesXsdString
     , prefixXsdString
     )
-where
+    where
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFRuleset
@@ -69,11 +69,7 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    , addVarBinding
-    , VarBindingModify(..)
-    )
+import Swish.RDF.VarBinding (VarBinding(..), addVarBinding, VarBindingModify(..))
 
 import Data.Monoid(Monoid(..))
 
@@ -86,7 +82,7 @@ import qualified Data.Text.Lazy.Builder as B
 
 --  Local name for Integer datatype
 nameXsdString :: String
-nameXsdString      = "string"
+nameXsdString = "string"
 
 -- |Type name for @xsd:string@ datatype
 typeNameXsdString :: ScopedName
@@ -109,16 +105,15 @@ rdfDatatypeXsdString = Datatype rdfDatatypeValXsdString
 
 -- |Define Datatype value for @xsd:string@.
 --
-rdfDatatypeValXsdString :: RDFDatatypeVal String
+rdfDatatypeValXsdString :: RDFDatatypeVal T.Text
 rdfDatatypeValXsdString = DatatypeVal
     { tvalName      = typeNameXsdString
-    , tvalRules     = rdfRulesetXsdString  -- Ruleset RDFGraph
+    , tvalRules     = rdfRulesetXsdString
     , tvalMkRules   = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdString
-                                           -- RDFGraph -> [RDFRules]
     , tvalMkMods    = makeRdfDtOpenVarBindingModifiers rdfDatatypeValXsdString
-    , tvalMap       = mapXsdString         -- DatatypeMap Integer
-    , tvalRel       = relXsdString         -- [DatatypeRel Integer]
-    , tvalMod       = modXsdString         -- [DatatypeMod Integer]
+    , tvalMap       = mapXsdString
+    , tvalRel       = relXsdString
+    , tvalMod       = modXsdString
     }
 
 -- |mapXsdString contains functions that perform lexical-to-value
@@ -126,25 +121,23 @@ rdfDatatypeValXsdString = DatatypeVal
 --
 --  These are identity mappings.
 --
-mapXsdString :: DatatypeMap String
+mapXsdString :: DatatypeMap T.Text
 mapXsdString = DatatypeMap
-    { -- mapL2V :: T.Text -> Maybe String
-      mapL2V = Just . T.unpack
-      -- mapV2L :: String -> Maybe T.Text
-    , mapV2L = Just . T.pack
+    { mapL2V = Just
+    , mapV2L = Just
     }
 
 -- |relXsdString contains useful relations for @xsd:string@ values.
 --
-relXsdString :: [DatatypeRel String]
+relXsdString :: [DatatypeRel T.Text]
 relXsdString =
     [ relXsdStringEq
     , relXsdStringNe
     ]
 
 mkStrRel2 ::
-    String -> DatatypeRelPr String -> UnaryFnTable String
-    -> DatatypeRel String
+    String -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
+    -> DatatypeRel T.Text
 mkStrRel2 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdString nam
     , dtRelFunc = altArgs pr fns unaryFnApp
@@ -176,30 +169,30 @@ lcomp p = liftL2 p head (head . tail)
 
 -- eq
 
-relXsdStringEq :: DatatypeRel String
+relXsdStringEq :: DatatypeRel T.Text
 relXsdStringEq = mkStrRel2 "eq" (lcomp (==))
     ( repeat (const True, []) )
 
 -- ne
 
-relXsdStringNe :: DatatypeRel String
+relXsdStringNe :: DatatypeRel T.Text
 relXsdStringNe = mkStrRel2 "ne" (lcomp (/=))
     ( repeat (const True, []) )
 
 -- |modXsdString contains variable binding modifiers for @xsd:string@ values.
 --
-modXsdString :: [RDFDatatypeMod String]
+modXsdString :: [RDFDatatypeMod T.Text]
 modXsdString =
     [ modXsdStringEq
     , modXsdStringNe
     ]
 
-modXsdStringEq, modXsdStringNe :: RDFDatatypeMod String
+modXsdStringEq, modXsdStringNe :: RDFDatatypeMod T.Text
 modXsdStringEq = modXsdStringCompare "eq" (==)
 modXsdStringNe = modXsdStringCompare "ne" (/=)
 
 modXsdStringCompare ::
-    String -> (String->String->Bool) -> RDFDatatypeMod String
+    String -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
 modXsdStringCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
