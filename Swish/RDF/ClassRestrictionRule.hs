@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses
+--  Portability :  MultiParamTypeClasses, OverloadedStrings
 --
 --  This module implements an inference rule based on a restruction on class
 --  membership of one or more values.
@@ -17,13 +18,13 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.ClassRestrictionRule
-    ( ClassRestriction(..), ClassRestrictionFn
-    , makeDatatypeRestriction, makeDatatypeRestrictionFn
-    , makeRDFClassRestrictionRules
-    , makeRDFDatatypeRestrictionRules
-    , falseGraph, falseGraphStr       
-    )
-where
+       ( ClassRestriction(..), ClassRestrictionFn
+       , makeDatatypeRestriction, makeDatatypeRestrictionFn
+       , makeRDFClassRestrictionRules
+       , makeRDFDatatypeRestrictionRules
+       , falseGraph, falseGraphStr       
+       )
+       where
 
 import Swish.RDF.RDFGraph
     ( RDFLabel(..)
@@ -37,15 +38,8 @@ import Swish.RDF.RDFGraph
     , res_rdfd_maxCardinality
     )
 
-import Swish.RDF.RDFRuleset
-    ( RDFRule
-    , makeRDFGraphFromN3String
-    )
-
-import Swish.RDF.RDFDatatype
-    ( RDFDatatypeVal
-    , fromRDFLabel, toRDFLabel
-    )
+import Swish.RDF.RDFRuleset (RDFRule, makeRDFGraphFromN3Builder)
+import Swish.RDF.RDFDatatype (RDFDatatypeVal, fromRDFLabel, toRDFLabel)
 
 import Swish.RDF.RDFQuery
     ( rdfQueryFind
@@ -53,28 +47,13 @@ import Swish.RDF.RDFQuery
     , rdfFindList
     )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding )
-
-import Swish.RDF.Datatype
-    ( DatatypeVal(..)
-    , DatatypeRel(..), DatatypeRelFn
-    )
-
-import Swish.RDF.Rule
-    ( Rule(..)
-    , bwdCheckInference
-    )
-
+import Swish.RDF.RDFVarBinding (RDFVarBinding)
+import Swish.RDF.Datatype (DatatypeVal(..), DatatypeRel(..), DatatypeRelFn)
+import Swish.RDF.Rule ( Rule(..), bwdCheckInference)
 import Swish.RDF.VarBinding (VarBinding(..))
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
-
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
+import Swish.Utils.Namespace (Namespace(..),ScopedName(..))
 import Swish.Utils.PartOrderedCollection
     ( minima, maxima
     , partCompareEq, partComparePair
@@ -82,17 +61,16 @@ import Swish.Utils.PartOrderedCollection
     , partCompareListSubset
     )
 
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    , mapFindMaybe
-    )
-
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
 import Swish.Utils.ListHelpers (powerSet)
 
 import Control.Monad (liftM)
 
+import Data.Monoid (Monoid (..))
 import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import Data.List (delete, nub, (\\))
+
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Class restriction data type
@@ -156,20 +134,27 @@ makeDatatypeRestrictionFn dtv dtrelfn =
 --  Make rules from supplied class restrictions and graph
 ------------------------------------------------------------
 
-ruleQuery :: RDFGraph
-ruleQuery = makeRDFGraphFromN3String $
-    "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    " ?c a rdfd:GeneralRestriction ; " ++
-    "    rdfd:onProperties ?p ; "      ++
-    "    rdfd:constraint   ?r . "
+mkPrefix :: Namespace -> B.Builder
+mkPrefix (Namespace prefix uri) =
+  let p = B.fromString prefix
+      u = B.fromString uri
+  in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
 
+ruleQuery :: RDFGraph
+ruleQuery = makeRDFGraphFromN3Builder $
+            mconcat
+            [ mkPrefix namespaceRDFD
+            , " ?c a rdfd:GeneralRestriction ; "
+            , "    rdfd:onProperties ?p ; "     
+            , "    rdfd:constraint   ?r . "
+            ]
+            
 --  Placeholder false graph for now.
 falseGraph :: RDFGraph
-falseGraph = makeRDFGraphFromN3String $
-    "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    falseGraphStr
+falseGraph = makeRDFGraphFromN3Builder $
+             mkPrefix namespaceRDFD `mappend` falseGraphStr
 
-falseGraphStr :: String
+falseGraphStr :: B.Builder
 falseGraphStr = "_:a rdfd:false _:b . "
 
 -- |Make a list of class restriction rules given a list of class restriction

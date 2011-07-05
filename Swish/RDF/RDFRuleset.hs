@@ -26,7 +26,6 @@ module Swish.RDF.RDFRuleset
     , RDFClosure, RDFRuleset, RDFRulesetMap
     , nullRDFFormula
     , GraphClosure(..), makeGraphClosureRule
-    , makeRDFGraphFromN3String
     , makeRDFGraphFromN3Builder
     , makeRDFFormula
     , makeRDFClosureRule
@@ -55,7 +54,7 @@ import Swish.RDF.RDFGraph
     , toRDFGraph, emptyRDFGraph )
 
 import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
-import Swish.RDF.N3Parser (parseN3, parseN3fromString)
+import Swish.RDF.N3Parser (parseN3)
 import Swish.RDF.Ruleset (Ruleset(..), RulesetMap)
 
 import Swish.RDF.Rule
@@ -234,21 +233,14 @@ querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 --  Method for creating an RDF formula value from N3 text
 ------------------------------------------------------------
 
-prefixRDF :: String
-prefixRDF =
-    "@prefix rdf:  <" ++ nsURI namespaceRDF  ++ "> . \n" ++
-    "@prefix rdfs: <" ++ nsURI namespaceRDFS ++ "> . \n" ++
-    -- "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    " \n"
-
 mkPrefix :: Namespace -> B.Builder
 mkPrefix (Namespace prefix uri) =
   let p = B.fromString prefix
       u = B.fromString uri
   in "@prefix " `mappend` (p `mappend` (": <" `mappend` (u `mappend` "> . \n")))
 
-prefixRDFBuilder :: B.Builder
-prefixRDFBuilder = 
+prefixRDF :: B.Builder
+prefixRDF = 
   mconcat 
   [ mkPrefix namespaceRDF
   , mkPrefix namespaceRDFS
@@ -257,18 +249,9 @@ prefixRDFBuilder =
 -- |Helper function to parse a string containing Notation3
 --  and return the corresponding RDFGraph value.
 --
--- TODO: remove
-makeRDFGraphFromN3String :: String -> RDFGraph
-makeRDFGraphFromN3String str = case parseN3fromString (prefixRDF ++ str) of
-    Left  msg -> error msg
-    Right gr  -> gr
-
--- |Helper function to parse a string containing Notation3
---  and return the corresponding RDFGraph value.
---
 makeRDFGraphFromN3Builder :: B.Builder -> RDFGraph
 makeRDFGraphFromN3Builder b = 
-  let t = B.toLazyText (prefixRDFBuilder `mappend` b)
+  let t = B.toLazyText (prefixRDF `mappend` b)
   in case parseN3 t Nothing of
     Left  msg -> error msg
     Right gr  -> gr

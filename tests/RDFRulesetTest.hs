@@ -178,7 +178,6 @@ prefix =
   mconcat 
   [ mkPrefix namespaceRDF
   , mkPrefix namespaceRDFS
-    -- TODO: should the following use scopeex instead?
   , mkPrefix (Namespace "ex" "http://example.org/")
   ]
 
