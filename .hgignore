@@ -8,6 +8,7 @@ syntax: glob
 scripts/Example1.n3
 scripts/data/TestMerge.n3
 scripts/data/TestMerge.n3m
+scripts/data/VehicleRules.n3
 
 syntax: regexp
 (.*/)?\#[^/]*\#$
