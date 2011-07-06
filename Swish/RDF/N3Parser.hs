@@ -48,12 +48,11 @@
 module Swish.RDF.N3Parser
     ( ParseResult
     , parseN3      
-    , parseN3fromString
-    , parseAnyfromString
+    , parseN3fromText      
     , parseAnyfromText
-    , parseTextFromString, parseAltFromString
-    , parseNameFromString, parsePrefixFromString
-    , parseAbsURIrefFromString, parseLexURIrefFromString, parseURIref2FromString
+    , parseTextFromText, parseAltFromText
+    , parseNameFromText, parsePrefixFromText
+    , parseAbsURIrefFromText, parseLexURIrefFromText, parseURIref2FromText
     
     -- * Exports for parsers that embed Notation3 in a bigger syntax
     , N3Parser, N3State(..), SpecialMap
@@ -213,10 +212,10 @@ type N3Parser a = Parser N3State a
 -- 
 -- See 'parseN3' if you need to provide a base URI.
 --
-parseN3fromString ::
-  String -- ^ input in N3 format.
+parseN3fromText ::
+  L.Text -- ^ input in N3 format.
   -> ParseResult
-parseN3fromString txt = parseN3 (L.pack txt) Nothing
+parseN3fromText = flip parseN3 Nothing
 
 -- | Parse a string with an optional base URI.
 --            
@@ -233,14 +232,6 @@ parseN3 txt mbase = parseAnyfromText document mbase txt
 test :: String -> RDFGraph
 test = either error id . parseAnyfromString document Nothing
 -}
-
--- | Function to supply initial context and parse supplied term.
---
-parseAnyfromString :: N3Parser a      -- ^ parser to apply
-                      -> Maybe QName  -- ^ base URI of the input, or @Nothing@ to use default base value
-                      -> String       -- ^ input to be parsed
-                      -> Either String a
-parseAnyfromString p mb = parseAnyfromText p mb . L.pack
 
 -- | Function to supply initial context and parse supplied term.
 --
@@ -283,17 +274,17 @@ newBlankNode = do
 
 -- TODO: remove these
   
-parseTextFromString :: String -> String -> Either String String
-parseTextFromString s =
-    parseAnyfromString (string s) Nothing
+parseTextFromText :: String -> L.Text -> Either String String
+parseTextFromText s =
+    parseAnyfromText (string s) Nothing
 
-parseAltFromString :: String -> String -> String -> Either String String
-parseAltFromString s1 s2 =
-    parseAnyfromString (string s1 <|> string s2) Nothing
+parseAltFromText :: String -> String -> L.Text -> Either String String
+parseAltFromText s1 s2 =
+    parseAnyfromText (string s1 <|> string s2) Nothing
 
-parseNameFromString :: String -> Either String String
-parseNameFromString =
-    parseAnyfromString n3Name Nothing
+parseNameFromText :: L.Text -> Either String String
+parseNameFromText =
+    parseAnyfromText n3Name Nothing
 
 {-
 This has been made tricky by the attempt to remove the default list
@@ -307,9 +298,9 @@ this routine is really for testing.
 addTestPrefixes :: N3Parser ()
 addTestPrefixes = stUpdate $ \st -> st { prefixUris = LookupMap prefixTable } -- should append to existing map
 
-parsePrefixFromString :: String -> Either String Namespace
-parsePrefixFromString =
-    parseAnyfromString p Nothing
+parsePrefixFromText :: L.Text -> Either String Namespace
+parsePrefixFromText =
+    parseAnyfromText p Nothing
       where
         p = do
           addTestPrefixes
@@ -317,17 +308,17 @@ parsePrefixFromString =
           st   <- stGet
           return (getPrefixNs st (Just pref))   -- map prefix to namespace
 
-parseAbsURIrefFromString :: String -> Either String String
-parseAbsURIrefFromString =
-    parseAnyfromString (fmap showURI explicitURI) Nothing
+parseAbsURIrefFromText :: L.Text -> Either String String
+parseAbsURIrefFromText =
+    parseAnyfromText (fmap showURI explicitURI) Nothing
 
-parseLexURIrefFromString :: String -> Either String String
-parseLexURIrefFromString =
-    parseAnyfromString lexUriRef Nothing
+parseLexURIrefFromText :: L.Text -> Either String String
+parseLexURIrefFromText =
+    parseAnyfromText lexUriRef Nothing
 
-parseURIref2FromString :: String -> Either String ScopedName
-parseURIref2FromString = 
-    parseAnyfromString (addTestPrefixes *> n3symbol) Nothing
+parseURIref2FromText :: L.Text -> Either String ScopedName
+parseURIref2FromText = 
+    parseAnyfromText (addTestPrefixes *> n3symbol) Nothing
 
 ----------------------------------------------------------------------
 --  Syntax productions

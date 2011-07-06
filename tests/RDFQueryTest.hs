@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -41,11 +42,7 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.RDF.RDFGraph
-    ( RDFGraph, RDFLabel(..)
-    , merge
-    )
-
+import Swish.RDF.RDFGraph (RDFGraph, RDFLabel(..), merge)
 import Swish.RDF.VarBinding
     ( VarBinding(..)
     , makeVarBinding
@@ -56,27 +53,19 @@ import Swish.RDF.VarBinding
     , varFilterNE
     )
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , makeScopedName
-    )
-
-import Swish.RDF.Vocabulary
-    ( namespaceRDF
-    , langName
-    , swishName
-    , rdfType, rdfXMLLiteral
-    )
-
-import Swish.RDF.N3Parser (parseN3fromString)
-
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), makeScopedName)
+import Swish.RDF.Vocabulary (namespaceRDF, langName, swishName, rdfType, rdfXMLLiteral)
+import Swish.RDF.N3Parser (parseN3)
 import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertBool, assertEqual
     , runTestTT )
+
+import qualified Data.Text.Lazy.Builder as B
+
+import Data.Monoid (Monoid(..))
 
 ------------------------------------------------------------
 --  misc helpers
@@ -96,15 +85,17 @@ testEq lab e a = TestCase $ assertEqual lab e a
 testLs :: (Eq a, Show a) => String -> [a] -> [a] -> Test
 testLs lab e a = TestCase $ assertEqual lab (Set e) (Set a)
 
-testGr :: String -> String -> [RDFGraph] -> Test
+testGr :: String -> B.Builder -> [RDFGraph] -> Test
 testGr lab e a = TestCase $ assertBool lab (eg `elem` a)
-    where eg = graphFromString e
+    where eg = graphFromBuilder mempty e
 
-graphFromString :: String -> RDFGraph
-graphFromString str = case parseN3fromString str of
+graphFromBuilder :: B.Builder -> B.Builder -> RDFGraph
+graphFromBuilder prefix body = 
+  let txt = B.toLazyText $ prefix `mappend` body
+  in case parseN3 txt Nothing of
     Right gr -> gr
     Left msg -> error msg
-
+    
 -- Compare lists for set equivalence:
 
 data ListTest a = ListTest [a]
@@ -123,30 +114,30 @@ testEqv lab a1 a2 =
 --  test1:  simple query qith URI, literal and blank nodes.
 ------------------------------------------------------------
 
-prefix1 :: String
-prefix1 =
-    "@prefix ex: <http://example.org/> . \n" ++
-    " \n"
+prefix1 :: B.Builder
+prefix1 = "@prefix ex: <http://example.org/> . \n"
+
+gr1 :: B.Builder -> RDFGraph
+gr1 = graphFromBuilder prefix1
 
 graph1 :: RDFGraph
-graph1 = graphFromString $ prefix1 ++
-         "ex:s1  ex:p  ex:o1 . \n"  ++
-         "ex:s2  ex:p  \"lit1\" . \n" ++
-         "[ ex:p ex:o3 ] . \n"
+graph1 = gr1 $
+         mconcat
+         [ "ex:s1  ex:p  ex:o1 . \n"
+         , "ex:s2  ex:p  \"lit1\" . \n"
+         , "[ ex:p ex:o3 ] . \n" ]
 
 query11 :: RDFGraph
-query11    = graphFromString $ prefix1 ++
-             "?s  ex:p  ?o . \n"
+query11 = gr1 "?s  ex:p  ?o . \n"
 
 result11 :: RDFGraph
-result11    = graphFromString $ prefix1 ++
-              "?s  ex:r  ?o . \n"
+result11 = gr1 "?s  ex:r  ?o . \n"
 
-result11a, result11b, result11c :: String
+result11a, result11b, result11c :: B.Builder
 
-result11a = prefix1 ++ "ex:s1  ex:r  ex:o1 . \n"
-result11b = prefix1 ++ "ex:s2  ex:r  \"lit1\" . \n"
-result11c = prefix1 ++ "[ ex:r ex:o3 ] . \n"
+result11a = prefix1 `mappend` "ex:s1  ex:r  ex:o1 . \n"
+result11b = prefix1 `mappend` "ex:s2  ex:r  \"lit1\" . \n"
+result11c = prefix1 `mappend` "[ ex:r ex:o3 ] . \n"
 
 var11 :: [RDFVarBinding]
 var11 = rdfQueryFind query11 graph1
@@ -169,102 +160,99 @@ test1 =
 --  single relationship graph.
 ------------------------------------------------------------
 
-prefix2 :: String
+prefix2 :: B.Builder
 prefix2 =
-    "@prefix pers: <urn:pers:> . \n"      ++
-    "@prefix rel:  <urn:rel:> . \n"       ++
-    " \n"
+  "@prefix pers: <urn:pers:> . \n" `mappend`
+  "@prefix rel:  <urn:rel:> . \n"
+
+gr2 :: B.Builder -> RDFGraph
+gr2 = graphFromBuilder prefix2
 
 graph2 :: RDFGraph
-graph2 = graphFromString $ prefix2 ++
-    "pers:St1 rel:wife     pers:Do1 ; \n" ++
-    "         rel:daughter pers:Ma2 ; \n" ++
-    "         rel:daughter pers:An2 . \n" ++
-    "pers:Pa2 rel:wife     pers:Ma2 ; \n" ++
-    "         rel:son      pers:Gr3 ; \n" ++
-    "         rel:son      pers:La3 ; \n" ++
-    "         rel:son      pers:Si3 ; \n" ++
-    "         rel:son      pers:Al3 . \n" ++
-    "pers:Br2 rel:wife     pers:Ri2 ; \n" ++
-    "         rel:daughter pers:Ma3 ; \n" ++
-    "         rel:son      pers:Wi3 . \n" ++
-    "pers:Gr3 rel:wife     pers:Ma3 ; \n" ++
-    "         rel:son      pers:Ro4 ; \n" ++
-    "         rel:daughter pers:Rh4 . \n" ++
-    "pers:Si3 rel:wife     pers:Jo3 ; \n" ++
-    "         rel:son      pers:Ol4 ; \n" ++
-    "         rel:son      pers:Lo4 . \n" ++
-    "pers:Al3 rel:wife     pers:Su3 ; \n" ++
-    "         rel:son      pers:Ha4 ; \n" ++
-    "         rel:son      pers:El4 . \n"
+graph2 = gr2 $
+         mconcat
+         [ "pers:St1 rel:wife     pers:Do1 ; \n"
+         , "         rel:daughter pers:Ma2 ; \n"
+         , "         rel:daughter pers:An2 . \n"
+         , "pers:Pa2 rel:wife     pers:Ma2 ; \n"
+         , "         rel:son      pers:Gr3 ; \n"
+         , "         rel:son      pers:La3 ; \n"
+         , "         rel:son      pers:Si3 ; \n"
+         , "         rel:son      pers:Al3 . \n"
+         , "pers:Br2 rel:wife     pers:Ri2 ; \n"
+         , "         rel:daughter pers:Ma3 ; \n"
+         , "         rel:son      pers:Wi3 . \n"
+         , "pers:Gr3 rel:wife     pers:Ma3 ; \n"
+         , "         rel:son      pers:Ro4 ; \n"
+         , "         rel:daughter pers:Rh4 . \n"
+         , "pers:Si3 rel:wife     pers:Jo3 ; \n"
+         , "         rel:son      pers:Ol4 ; \n"
+         , "         rel:son      pers:Lo4 . \n"
+         , "pers:Al3 rel:wife     pers:Su3 ; \n"
+         , "         rel:son      pers:Ha4 ; \n"
+         , "         rel:son      pers:El4 . \n"
+         ]
 
 query21 :: RDFGraph
-query21 = graphFromString $ prefix2 ++
-    "?a rel:wife ?b . \n"
+query21 = gr2 "?a rel:wife ?b . \n"
 
 result21 :: RDFGraph
-result21 = graphFromString $ prefix2 ++
-    "?b rel:husband ?a . \n"
+result21 = gr2 "?b rel:husband ?a . \n"
 
 result21a, result21b, result21c, result21d,
-  result21e, result21f :: String
+  result21e, result21f :: B.Builder
 
-result21a = prefix2 ++ "pers:Do1 rel:husband pers:St1 . \n"
-result21b = prefix2 ++ "pers:Ma2 rel:husband pers:Pa2 . \n"
-result21c = prefix2 ++ "pers:Ri2 rel:husband pers:Br2 . \n"
-result21d = prefix2 ++ "pers:Ma3 rel:husband pers:Gr3 . \n"
-result21e = prefix2 ++ "pers:Jo3 rel:husband pers:Si3 . \n"
-result21f = prefix2 ++ "pers:Su3 rel:husband pers:Al3 . \n"
+result21a = prefix2 `mappend` "pers:Do1 rel:husband pers:St1 . \n"
+result21b = prefix2 `mappend` "pers:Ma2 rel:husband pers:Pa2 . \n"
+result21c = prefix2 `mappend` "pers:Ri2 rel:husband pers:Br2 . \n"
+result21d = prefix2 `mappend` "pers:Ma3 rel:husband pers:Gr3 . \n"
+result21e = prefix2 `mappend` "pers:Jo3 rel:husband pers:Si3 . \n"
+result21f = prefix2 `mappend` "pers:Su3 rel:husband pers:Al3 . \n"
 
 var21 :: [RDFVarBinding]
-var21         = rdfQueryFind query21 graph2
+var21 = rdfQueryFind query21 graph2
 
 res21 :: [RDFGraph]
-res21         = rdfQuerySubs var21 result21
+res21 = rdfQuerySubs var21 result21
 
 query22 :: RDFGraph
-query22    = graphFromString $ prefix2 ++
-    "?a rel:son ?b . \n" ++
-    "?b rel:son ?c . \n"
+query22 = gr2 $
+          "?a rel:son ?b . \n" `mappend`
+          "?b rel:son ?c . \n"
 
 result22 :: RDFGraph
-result22    = graphFromString $ prefix2 ++
-    "?a rel:grandparent ?c . \n"
+result22 = gr2 "?a rel:grandparent ?c . \n"
 
-result22a :: String
-result22a = prefix2 ++
+result22a, result22b, result22c, result22d, result22e :: B.Builder
+
+result22a = prefix2 `mappend`
     "pers:Pa2 rel:grandparent pers:Ro4 . \n"
 
-result22b :: String
-result22b = prefix2 ++
+result22b = prefix2 `mappend`
     "pers:Pa2 rel:grandparent pers:Ol4 . \n"
 
-result22c :: String
-result22c = prefix2 ++
+result22c = prefix2 `mappend`
     "pers:Pa2 rel:grandparent pers:Lo4 . \n"
 
-result22d :: String
-result22d = prefix2 ++
+result22d = prefix2 `mappend`
     "pers:Pa2 rel:grandparent pers:Ha4 . \n"
 
-result22e :: String
-result22e = prefix2 ++
+result22e = prefix2 `mappend`
     "pers:Pa2 rel:grandparent pers:El4 . \n"
 
 var22 :: [RDFVarBinding]
-var22         = rdfQueryFind query22 graph2
+var22 = rdfQueryFind query22 graph2
 
 res22 :: [RDFGraph]
-res22         = rdfQuerySubs var22 result22
+res22 = rdfQuerySubs var22 result22
 
 query23 :: RDFGraph
-query23    = graphFromString $ prefix2 ++
-    "?a rel:son ?b . \n" ++
+query23 = gr2 $
+    "?a rel:son ?b . \n" `mappend`
     "?a rel:son ?c . \n"
 
 result23 :: RDFGraph
-result23    = graphFromString $ prefix2 ++
-    "?b rel:brother ?c . \n"
+result23 = gr2 "?b rel:brother ?c . \n"
 
 result23a, result23b, result23c, result23d,
   result23e, result23f, result23g, result23h,
@@ -272,84 +260,84 @@ result23a, result23b, result23c, result23d,
   result23m, result23n, result23o, result23p,
   result23q, result23r, result23s, result23t,
   result23u, result23v, result23w, result23x,
-  result23y, result23z :: String
+  result23y, result23z :: B.Builder
 
-result23a = prefix2 ++
+result23a = prefix2 `mappend`
     "pers:Gr3 rel:brother pers:Gr3 . \n"
 
-result23b = prefix2 ++
+result23b = prefix2 `mappend`
     "pers:Gr3 rel:brother pers:La3 . \n"
 
-result23c = prefix2 ++
+result23c = prefix2 `mappend`
     "pers:Gr3 rel:brother pers:Si3 . \n"
 
-result23d = prefix2 ++
+result23d = prefix2 `mappend`
     "pers:Gr3 rel:brother pers:Al3 . \n"
 
-result23e = prefix2 ++
+result23e = prefix2 `mappend`
     "pers:La3 rel:brother pers:Gr3 . \n"
 
-result23f = prefix2 ++
+result23f = prefix2 `mappend`
     "pers:La3 rel:brother pers:La3 . \n"
 
-result23g = prefix2 ++
+result23g = prefix2 `mappend`
     "pers:La3 rel:brother pers:Si3 . \n"
 
-result23h = prefix2 ++
+result23h = prefix2 `mappend`
     "pers:La3 rel:brother pers:Al3 . \n"
 
-result23i = prefix2 ++
+result23i = prefix2 `mappend`
     "pers:Si3 rel:brother pers:Gr3 . \n"
 
-result23j = prefix2 ++
+result23j = prefix2 `mappend`
     "pers:Si3 rel:brother pers:La3 . \n"
 
-result23k = prefix2 ++
+result23k = prefix2 `mappend`
     "pers:Si3 rel:brother pers:Si3 . \n"
 
-result23l = prefix2 ++
+result23l = prefix2 `mappend`
     "pers:Si3 rel:brother pers:Al3 . \n"
 
-result23m = prefix2 ++
+result23m = prefix2 `mappend`
     "pers:Al3 rel:brother pers:Gr3 . \n"
 
-result23n = prefix2 ++
+result23n = prefix2 `mappend`
     "pers:Al3 rel:brother pers:La3 . \n"
 
-result23o = prefix2 ++
+result23o = prefix2 `mappend`
     "pers:Al3 rel:brother pers:Si3 . \n"
 
-result23p = prefix2 ++
+result23p = prefix2 `mappend`
     "pers:Al3 rel:brother pers:Al3 . \n"
 
-result23q = prefix2 ++
+result23q = prefix2 `mappend`
     "pers:Wi3 rel:brother pers:Wi3 . \n"
 
-result23r = prefix2 ++
+result23r = prefix2 `mappend`
     "pers:Ro4 rel:brother pers:Ro4 . \n"
 
-result23s = prefix2 ++
+result23s = prefix2 `mappend`
     "pers:Ol4 rel:brother pers:Lo4 . \n"
 
-result23t = prefix2 ++
+result23t = prefix2 `mappend`
     "pers:Ol4 rel:brother pers:Ol4 . \n"
 
-result23u = prefix2 ++
+result23u = prefix2 `mappend`
     "pers:Lo4 rel:brother pers:Lo4 . \n"
 
-result23v = prefix2 ++
+result23v = prefix2 `mappend`
     "pers:Lo4 rel:brother pers:Ol4 . \n"
 
-result23w = prefix2 ++
+result23w = prefix2 `mappend`
     "pers:Ha4 rel:brother pers:El4 . \n"
 
-result23x = prefix2 ++
+result23x = prefix2 `mappend`
     "pers:Ha4 rel:brother pers:Ha4 . \n"
 
-result23y = prefix2 ++
+result23y = prefix2 `mappend`
     "pers:El4 rel:brother pers:El4 . \n"
 
-result23z = prefix2 ++
+result23z = prefix2 `mappend`
     "pers:El4 rel:brother pers:Ha4 . \n"
 
 var23 :: [RDFVarBinding]
@@ -370,34 +358,33 @@ res23F :: [RDFGraph]
 res23F   = rdfQuerySubs var23F result23
 
 query24 :: RDFGraph
-query24    = graphFromString $ prefix2 ++
-    "?a rel:daughter ?b . \n" ++
-    "?a rel:daughter ?c . \n"
+query24 = gr2 $
+          "?a rel:daughter ?b . \n" `mappend`
+          "?a rel:daughter ?c . \n"
 
 result24 :: RDFGraph
-result24    = graphFromString $ prefix2 ++
-    "?b rel:sister ?c . \n"
+result24 = gr2 "?b rel:sister ?c . \n"
 
 result24a, result24b, result24c, result24d,
-  result24e, result24f :: String
+  result24e, result24f :: B.Builder
  
-result24a = prefix2 ++
-    "pers:Ma2 rel:sister pers:Ma2 . \n"
+result24a = prefix2 `mappend`
+            "pers:Ma2 rel:sister pers:Ma2 . \n"
 
-result24b = prefix2 ++
-    "pers:Ma2 rel:sister pers:An2 . \n"
+result24b = prefix2 `mappend`
+            "pers:Ma2 rel:sister pers:An2 . \n"
 
-result24c = prefix2 ++
-    "pers:An2 rel:sister pers:Ma2 . \n"
+result24c = prefix2 `mappend`
+            "pers:An2 rel:sister pers:Ma2 . \n"
 
-result24d = prefix2 ++
-    "pers:An2 rel:sister pers:An2 . \n"
+result24d = prefix2 `mappend`
+            "pers:An2 rel:sister pers:An2 . \n"
 
-result24e = prefix2 ++
-    "pers:Ma3 rel:sister pers:Ma3 . \n"
+result24e = prefix2 `mappend`
+            "pers:Ma3 rel:sister pers:Ma3 . \n"
 
-result24f = prefix2 ++
-    "pers:Rh4 rel:sister pers:Rh4 . \n"
+result24f = prefix2 `mappend`
+            "pers:Rh4 rel:sister pers:Rh4 . \n"
 
 var24 :: [RDFVarBinding]
 var24 = rdfQueryFind query24 graph2
@@ -406,24 +393,30 @@ res24 :: [RDFGraph]
 res24 = rdfQuerySubs var24 result24
 
 query25 :: RDFGraph
-query25    = graphFromString $ prefix2 ++
-    "?a rel:son      ?b . \n" ++
+query25 = gr2 $
+    "?a rel:son      ?b . \n" `mappend`
     "?a rel:daughter ?c . \n"
 
 result25 :: RDFGraph
-result25    = graphFromString $ prefix2 ++
-    "?b rel:sister  ?c . \n" ++
+result25 = gr2 $
+    "?b rel:sister  ?c . \n" `mappend`
     "?c rel:brother ?b . \n"
 
-result25a, result25b :: String
-result25a = prefix2 ++
-    "pers:Wi3 rel:sister  pers:Ma3 . \n" ++
-    "pers:Ma3 rel:brother pers:Wi3 . \n"
-
-result25b = prefix2 ++
-    "pers:Ro4 rel:sister  pers:Rh4 . \n" ++
-    "pers:Rh4 rel:brother pers:Ro4 . \n"
-
+result25a, result25b :: B.Builder
+result25a = 
+  mconcat 
+  [ prefix2
+  , "pers:Wi3 rel:sister  pers:Ma3 . \n"
+  , "pers:Ma3 rel:brother pers:Wi3 . \n"
+  ]
+  
+result25b = 
+  mconcat
+  [ prefix2 
+  , "pers:Ro4 rel:sister  pers:Rh4 . \n"
+  , "pers:Rh4 rel:brother pers:Ro4 . \n"
+  ]
+  
 var25 :: [RDFVarBinding]
 var25 = rdfQueryFind query25 graph2
 
@@ -514,27 +507,32 @@ test2 =
 ------------------------------------------------------------
 
 graph3 :: RDFGraph
-graph3 = graphFromString $ prefix2 ++
-    "pers:Pa2 rel:grandparent pers:Ro4 . \n" ++
+graph3 = gr2 $
+    "pers:Pa2 rel:grandparent pers:Ro4 . \n" `mappend`
     "pers:Pa2 rel:grandparent pers:Ol4 . \n"
 
 query31 :: RDFGraph
-query31 = graphFromString $ prefix2 ++
-    "?a rel:grandparent ?c . \n"
+query31 = gr2 "?a rel:grandparent ?c . \n"
 
 result31 :: RDFGraph
-result31 = graphFromString $ prefix2 ++
-    "?a rel:son ?b . \n" ++
+result31 = gr2 $
+    "?a rel:son ?b . \n" `mappend`
     "?b rel:son ?c . \n"
 
-result31a, result31b :: String
-result31a = prefix2 ++
-    "pers:Pa2 rel:son ?b . \n" ++
-    "?b rel:son pers:Ro4 . \n"
-
-result31b = prefix2 ++
-    "pers:Pa2 rel:son ?b . \n" ++
-    "?b rel:son pers:Ol4 . \n"
+result31a, result31b :: B.Builder
+result31a = 
+  mconcat
+  [ prefix2 
+  , "pers:Pa2 rel:son ?b . \n" 
+  , "?b rel:son pers:Ro4 . \n"
+  ]
+  
+result31b = 
+  mconcat
+  [ prefix2
+  , "pers:Pa2 rel:son ?b . \n"
+  , "?b rel:son pers:Ol4 . \n"
+  ]
 
 var31 :: [RDFVarBinding]
 var31 = rdfQueryFind query31 graph3
@@ -547,28 +545,35 @@ res31v :: [[RDFLabel]]
 (res31,res31v) = unzip res31pairs
 
 query32 :: RDFGraph
-query32 = graphFromString $ prefix2 ++
-    "?a rel:grandparent ?c . \n"
+query32 = gr2 "?a rel:grandparent ?c . \n"
 
 result32 :: RDFGraph
-result32 = graphFromString $ prefix2 ++
-    "?a rel:wife _:b  . \n" ++
-    "?d rel:any  _:b0 . \n" ++
-    "?a rel:son ?b . \n"    ++
-    "?b rel:son ?c . \n"
+result32 = gr2 $
+           mconcat
+           [ "?a rel:wife _:b  . \n"
+           , "?d rel:any  _:b0 . \n"
+           , "?a rel:son ?b . \n"   
+           , "?b rel:son ?c . \n"
+           ]
+           
+result32a, result32b :: B.Builder
+result32a = 
+  mconcat
+  [ prefix2 
+  , "pers:Pa2 rel:wife _:b      . \n"
+  , "_:d0     rel:any  _:b0     . \n"
+  , "pers:Pa2 rel:son  _:b1     . \n"
+  , "_:b1     rel:son  pers:Ro4 . \n"
+  ]
 
-result32a, result32b :: String
-result32a = prefix2 ++
-    "pers:Pa2 rel:wife _:b      . \n" ++
-    "_:d0     rel:any  _:b0     . \n" ++
-    "pers:Pa2 rel:son  _:b1     . \n" ++
-    "_:b1     rel:son  pers:Ro4 . \n"
-
-result32b = prefix2 ++
-    "pers:Pa2 rel:wife _:b      . \n" ++
-    "_:d0     rel:any  _:b0     . \n" ++
-    "pers:Pa2 rel:son  _:b1     . \n" ++
-    "_:b1     rel:son  pers:Ol4 . \n"
+result32b = 
+  mconcat
+  [ prefix2
+  , "pers:Pa2 rel:wife _:b      . \n"
+  , "_:d0     rel:any  _:b0     . \n"
+  , "pers:Pa2 rel:son  _:b1     . \n"
+  , "_:b1     rel:son  pers:Ol4 . \n"
+  ]
 
 res32, res33 :: [RDFGraph]
 res32 = rdfQuerySubsBlank var31 result32
@@ -604,27 +609,33 @@ d4 = remapLabels (snd d2) d3 makeBlank (fst d2)
 --  test4:  test of backward-chaining query
 ------------------------------------------------------------
 
-prefix4 :: String
+prefix4 :: B.Builder
 prefix4 =
-    "@prefix pers: <urn:pers:> . \n"      ++
-    "@prefix rel:  <urn:rel:> . \n"       ++
-    " \n"
+  "@prefix pers: <urn:pers:> . \n" `mappend`
+  "@prefix rel:  <urn:rel:> . \n"
+
+-- should use gr4l rather than gr
+gr4 :: B.Builder -> RDFGraph
+gr4 = graphFromBuilder prefix4
+
+gr4l :: [B.Builder] -> RDFGraph
+gr4l = graphFromBuilder prefix4 . mconcat
+
+b4 :: [B.Builder] -> B.Builder
+b4 = mconcat . (prefix4 :)
 
 graph41 :: RDFGraph
-graph41 = graphFromString $ prefix4 ++
-    "pers:St1 rel:wife     pers:Do1 . \n"
+graph41 = gr4 "pers:St1 rel:wife     pers:Do1 . \n"
 
 query41 :: RDFGraph
-query41 = graphFromString $ prefix4 ++
-    "?a rel:wife ?b . \n"
+query41 = gr4 "?a rel:wife ?b . \n"
 
 result41 :: RDFGraph
-result41 = graphFromString $ prefix4 ++
-    "?b rel:husband ?a . \n"
+result41 = gr4 "?b rel:husband ?a . \n"
 
-result41a :: String
-result41a = prefix4 ++
-    "pers:Do1 rel:husband pers:St1 . \n"
+result41a :: B.Builder
+result41a = prefix4 `mappend`
+            "pers:Do1 rel:husband pers:St1 . \n"
 
 var41 :: [[RDFVarBinding]]
 var41 = rdfQueryBack query41 graph41
@@ -633,23 +644,24 @@ res41 :: [[(RDFGraph, [RDFLabel])]]
 res41 = rdfQueryBackSubs var41 result41
 
 graph42 :: RDFGraph
-graph42 = graphFromString $ prefix4 ++
-    "pers:Pa2 rel:grandparent pers:Ro4 . \n"
+graph42 = gr4 "pers:Pa2 rel:grandparent pers:Ro4 . \n"
 
 query42 :: RDFGraph
-query42 = graphFromString $ prefix4 ++
-    "?a rel:grandparent ?c . \n"
+query42 = gr4 "?a rel:grandparent ?c . \n"
 
 result42 :: RDFGraph
-result42 = graphFromString $ prefix4 ++
-    "?a rel:son ?b . \n" ++
+result42 = gr4 $
+    "?a rel:son ?b . \n" `mappend`
     "?b rel:son ?c . \n"
 
-result42a :: String
-result42a = prefix4 ++
-    "pers:Pa2 rel:son ?b       . \n" ++
-    "?b       rel:son pers:Ro4 . \n"
-
+result42a :: B.Builder
+result42a = 
+  mconcat
+  [ prefix4
+  , "pers:Pa2 rel:son ?b       . \n"
+  , "?b       rel:son pers:Ro4 . \n"
+  ]
+  
 var42 :: [[RDFVarBinding]]
 var42 = rdfQueryBack query42 graph42
 
@@ -657,23 +669,24 @@ res42 :: [[(RDFGraph, [RDFLabel])]]
 res42 = rdfQueryBackSubs var42 result42
 
 graph43 :: RDFGraph
-graph43 = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:brother pers:La3 . \n"
+graph43 = gr4 "pers:Gr3 rel:brother pers:La3 . \n"
 
 query43 :: RDFGraph
-query43 = graphFromString $ prefix4 ++
-    "?b rel:brother ?c . \n"
+query43 = gr4 "?b rel:brother ?c . \n"
 
 result43 :: RDFGraph
-result43 = graphFromString $ prefix4 ++
-    "?a rel:son ?b . \n" ++
+result43 = gr4 $
+    "?a rel:son ?b . \n" `mappend`
     "?a rel:son ?c . \n"
 
-result43a :: String
-result43a = prefix4 ++
-    "?a rel:son pers:Gr3 . \n" ++
-    "?a rel:son pers:La3 . \n"
-
+result43a :: B.Builder
+result43a = 
+  mconcat
+  [ prefix4
+  , "?a rel:son pers:Gr3 . \n"
+  , "?a rel:son pers:La3 . \n"
+  ]
+  
 var43 :: [[RDFVarBinding]]
 var43 = rdfQueryBack query43 graph43
 
@@ -681,37 +694,44 @@ res43 :: [[(RDFGraph, [RDFLabel])]]
 res43 = rdfQueryBackSubs var43 result43
 
 graph44 :: RDFGraph
-graph44 = graphFromString $ prefix4 ++
-    "pers:Pa2 rel:grandson pers:Ro4 . \n"
+graph44 = gr4 "pers:Pa2 rel:grandson pers:Ro4 . \n"
 
 query44 :: RDFGraph
-query44 = graphFromString $ prefix4 ++
-    "?a rel:grandson ?b . \n" ++
+query44 = gr4 $
+    "?a rel:grandson ?b . \n" `mappend`
     "?c rel:grandson ?d . \n"
 
 result44 :: RDFGraph
-result44 = graphFromString $ prefix4 ++
-    "?a rel:son      ?m . \n" ++
-    "?m rel:son      ?b . \n" ++
-    "?c rel:daughter ?n . \n" ++
-    "?n rel:son      ?d . \n"
+result44 = gr4 $
+           mconcat
+           [ "?a rel:son      ?m . \n"
+           , "?m rel:son      ?b . \n"
+           , "?c rel:daughter ?n . \n"
+           , "?n rel:son      ?d . \n"
+           ]
+           
+result44a, result44b :: B.Builder
+result44a = 
+  mconcat
+  [ prefix4
+  , "pers:Pa2 rel:son ?m       . \n"
+  , "?m       rel:son pers:Ro4 . \n"
+  , "?c rel:daughter ?n . \n"
+  , "?n rel:son      ?d . \n"
+  ]
 
-result44a, result44b :: String
-result44a = prefix4 ++
-    "pers:Pa2 rel:son ?m       . \n" ++
-    "?m       rel:son pers:Ro4 . \n" ++
-    "?c rel:daughter ?n . \n" ++
-    "?n rel:son      ?d . \n"
-
-result44b = prefix4 ++
-    "?a rel:son      ?m . \n" ++
-    "?m rel:son      ?b . \n" ++
-    "pers:Pa2 rel:daughter ?n .       \n" ++
-    "?n       rel:son      pers:Ro4 . \n"
-
+result44b = 
+  mconcat
+  [ prefix4
+  , "?a rel:son      ?m . \n"
+  , "?m rel:son      ?b . \n"
+  , "pers:Pa2 rel:daughter ?n .       \n"
+  , "?n       rel:son      pers:Ro4 . \n"
+  ]
+  
 unbound44a, unbound44b :: [RDFLabel]
-unbound44a = [Var "m",Var "c",Var "n",Var "d"]
-unbound44b = [Var "a",Var "m",Var "b",Var "n"]
+unbound44a = [Var "m", Var "c", Var "n", Var "d"]
+unbound44b = [Var "a", Var "m", Var "b", Var "n"]
 
 var44 :: [[RDFVarBinding]]
 var44 = rdfQueryBack query44 graph44
@@ -730,28 +750,33 @@ res44_1, res44_2 :: [(RDFGraph, [RDFLabel])]
 --      (?a daughter b1, ?a son c1) && (?a daughter b2, ?a son c2)
 
 graph45 :: RDFGraph
-graph45 = graphFromString $ prefix4 ++
-    "pers:Rh4 rel:brother pers:Ro4 . \n" ++
+graph45 = gr4 $
+    "pers:Rh4 rel:brother pers:Ro4 . \n" `mappend`
     "pers:Ma3 rel:brother pers:Wi3 . \n"
 
 query45 :: RDFGraph
-query45 = graphFromString $ prefix4 ++
-    "?b rel:brother ?c . \n"
+query45 = gr4 "?b rel:brother ?c . \n"
 
 result45 :: RDFGraph
-result45 = graphFromString $ prefix4 ++
-    "?a rel:daughter ?b . \n" ++
+result45 = gr4 $
+    "?a rel:daughter ?b . \n" `mappend`
     "?a rel:son      ?c . \n"
 
-result45a1, result45a2 :: String
-result45a1 = prefix4 ++
-    "?a rel:daughter pers:Rh4 . \n" ++
-    "?a rel:son      pers:Ro4 . \n"
+result45a1, result45a2 :: B.Builder
+result45a1 = 
+  mconcat
+  [ prefix4
+  , "?a rel:daughter pers:Rh4 . \n"
+  , "?a rel:son      pers:Ro4 . \n"
+  ]
 
-result45a2 = prefix4 ++
-    "?a rel:daughter pers:Ma3 . \n" ++
-    "?a rel:son      pers:Wi3 . \n"
-
+result45a2 = 
+  mconcat
+  [ prefix4
+  , "?a rel:daughter pers:Ma3 . \n"
+  , "?a rel:son      pers:Wi3 . \n"
+  ]
+  
 unbound45a1, unbound45a2 :: [RDFLabel]
 unbound45a1 = [Var "a"]
 unbound45a2 = [Var "a"]
@@ -776,27 +801,33 @@ res45_11, res45_12 :: (RDFGraph, [RDFLabel])
 --      (_:c1 son a, _:c1 stepSon b) || (_:c2 stepSon a, _:c2 son b)
 
 graph46 :: RDFGraph
-graph46 = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:stepbrother pers:St3 . \n"
+graph46 = gr4 "pers:Gr3 rel:stepbrother pers:St3 . \n"
 
 query46 :: RDFGraph
-query46 = graphFromString $ prefix4 ++
-    "?b rel:stepbrother ?c . \n" ++
+query46 = gr4 $
+    "?b rel:stepbrother ?c . \n" `mappend`
     "?c rel:stepbrother ?b . \n"
 
 result46 :: RDFGraph
-result46 = graphFromString $ prefix4 ++
-    "?a rel:son     ?b . \n" ++
+result46 = gr4 $
+    "?a rel:son     ?b . \n" `mappend`
     "?a rel:stepson ?c . \n"
 
-result46a, result46b :: String
-result46a = prefix4 ++
-    "?a rel:son     pers:St3 . \n" ++
-    "?a rel:stepson pers:Gr3 . \n"
-result46b = prefix4 ++
-    "?a rel:son     pers:Gr3 . \n" ++
-    "?a rel:stepson pers:St3 . \n"
-
+result46a, result46b :: B.Builder
+result46a = 
+  mconcat
+  [ prefix4
+  , "?a rel:son     pers:St3 . \n"
+  , "?a rel:stepson pers:Gr3 . \n"
+  ]
+  
+result46b = 
+  mconcat
+  [ prefix4
+  , "?a rel:son     pers:Gr3 . \n"
+  , "?a rel:stepson pers:St3 . \n"
+  ]
+  
 unbound46a, unbound46b :: [RDFLabel]
 unbound46a = [Var "a"]
 unbound46b = [Var "a"]
@@ -825,56 +856,56 @@ res46_11, res46_21 :: (RDFGraph, [RDFLabel])
 --      ((_:e stepSon a, _:e son b) && (_:f stepSon a, _:f son b))
 
 graph47 :: RDFGraph
-graph47 = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:stepbrother pers:St3 . \n" ++
+graph47 = gr4 $
+    "pers:Gr3 rel:stepbrother pers:St3 . \n" `mappend`
     "pers:St3 rel:stepbrother pers:Gr3 . \n"
 
 query47 :: RDFGraph
-query47 = graphFromString $ prefix4 ++
-    "?b rel:stepbrother ?c . \n" ++
+query47 = gr4 $
+    "?b rel:stepbrother ?c . \n" `mappend`
     "?c rel:stepbrother ?b . \n"
 
 result47 :: RDFGraph
-result47 = graphFromString $ prefix4 ++
-    "?a rel:son     ?b . \n" ++
+result47 = gr4 $
+    "?a rel:son     ?b . \n" `mappend`
     "?a rel:stepson ?c . \n"
 
 result47a1, result47a2,
   result47b1, result47b2,
   result47c1, result47c2,
-  result47d1, result47d2 :: String
+  result47d1, result47d2 :: B.Builder
 
-result47a1 = prefix4 ++
-    "?a rel:son     pers:St3 . \n" ++
-    "?a rel:stepson pers:Gr3 . \n"
+result47a1 = 
+  b4 [ "?a rel:son     pers:St3 . \n"
+     , "?a rel:stepson pers:Gr3 . \n"]
 
-result47a2 = prefix4 ++
-    "?a rel:son     pers:Gr3 . \n" ++
-    "?a rel:stepson pers:St3 . \n"
+result47a2 = 
+  b4 [ "?a rel:son     pers:Gr3 . \n"
+     , "?a rel:stepson pers:St3 . \n"]
 
-result47b1 = prefix4 ++
-    "?a rel:stepson pers:St3 . \n" ++
-    "?a rel:son     pers:Gr3 . \n"
+result47b1 = 
+  b4 [ "?a rel:stepson pers:St3 . \n"
+     , "?a rel:son     pers:Gr3 . \n"]
 
-result47b2 = prefix4 ++
-    "?a rel:stepson pers:St3 . \n" ++
-    "?a rel:son     pers:Gr3 . \n"
+result47b2 = 
+  b4 [ "?a rel:stepson pers:St3 . \n"
+     , "?a rel:son     pers:Gr3 . \n"]
 
-result47c1 = prefix4 ++
-    "?a rel:son     pers:St3 . \n" ++
-    "?a rel:stepson pers:Gr3 . \n"
+result47c1 = 
+  b4 [ "?a rel:son     pers:St3 . \n"
+     , "?a rel:stepson pers:Gr3 . \n"]
 
-result47c2 = prefix4 ++
-    "?a rel:son     pers:St3 . \n" ++
-    "?a rel:stepson pers:Gr3 . \n"
+result47c2 = 
+  b4 [ "?a rel:son     pers:St3 . \n"
+     , "?a rel:stepson pers:Gr3 . \n"]
 
-result47d1 = prefix4 ++
-    "?a rel:stepson pers:St3 . \n" ++
-    "?a rel:son     pers:Gr3 . \n"
+result47d1 =
+  b4 [ "?a rel:stepson pers:St3 . \n"
+     , "?a rel:son     pers:Gr3 . \n"]
 
-result47d2 = prefix4 ++
-    "?a rel:son     pers:St3 . \n" ++
-    "?a rel:stepson pers:Gr3 . \n"
+result47d2 = 
+  b4 [ "?a rel:son     pers:St3 . \n"
+     , "?a rel:stepson pers:Gr3 . \n"]
 
 unbound47a1, unbound47a2,
   unbound47b1, unbound47b2,
@@ -916,26 +947,25 @@ res47_11, res47_12,
 --      (_:c1 son a, _:c1 son b) || (_:c2 son b, _:c2 son a)
 
 graph48 :: RDFGraph
-graph48    = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:brother pers:La3 . \n"
+graph48    = gr4 "pers:Gr3 rel:brother pers:La3 . \n"
 
 query48 :: RDFGraph
-query48    = graphFromString $ prefix4 ++
-    "?b rel:brother ?c . \n" ++
+query48    = gr4 $
+    "?b rel:brother ?c . \n" `mappend`
     "?c rel:brother ?b . \n"
 
 result48 :: RDFGraph
-result48    = graphFromString $ prefix4 ++
-    "?a rel:son ?b . \n" ++
+result48    = gr4 $
+    "?a rel:son ?b . \n" `mappend`
     "?a rel:son ?c . \n"
 
-result48a, result48b :: String
-result48a = prefix4 ++
-    "?a rel:son pers:La3 . \n" ++
-    "?a rel:son pers:Gr3 . \n"
-result48b = prefix4 ++
-    "?a rel:son pers:Gr3 . \n" ++
-    "?a rel:son pers:La3 . \n"
+result48a, result48b :: B.Builder
+result48a = 
+  b4 [ "?a rel:son pers:La3 . \n"
+     , "?a rel:son pers:Gr3 . \n"]
+result48b =
+  b4 [ "?a rel:son pers:Gr3 . \n"
+     , "?a rel:son pers:La3 . \n"]
     
 unbound48a, unbound48b :: [RDFLabel]
 unbound48a = [Var "a"]
@@ -961,17 +991,15 @@ res48_11, res48_21 :: (RDFGraph, [RDFLabel])
 --  (a bar b) cannot be deduced directly
 
 graph49 :: RDFGraph
-graph49 = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:foo pers:La3 . \n"
+graph49 = gr4l ["pers:Gr3 rel:foo pers:La3 . \n"]
 
 query49 :: RDFGraph
-query49 = graphFromString $ prefix4 ++
-    "?a rel:bar ?a . \n"
+query49 = gr4l ["?a rel:bar ?a . \n"]
 
 result49 :: RDFGraph
-result49 = graphFromString $ prefix4 ++
-    "?a rel:foo ?b . \n" ++
-    "?b rel:foo ?a . \n"
+result49 = gr4l 
+           [ "?a rel:foo ?b . \n"
+           , "?b rel:foo ?a . \n"]
 
 var49 :: [[RDFVarBinding]]
 var49 = rdfQueryBack query49 graph49
@@ -987,27 +1015,26 @@ res49 = rdfQueryBackSubs var49 result49
 --      (_:c1 son a, _:c1 son b) || (_:c2 son b, _:c2 son a)
 
 graph50 :: RDFGraph
-graph50 = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:brother pers:Gr3 . \n"
+graph50 = gr4l ["pers:Gr3 rel:brother pers:Gr3 . \n"]
 
 query50 :: RDFGraph
-query50 = graphFromString $ prefix4 ++
-    "?b rel:brother ?c . \n" ++
-    "?c rel:brother ?b . \n"
+query50 = gr4l
+          [ "?b rel:brother ?c . \n"
+          , "?c rel:brother ?b . \n"]
 
 result50 :: RDFGraph
-result50 = graphFromString $ prefix4 ++
-    "?a rel:son ?b . \n" ++
-    "?a rel:son ?c . \n"
+result50 = gr4l 
+           [ "?a rel:son ?b . \n"
+           , "?a rel:son ?c . \n"]
 
-result50a, result50b :: String
-result50a = prefix4 ++
-    "?a rel:son pers:Gr3 . \n" ++
-    "?a rel:son pers:Gr3 . \n"
+result50a, result50b :: B.Builder
+result50a = 
+  b4 [ "?a rel:son pers:Gr3 . \n"
+     , "?a rel:son pers:Gr3 . \n"]
 
-result50b = prefix4 ++
-    "?a rel:son pers:Gr3 . \n" ++
-    "?a rel:son pers:Gr3 . \n"
+result50b = 
+  b4 [ "?a rel:son pers:Gr3 . \n"
+     , "?a rel:son pers:Gr3 . \n"]
 
 unbound50a, unbound50b :: [RDFLabel]
 unbound50a = [Var "a"]
@@ -1154,31 +1181,30 @@ test4 =
 --      a subgraph
 
 graph61 :: RDFGraph
-graph61 = graphFromString $ prefix4 ++
-    "pers:Gr3 rel:brother pers:La3 . \n" ++
-    "pers:Gr3 rel:brother pers:Si3 . \n"
+graph61 = gr4l 
+          [ "pers:Gr3 rel:brother pers:La3 . \n"
+          , "pers:Gr3 rel:brother pers:Si3 . \n"]
 
 query61 :: RDFGraph
-query61 = graphFromString $ prefix4 ++
-    "?b rel:brother ?c . \n"
+query61 = gr4l ["?b rel:brother ?c . \n"]
 
 result61 :: RDFGraph
-result61 = graphFromString $ prefix4 ++
-    "?a rel:son ?b . \n" ++
-    "?a rel:son ?c . \n"
+result61 = gr4l 
+           [ "?a rel:son ?b . \n"
+           , "?a rel:son ?c . \n"]
 
-result61a, result63a :: String
-result61a = prefix4 ++
-    "_:a1 rel:son pers:Gr3 . \n" ++
-    "_:a1 rel:son pers:La3 . \n" ++
-    "_:a2 rel:son pers:Gr3 . \n" ++
-    "_:a2 rel:son pers:Si3 . \n"
+result61a, result63a :: B.Builder
+result61a = 
+  b4 [ "_:a1 rel:son pers:Gr3 . \n"
+     , "_:a1 rel:son pers:La3 . \n"
+     , "_:a2 rel:son pers:Gr3 . \n"
+     , "_:a2 rel:son pers:Si3 . \n"]
 
-result63a = prefix4 ++
-    "pers:Pa2 rel:son pers:Gr3 . \n" ++
-    "pers:Pa2 rel:son pers:La3 . \n" ++
-    "pers:Pa2 rel:son pers:Gr3 . \n" ++
-    "pers:Pa2 rel:son pers:Si3 . \n"
+result63a = 
+  b4 [ "pers:Pa2 rel:son pers:Gr3 . \n"
+     , "pers:Pa2 rel:son pers:La3 . \n"
+     , "pers:Pa2 rel:son pers:Gr3 . \n"
+     , "pers:Pa2 rel:son pers:Si3 . \n"]
 
 --  1. Backchain query with blank substutions
 
@@ -1534,7 +1560,7 @@ prefixlist =
     "@prefix list : <" ++ nsURI namespacelist ++ "> . \n" ++
     " \n"
 
-graphlist    = graphFromString graphliststr
+graphlist    = graphFromBuilder graphliststr
 graphliststr = prefixlist ++
     "test:a rdf:type test:C1 ; "                   ++
     "  test:p test:item1 ; "                       ++
