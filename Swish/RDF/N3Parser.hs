@@ -477,7 +477,7 @@ string ::= tripleQuoted | singleQUoted
 
 -}
 
-n3string :: N3Parser String
+n3string :: N3Parser T.Text
 n3string = tripleQuoted <|> singleQuoted 
 
 {-
@@ -531,16 +531,18 @@ n3Character =
 sQuot :: N3Parser Char
 sQuot = char '"'
 
--- NOTE: changed from parsec between to polyparse bracket; is
--- there a semantic difference?
-singleQuoted :: N3Parser String
-singleQuoted = bracket sQuot sQuot $ many n3Character
+{-
+TODO: there must be a better way of building up the Text
+-}
+
+singleQuoted :: N3Parser T.Text
+singleQuoted = fmap T.pack (bracket sQuot sQuot $ many n3Character)
     
 {-
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
 -}
-tripleQuoted :: N3Parser String
-tripleQuoted = tQuot *> manyTill (n3Character <|> sQuot <|> char '\n') tQuot
+tripleQuoted :: N3Parser T.Text
+tripleQuoted = tQuot *> fmap T.pack (manyTill (n3Character <|> sQuot <|> char '\n') tQuot)
   where
     -- tQuot = try (count 3 sQuot)
     tQuot = exactly 3 sQuot
@@ -929,7 +931,7 @@ langcode ::=	[a-z]+(-[a-z0-9]+)*
 -}
 
 literal :: N3Parser RDFLabel
-literal = Lit <$> (T.pack <$> n3string) <*> optional dtlang
+literal = Lit <$> n3string <*> optional dtlang
   
 dtlang :: N3Parser ScopedName
 dtlang = 
@@ -987,8 +989,10 @@ n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many1 digit )
 n3double :: N3Parser String  
 n3double = (++) <$> n3decimal <*> ( (:) <$> satisfy (`elem` "eE") <*> n3integer )
 
--- convert a double, as returned by n3double, into it's
--- canonical XSD form
+-- Convert a double, as returned by n3double, into it's
+-- canonical XSD form. We assume that n3double returns
+-- a syntactivally valid Double, so do not bother with reads here
+--
 d2s :: String -> RDFLabel
 d2s s = toRDFLabel (read s :: Double)
 
