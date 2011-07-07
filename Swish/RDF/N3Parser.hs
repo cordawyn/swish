@@ -51,7 +51,7 @@ module Swish.RDF.N3Parser
     , parseN3fromText      
     , parseAnyfromText
     , parseTextFromText, parseAltFromText
-    , parseNameFromText, parsePrefixFromText
+    , parseNameFromText -- , parsePrefixFromText
     , parseAbsURIrefFromText, parseLexURIrefFromText, parseURIref2FromText
     
     -- * Exports for parsers that embed Notation3 in a bigger syntax
@@ -106,7 +106,7 @@ import Swish.RDF.Vocabulary
 import Swish.RDF.RDFParser
     ( SpecialMap
     , ParseResult
-    , mapPrefix
+    -- , mapPrefix
     , prefixTable
     , specialTable
     , ignore
@@ -157,7 +157,7 @@ data N3State = N3State
 
 -- | Functions to update N3State vector (use with stUpdate)
 
-setPrefix :: Maybe String -> String -> N3State -> N3State
+setPrefix :: Maybe String -> URI -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
         p' = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
@@ -168,7 +168,7 @@ setSName nam snam st =  st { syntaxUris=s' }
     where
         s' = mapReplaceOrAdd (nam,snam) (syntaxUris st)
 
-setSUri :: String -> String -> N3State -> N3State
+setSUri :: String -> URI -> N3State -> N3State
 setSUri nam suri = setSName nam (makeScopedName Nothing suri "")
 
 -- | Set the list of tokens that can be used without needing the leading 
@@ -185,9 +185,9 @@ getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
 getSUri :: N3State -> String -> String
 getSUri st nam = getScopedNameURI $ getSName st nam
 
---  Map prefix to namespace
-getPrefixNs :: N3State -> Maybe String -> Namespace
-getPrefixNs st pre = Namespace pre (mapPrefix (prefixUris st) pre)
+--  Map prefix to URI
+getPrefixURI :: N3State -> Maybe String -> Maybe URI
+getPrefixURI st pre = mapFindMaybe pre (prefixUris st)
 
 getKeywordsList :: N3State -> [String]
 getKeywordsList = keywordsList
@@ -254,8 +254,8 @@ parseAnyfromText parser mbase input =
               }
   
       puri = case mbase of
-        Just base -> fmap showURI $ appendUris (getQNameURI base) "#"
-        _ -> Right "#"
+        Just base -> appendUris (getQNameURI base) "#"
+        _ -> Right $ fromJust $ parseURIReference "#"
 
       -- this is getting a bit ugly
         
@@ -298,7 +298,8 @@ this routine is really for testing.
 addTestPrefixes :: N3Parser ()
 addTestPrefixes = stUpdate $ \st -> st { prefixUris = LookupMap prefixTable } -- should append to existing map
 
-parsePrefixFromText :: L.Text -> Either String Namespace
+{-
+parsePrefixFromText :: L.Text -> Either String URI
 parsePrefixFromText =
     parseAnyfromText p Nothing
       where
@@ -306,7 +307,10 @@ parsePrefixFromText =
           addTestPrefixes
           pref <- n3Name
           st   <- stGet
-          return (getPrefixNs st (Just pref))   -- map prefix to namespace
+          case getPrefixURI st (Just pref) of
+            Just uri -> return uri
+            _ -> fail $ "Undefined prefix: '" ++ pref ++ "'"
+-}
 
 parseAbsURIrefFromText :: L.Text -> Either String String
 parseAbsURIrefFromText =
@@ -365,11 +369,6 @@ atWord s = do
 
 showURI :: URI -> String
 showURI u = uriToString id u ""
-
--- TODO: look at using URIs throughout
-getScopedNameURI' :: URI -> String
-getScopedNameURI' = showURI
--- getScopedNameURI' = getScopedNameURI . makeUriScopedName . showURI
 
 {-
 Since operatorLabel can be used to add a label with an 
@@ -550,13 +549,15 @@ tripleQuoted = tQuot *> fmap T.pack (manyTill (n3Character <|> sQuot <|> char '\
 getDefaultPrefix :: N3Parser Namespace
 getDefaultPrefix = do
   s <- stGet
-  return (getPrefixNs s Nothing)
+  case getPrefixURI s Nothing of
+    Just uri -> return $ Namespace Nothing uri
+    _ -> fail "No default prefix defined; how unexpected!"
 
 addBase :: URI -> N3Parser ()
-addBase = stUpdate . setSUri "base" . getScopedNameURI'
+addBase = stUpdate . setSUri "base" 
 
 addPrefix :: Maybe String -> URI -> N3Parser ()
-addPrefix p = stUpdate . setPrefix p . getScopedNameURI'
+addPrefix p = stUpdate . setPrefix p 
 
 {-|
 Update the set of keywords that can be given without

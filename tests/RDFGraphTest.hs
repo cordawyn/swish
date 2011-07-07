@@ -148,16 +148,19 @@ testLangEqSuite = TestList
 base1Str :: String
 base1Str = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 
+toURI :: String -> URI
+toURI = fromJust . parseURI
+
 toNS :: String -> String -> Namespace
-toNS p = Namespace (Just p)
+toNS p = Namespace (Just p) . toURI
 
 -- TODO: basee and baseu had prefixes of "" and "?" before the conversion
 --       to using Maybe String. Now both are Nothing; is this semantically
 --       correct? Probably.
 
 basee, baseu, base1, base2, base3, base4 :: Namespace
-basee = Namespace Nothing  "http://example.com/a#"
-baseu = Namespace Nothing "http://example.com/"
+basee = Namespace Nothing $ toURI "http://example.com/a#"
+baseu = Namespace Nothing $ toURI "http://example.com/"
 base1 = toNS "base1" base1Str
 base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
 base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
@@ -167,7 +170,7 @@ qn1s1 :: QName
 qn1s1 = qnameFromURI $ base1Str ++ "s1"
 
 qu1s1 :: URI
-qu1s1 = fromJust $ parseURI $ base1Str ++ "s1"
+qu1s1 = toURI $ base1Str ++ "s1"
 
 qbes1, qbus1, qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: ScopedName
 qbes1 = ScopedName basee "s1"

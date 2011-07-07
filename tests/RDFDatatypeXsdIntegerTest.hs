@@ -63,9 +63,11 @@ import Test.HUnit
     , runTestTT
     )
 
+import Network.URI (URI, parseURI)
+
 import Control.Monad (unless)
 import Data.Monoid (Monoid(..))
-import Data.Maybe (isJust, isNothing, fromMaybe)
+import Data.Maybe (isJust, isNothing, fromMaybe, fromJust)
 import Data.List (intersperse)
 
 import qualified Data.Text as T
@@ -155,6 +157,9 @@ testMaybeEqv lab a1 a2 =
 ------------------------------------------------------------
 --  Misc values
 ------------------------------------------------------------
+
+toURI :: String -> URI
+toURI = fromJust . parseURI
 
 xsdIntName :: String -> ScopedName
 xsdIntName = ScopedName namespaceXsdInteger 
@@ -372,7 +377,7 @@ testVarModifyAbs08 = testVmod2  "testVarModifyAbs08"
 
 testVarModifyAbs09 = testVmod2  "testVarModifyAbs09"
                     (getDTMod dmodXsdIntegerAbs rdfDatatypeValXsdInteger)
-                    [makeBVR [("b",makeScopedName Nothing "http://ex.org/" "123")]]
+                    [makeBVR [("b",makeScopedName Nothing (toURI "http://ex.org/") "123")]]
                     []
 
 testVarModifyAbs10 = testVmod2  "testVarModifyAbs10"
@@ -824,7 +829,7 @@ testVarModifySuite = TestList
 mkGraph :: B.Builder -> RDFGraph
 mkGraph gr = 
   let base = "@prefix : <" `mappend` (ns `mappend` "> . \n")
-      ns = B.fromString $ nsURI namespaceDefault
+      ns = B.fromString $ show $ nsURI namespaceDefault
   in makeRDFGraphFromN3Builder (prefixXsdInteger `mappend` (base `mappend` gr))
 
 testRuleFwd :: String -> Maybe (Rule RDFGraph) -> B.Builder -> [B.Builder] -> Test

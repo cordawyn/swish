@@ -45,7 +45,11 @@ import Swish.RDF.GraphClass (Arc, arc)
 
 import Swish.RDF.Vocabulary (langName, namespaceRDF, namespaceXSD)
 
+import Network.URI (URI, parseURI)
+
 import Data.Monoid (Monoid(..))
+import Data.Maybe (fromJust)
+
 import Data.String (IsString(..))
 
 import qualified Data.Text.Lazy as L
@@ -71,8 +75,11 @@ testGraphEq lab eq gg1 gg2 =
 --  Define some common values
 ------------------------------------------------------------
 
+toURI :: String -> URI
+toURI = fromJust . parseURI
+
 toNS :: String -> String -> Namespace
-toNS p = Namespace (Just p)
+toNS p = Namespace (Just p) . toURI
 
 base1, base2, base3, base4 :: Namespace
 base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"

@@ -168,9 +168,10 @@ mapBlankNode lab = do
 
   return $ "_:swish" `mappend` B.fromString (show nv)
 
+-- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder
 showScopedName (ScopedName n l) = 
-  let uri = T.pack $ nsURI n ++ l
+  let uri = T.pack $ show (nsURI n) ++ l
   in mconcat ["<", B.fromText (quote uri), ">"]
 
 {-

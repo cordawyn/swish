@@ -63,6 +63,8 @@ import Test.HUnit
     , runTestTT
     )
 
+import Network.URI (URI, parseURI)
+
 import Data.Monoid (Monoid(..))
 import Data.List (nub, sort)
 import Data.Maybe (isJust, fromJust)
@@ -131,9 +133,15 @@ testSameRules = testSameAs "Rules"
 --  Common values
 ------------------------------------------------------------
 
-pref_rdf, pref_owl :: String
+pref_rdf, pref_owl :: URI
 pref_rdf = nsURI namespaceRDF
 pref_owl = nsURI namespaceOWL
+
+toURI :: String -> URI
+toURI = fromJust . parseURI
+
+toNS :: Maybe String -> String -> Namespace
+toNS p = Namespace p . toURI
 
 ------------------------------------------------------------
 --  Define and manipulate rulesets
@@ -150,7 +158,7 @@ pref_owl = nsURI namespaceOWL
 --  which may be cited by a proof.
 
 rn1 :: Namespace
-rn1  = Namespace (Just "r1") "http://id.ninebynine.org/wip/2003/rulesettest/r1"
+rn1  = toNS (Just "r1") "http://id.ninebynine.org/wip/2003/rulesettest/r1"
 
 -- Common prefix declarations for graph expressions
 
@@ -162,7 +170,7 @@ prefix =
   mconcat 
   [ mkPrefix namespaceRDF
   , mkPrefix namespaceRDFS
-  , mkPrefix (Namespace (Just "ex") "http://example.org/")
+  , mkPrefix (toNS (Just "ex") "http://example.org/")
   ]
 
 a11, a12 :: RDFFormula
@@ -235,7 +243,7 @@ testRulesetSuite =
 ------------------------------------------------------------
 
 scopeex :: Namespace
-scopeex = Namespace (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
+scopeex = toNS (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
 makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
 makeFormula scope local gr =
@@ -289,11 +297,14 @@ v_a   = Var "a"
 v_b   = Var "b"
 v_x   = Var "x"
 
+exURI :: URI
+exURI = toURI "http://example.org/"
+
 u_s, u_p1, u_p2a, u_p2b, u_rt, u_rx :: RDFLabel
-u_s   = Res $ makeScopedName Nothing "http://example.org/" "s"
-u_p1  = Res $ makeScopedName Nothing "http://example.org/" "p1"
-u_p2a = Res $ makeScopedName Nothing "http://example.org/" "p2a"
-u_p2b = Res $ makeScopedName Nothing "http://example.org/" "p2b"
+u_s   = Res $ makeScopedName Nothing exURI "s"
+u_p1  = Res $ makeScopedName Nothing exURI "p1"
+u_p2a = Res $ makeScopedName Nothing exURI "p2a"
+u_p2b = Res $ makeScopedName Nothing exURI "p2b"
 u_rt  = Res $ makeScopedName Nothing pref_rdf "type"
 u_rx  = Res $ makeScopedName Nothing pref_rdf "XMLLiteral"
 

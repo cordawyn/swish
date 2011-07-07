@@ -17,7 +17,7 @@
 
 module Swish.RDF.RDFParser
     ( SpecialMap
-    , mapPrefix
+    -- , mapPrefix
               
     -- tables
     , prefixTable, specialTable
@@ -45,16 +45,9 @@ module Swish.RDF.RDFParser
     , hex4
     , hex8
     )
-where
+    where
 
-import Swish.RDF.RDFGraph
-    ( RDFGraph, RDFLabel(..)
-    , NamespaceMap
-    )
-
-import Swish.Utils.LookupMap (LookupMap(..), mapFind)
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
-
+import Swish.RDF.RDFGraph (RDFGraph, RDFLabel(..))
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
@@ -67,24 +60,43 @@ import Swish.RDF.Vocabulary
     , defaultBase
     )
 
+import Swish.Utils.LookupMap (LookupMap(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+
 import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Read as R
 
 import Text.ParserCombinators.Poly.StateText
 
+import Network.URI (parseURIReference)
+
 import Data.Char (isSpace, isHexDigit, chr)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 
 -- Code
 
 -- | Type for special name lookup table
 type SpecialMap = LookupMap (String,ScopedName)
 
--- | Lookup prefix in table and return URI or 'prefix:'
-mapPrefix :: NamespaceMap -> Maybe String -> String
+{-
+-- | Lookup prefix in table and return the matching URI.
+--
+--   If the prefix is unknown then we currently error
+--   out (used to return 'prefix:' or ':' but now using
+--   URIs I am changing this behavior). This may well be
+--   backed out.
+mapPrefix :: NamespaceMap -> Maybe String -> URI
+mapPrefix pmap pfix = 
+  case mapFindMaybe pfix pmap of
+    Just uri -> uri
+    Nothing  -> error $ "Unable to find prefix: " ++ show pfix -- fromMaybe "" pfix ++ ":"
+-}
+  
+{-
 mapPrefix ps p@(Just pre) = mapFind (pre++":") p ps
 mapPrefix ps _ = mapFind ":" Nothing ps
+-}
 
 -- | Define default table of namespaces
 prefixTable :: [Namespace]
@@ -93,7 +105,7 @@ prefixTable =   [ namespaceRDF
                 , namespaceRDFD     -- datatypes
                 , namespaceOWL
                 , namespaceLOG
-                , Namespace Nothing "#" -- is this correct?
+                , Namespace Nothing $ fromJust (parseURIReference "#") -- is this correct?
                 ]
 
 {-|

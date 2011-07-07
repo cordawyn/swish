@@ -60,7 +60,7 @@ module Swish.RDF.RDFGraph
     , grMatchMap, grEq
     , mapnode, maplist
     )
-where
+    where
 
 import Swish.Utils.Namespace
     ( Namespace(..)
@@ -728,7 +728,7 @@ type NamespaceMap = LookupMap Namespace
 
 data RevNamespace = RevNamespace Namespace
 
-instance LookupEntryClass RevNamespace String (Maybe String) where
+instance LookupEntryClass RevNamespace URI (Maybe String) where
     keyVal   (RevNamespace (Namespace pre uri)) = (uri,pre)
     newEntry (uri,pre) = RevNamespace (Namespace pre uri)
 

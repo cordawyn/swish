@@ -50,13 +50,18 @@ where
 import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Data.Char (toLower)
+import Data.Maybe (fromMaybe)
+import Network.URI (parseURI)
 
 ------------------------------------------------------------
 --  Define some common namespace values
 ------------------------------------------------------------
 
 toNS :: String -> String -> Namespace
-toNS p = Namespace (Just p)
+toNS p ustr = 
+  let uri = fromMaybe (error ("Unable to convert " ++ ustr ++ " to a URI")) $
+            parseURI ustr
+  in Namespace (Just p) uri
 
 namespaceXsdType :: String -> Namespace
 namespaceXsdType dtname = toNS ("xsd_"++dtname)

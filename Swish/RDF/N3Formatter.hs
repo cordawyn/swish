@@ -427,8 +427,8 @@ formatPrefixes pmap = do
   ls <- sequence mls
   return $ mconcat ls
     where
-      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromString p, ": <", quoteB True u, "> ."]
-      pref (_,u)      = nextLine $ mconcat ["@prefix : <", quoteB True u, "> ."]
+      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromString p, ": <", quoteB True (show u), "> ."]
+      pref (_,u)      = nextLine $ mconcat ["@prefix : <", quoteB True (show u), "> ."]
 
 {-
 NOTE:
@@ -737,7 +737,7 @@ formatLabel _ lab@(Res sn) =
           
           name   = case prefix of
                      Just (Just p) -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
+                     _ -> mconcat ["<", quoteB True (show nsuri ++ local), ">"]
       
       {-
           name   = case prefix of

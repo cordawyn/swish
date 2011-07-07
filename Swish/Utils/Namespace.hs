@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -22,7 +23,7 @@
 module Swish.Utils.Namespace
     ( Namespace(..)
     , makeNamespaceQName
-    , nullNamespace
+    -- , nullNamespace
     , ScopedName(..)
     , getScopePrefix, getScopeURI
     , getQName, getScopedNameURI
@@ -31,7 +32,7 @@ module Swish.Utils.Namespace
     , nullScopedName
     , namespaceToBuilder
     )
-where
+    where
 
 import Swish.Utils.QName (QName(..), getQNameURI)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
@@ -39,6 +40,8 @@ import Swish.Utils.LookupMap (LookupEntryClass(..))
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import Data.Maybe (fromMaybe)
+
+import Network.URI (URI(..), parseURIReference, nullURI)
 
 import qualified Data.Text.Lazy.Builder as B
 
@@ -49,24 +52,20 @@ import qualified Data.Text.Lazy.Builder as B
 -- |A NameSpace value consists of an optional prefix and a corresponding URI.
 --
 
-data Namespace = Namespace { nsPrefix :: Maybe String, nsURI :: String }
-
-{-
-getNamespacePrefix :: Namespace -> String
-getNamespacePrefix = nsPrefix
-
-getNamespaceURI    :: Namespace -> String
-getNamespaceURI    = nsURI
--}
-
+data Namespace = Namespace
+                 {
+                   nsPrefix :: Maybe String
+                 , nsURI :: URI
+                 }
+                 
 instance Eq Namespace where
     (==) = nsEq
 
 instance Show Namespace where
-    show (Namespace (Just p) u) = p ++ ":<" ++ u ++ ">"
-    show (Namespace _ u)        = "<" ++ u ++ ">"
+    show (Namespace (Just p) u) = p ++ ":<" ++ show u ++ ">"
+    show (Namespace _ u)        = "<" ++ show u ++ ">"
 
-instance LookupEntryClass Namespace (Maybe String) String where
+instance LookupEntryClass Namespace (Maybe String) URI where
     keyVal   (Namespace pre uri) = (pre,uri)
     newEntry (pre,uri)           = Namespace pre uri
 
@@ -74,10 +73,12 @@ nsEq :: Namespace -> Namespace -> Bool
 nsEq (Namespace _ u1) (Namespace _ u2) = u1 == u2
 
 makeNamespaceQName :: Namespace -> String -> QName
-makeNamespaceQName (Namespace _ uri) = QName uri
+makeNamespaceQName (Namespace _ uri) = QName (show uri)
 
+{-
 nullNamespace :: Namespace
 nullNamespace = Namespace Nothing ""
+-}
 
 -- | Utility routine to create an @prefix line (matching N3/Turtle)
 --   grammar for this namespace.
@@ -85,7 +86,7 @@ nullNamespace = Namespace Nothing ""
 namespaceToBuilder :: Namespace -> B.Builder
 namespaceToBuilder (Namespace pre uri) =
   mconcat $ map B.fromString 
-  [ "@prefix ", fromMaybe "" pre, ": <", uri, "> .\n"]
+  [ "@prefix ", fromMaybe "" pre, ": <", show uri, "> .\n"]
 
 ------------------------------------------------------------
 --  ScopedName, made from a namespace and a local name
@@ -103,7 +104,7 @@ data ScopedName = ScopedName { snScope :: Namespace, snLocal :: String }
 getScopePrefix :: ScopedName -> Maybe String
 getScopePrefix = nsPrefix . snScope
 
-getScopeURI :: ScopedName -> String
+getScopeURI :: ScopedName -> URI
 getScopeURI = nsURI . snScope
 
 instance IsString ScopedName where
@@ -118,7 +119,7 @@ instance Ord ScopedName where
 instance Show ScopedName where
     show (ScopedName n l) = case nsPrefix n of
       Just pre -> pre ++ ":" ++ l
-      _        -> "<" ++ nsURI n ++ l ++ ">"
+      _        -> "<" ++ show (nsURI n) ++ l ++ ">"
 
 --  Scoped names are equal if their corresponding QNames are equal
 snEq :: ScopedName -> ScopedName -> Bool
@@ -130,7 +131,7 @@ snLe s1 s2 = getQName s1 <= getQName s2
 
 -- |Get QName corresponding to a scoped name
 getQName :: ScopedName -> QName
-getQName n = QName (getScopeURI n) (snLocal n)
+getQName n = QName (show (getScopeURI n)) (snLocal n)
 
 -- |Get URI corresponding to a scoped name (using RDF conventions)
 getScopedNameURI :: ScopedName -> String
@@ -142,21 +143,33 @@ matchName :: String -> ScopedName -> Bool
 matchName str nam = str == show nam
 
 -- |Construct a ScopedName from prefix, URI and local name
-makeScopedName :: Maybe String -> String -> String -> ScopedName
+makeScopedName :: Maybe String -> URI -> String -> ScopedName
 makeScopedName pre nsuri =
     ScopedName (Namespace pre nsuri)
 
+{-
+TODO: should just pass URIs around.
+
+At the moment support the use of URI references.  Unclear of semantics
+to know whether this is sensible (probably is, but should look at).
+-}
+
+toBeReplaced :: String -> String -> ScopedName
+toBeReplaced u l =
+  let uri = fromMaybe (error ("Unable to convert " ++ u ++ " to a URI")) $ parseURIReference u
+  in makeScopedName Nothing uri l
+
 -- |Construct a ScopedName from a QName
 makeQNameScopedName :: QName -> ScopedName
-makeQNameScopedName (QName u l) = makeScopedName Nothing u l
+makeQNameScopedName (QName u l) = toBeReplaced u l
 
 -- |Construct a ScopedName for a bare URI
 makeUriScopedName :: String -> ScopedName
-makeUriScopedName u = makeScopedName Nothing u ""
+makeUriScopedName u = toBeReplaced u ""
 
 -- |This should never appear as a valid name
 nullScopedName :: ScopedName
-nullScopedName = makeScopedName Nothing "" ""
+nullScopedName = makeScopedName Nothing nullURI ""
 
 --------------------------------------------------------------------------------
 --

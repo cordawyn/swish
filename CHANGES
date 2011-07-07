@@ -22,7 +22,7 @@
     but some may retain lower case parts (e.g. xxx_1_1_inv to xxx11inv).
 
   - Namespace now uses Maybe String to store the optional prefix rather than
-    an ad-hoc ""/"?" solution.
+    an ad-hoc ""/"?" solution and URI rather than String for the URI.
 
 0.3.2.1:
 

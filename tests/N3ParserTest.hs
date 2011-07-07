@@ -21,7 +21,7 @@ module Main where
 import Swish.RDF.N3Parser
     ( parseN3
     , parseTextFromText, parseAltFromText
-    , parseNameFromText, parsePrefixFromText
+    , parseNameFromText -- , parsePrefixFromText
     , parseAbsURIrefFromText, parseLexURIrefFromText
     , parseURIref2FromText
     )
@@ -36,7 +36,6 @@ import Swish.RDF.RDFGraph
 
 import Swish.Utils.Namespace (
   Namespace(..)
-  , nullNamespace
   , ScopedName(..)
   , makeScopedName
   , nullScopedName
@@ -61,10 +60,16 @@ import Swish.RDF.GraphClass (Arc, arc)
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
+import Network.URI (URI, nullURI, parseURI)
+
 import Data.Monoid (Monoid(..))
+import Data.Maybe (fromJust)
 
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
+
+toURI :: String -> URI
+toURI = fromJust . parseURI
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper
@@ -152,18 +157,24 @@ nameTestSuite = TestList
   , parseNameTest "parseNameTest02" "rdf" "rdf" ""
   ]
 
+{-
+
+Not convinced it's worth testing this piece separately, so removing for now.
+
 ------------------------------------------------------------
 --  Test simple prefix parsing
 ------------------------------------------------------------
 
 parsePrefixTest :: String -> L.Text -> Namespace -> String -> Test
-parsePrefixTest = parseItemTest parsePrefixFromText nullNamespace
+parsePrefixTest = parseItemTest parsePrefixFromText (Namespace Nothing nullURI)
 
 prefixTestSuite :: Test
 prefixTestSuite = TestList
-  [ parsePrefixTest "parsePrefixTest01" "pref" (Namespace (Just "pref") "pref:") ""
+  [ parsePrefixTest "parsePrefixTest01" "pref" (Namespace (Just "pref") (toURI "pref:")) ""
   , parsePrefixTest "parsePrefixTest02" "rdf" namespaceRDF ""
   ]
+
+-}
 
 ------------------------------------------------------------
 --  Test absolute URIref parsing
@@ -210,7 +221,7 @@ uriRef02 = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> "
 
 sname02 :: ScopedName
 sname02  =
-    makeScopedName Nothing "http://id.ninebynine.org/wip/2003/test/graph1/node#" "s1"
+    makeScopedName Nothing (toURI "http://id.ninebynine.org/wip/2003/test/graph1/node#") "s1"
 
 uriRef2TestSuite :: Test
 uriRef2TestSuite = TestList
@@ -229,10 +240,10 @@ dqn :: QName
 dqn = qnameFromURI baseFile
 
 toNS :: String -> String -> Namespace
-toNS p = Namespace (Just p)
+toNS p = Namespace (Just p) . toURI
 
 dbase, base1, base2, base3, base4, basea :: Namespace
-dbase = Namespace Nothing  (baseFile ++ "#")
+dbase = Namespace Nothing $ toURI (baseFile ++ "#")
 base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
 base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
 base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
@@ -361,8 +372,8 @@ dg2 = toRDFGraph
     xb3 = mU "http://example.org/ns/foo/b3"
     xc3 = mU "http://example.org/ns/foo/c3"
     
-    ns4 = Namespace Nothing "http://example.org/ns/foo/bar#"
-    ns5 = Namespace Nothing "http://example.org/ns2#"
+    ns4 = Namespace Nothing $ toURI "http://example.org/ns/foo/bar#"
+    ns5 = Namespace Nothing $ toURI "http://example.org/ns2#"
     mUN a b = Res (ScopedName a b)
     xa4 = mUN ns4 "a4"
     xb4 = mUN ns4 "b4"
@@ -797,8 +808,7 @@ kg1 = toRDFGraph
       [ arc b a c ]
   where
     -- the document base is set to file:///dev/null to begin with
-    ns = Namespace Nothing (baseFile ++ "#")
-    mUN = Res . ScopedName ns
+    mUN = Res . ScopedName dbase
     a = mUN "a"
     b = mUN "b"
     c = mUN "c"
@@ -857,11 +867,14 @@ simpleN3Graph_g1_02a =
   namespaceToBuilder basea `mappend`
   "a:a a:b a:c ."
 
+nToB :: Namespace -> B.Builder
+nToB = B.fromString . show . nsURI
+
 --  Single statement using :name form
 simpleN3Graph_g1_03 :: B.Builder
 simpleN3Graph_g1_03 =
   mconcat
-  [ "@prefix : <", B.fromString (nsURI base1),  "> .\n"
+  [ "@prefix : <", nToB base1,  "> .\n"
   , " :s1 :p1 :o1 . "
   ]
   
@@ -870,14 +883,14 @@ simpleN3Graph_g1_03 =
 simpleN3Graph_g1_03_1 :: B.Builder
 simpleN3Graph_g1_03_1 =
   mconcat
-  [ "@prefix : <", B.fromString (nsURI base1),  "> .\n"
+  [ "@prefix : <", nToB base1,  "> .\n"
   , " : : :."
   ]
 
 simpleN3Graph_g1_03_2 :: B.Builder
 simpleN3Graph_g1_03_2 =
   mconcat
-  [ "@prefix b: <", B.fromString (nsURI base1), "> .\n"
+  [ "@prefix b: <", nToB base1, "> .\n"
   , "b: b: b:. "
   ]
 
@@ -885,7 +898,7 @@ simpleN3Graph_g1_03_2 =
 simpleN3Graph_g1_04 :: B.Builder
 simpleN3Graph_g1_04 =
   mconcat
-  [ "@base <", B.fromString (nsURI base1), "> .\n"
+  [ "@base <", nToB base1, "> .\n"
   , " <s1> <p1> <o1> . "
   ]
 
@@ -893,7 +906,7 @@ simpleN3Graph_g1_04 =
 simpleN3Graph_g1_05 :: B.Builder
 simpleN3Graph_g1_05 =
   mconcat
-  [ "@base <", B.fromString (nsURI base1), "> .\n"
+  [ "@base <", nToB base1, "> .\n"
   , " _:b1 _:b2 _:b3 . "
   ]
 
@@ -1458,7 +1471,7 @@ allTests :: Test
 allTests = TestList
   [ charTestSuite
   , nameTestSuite
-  , prefixTestSuite
+  -- , prefixTestSuite
   , absUriRefTestSuite
   , uriRef2TestSuite
   , simpleTestSuite

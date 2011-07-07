@@ -53,6 +53,8 @@ import Test.HUnit
     , assertBool, assertEqual
     , runTestTT )
 
+import Network.URI (URI, parseURI)
+
 import Data.Monoid (Monoid(..))
 import Data.Maybe (isJust, isNothing, fromJust, fromMaybe)
 
@@ -129,6 +131,12 @@ makeSName nam = ScopedName ns loc
 
 --  Common definitions
 
+toURI :: String -> URI
+toURI = fromJust . parseURI
+
+toNS :: Maybe String -> String -> Namespace
+toNS p = Namespace p . toURI
+
 mkPrefix :: Namespace -> B.Builder
 mkPrefix = namespaceToBuilder
 
@@ -140,11 +148,11 @@ prefix =
   , mkPrefix namespaceRDFD
   , mkPrefix namespaceXSD
     -- TODO: should the following use scopeex instead?
-  , mkPrefix (Namespace (Just "ex") "http://example.org/")
+  , mkPrefix $ toNS (Just "ex") "http://example.org/"
   ]
 
 scopeex :: Namespace
-scopeex   = Namespace (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
+scopeex = toNS (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
 rdfContext, rdfsContext, rdfdContext, xsdintContext,
   xsdstrContext :: [RDFRuleset]

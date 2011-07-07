@@ -65,7 +65,10 @@ import Test.HUnit
 
 import qualified Data.Text.Lazy.Builder as B
 
+import Network.URI (URI, parseURI)
+
 import Data.Monoid (Monoid(..))
+import Data.Maybe (fromJust)
 
 ------------------------------------------------------------
 --  misc helpers
@@ -1272,10 +1275,13 @@ rdfQueryBackModify ::
 rdfQueryBackModify qbm qbss = concatMap (rdfQueryBackModify1 qbm) qbss
 -}
 
-baseex :: String
-baseex = "http://example.org/"
+toURI :: String -> URI
+toURI = fromJust . parseURI
 
-baserdf :: String
+baseex :: URI
+baseex = toURI "http://example.org/"
+
+baserdf :: URI
 baserdf  = nsURI namespaceRDF
 
 q_dattyp :: ScopedName

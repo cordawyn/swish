@@ -30,6 +30,9 @@ import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
 
+import Network.URI (parseURI)
+import Data.Maybe (fromJust)
+
 ------------------------------------------------------------
 --  Expressions
 ------------------------------------------------------------
@@ -66,7 +69,8 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
 
 -- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
 nullScope :: Namespace
-nullScope = Namespace (Just "null") "http://id.ninebynine.org/2003/Ruleset/null"
+nullScope = Namespace (Just "null") 
+            $ fromJust $ parseURI "http://id.ninebynine.org/2003/Ruleset/null"
 
 -- | The null formula.
 nullFormula :: Formula ex
