@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -125,7 +126,7 @@ type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
 
 data N3FormatterState = N3FS
-    { indent    :: L.Text
+    { indent    :: B.Builder
     , lineBreak :: Bool
     , graph     :: RDFGraph
     , subjs     :: SubjTree RDFLabel
@@ -179,10 +180,10 @@ emptyNgs = Ngs
 data LabelContext = SubjContext | PredContext | ObjContext
                     deriving (Eq, Show)
 
-getIndent :: Formatter L.Text
+getIndent :: Formatter B.Builder
 getIndent = indent `liftM` get
 
-setIndent :: L.Text -> Formatter ()
+setIndent :: B.Builder -> Formatter ()
 setIndent ind = modify $ \st -> st { indent = ind }
 
 getLineBreak :: Formatter Bool
@@ -372,19 +373,19 @@ formatGraphAsLazyText = B.toLazyText . formatGraphAsBuilder
 formatGraphAsBuilder :: RDFGraph -> B.Builder
 formatGraphAsBuilder = formatGraphIndent "\n" True
   
-formatGraphIndent :: String -> Bool -> RDFGraph -> B.Builder
+formatGraphIndent :: B.Builder -> Bool -> RDFGraph -> B.Builder
 formatGraphIndent indnt flag gr = 
   let (res, _, _, _) = formatGraphDiag indnt flag gr
   in res
   
 -- | Format graph and return additional information
 formatGraphDiag :: 
-     String  -- ^ indentation
-    -> Bool    -- ^ are prefixes to be generated?
-    -> RDFGraph 
-    -> (B.Builder, NodeGenLookupMap, Int, [String])
+  B.Builder  -- ^ indentation
+  -> Bool    -- ^ are prefixes to be generated?
+  -> RDFGraph 
+  -> (B.Builder, NodeGenLookupMap, Int, [String])
 formatGraphDiag indnt flag gr = 
-  let fg  = formatGraph (L.pack indnt) " .\n" False flag gr
+  let fg  = formatGraph indnt " .\n" False flag gr
       ngs = emptyNgs {
         prefixes = emptyLookupMap,
         nodeGen  = findMaxBnode gr
@@ -400,11 +401,11 @@ formatGraphDiag indnt flag gr =
 ----------------------------------------------------------------------
 
 formatGraph :: 
-  L.Text        -- indentation string
-  -> L.Text     -- text to be placed after final statement
+  B.Builder     -- indentation string
+  -> B.Builder  -- text to be placed after final statement
   -> Bool       -- True if a line break is to be inserted at the start
   -> Bool       -- True if prefix strings are to be generated
-  -> RDFGraph 
+  -> RDFGraph   -- graph to convert
   -> Formatter B.Builder
 formatGraph ind end dobreak dopref gr = do
   setIndent ind
@@ -418,7 +419,7 @@ formatGraph ind end dobreak dopref gr = do
   if more
     then do
       fr <- formatSubjects
-      return $ mconcat [fp, fr, B.fromLazyText end]
+      return $ mconcat [fp, fr, end]
     else return fp
 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
@@ -665,7 +666,7 @@ nextLine str = do
   ind <- getIndent
   brk <- getLineBreak
   if brk
-    then return $ B.fromLazyText ind `mappend` str
+    then return $ ind `mappend` str
     else do
       --  After first line, always insert line break
       setLineBreak True

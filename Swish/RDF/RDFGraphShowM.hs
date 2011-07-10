@@ -24,11 +24,11 @@ import Swish.RDF.N3Formatter (formatGraphIndent)
 import Swish.Utils.ShowM (ShowM(..))
 
 -- import qualified Data.Text.Lazy as L
--- import qualified Data.Text.Lazy.Builder as B
+import qualified Data.Text.Lazy.Builder as B
 
 instance ShowM RDFGraph where
     -- showms linebreak = shows . L.unpack . B.toLazyText . formatGraphIndent linebreak False 
-    showms linebreak = shows . formatGraphIndent linebreak False 
+    showms linebreak = shows . formatGraphIndent (B.fromString linebreak) False 
 
 --------------------------------------------------------------------------------
 --

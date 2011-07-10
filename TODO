@@ -74,6 +74,9 @@ Issues in the conversion to URI for Namespace/QName/...
   @prefix me: <http://example.com/ns#>.
   :me.jpg me:photoOf me:me .
 
+Is foo:me.jpg or :me.jpg valid? From my reading it is, but the '.' is
+potentially confusing.
+
 * base URI
 
 cwm rejects base URIs ending in # (need to try with a fragment as this 
