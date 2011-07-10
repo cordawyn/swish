@@ -81,16 +81,30 @@ toURI = fromJust . parseURI
 toNS :: String -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
 
-base1, base2, base3, base4 :: Namespace
+toRes :: Namespace -> String -> RDFLabel
+toRes ns = Res . ScopedName ns
+
+base1, base2, base3, base4, basef, baseu, basem :: Namespace
 base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
 base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basef = toNS "fbase" "file:///home/swish/photos/"
+baseu = toNS "ubase" "urn:one:two:3.14"
+basem = toNS "me"    "http://example.com/ns#"
+  
+s1, s2, s3, sf, su :: RDFLabel
+s1 = toRes base1 "s1"
+s2 = toRes base2 "s2"
+s3 = toRes base3 "s3"
 
-s1, s2, s3 :: RDFLabel
-s1 = Res $ ScopedName base1 "s1"
-s2 = Res $ ScopedName base2 "s2"
-s3 = Res $ ScopedName base3 "s3"
+sf = toRes basef "me.png"
+su = toRes baseu ""
+
+meDepicts, meMe, meHasURN :: RDFLabel
+meDepicts = toRes basem "depicts"
+meMe      = toRes basem "me"
+meHasURN  = toRes basem "hasURN"
 
 b1, b2, b3, b4, b5, b6, b7, b8 :: RDFLabel
 b1 = Blank "b1"
@@ -226,6 +240,13 @@ g1f3 = NSGraph
         f02 = arc s1 p1 b3
         formb3g1f2 = LookupMap [Formula b3 g1f2]
 
+g1fu1 :: RDFGraph
+g1fu1 =
+  mempty
+  { namespaces = makeLookupMap [basem, Namespace Nothing (toURI "file:///home/swish/photos/")]
+  , statements = [arc sf meDepicts meMe, arc sf meHasURN su]
+  }
+  
 ----
 
 g2, g3, g4, g5, g6, g7 :: RDFGraph
@@ -810,6 +831,17 @@ simpleN3Graph_g1_10 =
   , " }  .\n"
   ]
 
+-- try out URIs that do not use the http scheme
+simpleN3Graph_g1_fu1 :: B.Builder
+simpleN3Graph_g1_fu1 =
+  mconcat
+  [ "@prefix me: <http://example.com/ns#> .\n"
+  , "@prefix : <file:///home/swish/photos/> .\n"
+  -- , ":me.png me:depicts me:me ;\n"
+  , "<file:///home/swish/photos/me.png> me:depicts me:me ;\n"
+  , "     me:hasURN <urn:one:two:3.14> .\n"
+  ]
+
 {-
 Simple troublesome case
 -}
@@ -968,6 +1000,7 @@ trivialTestSuite = TestList
  , formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
  , formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
  , formatTest "trivialTest13a" x13a simpleN3Graph_x13a
+ , formatTest "trivialTestfu1" g1fu1 simpleN3Graph_g1_fu1
 
  , formatTest "trivialTestc1" graph_c1 simpleN3Graph_c1
  , formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
@@ -1094,6 +1127,7 @@ roundTripTestSuite = TestList
   , fullRoundTripTest "16rt" simpleN3Graph_g1_06_rt
     -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
   , fullRoundTripTest "18" simpleN3Graph_g1_08
+  , fullRoundTripTest "fu1" simpleN3Graph_g1_fu1
   
   , fullRoundTripTest "l1"    simpleN3Graph_l1
   , fullRoundTripTest "l2"    simpleN3Graph_l2

@@ -23,6 +23,12 @@
 
   - Namespace now uses Maybe String to store the optional prefix rather than
     an ad-hoc ""/"?" solution and URI rather than String for the URI.
+    QName also uses URIs and no longer exports the constructor so newQName
+    or related should be used to create QNames.
+
+    We have currently lost N3 formatting of the default prefix (any default
+    prefix elements end up getting written out fully qualified). The output
+    is still valid N3 but perhaps not what you'd expect.
 
 0.3.2.1:
 

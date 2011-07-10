@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  SwishCommands:  functions to deal with indivudual Swish command options.
 --
@@ -53,6 +55,7 @@ import qualified Swish.RDF.NTFormatter as NTF
 
 import Swish.RDF.N3Parser (parseN3)
 import Swish.RDF.NTParser (parseNT)
+import Swish.RDF.RDFParser (appendURIs)
 
 import Swish.RDF.GraphClass
     ( LDGraph(..)
@@ -68,9 +71,7 @@ import System.IO
     , stdin, stdout
     )
 
-import Network.URI (URI, 
-                    relativeTo,
-                    parseURI, parseURIReference, uriToString)
+import Network.URI (parseURIReference)
 
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (modify, gets)
@@ -209,40 +210,24 @@ Needs some work.
 -}
 
 defURI :: QName
-defURI = qnameFromURI "http://id.ninebynine.org/2003/Swish/"
+defURI = "http://id.ninebynine.org/2003/Swish/"
 
 calculateBaseURI ::
   Maybe FilePath -- ^ file name
   -> SwishStateIO QName -- ^ base URI
-  
 calculateBaseURI Nothing = fromMaybe defURI `liftM` gets base
-    
-calculateBaseURI (Just fnam) = do
-  mbase <- gets base
-  case mbase of
-    Just buri -> case appendUris (getQNameURI buri) fnam of
-      Left emsg -> fail emsg -- TODO: think about this ...
-      Right res -> return $ qnameFromURI $ showURI res
-    Nothing -> lift $ qnameFromFilePath fnam
+calculateBaseURI (Just fnam) =
+  case parseURIReference fnam of
+    Just furi -> do
+      mbase <- gets base
+      case mbase of
+        Just buri -> case appendURIs (getQNameURI buri) furi of
+          Left emsg -> fail emsg -- TODO: think about this ...
+          Right res -> return $ qnameFromURI res
+        Nothing -> lift $ qnameFromFilePath fnam
+        
+    Nothing -> fail $ "Unable to convert to URI: filepath=" ++ fnam
 
--- this is also in N3Parser
-showURI :: URI -> String
-showURI u = uriToString id u ""
-
--- this is also in N3Parser
-appendUris :: String -> String -> Either String URI
-appendUris buri uri =
-  case parseURI uri of
-    Just absuri -> Right absuri
-    _ -> case parseURIReference uri of
-      Just reluri -> case parseURI buri of
-        Just baseuri -> case relativeTo reluri baseuri of
-          Just resuri -> Right resuri
-          _ -> Left $ "Unable to append <" ++ uri ++ "> to base=<" ++ buri ++ ">"
-          
-        _ -> Left $ "Invalid base URI: <" ++ buri ++ ">"
-      _ -> Left $ "Invalid URI: <" ++ uri ++ ">"
-      
 swishParseScript ::
   Maybe String -- file name (or "stdin" if Nothing)
   -> T.Text    -- script contents

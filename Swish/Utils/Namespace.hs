@@ -28,13 +28,15 @@ module Swish.Utils.Namespace
     , getScopePrefix, getScopeURI
     , getQName, getScopedNameURI
     , matchName
-    , makeScopedName, makeQNameScopedName, makeUriScopedName
+    , makeScopedName
+    , makeQNameScopedName
+    , makeURIScopedName
     , nullScopedName
     , namespaceToBuilder
     )
     where
 
-import Swish.Utils.QName (QName(..), getQNameURI)
+import Swish.Utils.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
 
 import Data.Monoid (Monoid(..))
@@ -73,7 +75,7 @@ nsEq :: Namespace -> Namespace -> Bool
 nsEq (Namespace _ u1) (Namespace _ u2) = u1 == u2
 
 makeNamespaceQName :: Namespace -> String -> QName
-makeNamespaceQName (Namespace _ uri) = QName (show uri)
+makeNamespaceQName (Namespace _ uri) = newQName uri
 
 {-
 nullNamespace :: Namespace
@@ -108,7 +110,9 @@ getScopeURI :: ScopedName -> URI
 getScopeURI = nsURI . snScope
 
 instance IsString ScopedName where
-  fromString = makeUriScopedName
+  fromString s =   -- ^ This is not total since it will fail if the input string is not a valid URI
+    maybe (error ("Unable to convert " ++ s ++ " into a ScopedName"))
+          makeURIScopedName (parseURIReference s)
     
 instance Eq ScopedName where
     (==) = snEq
@@ -131,10 +135,10 @@ snLe s1 s2 = getQName s1 <= getQName s2
 
 -- |Get QName corresponding to a scoped name
 getQName :: ScopedName -> QName
-getQName n = QName (show (getScopeURI n)) (snLocal n)
+getQName n = newQName (getScopeURI n) (snLocal n)
 
 -- |Get URI corresponding to a scoped name (using RDF conventions)
-getScopedNameURI :: ScopedName -> String
+getScopedNameURI :: ScopedName -> URI
 getScopedNameURI = getQNameURI . getQName
 
 -- |Test if supplied string matches the display form of a
@@ -154,22 +158,28 @@ At the moment support the use of URI references.  Unclear of semantics
 to know whether this is sensible (probably is, but should look at).
 -}
 
-toBeReplaced :: String -> String -> ScopedName
-toBeReplaced u l =
-  let uri = fromMaybe (error ("Unable to convert " ++ u ++ " to a URI")) $ parseURIReference u
-  in makeScopedName Nothing uri l
-
 -- |Construct a ScopedName from a QName
 makeQNameScopedName :: QName -> ScopedName
-makeQNameScopedName (QName u l) = toBeReplaced u l
+{-
+The following is not correct
+makeQNameScopedName qn = makeScopedName Nothing (getNamespace qn) (getLocalName qn)
+since you get
+swish> let sn1 = makeQNameScopedName  "file:///foo/bar/baz"
+swish> sn1
+<file:///foo/barbaz>
+-}
+makeQNameScopedName qn = 
+  let ns = getNamespace qn
+      ln = getLocalName qn
+  in makeScopedName Nothing ns ln
 
--- |Construct a ScopedName for a bare URI
-makeUriScopedName :: String -> ScopedName
-makeUriScopedName u = toBeReplaced u ""
+-- |Construct a ScopedName for a bare URI (the label is set to "").
+makeURIScopedName :: URI -> ScopedName
+makeURIScopedName uri = makeScopedName Nothing uri ""
 
 -- |This should never appear as a valid name
 nullScopedName :: ScopedName
-nullScopedName = makeScopedName Nothing nullURI ""
+nullScopedName = makeURIScopedName nullURI
 
 --------------------------------------------------------------------------------
 --

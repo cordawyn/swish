@@ -39,7 +39,7 @@ import Swish.Utils.Namespace (
   , ScopedName(..)
   , makeScopedName
   , nullScopedName
-  , makeUriScopedName
+  -- , makeUriScopedName
   , namespaceToBuilder
   )
 
@@ -53,23 +53,23 @@ import Swish.RDF.Vocabulary
     , xsdDouble 
     )
 
+import Swish.RDF.GraphClass (Arc, arc) 
+
 import Swish.Utils.QName (QName, qnameFromURI)
 import Swish.Utils.LookupMap (LookupMap(..))
-
-import Swish.RDF.GraphClass (Arc, arc) 
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
 import Network.URI (URI, nullURI, parseURI)
 
 import Data.Monoid (Monoid(..))
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe)
 
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
 
 toURI :: String -> URI
-toURI = fromJust . parseURI
+toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURI s)
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper
@@ -180,11 +180,11 @@ prefixTestSuite = TestList
 --  Test absolute URIref parsing
 ------------------------------------------------------------
 
-parseAbsUriRefTest :: String -> L.Text -> String -> String -> Test
-parseAbsUriRefTest = parseItemTest parseAbsURIrefFromText ""
+parseAbsUriRefTest :: String -> L.Text -> URI -> String -> Test
+parseAbsUriRefTest = parseItemTest parseAbsURIrefFromText nullURI
 
-parseLexUriRefTest :: String -> L.Text -> String -> String -> Test
-parseLexUriRefTest = parseItemTest parseLexURIrefFromText ""
+parseLexUriRefTest :: String -> L.Text -> URI -> String -> Test
+parseLexUriRefTest = parseItemTest parseLexURIrefFromText nullURI
 
 absUriRefInp01, absUriRefInp01s, absUriRefInp02, absUriRefInp02s :: L.Text
 
@@ -193,10 +193,10 @@ absUriRefInp01s = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
 absUriRefInp02  = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1>"
 absUriRefInp02s = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> "
 
-absUriRef01, absUriRef02 :: String
+absUriRef01, absUriRef02 :: URI
 
-absUriRef01     = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-absUriRef02     = "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
+absUriRef01     = toURI "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+absUriRef02     = toURI "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
 
 absUriRefTestSuite :: Test
 absUriRefTestSuite = TestList
@@ -237,7 +237,7 @@ baseFile :: String
 baseFile = "file:///dev/null"
 
 dqn :: QName
-dqn = qnameFromURI baseFile
+dqn = (qnameFromURI . toURI) baseFile
 
 toNS :: String -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
@@ -348,10 +348,8 @@ t07  = arc s3 p2 l3
 makeNewPrefixNamespace :: (String,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
 
-dg1 :: RDFGraph
+dg1, dg2, dg3 :: RDFGraph
 dg1 = toRDFGraph [arc ds1 dp1 do1]
-
-dg2 :: RDFGraph
 dg2 = toRDFGraph
       [ arc xa1 xb1 xc1
       , arc xa2 xb2 xc2
@@ -361,16 +359,15 @@ dg2 = toRDFGraph
       ]
   where
     -- the document base is set to file:///dev/null to begin with
-    mU = Res . makeUriScopedName 
-    xa1 = mU "file:///dev/a1"
-    xb1 = mU "file:///dev/b1"
-    xc1 = mU "file:///dev/c1"
-    xa2 = mU "http://example.org/ns/a2"
-    xb2 = mU "http://example.org/ns/b2"
-    xc2 = mU "http://example.org/ns/c2"
-    xa3 = mU "http://example.org/ns/foo/a3"
-    xb3 = mU "http://example.org/ns/foo/b3"
-    xc3 = mU "http://example.org/ns/foo/c3"
+    xa1 = Res "file:///dev/a1"
+    xb1 = Res "file:///dev/b1"
+    xc1 = Res "file:///dev/c1"
+    xa2 = Res "http://example.org/ns/a2"
+    xb2 = Res "http://example.org/ns/b2"
+    xc2 = Res "http://example.org/ns/c2"
+    xa3 = Res "http://example.org/ns/foo/a3"
+    xb3 = Res "http://example.org/ns/foo/b3"
+    xc3 = Res "http://example.org/ns/foo/c3"
     
     ns4 = Namespace Nothing $ toURI "http://example.org/ns/foo/bar#"
     ns5 = Namespace Nothing $ toURI "http://example.org/ns2#"
@@ -382,6 +379,9 @@ dg2 = toRDFGraph
     xb5 = mUN ns5 "b5"
     xc5 = mUN ns5 "c5"
 
+dg3 = -- TODO: add in prefixes ?
+  toRDFGraph [ arc (Res "file:///home/swish/photos/myphoto") (Res "http://example.com/ns#photoOf") (Res "http://example.com/ns#me")]
+  
 nslist, xnslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace
     [ ("base1",base1)
@@ -840,6 +840,15 @@ simpleN3Graph_dg_02 =
   , ":a5 :b5 :c5 .\n"
   ]
   
+-- try out file prefixes
+simpleN3Graph_dg_03 :: B.Builder  
+simpleN3Graph_dg_03 =  
+  mconcat
+  [ "@prefix : <file:///home/swish/photos/>.\n"
+  , "@prefix me: <http://example.com/ns#>.\n"
+  , ":myphoto me:photoOf me:me."
+  ]
+  
 commonPrefixes :: B.Builder
 commonPrefixes =
   mconcat $ map namespaceToBuilder [base1, base2, base3]
@@ -1158,6 +1167,7 @@ simpleTestSuite :: Test
 simpleTestSuite = TestList
   [ parseTestB dqn "simpleTestd01" simpleN3Graph_dg_01 dg1  noError
   , parseTestB dqn "simpleTestd02" simpleN3Graph_dg_02 dg2  noError
+  , parseTestB dqn "simpleTestd03" simpleN3Graph_dg_03 dg3  noError
   , parseTest "simpleTest011" simpleN3Graph_g1_01 g1  noError
   , parseTest "simpleTest012" simpleN3Graph_g1_02 g1  noError
   , parseTest "simpleTest012a" simpleN3Graph_g1_02a g1a  noError

@@ -122,18 +122,10 @@ import Swish.RDF.N3Parser
     )
 
 import Swish.RDF.N3Formatter (formatGraphAsBuilder)
-
 import Swish.RDF.Datatype (typeMkRules)
-
 import Swish.RDF.Proof (explainProof, showsProof)
-
-import Swish.RDF.Ruleset
-    ( makeRuleset, getRulesetRule, getMaybeContextRule )
-
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..) -- , RuleMap
-    )
-
+import Swish.RDF.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
+import Swish.RDF.Rule (Formula(..), Rule(..)) 
 import Swish.RDF.VarBinding (composeSequence)
 
 import Swish.Utils.Namespace (ScopedName(..))
@@ -149,8 +141,9 @@ import Text.ParserCombinators.Poly.StateText
 import Control.Monad (unless, when, liftM)
 import Control.Monad.State (modify, gets, lift)
 
+import Network.URI (URI(..))
+
 import Data.Monoid (Monoid(..))
-import Data.List (isPrefixOf)
 
 import qualified System.IO.Error as IO
 
@@ -235,7 +228,7 @@ nameItem :: N3Parser (SwishStateIO ())
 nameItem = 
   ssAddGraph <$> n3SymLex <*> (symbol ":-" *> graphOrList)
   
-maybeURI :: N3Parser (Maybe String)
+maybeURI :: N3Parser (Maybe URI)
 maybeURI = (Just <$> lexUriRef) <|> return Nothing
 
 --  @read name  [ <uri> ]
@@ -498,10 +491,10 @@ ssGetList nam = gets find
             Nothing  -> Left ("Graph or list not present: "++show nam)
             Just grs -> Right grs
 
-ssRead :: ScopedName -> Maybe String -> SwishStateIO ()
+ssRead :: ScopedName -> Maybe URI -> SwishStateIO ()
 ssRead nam muri = ssAddGraph nam [ssReadGraph muri]
 
-ssReadGraph :: Maybe String -> SwishStateIO (Either String RDFGraph)
+ssReadGraph :: Maybe URI -> SwishStateIO (Either String RDFGraph)
 ssReadGraph muri = 
   let gf inp = case inp of
         Left  es -> Left es
@@ -510,41 +503,29 @@ ssReadGraph muri =
   in gf `liftM` getResourceData muri
 
 ssWriteList ::
-    Maybe String -> SwishStateIO (Either String [RDFGraph]) -> String
+    Maybe URI -> SwishStateIO (Either String [RDFGraph]) -> String
     -> SwishStateIO ()
-ssWriteList muri gf comment =
-        do  { esgs <- gf
-            ; case esgs of
-                Left  er   -> modify $ setError ("Cannot write list: "++er)
-                Right []   -> putResourceData Nothing (B.fromLazyText (L.concat ["# ", L.pack comment, "\n+ Swish: Writing empty list"]))
-                Right [gr] -> ssWriteGraph muri gr comment
-                Right grs  -> mapM_ writegr (zip [(0::Int)..] grs)
-                  where
-                    writegr (n,gr) = ssWriteGraph (murin muri n) gr
-                        ("["++show n++"] "++comment)
-                    murin Nothing    _ = Nothing
-                    murin (Just uri) n = Just (inituri++show n++lasturi)
-                        where
-                            splituri1 = splitBy (=='/') uri
-                            splituri2 = splitBy (=='.') (lastseg splituri1)
-                            inituri   = concat (initseg splituri1 ++ initseg splituri2)
-                            lasturi   = lastseg splituri2
-            }
-
-splitBy :: (a->Bool) -> [a] -> [[a]]
-splitBy _ []  = []
-splitBy p (s0:str) = let (s1,sr) = break p str in
-    (s0:s1):splitBy p sr
-
-lastseg :: [[a]] -> [a]
-lastseg []   = []
-lastseg [_]  = []
-lastseg ass  = last ass
-
-initseg :: [[a]] -> [[a]]
-initseg []   = []
-initseg [as] = [as]
-initseg ass  = init ass
+ssWriteList muri gf comment = do
+  esgs <- gf
+  case esgs of
+    Left  er   -> modify $ setError ("Cannot write list: "++er)
+    Right []   -> putResourceData Nothing (B.fromLazyText (L.concat ["# ", L.pack comment, "\n+ Swish: Writing empty list"]))
+    Right [gr] -> ssWriteGraph muri gr comment
+    Right grs  -> mapM_ writegr (zip [(0::Int)..] grs)
+      where
+        writegr (n,gr) = ssWriteGraph (murin muri n) gr
+                         ("["++show n++"] "++comment)
+        murin Nothing    _ = Nothing
+        murin (Just uri) n = 
+          let rp = reverse $ uriPath uri
+              (rLastSet, rRest) = break (=='/') rp
+              (before, after) = break (=='.') $ reverse rLastSet
+              newPath = reverse rRest ++ "/" ++ before ++ show n ++ after
+          in case rLastSet of
+            "" -> error $ "Invalid URI (path ends in /): " ++ show uri
+            _ -> Just $ uri { uriPath = newPath }
+         
+  
 
 {-
 ssWrite ::
@@ -558,7 +539,7 @@ ssWrite muri gf comment =
             }
 -}
 
-ssWriteGraph :: Maybe String -> RDFGraph -> String -> SwishStateIO ()
+ssWriteGraph :: Maybe URI -> RDFGraph -> String -> SwishStateIO ()
 ssWriteGraph muri gr comment =
     putResourceData muri (c `mappend` formatGraphAsBuilder gr)
     where
@@ -898,7 +879,7 @@ ssBwdChain sn rn cgf an prefs =
 --  Temporary implementation:  just read local file WNH     
 --  (Add logic to separate filenames from URIs, and
 --  attempt HTTP GET, or similar.)
-getResourceData :: Maybe String -> SwishStateIO (Either String L.Text)
+getResourceData :: Maybe URI -> SwishStateIO (Either String L.Text)
 getResourceData muri =
     case muri of
         Nothing  -> fromStdin
@@ -909,15 +890,13 @@ getResourceData muri =
             ; return $ Right dat
             }
     fromUri = fromFile
-    fromFile uri | "file://" `isPrefixOf` uri = do
-      dat <- lift $ LIO.readFile $ drop 7 uri
-      return $ Right dat
-                 | otherwise = error $ "Unsupported file name for read: " ++ uri
+    fromFile uri | uriScheme uri == "file:" = Right `fmap` (lift $ LIO.readFile $ uriPath uri)
+                 | otherwise = error $ "Unsupported file name for read: " ++ show uri
                                
 --  Temporary implementation:  just write local file
 --  (Need to add logic to separate filenames from URIs, and
 --  attempt HTTP PUT, or similar.)
-putResourceData :: Maybe String -> B.Builder -> SwishStateIO ()
+putResourceData :: Maybe URI -> B.Builder -> SwishStateIO ()
 putResourceData muri gsh =
     do  { ios <- lift $ IO.try $
             case muri of
@@ -931,8 +910,8 @@ putResourceData muri gsh =
         }
     where
         toStdout  = LIO.putStrLn gstr
-        toUri uri | "file://" `isPrefixOf` uri = LIO.writeFile (drop 7 uri) gstr
-                  | otherwise = error $ "Unsupported file name for write: " ++ uri
+        toUri uri | uriScheme uri == "file:" = LIO.writeFile (uriPath uri) gstr
+                  | otherwise                = error $ "Unsupported file name for write: " ++ show uri
         gstr = B.toLazyText gsh
 
 {- $syntax

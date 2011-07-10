@@ -81,3 +81,65 @@ Text conversion:
     to convert to/from Text rather than String
 
   - N3FormatterTest to use Text rather than String
+
+Issues in the conversion to URI for Namespace/QName/...
+
+* parse issues
+
+  @prefix : <file:///home/swish/photos/>.
+  @prefix me: <http://example.com/ns#>.
+  :me.jpg me:photoOf me:me .
+
+* base URI
+
+cwm rejects base URIs ending in # (need to try with a fragment as this 
+observation may be incorrect or fixed now).
+
+* Issues with the default prefix
+
+With the input file
+
+  @prefix : <file:///home/swish/photos/>.
+  @prefix my: <http://example.com/ns#>.
+  :mejpg my:photoOf my:me .
+
+old Swish will round-trip this to
+
+  @prefix : <file:///home/swish/photos/> .
+  @prefix my: <http://example.com/ns#> .
+  :mejpg my:photoOf my:me .
+
+but the current code creates
+
+  @prefix : <file:///home/swish/photos/> .
+  @prefix my: <http://example.com/ns#> .
+  <file:///home/swish/photos/mejpg> my:photoOf my:me .
+
+This happens when the default prefix is <http://foo.bar/baz/>, so
+it is unrelated to file.
+
+If we use a named prefix then things behave as expected: ie
+
+  @prefix p: <file:///home/swish/photos/>.
+  @prefix my: <http://example.com/ns#>.
+  p:mejpg my:photoOf my:me .
+
+is passed through unchnaged (except for an additional @prefix statement
+getting added).
+
+Need to add a test of this. Of course, the issue is what should the default
+namespace be on output; the one chosen from the input graph but then what
+if the input is from ntriples or there is another namespace with many more
+triples?
+
+*) default prefix
+
+Note, from the N3 submission it looks like the default prefix should be
+equivalent to 
+  @prefix : <#>.
+ie do not explicitly include the document identifier.
+
+*) @keywords in N3
+
+If @keywords is given then any bare name (not in the keywords list) is taken
+to be a local name in the default namespace => (ie treat foo as :foo).

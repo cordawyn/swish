@@ -10,65 +10,72 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
---  This module defines test cases for QName data
+--  This module defines test cases for QName data. It also throws in a few
+--  tests for the Namespace module.
 --
 --------------------------------------------------------------------------------
 
 module Main where
 
 import Swish.Utils.QName
-    ( QName(..)
-    , newQName, qnameFromPair, qnameFromURI
-    , getNamespace, getLocalName, getQNameURI
-    , splitURI
+    ( QName
+    , newQName
+    , qnameFromURI
+    , getNamespace
+    , getLocalName
+    , getQNameURI
     )
 
-import Test.HUnit
-    ( Test(TestCase,TestList)
-    , assertEqual
-    , runTestTT
-    )
+import Swish.Utils.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
+import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
-
-
+import Network.URI (URI, parseURIReference)
+import Data.Maybe (fromJust)
 
 ------------------------------------------------------------
 --  Define some common values
 ------------------------------------------------------------
 
-base1, base2, base3, base4, base5 :: String
-base1  = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
-base2  = "http://id.ninebynine.org/wip/2003/test/graph2/node/"
-base3  = "http://id.ninebynine.org/wip/2003/test/graph3/node"
-base4  = "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
-base5  = "http://id.ninebynine.org/wip/2003/test/graph5/"
+toURI :: String -> URI
+toURI = fromJust . parseURIReference
 
-qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: QName
-qb1s1  = QName base1 "s1"
-qb2s2  = QName base2 "s2"
-qb3s3  = QName base3 "s3"
-qb3    = QName base3 ""
-qb3bm  = QName base3 "basemore"
-qb4m   = QName base4 "more"
-
-qb5, qb5s5 :: QName
-qb5    = QName base5 ""
-qb5s5  = QName base5 "s5"
+base1, base2, base3, base4, base5, base6, base7 :: URI
+base1  = toURI "http://id.ninebynine.org/wip/2003/test/graph1/node#"
+base2  = toURI "http://id.ninebynine.org/wip/2003/test/graph2/node/"
+base3  = toURI "http://id.ninebynine.org/wip/2003/test/graph3/node"
+base4  = toURI "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+base5  = toURI "http://id.ninebynine.org/wip/2003/test/graph5/"
+base6  = toURI "file://home/swish/"
+base7  = toURI "urn:long:separator:path" -- should this really be "urn:"?
+  
+qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m, qb5, qb5s5, qb6, qb7 :: QName
+qb1s1  = newQName base1 "s1"
+qb2s2  = newQName base2 "s2"
+qb3s3  = newQName base3 "s3"
+qb3    = newQName base3 ""
+qb3bm  = newQName base3 "basemore"
+qb4m   = newQName base4 "more"
+qb5    = newQName base5 ""
+qb5s5  = newQName base5 "s5"
+qb6    = newQName base6 "file.dat"
+qb7    = newQName base7 ""
 
 qb1st1, qb2st2, qb3st3 :: QName
-qb1st1 = QName base1 "st1"
-qb2st2 = QName base2 "st2"
-qb3st3 = QName base3 "st3"
+qb1st1 = newQName base1 "st1"
+qb2st2 = newQName base2 "st2"
+qb3st3 = newQName base3 "st3"
+
+testIsEq :: (Show a, Eq a) => String -> String -> a -> a -> Test
+testIsEq lbl1 lbl2 a b = TestCase (assertEqual (lbl1++":"++lbl2) a b)
 
 ------------------------------------------------------------
 --  QName equality tests
 ------------------------------------------------------------
 
 testQNameEq :: String -> Bool -> QName -> QName -> Test
-testQNameEq lab eq n1 n2 =
-    TestCase ( assertEqual ("testQNameEq:"++lab) eq (n1==n2) )
+testQNameEq lbl eq n1 n2 = testIsEq "QNameEq" lbl eq (n1==n2)
 
 qnlist :: [(String, QName)]
 qnlist =
@@ -108,29 +115,27 @@ nq1, nq2 :: QName
 nq1 = newQName base1 "s1"
 nq2 = newQName base1 "s2"
 
-qp1, qp2 :: QName
-qp1 = qnameFromPair (base1,"s1")
-qp2 = qnameFromPair (base1,"s2")
-
-qu1, qu2, qu3, qu4, qu5 :: QName
-qu1 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
-qu2 = qnameFromURI "http://id.ninebynine.org/wip/2003/test/graph2/node/s2"
+qu1, qu2, qu3, qu4, qu5, qu6, qu7 :: QName
+qu1 = qnameFromURI (toURI "http://id.ninebynine.org/wip/2003/test/graph1/node#s1")
+qu2 = qnameFromURI (toURI "http://id.ninebynine.org/wip/2003/test/graph2/node/s2")
 qu3 = "http://id.ninebynine.org/wip/2003/test/graph3/node"
 qu4 = "http://id.ninebynine.org/wip/2003/test/graph5/"
 qu5 = "http://id.ninebynine.org/wip/2003/test/graph5/s5"
+qu6 = "file://home/swish/file.dat"
+qu7 = "urn:long:separator:path"
 
 testMakeQNameSuite :: Test
 testMakeQNameSuite = 
   TestList
   [ testQNameEq "testnq01" True  nq1 qb1s1
   , testQNameEq "testnq02" False nq2 qb1s1
-  , testQNameEq "testqp01" True  qp1 qb1s1
-  , testQNameEq "testqp02" False qp2 qb1s1
   , testQNameEq "testqu01" True qb1s1 qu1
   , testQNameEq "testqu02" True qb2s2 qu2
   , testQNameEq "testqu03" True qb3   qu3
   , testQNameEq "testqu04" True qb5   qu4
   , testQNameEq "testqu05" True qb5s5 qu5
+  , testQNameEq "testqu06" True qb6   qu6
+  , testQNameEq "testqu07" True qb7   qu7
   ]
 
 ------------------------------------------------------------
@@ -138,22 +143,24 @@ testMakeQNameSuite =
 ------------------------------------------------------------
 
 testStringEq :: String -> String -> String -> Test
-testStringEq lab s1 s2 =
-    TestCase ( assertEqual ("testStringEq:"++lab) s1 s2 )
+testStringEq = testIsEq "StringEq"
+
+testURIEq :: String -> String -> URI -> Test
+testURIEq lbl uri = testIsEq "URIEq" lbl (toURI uri)
 
 testPartQNameSuite :: Test
 testPartQNameSuite = 
   TestList
-  [ testStringEq "testGetNamespace01"
+  [ testURIEq "testGetNamespace01"
         "http://id.ninebynine.org/wip/2003/test/graph1/node#" 
         (getNamespace qb1s1)
-  , testStringEq "testGetNamespace02"
+  , testURIEq "testGetNamespace02"
         "http://id.ninebynine.org/wip/2003/test/graph2/node/"
         (getNamespace qb2s2)
-  , testStringEq "testGetNamespace03"
+  , testURIEq "testGetNamespace03"
         "http://id.ninebynine.org/wip/2003/test/graph3/node"
         (getNamespace qb3s3)
-  , testStringEq "testGetNamespace04"
+  , testURIEq "testGetNamespace04"
         "http://id.ninebynine.org/wip/2003/test/graph3/node"
         (getNamespace qb3)
   , testStringEq "testGetLocalName01"
@@ -164,16 +171,16 @@ testPartQNameSuite =
       "s3" (getLocalName qb3s3)
   , testStringEq "testGetLocalName04"
       "" (getLocalName qb3)
-  , testStringEq "testGetQNameURI01"
+  , testURIEq "testGetQNameURI01"
       "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
       (getQNameURI qb1s1)
-  , testStringEq "testGetQNameURI02"
+  , testURIEq "testGetQNameURI02"
       "http://id.ninebynine.org/wip/2003/test/graph2/node/s2"
       (getQNameURI qb2s2)
-  , testStringEq "testGetQNameURI03"
+  , testURIEq "testGetQNameURI03"
       "http://id.ninebynine.org/wip/2003/test/graph3/nodes3"
       (getQNameURI qb3s3)
-  , testStringEq "testGetQNameURI04"
+  , testURIEq "testGetQNameURI04"
       "http://id.ninebynine.org/wip/2003/test/graph3/node"
       (getQNameURI qb3)
   ]
@@ -183,8 +190,7 @@ testPartQNameSuite =
 ------------------------------------------------------------
 
 testMaybeQNameEq :: String -> Bool -> Maybe QName -> Maybe QName -> Test
-testMaybeQNameEq lab eq n1 n2 =
-    TestCase ( assertEqual ("testMaybeQNameEq:"++lab) eq (n1==n2) )
+testMaybeQNameEq lbl eq n1 n2 = testIsEq "MaybeQName" lbl eq (n1==n2)
 
 testMaybeQNameEqSuite :: Test
 testMaybeQNameEqSuite = 
@@ -206,8 +212,7 @@ testMaybeQNameEqSuite =
 ------------------------------------------------------------
 
 testQNameLe :: String -> Bool -> QName -> QName -> Test
-testQNameLe lab le n1 n2 =
-    TestCase ( assertEqual ("testQNameLe:"++lab) le (n1<=n2) )
+testQNameLe lbl le n1 n2 = testIsEq "QNameLE" lbl le (n1 <= n2)
 
 testQNameLeSuite :: Test
 testQNameLeSuite = 
@@ -237,6 +242,12 @@ testShowQNameSuite =
   , testStringEq "testShowQName04"
     "<http://id.ninebynine.org/wip/2003/test/graph5/>"
     (show qb5)
+  , testStringEq "testShowQName06"
+    "<file://home/swish/file.dat>"
+    (show qb6)
+  , testStringEq "testShowQName07"
+    "<urn:long:separator:path>"
+    (show qb7)
   ]
 
 ------------------------------------------------------------
@@ -248,9 +259,24 @@ testShowQNameSuite =
     -- splitURI "http://example.org/aaa/bbb" = ("http://example.org/aaa/","bbb")
     -- splitURI "http://example.org/aaa/"    = ("http://example.org/aaa/","")
 
+{-
 testSplitURI :: String -> String -> ( String, String ) -> Test
 testSplitURI label input ans =
     TestCase ( assertEqual label ans ( splitURI input ) )
+
+as splitURI has now been moved into qnameFromURI we change the
+test somewhat and also include a check of the
+URI combination done by newQName (may be tested elsewhere).
+-}
+
+testSplitURI :: String -> String -> (String,String) -> Test
+testSplitURI lbl input (a,b) =
+  let qn = newQName (toURI a) b
+  in 
+   TestList
+   [ testIsEq lbl ":split" qn ((qnameFromURI . toURI) input)
+   , testIsEq lbl ":show"  input (show (getQNameURI qn))
+   ]
 
 testSplitURISuite :: Test
 testSplitURISuite = 
@@ -267,6 +293,10 @@ testSplitURISuite =
   , testSplitURI "testSplitURI04"
      "http://example.org/aaa/"
      ( "http://example.org/aaa/", "" )
+     
+  {- REMOVE the relative URI tests since it is not clear they make sense
+        for QNames.
+
   , testSplitURI "testSplitURI05"
      "//example.org/aaa#bbb"
      ( "//example.org/aaa#", "bbb" )
@@ -282,6 +312,47 @@ testSplitURISuite =
   , testSplitURI "testSplitURI08"
       "mortal"
       ( "", "mortal" )
+  
+    -}
+  ]
+
+------------------------------------------------------------
+--  Scoped Name tests, via QName and URI
+--  In reality this is testing qnameFromURI (or at least
+--  that was the original motivation).
+------------------------------------------------------------
+
+-- simple round-trip tests
+testSQRoundTrip :: String -> String -> Test
+testSQRoundTrip lbl uri = 
+  let u = (fromJust . parseURIReference) uri
+      qn = qnameFromURI u
+      sn = makeQNameScopedName qn
+  in TestList
+     [ testIsEq "SQ:URI"   lbl u  (getScopedNameURI sn)
+     , testIsEq "SQ:Qname" lbl qn (getQName sn)
+     ]
+
+testSNameTTSuite :: Test
+testSNameTTSuite =
+  TestList
+  [ testSQRoundTrip "null" ""
+  , testSQRoundTrip "frag1"  "/" -- Should relative fragments be supported?
+  , testSQRoundTrip "frag2a"  "/foo"
+  , testSQRoundTrip "frag2b"  "/foo/"
+  , testSQRoundTrip "frag3"  "/foo/bar"
+  , testSQRoundTrip "frag4a"  "/foo/bar#"
+  , testSQRoundTrip "frag4b"  "/foo/bar#fragid"
+  , testSQRoundTrip "http1a" "http://example.com"
+  , testSQRoundTrip "http1b" "http://example.com/"
+  , testSQRoundTrip "http2" "http://example.com/foo/bar/"
+  , testSQRoundTrip "http3" "http://example.com/foo/bar/bar"
+  , testSQRoundTrip "http4a" "http://example.com/foo/bar/bar#"
+  , testSQRoundTrip "http4b" "http://example.com/foo/bar/bar#fragid"
+  , testSQRoundTrip "https1" "https://joeuser@example.com/foo/bar"
+  , testSQRoundTrip "file1"  "file:///dev/null"
+  , testSQRoundTrip "urn1"   "URN:foo:a123,456"
+  , testSQRoundTrip "urn2"   "urn:foo:a123%2C456"
   ]
 
 ------------------------------------------------------------
@@ -297,6 +368,7 @@ allTests = TestList
   , testQNameLeSuite
   , testShowQNameSuite
   , testSplitURISuite
+  , testSNameTTSuite
   ]
 
 main :: IO ()

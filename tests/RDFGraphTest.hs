@@ -64,7 +64,7 @@ import qualified Data.Foldable as Foldable
 import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.List (elemIndex, intercalate)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.Ord (comparing)
 
 import System.Locale (defaultTimeLocale)
@@ -149,7 +149,7 @@ base1Str :: String
 base1Str = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 
 toURI :: String -> URI
-toURI = fromJust . parseURI
+toURI s = fromMaybe (error $ "Error: unable to parse URI " ++ s) (parseURI s)
 
 toNS :: String -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
@@ -167,7 +167,7 @@ base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
 qn1s1 :: QName
-qn1s1 = qnameFromURI $ base1Str ++ "s1"
+qn1s1 = qnameFromURI $ toURI $ base1Str ++ "s1"
 
 qu1s1 :: URI
 qu1s1 = toURI $ base1Str ++ "s1"
@@ -1266,8 +1266,8 @@ gt1f2bM = Traversable.mapM translateM g1f2
 gt1f5M = Traversable.mapM translateM g1f5
 
 ft1M, ft2M :: FormulaMap RDFLabel
-ft1M = getFormulae $ fromJust gt1f1bM
-ft2M = getFormulae $ fromJust gt1f2bM
+ft1M = getFormulae $ fromMaybe (error "Unexpected: gt1f1bM") gt1f1bM
+ft2M = getFormulae $ fromMaybe (error "Unexpected: gt1f2bM") gt1f2bM
 
 testGraphTranslateSuite :: Test
 testGraphTranslateSuite = TestLabel "TestTranslate" $ TestList

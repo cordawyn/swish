@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -27,7 +28,7 @@ import Swish.RDF.RDFGraph
     , toRDFGraph
     )
 
-import Swish.Utils.Namespace (makeUriScopedName)
+-- import Swish.Utils.Namespace (makeURIScopedName)
 
 import Swish.RDF.Vocabulary (langName, rdfXMLLiteral)
 
@@ -99,10 +100,16 @@ w3cTest = "#\n# Copyright World Wide Web Consortium, (Massachusetts Institute of
 ------------------------------------------------------------
 
 s1, p1, p2, o1 :: RDFLabel
-s1 = Res $ makeUriScopedName "urn:b#s1"
-p1 = Res $ makeUriScopedName "urn:b#p1"
-p2 = Res $ makeUriScopedName "http://example.com/pred2"
-o1 = Res $ makeUriScopedName "urn:b#o1"
+s1 = Res $ "urn:b#s1" -- rely on IsString to convert to ScopedName
+p1 = Res $ "urn:b#p1"
+p2 = Res $ "http://example.com/pred2"
+o1 = Res $ "urn:b#o1"
+{-
+s1 = Res $ makeURIScopedName "urn:b#s1"
+p1 = Res $ makeURIScopedName "urn:b#p1"
+p2 = Res $ makeURIScopedName "http://example.com/pred2"
+o1 = Res $ makeURIScopedName "urn:b#o1"
+-}
 
 l0, l1, l2, l3, l4 :: RDFLabel
 l0 = Lit "" Nothing

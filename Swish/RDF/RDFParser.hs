@@ -44,6 +44,7 @@ module Swish.RDF.RDFParser
     , mkTypedLit
     , hex4
     , hex8
+    , appendURIs
     )
     where
 
@@ -69,13 +70,28 @@ import qualified Data.Text.Read as R
 
 import Text.ParserCombinators.Poly.StateText
 
-import Network.URI (parseURIReference)
+import Network.URI (URI(..), relativeTo, parseURIReference)
 
 import Data.Char (isSpace, isHexDigit, chr)
 import Data.Maybe (fromMaybe, fromJust)
 
 -- Code
 
+-- | Append the two URIs. Should probably be moved
+--   out of RDFParser. It is also just a thin wrapper around
+--   `Network.URI.relativeTo`.
+
+appendURIs ::
+  URI     -- ^ The base URI
+  -> URI  -- ^ The URI to append (it can be an absolute URI).
+  -> Either String URI
+appendURIs base uri =
+  case uriScheme uri of
+    "" -> case uri `relativeTo` base of
+          Just out -> Right out
+          _ -> Left $ "Unable to append <" ++ show uri ++ "> to base=<" ++ show base ++ ">"
+    _  -> Right uri
+  
 -- | Type for special name lookup table
 type SpecialMap = LookupMap (String,ScopedName)
 

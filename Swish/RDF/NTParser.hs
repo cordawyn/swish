@@ -49,7 +49,7 @@ import Swish.RDF.RDFGraph
 
 import Swish.RDF.GraphClass (arc)
 
-import Swish.Utils.Namespace (ScopedName(..), makeUriScopedName)
+import Swish.Utils.Namespace (ScopedName(..), makeURIScopedName)
 
 import Swish.RDF.Vocabulary (langName)
 
@@ -74,7 +74,6 @@ import Swish.RDF.RDFParser
 -}
 
 import Control.Applicative
-import Control.Monad (when)
 
 import Network.URI (parseURI)
 
@@ -82,7 +81,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
 import Data.Char (chr) 
-import Data.Maybe (fromMaybe, isNothing)
+import Data.Maybe (fromMaybe)
 
 import Text.ParserCombinators.Poly.StateText
 
@@ -295,9 +294,10 @@ uriref = do
   ustr <- L.unpack <$> bracket (char '<') (char '>') (many1Satisfy (/= '>'))
   -- ustr <- bracket (char '<') (char '>') $ many1 character -- looks like need to exclude > from character
   -- ustr <- char '<' *> manyTill character (char '>')
-  when (isNothing (parseURI ustr)) $
-    failBad ("Invalid URI: <" ++ ustr ++ ">")
-  return $ makeUriScopedName ustr
+  
+  maybe (failBad ("Invalid URI: <" ++ ustr ++ ">"))
+    (return . makeURIScopedName)
+    (parseURI ustr)
 
 urirefLbl :: NTParser RDFLabel
 urirefLbl = Res <$> uriref

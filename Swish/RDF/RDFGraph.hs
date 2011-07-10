@@ -68,7 +68,7 @@ import Swish.Utils.Namespace
     , ScopedName(..)
     , getQName
     , makeQNameScopedName
-    , makeUriScopedName
+    , makeURIScopedName
     , nullScopedName
     )
 
@@ -114,7 +114,7 @@ import qualified Data.Text.Read as T
 
 import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 
-import Network.URI (URI, parseURI, uriToString)
+import Network.URI (URI)
 
 import Data.Monoid (Monoid(..))
 import Data.Char (ord, isDigit, toLower)
@@ -530,11 +530,11 @@ instance FromRDFLabel QName where
   
 -- | Converts to a Resource.
 instance ToRDFLabel URI where  
-  toRDFLabel u = Res $ makeUriScopedName $ uriToString id u ""
+  toRDFLabel = Res . makeURIScopedName
   
 -- | Converts from a Resource.
 instance FromRDFLabel URI where
-  fromRDFLabel (Res sn) = parseURI $ getScopedNameURI sn
+  fromRDFLabel (Res sn) = Just $ getScopedNameURI sn
   fromRDFLabel _        = Nothing
 
 -- | Get the canonical string for RDF label.
@@ -543,10 +543,10 @@ instance FromRDFLabel URI where
 --  the same hash value.
 --    
 showCanon :: RDFLabel -> String
-showCanon (Res sn)           = "<"++getScopedNameURI sn++">"
+showCanon (Res sn)           = "<"++show (getScopedNameURI sn)++">"
 showCanon (Lit st (Just nam))
         | isLang nam = quote1Str st ++ "@"  ++ langTag nam
-        | otherwise  = quote1Str st ++ "^^" ++ getScopedNameURI nam
+        | otherwise  = quote1Str st ++ "^^" ++ show (getScopedNameURI nam)
 showCanon s                  = show s
 
 {-

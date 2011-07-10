@@ -203,12 +203,12 @@ swishCommand (SA (marg,act)) = act marg
 validateBase :: Maybe String -> Either (String, SwishStatus) SwishAction
 validateBase Nothing  = Right $ SA (Nothing, swishBase Nothing)
 validateBase (Just b) =
-  case parseURI b of
-    Just _ -> Right $ SA (Nothing, swishBase (Just (qnameFromURI b)))
+  case fmap qnameFromURI (parseURI b) of
+    j@(Just _) -> Right $ SA (Nothing, swishBase j)
     _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
   
 ------------------------------------------------------------
---  Interactive test function (e.g. for use in Hugs)
+--  Interactive test function (e.g. for use in ghci)
 ------------------------------------------------------------
 
 -- this ignores the "flags" options, namely

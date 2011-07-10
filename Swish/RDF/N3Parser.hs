@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-} -- only used in 'fromMaybe "" mbase' line of parseN3
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module implements a Notation 3 parser (see [1], [2], [3]), returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
@@ -88,7 +90,7 @@ import Swish.Utils.Namespace
     ( Namespace(..)
     , ScopedName(..)
     , getScopedNameURI
-    , makeScopedName, makeUriScopedName
+    , makeURIScopedName
     , makeQNameScopedName
     , nullScopedName
     )
@@ -124,14 +126,13 @@ import Swish.RDF.RDFParser
     , mkTypedLit
     , hex4  
     , hex8  
+    , appendURIs
     )
 
 import Control.Applicative
 import Control.Monad (forM_, foldM)
 
-import Network.URI (URI, 
-                    relativeTo,
-                    parseURI, parseURIReference, uriToString)
+import Network.URI (URI(..), parseURIReference)
 
 import Data.Char (isSpace, isDigit, chr) 
 import Data.Maybe (fromMaybe, fromJust)
@@ -169,7 +170,7 @@ setSName nam snam st =  st { syntaxUris=s' }
         s' = mapReplaceOrAdd (nam,snam) (syntaxUris st)
 
 setSUri :: String -> URI -> N3State -> N3State
-setSUri nam suri = setSName nam (makeScopedName Nothing suri "")
+setSUri nam = setSName nam . makeURIScopedName
 
 -- | Set the list of tokens that can be used without needing the leading 
 -- \@ symbol.
@@ -182,7 +183,7 @@ setKeywordsList ks st = st { keywordsList = ks, allowLocalNames = True }
 getSName :: N3State -> String -> ScopedName
 getSName st nam =  mapFind nullScopedName nam (syntaxUris st)
 
-getSUri :: N3State -> String -> String
+getSUri :: N3State -> String -> URI
 getSUri st nam = getScopedNameURI $ getSName st nam
 
 --  Map prefix to URI
@@ -233,6 +234,11 @@ test :: String -> RDFGraph
 test = either error id . parseAnyfromString document Nothing
 -}
 
+hashURI :: URI
+hashURI = fromJust $ parseURIReference "#"
+
+-- TODO: change from QName to URI for the base?
+
 -- | Function to supply initial context and parse supplied term.
 --
 parseAnyfromText :: N3Parser a      -- ^ parser to apply
@@ -254,8 +260,8 @@ parseAnyfromText parser mbase input =
               }
   
       puri = case mbase of
-        Just base -> appendUris (getQNameURI base) "#"
-        _ -> Right $ fromJust $ parseURIReference "#"
+        Just base -> appendURIs (getQNameURI base) hashURI
+        _ -> Right $ hashURI
 
       -- this is getting a bit ugly
         
@@ -312,11 +318,11 @@ parsePrefixFromText =
             _ -> fail $ "Undefined prefix: '" ++ pref ++ "'"
 -}
 
-parseAbsURIrefFromText :: L.Text -> Either String String
+parseAbsURIrefFromText :: L.Text -> Either String URI
 parseAbsURIrefFromText =
-    parseAnyfromText (fmap showURI explicitURI) Nothing
+    parseAnyfromText explicitURI Nothing
 
-parseLexURIrefFromText :: L.Text -> Either String String
+parseLexURIrefFromText :: L.Text -> Either String URI
 parseLexURIrefFromText =
     parseAnyfromText lexUriRef Nothing
 
@@ -366,9 +372,6 @@ atWord s = do
   --
   lexeme $ string s *> notFollowedBy (== ':')
   return s
-
-showURI :: URI -> String
-showURI u = uriToString id u ""
 
 {-
 Since operatorLabel can be used to add a label with an 
@@ -645,30 +648,17 @@ explicitURI = do
   -- TODO: do the whitespace definitions match?
   ustr <- between lb rb $ many (satisfy (/= '>'))
   let uclean = filter (not . isSpace) ustr
+  
+  case parseURIReference uclean of
+    Nothing -> fail $ "Unable to convert <" ++ uclean ++ "> to a URI"
+    Just uref -> do
+      s <- stGet
+      let base = getSUri s "base"
+      either fail return $ appendURIs base uref
       
-  s <- stGet
-  let base = getSUri s "base"
-      
-  case appendUris base uclean of 
-    Right uri -> return uri
-    Left emsg -> fail emsg
-      
-appendUris :: String -> String -> Either String URI
-appendUris base uri =
-  case parseURI uri of
-    Just absuri -> Right absuri
-    _ -> case parseURIReference uri of
-      Just reluri -> 
-        let baseuri = fromJust $ parseURI base
-        in case relativeTo reluri baseuri of
-          Just resuri -> Right resuri
-          _ -> Left $ "Unable to append <" ++ uri ++ "> to base=<" ++ base ++ ">"
-          
-      _ -> Left $ "Invalid URI: <" ++ uri ++ ">"
-      
--- production from the old parser
-lexUriRef :: N3Parser String
-lexUriRef = fmap showURI $ lexeme explicitURI
+-- production from the old parser; used in SwishScript
+lexUriRef :: N3Parser URI
+lexUriRef = lexeme explicitURI
 
 {-
 barename ::=	[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
@@ -704,7 +694,7 @@ symbol_csl_tail ::=		|	 ","  symbol symbol_csl_tail
 
 n3symbol :: N3Parser ScopedName
 n3symbol = 
-  ((makeUriScopedName . showURI) <$> explicitURI)
+  (makeURIScopedName <$> explicitURI)
   <|> qname
 
 symbolCsl :: N3Parser [ScopedName]
@@ -750,7 +740,7 @@ localQName name = do
   st <- stGet
   if getAllowLocalNames st
     then ScopedName <$> getDefaultPrefix <*> pure name
-    else fail "Invalid 'bare' word" -- TODO: not ideal error message; can we handle this case differently?
+    else fail ("Invalid 'bare' word: " ++ name)-- TODO: not ideal error message; can we handle this case differently?
 
 {-
 existential ::=		|	 "@forSome"  symbol_csl
