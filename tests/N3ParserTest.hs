@@ -1411,13 +1411,14 @@ keywordN3Graph_02 :: B.Builder
 keywordN3Graph_02 = 
   mconcat
   [ commonPrefixes 
-  , "@keywords a , is, of ,has.\n"
-  , " base1:s1 a base1:o1 . \n"
+  , "@prefix : <http://id.ninebynine.org/wip/2003/test/graph1/node/>."  
+  , "@keywords is,has.\n"
+  , " s1 @a o1 . \n"
   , " base2:s2 = base2:o2 . \n"
-  , " base1:s1 is  base1:p1 of base1:o1 . \n"
-  , " base2:s2 has base1:p1 base2:o2 . \n"
-  , " base1:s1 => base1:o1 . \n"
-  , " base2:s2 <= base2:o2 . \n"
+  , " s1 is base1:p1 @of o1 . \n"
+  , " base2:s2 has p1 base2:o2 . \n"
+  , " s1 => o1 . \n"
+  , " base2:s2 <= <http://id.ninebynine.org/wip/2003/test/graph2/node#o2> . \n" -- object is base2:o2
   ]
   
 -- a modification of simpleN3Graph_g83

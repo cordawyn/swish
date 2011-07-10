@@ -1,10 +1,7 @@
 
 Some things I want to/should do (not in order)
 
-- use types better - e.g. ScopedName/Namespace has a lot of String
-  entries which could be replaced by Maybe String and URI
-
-  Should there be a type-level constaint that an RDF Arc can only have
+- Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?
 
 - the RDFLabel data type could be split up to add additional type
@@ -15,13 +12,6 @@ Some things I want to/should do (not in order)
 
   An alternative change would be to make it 'Lit RDFLiteral' with
   RDFLiteral having the Untyped/Typed/Language options.
-
-- remove parsec parser, replace by attoparsec-text
-
-  - use Text rather than String
-  - use attoparsec-text-enumerator?
-
-  This would require a minor version update
 
 - move a lot of parser/formatter tests out to ntriples files (ie the
   test data in external files).
@@ -40,11 +30,7 @@ Some things I want to/should do (not in order)
 - improve test coverage (-fhpc cabal flag)
 
 - how much of the support code - e.g. Swish.Utils.LookupMap - can now
-  be replaced with packages from hackage? Swish.Utils.DateTime is now
-  marked as deprecated since it isn't used by any other module.
-
-- move to camel case for names, in particular for
-  Swish.RDF.Vocabulary; this would require a minor version update
+  be replaced with packages from hackage?
 
 - change SwishAction from a tuple to a SwishStateIO (); requires an
   minor version update
@@ -79,8 +65,6 @@ Text conversion:
     is apparent. This needs fixing, including
       RDFDatatypeXsdString
     to convert to/from Text rather than String
-
-  - N3FormatterTest to use Text rather than String
 
 Issues in the conversion to URI for Namespace/QName/...
 
@@ -131,11 +115,6 @@ Need to add a test of this. Of course, the issue is what should the default
 namespace be on output; the one chosen from the input graph but then what
 if the input is from ntriples or there is another namespace with many more
 triples?
-
-*) @keywords in N3
-
-If @keywords is given then any bare name (not in the keywords list) is taken
-to be a local name in the default namespace => (ie treat foo as :foo).
 
 *) Namespace
 
