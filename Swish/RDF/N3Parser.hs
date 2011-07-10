@@ -95,7 +95,7 @@ import Swish.Utils.Namespace
     , nullScopedName
     )
 
-import Swish.Utils.QName (QName, getQNameURI)
+import Swish.Utils.QName (QName)
 
 import Swish.RDF.Vocabulary
     ( langName
@@ -246,7 +246,7 @@ parseAnyfromText :: N3Parser a      -- ^ parser to apply
                     -> L.Text       -- ^ input to be parsed
                     -> Either String a
 parseAnyfromText parser mbase input =
-  let pmap   = LookupMap []
+  let pmap   = LookupMap [Namespace Nothing hashURI]
       muri   = fmap makeQNameScopedName mbase
       smap   = LookupMap $ specialTable muri
       pstate = N3State
@@ -259,16 +259,9 @@ parseAnyfromText parser mbase input =
               , allowLocalNames = False
               }
   
-      puri = case mbase of
-        Just base -> appendURIs (getQNameURI base) hashURI
-        _ -> Right $ hashURI
-
-      -- this is getting a bit ugly
-        
-  in case puri of
-    Left emsg -> Left $ "Invalid base: " ++ emsg
-    Right p -> let (result, _, _) = runParser parser (setPrefix Nothing p pstate) input
-               in result
+      (result, _, _) = runParser parser pstate input
+     
+  in result
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do

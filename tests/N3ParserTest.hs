@@ -60,7 +60,7 @@ import Swish.Utils.LookupMap (LookupMap(..))
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 
-import Network.URI (URI, nullURI, parseURI)
+import Network.URI (URI, nullURI, parseURIReference)
 
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromMaybe)
@@ -69,7 +69,7 @@ import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
 
 toURI :: String -> URI
-toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURI s)
+toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURIReference s)
 
 ------------------------------------------------------------
 --  Generic item parsing test wrapper
@@ -243,7 +243,7 @@ toNS :: String -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
 
 dbase, base1, base2, base3, base4, basea :: Namespace
-dbase = Namespace Nothing $ toURI (baseFile ++ "#")
+dbase = Namespace Nothing $ toURI "#"
 base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
 base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
 base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
