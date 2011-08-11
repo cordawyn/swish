@@ -89,8 +89,9 @@ instance Ord QName where
             (up2,ur2) = splitAt n u2
   -}
   
-  -- TODO: can we make the following change?
-  -- could say (QName u1 _ _) <= QName u2 _ _) = show u1 <= show u2
+  -- TODO: which is faster?
+  (QName u1 _ _) <= (QName u2 _ _) = show u1 <= show u2
+  {-
   (QName _ uri1 l1) <= (QName _ uri2 l2) =
     if up1 /= up2 then up1 <= up2 else (ur1 ++ T.unpack l1) <= (ur2 ++ T.unpack l2)
       where
@@ -100,7 +101,7 @@ instance Ord QName where
         n   = min (length u1) (length u2)
         (up1,ur1) = splitAt n u1
         (up2,ur2) = splitAt n u2
-  
+  -}
   
 instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
