@@ -343,7 +343,7 @@ fromRealFloat dtype f | isNaN f      = toL "NaN"
                       -- and it relies on double-conversion which has issues
                       -- when used in ghci due to a dlopen issue with libstdc++.
                       -- 
-                      -- | otherwise    = toL $ L.toStrict $ format "{}" (Only f)  
+                      -- -- | otherwise    = toL $ L.toStrict $ format "{}" (Only f)  
                       -- 
                       | otherwise    = toL $ T.pack $ printf "%E" f
                         
@@ -380,8 +380,8 @@ textToRealFloat conv = rconv
         -}
                         
         -- not sure the above is any improvement on the following
-        -- | T.last ival == '.' = maybeRead T.rational (T.snoc ival '0') >>= conv
-        -- | otherwise          = maybeRead T.rational ival >>= conv
+        -- -- | T.last ival == '.' = maybeRead T.rational (T.snoc ival '0') >>= conv
+        -- -- | otherwise          = maybeRead T.rational ival >>= conv
       
 textToFloat :: T.Text -> Maybe Float
 textToFloat = 

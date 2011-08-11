@@ -84,7 +84,7 @@ nullNamespace :: Namespace
 nullNamespace = Namespace Nothing ""
 -}
 
--- | Utility routine to create an @prefix line (matching N3/Turtle)
+-- | Utility routine to create a \@prefix line (matching N3/Turtle)
 --   grammar for this namespace.
 --
 namespaceToBuilder :: Namespace -> B.Builder
@@ -111,8 +111,9 @@ getScopePrefix = nsPrefix . snScope
 getScopeURI :: ScopedName -> URI
 getScopeURI = nsURI . snScope
 
+-- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString ScopedName where
-  fromString s =   -- ^ This is not total since it will fail if the input string is not a valid URI
+  fromString s =
     maybe (error ("Unable to convert " ++ s ++ " into a ScopedName"))
           makeURIScopedName (parseURIReference s)
     
@@ -177,7 +178,7 @@ makeQNameScopedName qn =
       ln = getLocalName qn
   in makeScopedName Nothing ns ln
 
--- |Construct a ScopedName for a bare URI (the label is set to "").
+-- |Construct a ScopedName for a bare URI (the label is set to \"\").
 makeURIScopedName :: URI -> ScopedName
 makeURIScopedName uri = makeScopedName Nothing uri ""
 

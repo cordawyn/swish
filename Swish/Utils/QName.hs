@@ -68,9 +68,9 @@ data QName = QName
              , qnLocal :: T.Text  -- ^ local component
              }
 
+-- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString QName where
-  -- fromString = qnameFromURI . fromJust . parseURI -- ^ This is not total since it will fail if the input string is not a valid URI
-  fromString s =   -- ^ This is not total since it will fail if the input string is not a valid URI
+  fromString s =   
     maybe (error ("Unable to convert " ++ s ++ " into a QName"))
           qnameFromURI (parseURIReference s)
 
