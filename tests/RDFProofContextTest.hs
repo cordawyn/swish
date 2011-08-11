@@ -58,6 +58,7 @@ import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (isJust, isNothing, fromJust, fromMaybe)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 --  misc helpers
@@ -106,7 +107,7 @@ testProofStep lab valid rules antes step =
 
 --  Various support methods
 
-makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
+makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
 makeFormula scope local gr =
     makeRDFFormula scope local (prefix `mappend` gr)
 
@@ -118,7 +119,7 @@ getAxiom :: String -> RDFFormula
 getAxiom nam = getContextAxiom (makeSName nam) nullRDFFormula rdfdContext
 
 makeSName :: String -> ScopedName
-makeSName nam = ScopedName ns loc
+makeSName nam = ScopedName ns (T.pack loc)
     where
         (pre,_:loc) = break (==':') nam
         ns = case pre of
@@ -134,7 +135,7 @@ makeSName nam = ScopedName ns loc
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-toNS :: Maybe String -> String -> Namespace
+toNS :: Maybe T.Text -> String -> Namespace
 toNS p = Namespace p . toURI
 
 mkPrefix :: Namespace -> B.Builder

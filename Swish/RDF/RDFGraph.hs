@@ -29,6 +29,7 @@ module Swish.RDF.RDFGraph
     , isDatatyped, isMemberProp, isUri, isBlank, isQueryVar
     , getLiteralText, getScopedName, makeBlank
     , quote
+    , quoteT
       
       -- * RDF Graphs
     , RDFTriple
@@ -117,7 +118,7 @@ import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 import Network.URI (URI)
 
 import Data.Monoid (Monoid(..))
-import Data.Char (ord, isDigit, toLower)
+import Data.Char (ord, isDigit)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
 import Data.String (IsString(..))
@@ -168,7 +169,7 @@ instance Eq RDFLabel where
     Lit s1 Nothing   == Lit s2 Nothing   = s1 == s2
     Lit s1 (Just t1) == Lit s2 (Just t2) = s1 == s2 && (t1 == t2 ||
                                                         (isLang t1 && isLang t2 &&
-                                                         (map toLower . langTag) t1 == (map toLower . langTag) t2))
+                                                         (T.toLower . langTag) t1 == (T.toLower . langTag) t2))
     
     _  == _ = False
 
@@ -176,7 +177,7 @@ instance Show RDFLabel where
     show (Res sn)           = show sn
     show (Lit st Nothing)   = quote1Str st
     show (Lit st (Just nam))
-        | isLang nam = quote1Str st ++ "@"  ++ langTag nam
+        | isLang nam = quote1Str st ++ "@"  ++ T.unpack (langTag nam)
         | nam `elem` [xsdBoolean, xsdDouble, xsdDecimal, xsdInteger] = T.unpack st
         | otherwise  = quote1Str st ++ "^^" ++ show nam
     show (Blank ln)         = "_:"++ln
@@ -207,7 +208,7 @@ instance Label RDFLabel where
     labelIsVar _            = False
     getLocal   (Blank loc)  = loc
     getLocal   (Var   loc)  = '?':loc
-    getLocal   (Res   sn)   = "Res_"++snLocal sn
+    getLocal   (Res   sn)   = "Res_" ++ T.unpack (snLocal sn)
     getLocal   (NoNode)     = "None"
     getLocal   _            = "Lit_"
     makeLabel  ('?':loc)    = Var loc
@@ -545,7 +546,7 @@ instance FromRDFLabel URI where
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++show (getScopedNameURI sn)++">"
 showCanon (Lit st (Just nam))
-        | isLang nam = quote1Str st ++ "@"  ++ langTag nam
+        | isLang nam = quote1Str st ++ "@"  ++ T.unpack (langTag nam)
         | otherwise  = quote1Str st ++ "^^" ++ show (getScopedNameURI nam)
 showCanon s                  = show s
 
@@ -559,6 +560,10 @@ characters need protecting.
 TODO: when flag == False need to worry about n > 2 quotes
 in a row.
 -}
+
+-- temporary conversion
+quoteT :: Bool -> T.Text -> T.Text
+quoteT f = T.pack . quote f . T.unpack 
 
 quote :: Bool -> String -> String
 quote _     []           = ""
@@ -656,8 +661,8 @@ isDatatyped _  _                = False
 --  remaining characters of local name are all digits
 isMemberProp :: RDFLabel -> Bool
 isMemberProp (Res sn) = snScope sn == namespaceRDF &&
-                        head loc   == '_' &&
-                        all isDigit (tail loc)
+                        T.head loc   == '_' &&
+                        T.all isDigit (T.tail loc)
                         where
                             loc = snLocal sn
 isMemberProp _        = False
@@ -728,7 +733,7 @@ type NamespaceMap = LookupMap Namespace
 
 data RevNamespace = RevNamespace Namespace
 
-instance LookupEntryClass RevNamespace URI (Maybe String) where
+instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
     keyVal   (RevNamespace (Namespace pre uri)) = (uri,pre)
     newEntry (uri,pre) = RevNamespace (Namespace pre uri)
 

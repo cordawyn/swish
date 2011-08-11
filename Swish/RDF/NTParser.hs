@@ -334,7 +334,7 @@ language :: NTParser ScopedName
 language = do
   h <- many1Satisfy (`elem` ['a'..'z'])
   mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (`elem` (['a'..'z'] ++ ['0'..'9'])) )
-  return $ langName $ L.unpack $ L.append h $ fromMaybe L.empty mt
+  return $ langName $ L.toStrict $ L.append h $ fromMaybe L.empty mt
 
 {-
 String handling: 

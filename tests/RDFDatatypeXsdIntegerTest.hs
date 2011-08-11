@@ -161,7 +161,7 @@ testMaybeEqv lab a1 a2 =
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-xsdIntName :: String -> ScopedName
+xsdIntName :: T.Text -> ScopedName
 xsdIntName = ScopedName namespaceXsdInteger 
 
 axiomXsdIntegerDT :: ScopedName

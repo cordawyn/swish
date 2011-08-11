@@ -81,7 +81,7 @@ import qualified Data.Text.Lazy.Builder as B
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
-nameXsdString :: String
+nameXsdString :: T.Text
 nameXsdString = "string"
 
 -- |Type name for @xsd:string@ datatype
@@ -136,7 +136,7 @@ relXsdString =
     ]
 
 mkStrRel2 ::
-    String -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
+    T.Text -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
     -> DatatypeRel T.Text
 mkStrRel2 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdString nam
@@ -192,7 +192,7 @@ modXsdStringEq = modXsdStringCompare "eq" (==)
 modXsdStringNe = modXsdStringCompare "ne" (/=)
 
 modXsdStringCompare ::
-    String -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
+    T.Text -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
 modXsdStringCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
@@ -224,7 +224,7 @@ prefixXsdString =
   , mkPrefix namespaceXsdString
   ]
   
-mkAxiom :: String -> B.Builder -> RDFFormula
+mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdString local (prefixXsdString `mappend` gr)
 

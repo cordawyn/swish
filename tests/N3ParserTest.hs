@@ -65,6 +65,7 @@ import Network.URI (URI, nullURI, parseURIReference)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromMaybe)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
 
@@ -239,7 +240,7 @@ baseFile = "file:///dev/null"
 dqn :: QName
 dqn = (qnameFromURI . toURI) baseFile
 
-toNS :: String -> String -> Namespace
+toNS :: T.Text -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
 
 dbase, base1, base2, base3, base4, basea :: Namespace
@@ -345,7 +346,7 @@ t05  = arc s2 p1 b1
 t06  = arc s3 p1 l2
 t07  = arc s3 p2 l3
 
-makeNewPrefixNamespace :: (String,Namespace) -> Namespace
+makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
 
 dg1, dg2, dg3 :: RDFGraph

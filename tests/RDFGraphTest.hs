@@ -151,7 +151,7 @@ base1Str = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 toURI :: String -> URI
 toURI s = fromMaybe (error $ "Error: unable to parse URI " ++ s) (parseURI s)
 
-toNS :: String -> String -> Namespace
+toNS :: T.Text -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
 
 -- TODO: basee and baseu had prefixes of "" and "?" before the conversion
@@ -851,7 +851,7 @@ tt04 = toRDFTriple st1 p1 ("l1" :: RDFLabel)
 tt05 = arc st2 p1 l4
 tt06 = arc st3 p1 l10
 
-makeNewPrefixNamespace :: (String,Namespace) -> Namespace
+makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
 
 nslist :: LookupMap Namespace

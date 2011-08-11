@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines an algebraic datatype for qualified names (QNames).
 --
@@ -39,6 +41,8 @@ import Data.String (IsString(..))
 import Data.Maybe (fromMaybe)
 -- import Data.List (intercalate)
 
+import qualified Data.Text as T
+
 ------------------------------------------------------------
 --  Qualified name
 ------------------------------------------------------------
@@ -61,7 +65,7 @@ may not be a good idea (space vs time saving).
 data QName = QName
              { qnURI :: URI       -- ^ URI
              , qnNsuri :: URI     -- ^ namespace 
-             , qnLocal :: String  -- ^ local component
+             , qnLocal :: T.Text  -- ^ local component
              }
 
 instance IsString QName where
@@ -85,9 +89,10 @@ instance Ord QName where
             (up2,ur2) = splitAt n u2
   -}
   
+  -- TODO: can we make the following change?
   -- could say (QName u1 _ _) <= QName u2 _ _) = show u1 <= show u2
   (QName _ uri1 l1) <= (QName _ uri2 l2) =
-    if up1 /= up2 then up1 <= up2 else (ur1++l1) <= (ur2++l2)
+    if up1 /= up2 then up1 <= up2 else (ur1 ++ T.unpack l1) <= (ur2 ++ T.unpack l2)
       where
         u1 = show uri1
         u2 = show uri2
@@ -107,10 +112,11 @@ contain /, say?
 We could also me more clever, and safer, when constructing
 the overall uri.
 -}
-newQName :: URI -> String -> QName
+newQName :: URI -> T.Text -> QName
 newQName ns local = 
-  let uristr = show ns ++ local
-      uri = fromMaybe (error ("Unable to parse URI from: '" ++ show ns ++ "' + '" ++ local ++ "'")) (parseURIReference uristr)
+  let l   = T.unpack local
+      uristr = show ns ++ l
+      uri = fromMaybe (error ("Unable to parse URI from: '" ++ show ns ++ "' + '" ++ l ++ "'")) (parseURIReference uristr)
   in QName uri ns local
 
 {-
@@ -133,18 +139,18 @@ qnameFromURI uri =
       q0 = QName uri uri ""
   in case uf of
     "#"    -> q0
-    '#':xs -> QName uri (uri { uriFragment = "#" }) xs
+    '#':xs -> QName uri (uri { uriFragment = "#" }) (T.pack xs)
     ""     -> case break (=='/') (reverse up) of
       ("",_) -> q0 -- path ends in / or is empty
       (_,"") -> q0 -- path contains no /
-      (rlname,rpath) -> QName uri (uri {uriPath = reverse rpath}) (reverse rlname) 
+      (rlname,rpath) -> QName uri (uri {uriPath = reverse rpath}) (T.pack (reverse rlname))
       
     e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
 
 getNamespace :: QName -> URI
 getNamespace = qnNsuri
 
-getLocalName :: QName -> String
+getLocalName :: QName -> T.Text
 getLocalName = qnLocal
 
 getQNameURI :: QName -> URI

@@ -28,6 +28,7 @@ module Swish.RDF.RDFParser
     , char
     , ichar
     , string
+    , stringT
     , symbol
     , lexeme
     , notFollowedBy
@@ -156,6 +157,9 @@ ichar = ignore . char
 string :: String -> Parser s String
 string = mapM char
   
+stringT :: T.Text -> Parser s T.Text
+stringT s = string (T.unpack s) >> return s
+
 skipMany :: Parser s a -> Parser s ()
 skipMany = ignore . many
   
@@ -260,9 +264,9 @@ annotateParsecError extraLines ls err =
 -- | Create a typed literal.
 mkTypedLit ::
   ScopedName -- ^ the type
-  -> String -- ^ the value
+  -> T.Text  -- ^ the value
   -> RDFLabel
-mkTypedLit u v = Lit (T.pack v) (Just u)
+mkTypedLit u v = Lit v (Just u)
 
 {-
 Handle hex encoding; the spec for N3 and NTriples suggest that

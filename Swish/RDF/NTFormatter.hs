@@ -143,7 +143,7 @@ formatLabel :: RDFLabel -> Formatter B.Builder
 formatLabel lab@(Blank _) = mapBlankNode lab
 formatLabel (Res sn) = return $ showScopedName sn
 formatLabel (Lit lit Nothing) = return $ quoteText lit
-formatLabel (Lit lit (Just nam)) | isLang nam = return $ mconcat [quoteText lit, at, B.fromString (langTag nam)]
+formatLabel (Lit lit (Just nam)) | isLang nam = return $ mconcat [quoteText lit, at, B.fromText (langTag nam)]
                                  | otherwise  = return $ mconcat [quoteText lit, carets, showScopedName nam]
 
 -- do not expect to get the following, but include
@@ -171,7 +171,7 @@ mapBlankNode lab = do
 -- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder
 showScopedName (ScopedName n l) = 
-  let uri = T.pack $ show (nsURI n) ++ l
+  let uri = T.pack (show (nsURI n)) `mappend` l
   in mconcat ["<", B.fromText (quote uri), ">"]
 
 {-

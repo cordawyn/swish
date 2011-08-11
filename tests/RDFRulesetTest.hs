@@ -69,6 +69,7 @@ import Data.Monoid (Monoid(..))
 import Data.List (nub, sort)
 import Data.Maybe (isJust, fromJust)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -140,7 +141,7 @@ pref_owl = nsURI namespaceOWL
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-toNS :: Maybe String -> String -> Namespace
+toNS :: Maybe T.Text -> String -> Namespace
 toNS p = Namespace p . toURI
 
 ------------------------------------------------------------
@@ -245,7 +246,7 @@ testRulesetSuite =
 scopeex :: Namespace
 scopeex = toNS (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
-makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
+makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
 makeFormula scope local gr =
     makeRDFFormula scope local $ prefix `mappend` gr
 

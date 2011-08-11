@@ -69,6 +69,7 @@ import Swish.RDF.RDFGraph (
   getFormulae,
   emptyRDFGraph
   , quote
+  , quoteT
   , resRdfFirst, resRdfRest, resRdfNil
   )
 
@@ -428,7 +429,7 @@ formatPrefixes pmap = do
   ls <- sequence mls
   return $ mconcat ls
     where
-      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromString p, ": <", quoteB True (show u), "> ."]
+      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
       pref (_,u)      = nextLine $ mconcat ["@prefix : <", quoteB True (show u), "> ."]
 
 {-
@@ -737,8 +738,8 @@ formatLabel _ lab@(Res sn) =
           prefix = mapFindMaybe nsuri premap
           
           name   = case prefix of
-                     Just (Just p) -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (show nsuri ++ local), ">"]
+                     Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
+                     _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
       
       {-
           name   = case prefix of
@@ -764,7 +765,7 @@ formatLabel _ lab = return $ B.fromString $ show lab
 
 -- the annotation for a literal (ie type or language)
 formatAnnotation :: ScopedName -> B.Builder
-formatAnnotation a  | isLang a  = "@" `mappend` B.fromString (langTag a)
+formatAnnotation a  | isLang a  = "@" `mappend` B.fromText (langTag a)
                     | otherwise = "^^" `mappend` showScopedName a
 
 {-

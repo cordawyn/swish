@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -52,6 +53,7 @@ import Data.Maybe (fromJust)
 
 import Data.String (IsString(..))
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
 
@@ -78,10 +80,10 @@ testGraphEq lab eq gg1 gg2 =
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-toNS :: String -> String -> Namespace
+toNS :: T.Text -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
 
-toRes :: Namespace -> String -> RDFLabel
+toRes :: Namespace -> T.Text -> RDFLabel
 toRes ns = Res . ScopedName ns
 
 base1, base2, base3, base4, basef, baseu, basem :: Namespace

@@ -86,6 +86,7 @@ import Data.List (nub)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -256,7 +257,7 @@ makeRDFGraphFromN3Builder b =
 -- |Create an RDF formula.
 makeRDFFormula ::
     Namespace     -- ^ namespace to which the formula is allocated
-    -> String     -- ^ local name for the formula in the namespace
+    -> T.Text     -- ^ local name for the formula in the namespace
     -> B.Builder  -- ^ graph in Notation 3 format
     -> RDFFormula
 makeRDFFormula scope local gr = Formula
@@ -316,7 +317,7 @@ makeRDFClosureRule sname antgrs congr vmod = makeGraphClosureRule
 --
 makeN3ClosureRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the namespace
+    -> T.Text -- ^ local name for the rule in the namespace
     -> B.Builder 
     -- ^ the Notation3 representation
     --   of the antecedent graph.  (Note: multiple antecedents
@@ -348,7 +349,7 @@ makeN3ClosureRule scope local ant con =
 --
 makeN3ClosureSimpleRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the namepace
+    -> T.Text -- ^ local name for the rule in the namepace
     -> B.Builder
     -- ^ the Notation3 representation
     --   of the antecedent graph.  (Note: multiple antecedents
@@ -363,7 +364,7 @@ makeN3ClosureSimpleRule scope local ant con =
 --
 makeN3ClosureModifyRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the given namespace
+    -> T.Text -- ^ local name for the rule in the given namespace
     -> B.Builder -- ^ the Notation3 representation
     --                of the antecedent graph.  (Note: multiple antecedents
     --                can be handled by combining multiple graphs.)
@@ -406,7 +407,7 @@ makeN3ClosureModifyRule scope local ant con vflt vmod =
 --
 makeN3ClosureAllocatorRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the given namespace
+    -> T.Text -- ^ local name for the rule in the given namespace
     -> B.Builder -- ^ the Notation3 representation
     --                of the antecedent graph.  (Note: multiple antecedents
     --                can be handled by combining multiple graphs.)

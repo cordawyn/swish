@@ -1,4 +1,5 @@
-{-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses #-}
+{-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  ExistentialQuantification, MultiParamTypeClasses
+--  Portability :  ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate datatypes.  It is designed as a basis for handling datatyped

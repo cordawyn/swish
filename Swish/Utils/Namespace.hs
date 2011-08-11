@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
@@ -10,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances
+--  Portability :  TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances, OverloadedStrings
 --
 --  This module defines algebraic datatypes for namespaces and scoped names.
 --
@@ -45,6 +46,7 @@ import Data.Maybe (fromMaybe)
 
 import Network.URI (URI(..), parseURIReference, nullURI)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -56,7 +58,7 @@ import qualified Data.Text.Lazy.Builder as B
 
 data Namespace = Namespace
                  {
-                   nsPrefix :: Maybe String
+                   nsPrefix :: Maybe T.Text
                  , nsURI :: URI
                  }
                  
@@ -64,17 +66,17 @@ instance Eq Namespace where
     (==) = nsEq
 
 instance Show Namespace where
-    show (Namespace (Just p) u) = p ++ ":<" ++ show u ++ ">"
+    show (Namespace (Just p) u) = show p ++ ":<" ++ show u ++ ">"
     show (Namespace _ u)        = "<" ++ show u ++ ">"
 
-instance LookupEntryClass Namespace (Maybe String) URI where
+instance LookupEntryClass Namespace (Maybe T.Text) URI where
     keyVal   (Namespace pre uri) = (pre,uri)
     newEntry (pre,uri)           = Namespace pre uri
 
 nsEq :: Namespace -> Namespace -> Bool
 nsEq (Namespace _ u1) (Namespace _ u2) = u1 == u2
 
-makeNamespaceQName :: Namespace -> String -> QName
+makeNamespaceQName :: Namespace -> T.Text -> QName
 makeNamespaceQName (Namespace _ uri) = newQName uri
 
 {-
@@ -87,8 +89,8 @@ nullNamespace = Namespace Nothing ""
 --
 namespaceToBuilder :: Namespace -> B.Builder
 namespaceToBuilder (Namespace pre uri) =
-  mconcat $ map B.fromString 
-  [ "@prefix ", fromMaybe "" pre, ": <", show uri, "> .\n"]
+  mconcat $ map B.fromText 
+  [ "@prefix ", fromMaybe "" pre, ": <", T.pack (show uri), "> .\n"]
 
 ------------------------------------------------------------
 --  ScopedName, made from a namespace and a local name
@@ -101,9 +103,9 @@ namespaceToBuilder (Namespace pre uri) =
 --  Some applications may handle null namespace URIs as meaning
 --  the local part is relative to some base URI.
 --
-data ScopedName = ScopedName { snScope :: Namespace, snLocal :: String }
+data ScopedName = ScopedName { snScope :: Namespace, snLocal :: T.Text }
 
-getScopePrefix :: ScopedName -> Maybe String
+getScopePrefix :: ScopedName -> Maybe T.Text
 getScopePrefix = nsPrefix . snScope
 
 getScopeURI :: ScopedName -> URI
@@ -122,8 +124,8 @@ instance Ord ScopedName where
 
 instance Show ScopedName where
     show (ScopedName n l) = case nsPrefix n of
-      Just pre -> pre ++ ":" ++ l
-      _        -> "<" ++ show (nsURI n) ++ l ++ ">"
+      Just pre -> T.unpack $ mconcat [pre, ":", l]
+      _        -> "<" ++ show (nsURI n) ++ T.unpack l ++ ">"
 
 --  Scoped names are equal if their corresponding QNames are equal
 snEq :: ScopedName -> ScopedName -> Bool
@@ -141,13 +143,15 @@ getQName n = newQName (getScopeURI n) (snLocal n)
 getScopedNameURI :: ScopedName -> URI
 getScopedNameURI = getQNameURI . getQName
 
+-- for the moment leave this as String rather than Text
+
 -- |Test if supplied string matches the display form of a
 --  scoped name.
 matchName :: String -> ScopedName -> Bool
 matchName str nam = str == show nam
 
 -- |Construct a ScopedName from prefix, URI and local name
-makeScopedName :: Maybe String -> URI -> String -> ScopedName
+makeScopedName :: Maybe T.Text -> URI -> T.Text -> ScopedName
 makeScopedName pre nsuri =
     ScopedName (Namespace pre nsuri)
 

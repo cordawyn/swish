@@ -34,6 +34,8 @@ import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
 import Network.URI (URI, parseURIReference)
 import Data.Maybe (fromJust)
 
+import qualified Data.Text as T
+
 ------------------------------------------------------------
 --  Define some common values
 ------------------------------------------------------------
@@ -145,6 +147,9 @@ testMakeQNameSuite =
 testStringEq :: String -> String -> String -> Test
 testStringEq = testIsEq "StringEq"
 
+testTextEq :: String -> T.Text -> T.Text -> Test
+testTextEq = testIsEq "TextEq"
+
 testURIEq :: String -> String -> URI -> Test
 testURIEq lbl uri = testIsEq "URIEq" lbl (toURI uri)
 
@@ -163,13 +168,13 @@ testPartQNameSuite =
   , testURIEq "testGetNamespace04"
         "http://id.ninebynine.org/wip/2003/test/graph3/node"
         (getNamespace qb3)
-  , testStringEq "testGetLocalName01"
+  , testTextEq "testGetLocalName01"
         "s1" (getLocalName qb1s1)
-  , testStringEq "testGetLocalName02"
+  , testTextEq "testGetLocalName02"
         "s2" (getLocalName qb2s2)
-  , testStringEq "testGetLocalName03"
+  , testTextEq "testGetLocalName03"
       "s3" (getLocalName qb3s3)
-  , testStringEq "testGetLocalName04"
+  , testTextEq "testGetLocalName04"
       "" (getLocalName qb3)
   , testURIEq "testGetQNameURI01"
       "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
@@ -269,7 +274,7 @@ test somewhat and also include a check of the
 URI combination done by newQName (may be tested elsewhere).
 -}
 
-testSplitURI :: String -> String -> (String,String) -> Test
+testSplitURI :: String -> String -> (String,T.Text) -> Test
 testSplitURI lbl input (a,b) =
   let qn = newQName (toURI a) b
   in 

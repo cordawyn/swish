@@ -62,6 +62,7 @@ import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (isJust, fromJust)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 --  misc helpers
@@ -101,7 +102,7 @@ mkGr2 = mkGr prefix2
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-toNS :: Maybe String -> String -> Namespace
+toNS :: Maybe T.Text -> String -> Namespace
 toNS p = Namespace p . toURI
 
 --  test1:  simple query with URI, literal and blank nodes.

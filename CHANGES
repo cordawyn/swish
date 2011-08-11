@@ -1,10 +1,7 @@
 0.4.0.0:
 
   - Use polyparse rather than parsec-2 for parsing. As part of this, the
-    parsing is done using Text rather than String values. At present the
-    RDFLabel and RDFGraph classes have not been updated to use Text (so
-    some conversion between the two types is introduced). The eventual
-    plan is to use Text as much as sensible.
+    parsing is done using Text rather than String values, where sensible.
 
   - removed Swish.Utils.DateTime and Swish.Utils.TraceHelpers
 
@@ -21,10 +18,11 @@
   - removed _ from exported symbols; the conversion is mainly to camel case
     but some may retain lower case parts (e.g. xxx_1_1_inv to xxx11inv).
 
-  - Namespace now uses Maybe String to store the optional prefix rather than
-    an ad-hoc ""/"?" solution and URI rather than String for the URI.
-    QName also uses URIs and no longer exports the constructor so newQName
-    or related should be used to create QNames.
+  - Namespace now uses Maybe Text to store the optional prefix rather
+    than an ad-hoc ""/"?" solution and URI rather than String for the
+    URI.  The local part of ScopedName is now Text.  QName also uses
+    URIs and no longer exports the constructor so newQName or related
+    should be used to create QNames.
 
     We have currently lost N3 formatting of the default prefix (any default
     prefix elements end up getting written out fully qualified). The output

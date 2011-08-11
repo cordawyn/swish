@@ -120,6 +120,7 @@ import Swish.RDF.RDFParser
     , char
     , ichar
     , string
+    , stringT
     , symbol
     , lexeme
     , whiteSpace
@@ -152,13 +153,13 @@ data N3State = N3State
         , prefixUris :: NamespaceMap        -- namespace prefix mapping table
         , syntaxUris :: SpecialMap          -- special name mapping table
         , nodeGen    :: Int                 -- blank node id generator
-        , keywordsList :: [String]          -- contents of the @keywords statement
+        , keywordsList :: [T.Text]          -- contents of the @keywords statement
         , allowLocalNames :: Bool           -- True if @keywords used so that bare names are QNames in default namespace
         }
 
 -- | Functions to update N3State vector (use with stUpdate)
 
-setPrefix :: Maybe String -> URI -> N3State -> N3State
+setPrefix :: Maybe T.Text -> URI -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
         p' = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
@@ -174,7 +175,7 @@ setSUri nam = setSName nam . makeURIScopedName
 
 -- | Set the list of tokens that can be used without needing the leading 
 -- \@ symbol.
-setKeywordsList :: [String] -> N3State -> N3State
+setKeywordsList :: [T.Text] -> N3State -> N3State
 setKeywordsList ks st = st { keywordsList = ks, allowLocalNames = True }
 
 --  Functions to access state:
@@ -187,10 +188,10 @@ getSUri :: N3State -> String -> URI
 getSUri st nam = getScopedNameURI $ getSName st nam
 
 --  Map prefix to URI
-getPrefixURI :: N3State -> Maybe String -> Maybe URI
+getPrefixURI :: N3State -> Maybe T.Text -> Maybe URI
 getPrefixURI st pre = mapFindMaybe pre (prefixUris st)
 
-getKeywordsList :: N3State -> [String]
+getKeywordsList :: N3State -> [T.Text]
 getKeywordsList = keywordsList
 
 getAllowLocalNames :: N3State -> Bool
@@ -283,7 +284,7 @@ parseAltFromText s1 s2 =
 
 parseNameFromText :: L.Text -> Either String String
 parseNameFromText =
-    parseAnyfromText n3Name Nothing
+    parseAnyfromText n3NameStr Nothing
 
 {-
 This has been made tricky by the attempt to remove the default list
@@ -345,7 +346,7 @@ between = bracket
 -- The @ character is optional if the keyword is in the
 -- keyword list
 --
-atSign :: String -> N3Parser ()
+atSign :: T.Text -> N3Parser ()
 atSign s = do
   st <- stGet
   
@@ -355,7 +356,7 @@ atSign s = do
     then ignore $ optional p
     else p
          
-atWord :: String -> N3Parser String
+atWord :: T.Text -> N3Parser T.Text
 atWord s = do
   atSign s
   
@@ -363,7 +364,7 @@ atWord s = do
   -- apply to both cases even though should only really be necessary
   -- when the at sign is not given
   --
-  lexeme $ string s *> notFollowedBy (== ':')
+  lexeme $ stringT s *> notFollowedBy (== ':')
   return s
 
 {-
@@ -449,11 +450,14 @@ bodyChar =
   map chr
   (0x00b7 : [0x00c0..0x00d6] ++ [0x00d8..0x00f6] ++ [0x00f8..0x037d] ++ [0x037f..0x1fff] ++ [0x200c..0x200d] ++ [0x203f..0x2040] ++ [0x2070..0x218f] ++ [0x2c00..0x2fef] ++ [0x3001..0xd7ff] ++ [0xf900..0xfdcf] ++ [0xfdf0..0xfffd] ++ [0x00010000..0x000effff])
 
-n3Name :: N3Parser String
-n3Name = (:) <$> n3Init <*> n3Body
+n3Name :: N3Parser T.Text
+n3Name = T.cons <$> n3Init <*> n3Body
   where
     n3Init = satisfy (`elem` initChar)
-    n3Body = L.unpack <$> manySatisfy (`elem` bodyChar)
+    n3Body = L.toStrict <$> manySatisfy (`elem` bodyChar)
+
+n3NameStr :: N3Parser String
+n3NameStr = T.unpack <$> n3Name
 
 {-
 quickvariable ::=	\?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*
@@ -461,7 +465,7 @@ quickvariable ::=	\?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d
 
 -- TODO: is mapping to Var correct?
 quickVariable :: N3Parser RDFLabel
-quickVariable = char '?' *> (Var <$> n3Name) 
+quickVariable = char '?' *> (Var <$> n3NameStr) 
 
 {-
 string ::=	("""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*""")|("[^"\\]*(?:\\.[^"\\]*)*")
@@ -552,14 +556,14 @@ getDefaultPrefix = do
 addBase :: URI -> N3Parser ()
 addBase = stUpdate . setSUri "base" 
 
-addPrefix :: Maybe String -> URI -> N3Parser ()
+addPrefix :: Maybe T.Text -> URI -> N3Parser ()
 addPrefix p = stUpdate . setPrefix p 
 
 {-|
 Update the set of keywords that can be given without
 an \@ sign.
 -}
-updateKeywordsList :: [String] -> N3Parser ()
+updateKeywordsList :: [T.Text] -> N3Parser ()
 updateKeywordsList = stUpdate . setKeywordsList
 
 {-
@@ -661,17 +665,17 @@ barename_csl_tail ::=		|	 ","  barename barename_csl_tail
 		|	void
 -}
 
-bareNameCsl :: N3Parser [String]
+bareNameCsl :: N3Parser [T.Text]
 bareNameCsl = sepBy (lexeme bareName) comma
 
-bareName :: N3Parser String
+bareName :: N3Parser T.Text
 bareName = n3Name 
 
 {-
 prefix ::=	([A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d#x037f-#x1fff#x200c-#x200d#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff][\-0-9A-Z_a-z#x00b7#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x037d#x037f-#x1fff#x200c-#x200d#x203f-#x2040#x2070-#x218f#x2c00-#x2fef#x3001-#xd7ff#xf900-#xfdcf#xfdf0-#xfffd#x00010000-#x000effff]*)?:
 -}
 
-prefix :: N3Parser (Maybe String)
+prefix :: N3Parser (Maybe T.Text)
 prefix = optional (lexeme n3Name) <* char ':'
          
 
@@ -710,30 +714,30 @@ qname =
     where
       toSN p = ScopedName <$> p <*> (n3Name <|> return "")
           
-fullOrLocalQName :: String -> N3Parser ScopedName
+fullOrLocalQName :: T.Text -> N3Parser ScopedName
 fullOrLocalQName name = 
   (char ':' *> fullQName name)
   <|> localQName name
   
-fullQName :: String -> N3Parser ScopedName
+fullQName :: T.Text -> N3Parser ScopedName
 fullQName name = do
   pre <- findPrefix name
   lname <- n3Name <|> return ""
   return $ ScopedName pre lname
   
-findPrefix :: String -> N3Parser Namespace
+findPrefix :: T.Text -> N3Parser Namespace
 findPrefix pre = do
   st <- stGet
   case mapFindMaybe (Just pre) (prefixUris st) of
     Just uri -> return $ Namespace (Just pre) uri
-    Nothing  -> failBad $ "Prefix '" ++ pre ++ ":' not bound."
+    Nothing  -> failBad $ "Prefix '" ++ T.unpack pre ++ ":' not bound."
   
-localQName :: String -> N3Parser ScopedName
+localQName :: T.Text -> N3Parser ScopedName
 localQName name = do
   st <- stGet
   if getAllowLocalNames st
     then ScopedName <$> getDefaultPrefix <*> pure name
-    else fail ("Invalid 'bare' word: " ++ name)-- TODO: not ideal error message; can we handle this case differently?
+    else fail ("Invalid 'bare' word: " ++ T.unpack name)-- TODO: not ideal error message; can we handle this case differently?
 
 {-
 existential ::=		|	 "@forSome"  symbol_csl
@@ -819,7 +823,7 @@ pathItem =
   <|> literal
   <|> numericLiteral
   <|> quickVariable
-  <|> Blank <$> (string "_:" *> n3Name) -- TODO a hack that needs fixing
+  <|> Blank <$> (string "_:" *> n3NameStr) -- TODO a hack that needs fixing
   <|> Res <$> n3symbol
   
 {-  
@@ -927,7 +931,7 @@ langcode :: N3Parser ScopedName
 langcode = do
   h <- many1Satisfy (`elem` ['a'..'z'])
   mt <- optional ( L.append <$> (char '-' *> pure (L.singleton '-')) <*> many1Satisfy (`elem` ['a'..'z'] ++ ['0'..'9']))
-  return $ langName $ L.unpack $ L.append h (fromMaybe L.empty mt)
+  return $ langName $ L.toStrict $ L.append h (fromMaybe L.empty mt)
     
 {-
 decimal ::=	[-+]?[0-9]+(\.[0-9]+)?
@@ -953,8 +957,8 @@ numericLiteral =
   -- try (d2s <$> n3double)
   -- <|> try (mkTypedLit xsdDecimal <$> n3decimal)
   d2s <$> n3double
-  <|> mkTypedLit xsdDecimal <$> n3decimal
-  <|> mkTypedLit xsdInteger <$> n3integer
+  <|> mkTypedLit xsdDecimal . T.pack <$> n3decimal
+  <|> mkTypedLit xsdInteger . T.pack <$> n3integer
 
 n3sign :: N3Parser Char
 n3sign = char '+' <|> char '-'
@@ -970,7 +974,7 @@ n3integer = do
 n3decimal :: N3Parser String
 n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many1 digit )
            
-n3double :: N3Parser String  
+n3double :: N3Parser String
 n3double = (++) <$> n3decimal <*> ( (:) <$> satisfy (`elem` "eE") <*> n3integer )
 
 -- Convert a double, as returned by n3double, into it's

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines some commonly used vocabulary terms,
 --  using the 'Namespace' and 'ScopedName' data types.
@@ -49,23 +51,26 @@ where
 
 import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
-import Data.Char (toLower)
+import Data.Monoid (mappend, mconcat)
 import Data.Maybe (fromMaybe)
 import Network.URI (parseURI)
+
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Define some common namespace values
 ------------------------------------------------------------
 
-toNS :: String -> String -> Namespace
-toNS p ustr = 
-  let uri = fromMaybe (error ("Unable to convert " ++ ustr ++ " to a URI")) $
+toNS :: T.Text -> T.Text -> Namespace
+toNS p utxt = 
+  let ustr = T.unpack utxt
+      uri = fromMaybe (error ("Unable to convert " ++ ustr ++ " to a URI")) $
             parseURI ustr
   in Namespace (Just p) uri
 
-namespaceXsdType :: String -> Namespace
-namespaceXsdType dtname = toNS ("xsd_"++dtname)
-                          ("http://id.ninebynine.org/2003/XMLSchema/"++dtname++"#")
+namespaceXsdType :: T.Text -> Namespace
+namespaceXsdType dtn = toNS ("xsd_" `mappend` dtn)
+                       (mconcat ["http://id.ninebynine.org/2003/XMLSchema/", dtn, "#"])
 
 namespaceRDF :: Namespace
 namespaceRDFS :: Namespace
@@ -91,7 +96,7 @@ namespaceSwish   = toNS "swish"   "http://id.ninebynine.org/2003/Swish/"
 namespaceLang    = toNS "lang"    "http://id.ninebynine.org/2003/Swish/Lang/" -- To be replaced by urn:ietf:params:lang?
 namespaceDefault = toNS "default" "http://id.ninebynine.org/default/"
 
-swishName :: String -> ScopedName
+swishName :: T.Text -> ScopedName
 swishName = ScopedName namespaceSwish
 
 -----------------------------------------------------------
@@ -104,10 +109,10 @@ swishName = ScopedName namespaceSwish
 --  Fortunately, they do not currently need to appear in Notation3 as
 --  distinct labels (but future developments may change that).
 
-langName :: String -> ScopedName
-langName = ScopedName namespaceLang . map toLower
+langName :: T.Text -> ScopedName
+langName = ScopedName namespaceLang . T.toLower
 
-langTag :: ScopedName -> String
+langTag :: ScopedName -> T.Text
 langTag = snLocal
 
 isLang :: ScopedName -> Bool
@@ -127,7 +132,7 @@ scopeRDFD = toNS "rs_rdfd"  "http://id.ninebynine.org/2003/Ruleset/rdfd#"
 --  Define some common vocabulary terms
 ------------------------------------------------------------
 
-toRDF, toRDFS, toRDFD :: String -> ScopedName
+toRDF, toRDFS, toRDFD :: T.Text -> ScopedName
 toRDF  = ScopedName namespaceRDF
 toRDFS = ScopedName namespaceRDFS
 toRDFD = ScopedName namespaceRDFD
@@ -165,7 +170,7 @@ rdfdOnProperties       = toRDFD "onProperties"
 rdfdConstraint         = toRDFD "constraint"
 rdfdMaxCardinality     = toRDFD "maxCardinality"
 
-xsdType             :: String -> ScopedName
+xsdType             :: T.Text -> ScopedName
 xsdType             = ScopedName namespaceXSD
 
 xsdString           :: ScopedName

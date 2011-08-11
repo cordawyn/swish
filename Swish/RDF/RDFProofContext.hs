@@ -77,13 +77,14 @@ import Control.Monad (liftM)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (isJust, fromJust)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Define query binding filter auxiliaries
 ------------------------------------------------------------
 
-makeFormula :: Namespace -> String -> B.Builder -> RDFFormula
+makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
 makeFormula = makeRDFFormula
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter

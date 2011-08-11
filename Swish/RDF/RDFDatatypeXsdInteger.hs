@@ -73,6 +73,7 @@ import Data.Monoid(Monoid(..))
 import Control.Monad (liftM)
 import Data.Maybe (maybeToList)
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -80,7 +81,7 @@ import qualified Data.Text.Lazy.Builder as B
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
-nameXsdInteger :: String
+nameXsdInteger :: T.Text
 nameXsdInteger      = "integer"
 
 -- |Type name for xsd:integer datatype
@@ -165,7 +166,7 @@ relXsdInteger =
     ]
 
 mkIntRel2 ::
-    String -> DatatypeRelPr Integer -> UnaryFnTable Integer
+    T.Text -> DatatypeRelPr Integer -> UnaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel2 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdInteger nam
@@ -173,7 +174,7 @@ mkIntRel2 nam pr fns = DatatypeRel
     }
 
 mkIntRel3 ::
-    String -> DatatypeRelPr Integer -> BinaryFnTable Integer
+    T.Text -> DatatypeRelPr Integer -> BinaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdInteger nam
@@ -181,7 +182,7 @@ mkIntRel3 nam pr fns = DatatypeRel
     }
 
 mkIntRel3maybe ::
-    String -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
+    T.Text -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3maybe nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdInteger nam
@@ -403,7 +404,7 @@ modXsdIntegerGt = modXsdIntegerCompare "gt" (>)
 modXsdIntegerGe = modXsdIntegerCompare "ge" (>=)
 
 modXsdIntegerCompare ::
-    String -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
+    T.Text -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
 modXsdIntegerCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger nam
     , dmModf = [ f0 ]
@@ -438,7 +439,7 @@ prefixXsdInteger =
   , mkPrefix namespaceXsdInteger
   ]
 
-mkAxiom :: String -> B.Builder -> RDFFormula
+mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdInteger local (prefixXsdInteger `mappend` gr)
 
