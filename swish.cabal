@@ -51,7 +51,8 @@ Description:
   type. Removed the Swish.Utils.DateTime and Swish.Utils.TraceHelpers
   modules. Symbols have been removed from the export lists of the following modules:
   Swish.Utils.LookupMap, Swish.Utils.ListHelpers, Swish.Utils.MiscHelpers,
-  Swish.Utils.ShowM.
+  Swish.Utils.ShowM. Some significant improvements to parsing speed, but no
+  concerted effort or checks made yet.
   .
   [Version 0.3.2.1] Marked a number of routines from the Swish.Utils modules
   as deprecated. Use foldl' rather than foldl.

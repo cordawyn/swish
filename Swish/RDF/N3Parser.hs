@@ -135,7 +135,7 @@ import Control.Monad (forM_, foldM)
 
 import Network.URI (URI(..), parseURIReference)
 
-import Data.Char (isSpace, isDigit, chr) 
+import Data.Char (isSpace, isDigit, ord) 
 import Data.Maybe (fromMaybe, fromJust)
 
 import qualified Data.Text as T
@@ -440,21 +440,43 @@ and then has
 we encode this as the n3Name production
 -}
 
-initChar , bodyChar :: String
-initChar =
-  ['A'..'Z'] ++ "_" ++ ['a'..'z'] ++
-  map chr 
-  ([0x00c0..0x00d6] ++ [0x00d8..0x00f6] ++ [0x00f8..0x02ff] ++ [0x0370..0x037d] ++ [0x037f..0x1fff] ++ [0x200c..0x200d] ++ [0x2070..0x218f] ++ [0x2c00..0x2fef] ++ [0x3001..0xd7ff] ++ [0xf900..0xfdcf] ++ [0xfdf0..0xfffd] ++ [0x00010000..0x000effff])
-bodyChar = 
-  '-' : ['0'..'9'] ++ ['A'..'Z'] ++ "_" ++ ['a'..'z'] ++
-  map chr
-  (0x00b7 : [0x00c0..0x00d6] ++ [0x00d8..0x00f6] ++ [0x00f8..0x037d] ++ [0x037f..0x1fff] ++ [0x200c..0x200d] ++ [0x203f..0x2040] ++ [0x2070..0x218f] ++ [0x2c00..0x2fef] ++ [0x3001..0xd7ff] ++ [0xf900..0xfdcf] ++ [0xfdf0..0xfffd] ++ [0x00010000..0x000effff])
+isaz, is09, isaz09 :: Char -> Bool
+isaz c = c >= 'a' && c <= 'z'
+is09 c = c >= '0' && c <= '9'
+isaz09 c = isaz c || is09 c
 
+startChar :: Char -> Bool
+startChar c = let i = ord c
+                  match :: (Ord a) => a -> [(a,a)] -> Bool
+                  match v = any (\(l,h) -> v >= l && v <= h)
+              in c == '_' || 
+                 match c [('A', 'Z'), ('a', 'z')] ||
+                 match i [(0x00c0, 0x00d6), (0x00d8, 0x00f6), (0x00f8, 0x02ff), 
+                          (0x0370, 0x037d), 
+                          (0x037f, 0x1fff), (0x200c, 0x200d), 
+                          (0x2070, 0x218f), (0x2c00, 0x2fef), (0x3001, 0xd7ff), 
+                          (0xf900, 0xfdcf), (0xfdf0, 0xfffd), 
+                          (0x00010000, 0x000effff)]           
+  
+inBody :: Char -> Bool
+inBody c = let i = ord c
+               match :: (Ord a) => a -> [(a,a)] -> Bool
+               match v = any (\(l,h) -> v >= l && v <= h)
+           in c `elem` "-_" || i == 0x007 ||
+              match c [('0', '9'), ('A', 'Z'), ('a', 'z')] ||
+              match i [(0x00c0, 0x00d6), (0x00d8, 0x00f6), (0x00f8, 0x037d), 
+                       (0x037f, 0x1fff), (0x200c, 0x200d), (0x203f, 0x2040), 
+                       (0x2070, 0x218f), (0x2c00, 0x2fef), (0x3001, 0xd7ff), 
+                       (0xf900, 0xfdcf), (0xfdf0, 0xfffd), 
+                       (0x00010000, 0x000effff)]           
+
+-- should this be strict or lazy text?
 n3Name :: N3Parser T.Text
 n3Name = T.cons <$> n3Init <*> n3Body
   where
-    n3Init = satisfy (`elem` initChar)
-    n3Body = L.toStrict <$> manySatisfy (`elem` bodyChar)
+    n3Init = satisfy startChar
+    n3Body = L.toStrict <$> manySatisfy inBody
+
 
 n3NameStr :: N3Parser String
 n3NameStr = T.unpack <$> n3Name
@@ -929,8 +951,8 @@ dtlang =
 
 langcode :: N3Parser ScopedName
 langcode = do
-  h <- many1Satisfy (`elem` ['a'..'z'])
-  mt <- optional ( L.append <$> (char '-' *> pure (L.singleton '-')) <*> many1Satisfy (`elem` ['a'..'z'] ++ ['0'..'9']))
+  h <- many1Satisfy isaz
+  mt <- optional ( L.append <$> (char '-' *> pure (L.singleton '-')) <*> many1Satisfy isaz09)
   return $ langName $ L.toStrict $ L.append h (fromMaybe L.empty mt)
     
 {-

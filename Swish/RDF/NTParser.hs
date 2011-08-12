@@ -80,7 +80,7 @@ import Network.URI (parseURI)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
-import Data.Char (chr) 
+import Data.Char (ord) 
 import Data.Maybe (fromMaybe)
 
 import Text.ParserCombinators.Poly.StateText
@@ -232,14 +232,20 @@ eoln	::=	cr | lf | cr lf
 name	::=	[A-Za-z][A-Za-z0-9]*	
 -}
 
-hChars, bChars :: String
-hChars = ['a'..'z'] ++ ['A'..'Z']
-bChars = hChars ++ ['0'..'9']
+isaz, isAZ, is09 :: Char -> Bool
+isaz c = c >= 'a' && c <= 'z'
+isAZ c = c >= 'A' && c <= 'Z'
+is09 c = c >= '0' && c <= '9'
 
--- cons is not particularly efficient
-name :: NTParser String
--- name = (:) <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars)
-name = L.unpack <$> (L.cons <$> satisfy (`elem` hChars) <*> manySatisfy (`elem` bChars))
+isHeadChar, isBodyChar :: Char -> Bool
+isHeadChar c = isaz c || isAZ c
+isBodyChar c = isHeadChar c || is09 c
+
+name :: NTParser L.Text
+name = L.cons <$> satisfy isHeadChar <*> manySatisfy isBodyChar
+
+nameStr :: NTParser String
+nameStr = L.unpack <$> name
 
 {-
 triple	::=	subject ws+ predicate ws+ object ws* '.' ws*	
@@ -306,7 +312,7 @@ nodeID	::=	'_:' name
 -}
 
 nodeID :: NTParser RDFLabel
-nodeID = Blank <$> (string "_:" *> name)
+nodeID = Blank <$> (string "_:" *> nameStr)
 
 {-  
 literal	::=	langString | datatypeString	
@@ -331,8 +337,8 @@ dtlang =
 
 language :: NTParser ScopedName
 language = do
-  h <- many1Satisfy (`elem` ['a'..'z'])
-  mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (`elem` (['a'..'z'] ++ ['0'..'9'])) )
+  h <- many1Satisfy isaz
+  mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (\c -> isaz c || is09 c) )
   return $ langName $ L.toStrict $ L.append h $ fromMaybe L.empty mt
 
 {-
@@ -374,17 +380,13 @@ This escaping satisfies the [CHARMOD] section Reference Processing Model on maki
 
 -}
 
-{-
-asciiChars :: String
-asciiChars = map chr [0x20..0x7e]
-
-asciiCharsNT :: String
-asciiCharsNT = filter (`notElem` "\\\"") asciiChars
--}
-
 -- 0x22 is " and 0x5c is \
-asciiChars :: String
-asciiChars = map chr $ 0x20 : 0x21 : [0x23..0x5b] ++ [0x5d..0x7e]
+
+isAsciiChar :: Char -> Bool
+isAsciiChar c = let i = ord c
+                in i >= 0x20 && i <= 0x21 ||
+                   i >= 0x23 && i <= 0x5b ||
+                   i >= 0x5d && i <= 0x7e
 
 protectedChar :: NTParser Char
 protectedChar =
@@ -399,7 +401,7 @@ protectedChar =
 character :: NTParser Char
 character = 
   (char '\\' *> protectedChar)
-  <|> satisfy (`elem` asciiChars)
+  <|> satisfy isAsciiChar
 
 --------------------------------------------------------------------------------
 --
