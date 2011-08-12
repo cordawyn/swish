@@ -106,6 +106,7 @@ updateGraph f s = s { graphState = f (graphState s) }
 --  accepts a string and returns a graph or error
 ----------------------------------------------------------------------
 
+-- | Parser that carries around a `NTState` record.
 type NTParser a = Parser NTState a
 
 -- | Parse a string.
@@ -122,8 +123,6 @@ test = either error id . parseNT
 -}
 
 -- | Function to supply initial context and parse supplied term.
---
--- We augment the Parsec error with the context.
 --
 parsefromString :: 
     NTParser a      -- ^ parser to apply

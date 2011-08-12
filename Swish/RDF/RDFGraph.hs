@@ -550,22 +550,20 @@ showCanon (Lit st (Just nam))
         | otherwise  = quote1Str st ++ "^^" ++ show (getScopedNameURI nam)
 showCanon s                  = show s
 
-{-
-N3-style quoting rules for a string.
-
-The boolean flag is True if the string is being displayed
-with single quotes, which means that newlines and quote 
-characters need protecting.
-
-TODO: when flag == False need to worry about n > 2 quotes
-in a row.
--}
-
--- temporary conversion
+-- | See `quote`.
 quoteT :: Bool -> T.Text -> T.Text
 quoteT f = T.pack . quote f . T.unpack 
 
-quote :: Bool -> String -> String
+{-| N3-style quoting rules for a string.
+
+TODO: when flag is `False` need to worry about multiple quotes (> 2)
+in a row.
+-}
+
+quote :: 
+  Bool  -- ^ @True@ if the string is to be displayed using one rather than three quotes.
+  -> String -- ^ String to quote.
+  -> String
 quote _     []           = ""
 quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
                          | otherwise  = [c, '\\', '"']
@@ -705,7 +703,7 @@ type RDFTriple = Arc RDFLabel
 
 -- | Convert 3 RDF labels to a RDF triple.
 --
---   See also `Swish.RDF.GraphClass.arcFromTriple`.
+--   See also @Swish.RDF.GraphClass.arcFromTriple@.
 toRDFTriple :: 
   (ToRDFLabel s, ToRDFLabel p, ToRDFLabel o) 
   => s -- ^ Subject 
@@ -717,7 +715,7 @@ toRDFTriple s p o =
 
 -- | Extract the contents of a RDF triple.
 --
---   See also `Swish.RDF.GraphClass.arcToTriple`.
+--   See also @Swish.RDF.GraphClass.arcToTriple@.
 fromRDFTriple :: 
   (FromRDFLabel s, FromRDFLabel p, FromRDFLabel o) 
   => RDFTriple 
