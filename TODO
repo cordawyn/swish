@@ -58,9 +58,6 @@ Some things I want to/should do (not in order)
 
 Text conversion:
 
-  - use polyparse rather than attoparsec-text since this allows us
-    to include state
-
   - converting to Text in pieces, so lots of conversion via String
     is apparent. This needs fixing, including
       RDFDatatypeXsdString
@@ -119,10 +116,3 @@ namespace be on output; the one chosen from the input graph but then what
 if the input is from ntriples or there is another namespace with many more
 triples?
 
-*) Namespace
-
-I wonder if using (Maybe String) for the prefix in Namespace is worth it
-since 
-  a) a user could always say Just ""
-  b) it is likely that using "" is equivalent to Nothing (ie is there any
-     code benefit either speed or semantically to using Maybe?)
