@@ -32,10 +32,7 @@ Some things I want to/should do (not in order)
 - how much of the support code - e.g. Swish.Utils.LookupMap - can now
   be replaced with packages from hackage?
 
-- change SwishAction from a tuple to a SwishStateIO (); requires an
-  minor version update
-
-  can we improve the processing of the commands, so that they
+- can we improve the processing of the commands, so that they
   exit on error immediately, with a single error message.
 
   An EDSL for the command language or for the base components
