@@ -4,10 +4,14 @@
 #
 # --------+---------+---------+---------+---------+---------+---------+---------
 
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+
 @prefix ex:  <http://id.ninebynine.org/wip/2003/swishtest/> .
 @prefix pv:  <http://id.ninebynine.org/wip/2003/swishtest/pv/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix xsd_integer: <http://id.ninebynine.org/2003/XMLSchema/integer#> .
+@prefix rdfd:    <http://id.ninebynine.org/2003/rdfext/rdfd#> .
 @prefix rs_rdf:  <http://id.ninebynine.org/2003/Ruleset/rdf#> .
 @prefix rs_rdfs: <http://id.ninebynine.org/2003/Ruleset/rdfs#> .
 @prefix :   <http://id.ninebynine.org/default/> .

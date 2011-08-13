@@ -23,17 +23,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.Utils.ShowM
-    ( ShowM(..), 
-      
-      -- * Deprecated routine
-      --
-      -- | This routine will be removed at the next minor release of
-      -- of Swish (@0.3.3@).
-      --
-      showm
-    )
-where
+module Swish.Utils.ShowM (ShowM(..)) where
 
 ------------------------------------------------------------
 --  ShowM framework
@@ -59,11 +49,6 @@ class (Show sh) => ShowM sh where
     --  (3) no newline is output following the final line of text.
     showms :: String -> sh -> ShowS
     showms _ = shows
-
--- |Return a string representation of a ShowM value.
-showm :: (ShowM sh) => String -> sh -> String
-showm linebreak val = showms linebreak val ""
-
 
 --------------------------------------------------------------------------------
 --

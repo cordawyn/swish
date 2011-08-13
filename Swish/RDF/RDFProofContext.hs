@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains proof-context declarations based on
 --  the RDF, RDFS and RDF datatyping semantics specifications.
@@ -17,14 +19,11 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFProofContext
-    ( rulesetRDF
-    , rulesetRDFS
-    , rulesetRDFD )
-where
+module Swish.RDF.RDFProofContext ( rulesetRDF 
+                                 , rulesetRDFS
+                                 , rulesetRDFD) where
 
-import Swish.RDF.BuiltInDatatypes
-    ( findRDFDatatype )
+import Swish.RDF.BuiltInDatatypes (findRDFDatatype)
 
 import Swish.RDF.RDFProof
     ( makeRdfSubgraphEntailmentRule
@@ -64,13 +63,8 @@ import Swish.RDF.VarBinding
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
-
-import Swish.RDF.Datatype
-    ( typeMkCanonicalForm )
-
-import Swish.Utils.Namespace
-    ( Namespace(..), ScopedName(..)
-    )
+import Swish.RDF.Datatype (typeMkCanonicalForm)
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
 
 import Swish.RDF.Vocabulary
     ( namespaceRDFD
@@ -79,15 +73,18 @@ import Swish.RDF.Vocabulary
     , scopeRDFD
     )
 
+import Control.Monad (liftM)
+import Data.Monoid (Monoid(..))
 import Data.Maybe (isJust, fromJust)
 
-import Control.Monad (liftM)
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Define query binding filter auxiliaries
 ------------------------------------------------------------
 
-makeFormula :: Namespace -> String -> String -> RDFFormula
+makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
 makeFormula = makeRDFFormula
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter
@@ -175,7 +172,7 @@ getCanonical v1 t1 t2 =
         dqn2  = getRes t2
         mdt1  = findRDFDatatype dqn1
         dt1   = fromJust mdt1
-        mkLit st = Lit st (Just dqn2)
+        mkLit = flip Lit (Just dqn2)
 
         getRes (Res dqnam) = dqnam
         getRes x = error $ "Expected a Resource, sent " ++ show x -- for -Wall
@@ -808,7 +805,7 @@ rdfdr2 = makeN3ClosureModifyRule scopeRDFD "r2"
 --
 rdfdr3 :: RDFRule
 rdfdr3 = makeN3ClosureModifyRule scopeRDFD "r3"
-            ( "?d rdf:type rdfs:Datatype . ?e rdf:type rdfs:Datatype . " ++
+            ( "?d rdf:type rdfs:Datatype . ?e rdf:type rdfs:Datatype . " `mappend`
               "?a ?p ?s ." )
             "?a ?p ?t ."
             (makeVarFilterModify $ isDatatypedV "s" "d")

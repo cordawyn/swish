@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses
+--  Portability :  MultiParamTypeClasses, OverloadedStrings
 --
 --  This module defines a framework for defining inference rules
 --  over some expression form.  It is intended to be used with
@@ -19,23 +20,19 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Rule
-    ( Expression(..), Formula(..), Rule(..), RuleMap
-    , nullScope, nullFormula, nullRule
-    , fwdCheckInference, bwdCheckInference
-    , showsFormula, showsFormulae, showsWidth
-    )
-where
+       ( Expression(..), Formula(..), Rule(..), RuleMap
+       , nullScope, nullFormula, nullRule
+       , fwdCheckInference, bwdCheckInference
+       , showsFormula, showsFormulae, showsWidth
+       )
+       where
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
-
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    )
-
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
+
+import Network.URI (parseURI)
+import Data.Maybe (fromJust)
 
 ------------------------------------------------------------
 --  Expressions
@@ -73,7 +70,8 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
 
 -- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
 nullScope :: Namespace
-nullScope = Namespace "null" "http://id.ninebynine.org/2003/Ruleset/null"
+nullScope = Namespace (Just "null") 
+            $ fromJust $ parseURI "http://id.ninebynine.org/2003/Ruleset/null"
 
 -- | The null formula.
 nullFormula :: Formula ex

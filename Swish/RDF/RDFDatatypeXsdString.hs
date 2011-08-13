@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,12 +10,14 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate RDF @xsd:string@ datatyped literals.
 --
 --------------------------------------------------------------------------------
+
+-- TODO: this should convert to/from T.Text rather than String
 
 module Swish.RDF.RDFDatatypeXsdString
     ( rdfDatatypeXsdString
@@ -22,18 +26,16 @@ module Swish.RDF.RDFDatatypeXsdString
     , axiomsXsdString, rulesXsdString
     , prefixXsdString
     )
-where
+    where
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFRuleset
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     , makeRDFFormula
     , makeN3ClosureRule
     )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBindingModify
-    )
+import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
 
 import Swish.RDF.RDFDatatype
     ( RDFDatatype
@@ -42,12 +44,8 @@ import Swish.RDF.RDFDatatype
     , makeRdfDtOpenVarBindingModifiers
     )
 
-import Swish.RDF.RDFGraph
-    ( RDFLabel(..) )
-
-import Swish.RDF.ClassRestrictionRule
-    ( makeRDFDatatypeRestrictionRules
-    )
+import Swish.RDF.RDFGraph (RDFLabel(..))
+import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
 
 import Swish.RDF.Datatype
     ( Datatype(..)
@@ -57,17 +55,11 @@ import Swish.RDF.Datatype
     , altArgs
     , UnaryFnTable,  unaryFnApp
     , DatatypeMod(..) 
-    , makeVmod_2_0
+    , makeVmod20
     )
 
-import Swish.RDF.Ruleset
-    ( makeRuleset 
-    )
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
+import Swish.RDF.Ruleset (makeRuleset)
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -77,19 +69,20 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    , addVarBinding
-    , VarBindingModify(..)
-    )
+import Swish.RDF.VarBinding (VarBinding(..), addVarBinding, VarBindingModify(..))
+
+import Data.Monoid(Monoid(..))
+
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Misc values
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
-nameXsdString :: String
-nameXsdString      = "string"
+nameXsdString :: T.Text
+nameXsdString = "string"
 
 -- |Type name for @xsd:string@ datatype
 typeNameXsdString :: ScopedName
@@ -98,14 +91,6 @@ typeNameXsdString  = ScopedName namespaceXSD nameXsdString
 -- |Namespace for @xsd:string@ datatype functions
 namespaceXsdString :: Namespace
 namespaceXsdString = namespaceXsdType nameXsdString
-
---  Helper to catenate strings with newline separator,
---  used for making textual representations of graphs.
---  (the newline makes N3 parser diagnostics easier to interpret)
---
-infixr 5 +++
-(+++) :: String -> ShowS
-(+++) str = ((str++"\n")++)
 
 ------------------------------------------------------------
 --  Declare exported RDFDatatype value for xsd:integer
@@ -120,16 +105,15 @@ rdfDatatypeXsdString = Datatype rdfDatatypeValXsdString
 
 -- |Define Datatype value for @xsd:string@.
 --
-rdfDatatypeValXsdString :: RDFDatatypeVal String
+rdfDatatypeValXsdString :: RDFDatatypeVal T.Text
 rdfDatatypeValXsdString = DatatypeVal
     { tvalName      = typeNameXsdString
-    , tvalRules     = rdfRulesetXsdString  -- Ruleset RDFGraph
+    , tvalRules     = rdfRulesetXsdString
     , tvalMkRules   = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdString
-                                           -- RDFGraph -> [RDFRules]
     , tvalMkMods    = makeRdfDtOpenVarBindingModifiers rdfDatatypeValXsdString
-    , tvalMap       = mapXsdString         -- DatatypeMap Integer
-    , tvalRel       = relXsdString         -- [DatatypeRel Integer]
-    , tvalMod       = modXsdString         -- [DatatypeMod Integer]
+    , tvalMap       = mapXsdString
+    , tvalRel       = relXsdString
+    , tvalMod       = modXsdString
     }
 
 -- |mapXsdString contains functions that perform lexical-to-value
@@ -137,25 +121,23 @@ rdfDatatypeValXsdString = DatatypeVal
 --
 --  These are identity mappings.
 --
-mapXsdString :: DatatypeMap String
+mapXsdString :: DatatypeMap T.Text
 mapXsdString = DatatypeMap
-    { -- mapL2V :: String -> Maybe String
-      mapL2V = Just
-      -- mapV2L :: String -> Maybe String
+    { mapL2V = Just
     , mapV2L = Just
     }
 
 -- |relXsdString contains useful relations for @xsd:string@ values.
 --
-relXsdString :: [DatatypeRel String]
+relXsdString :: [DatatypeRel T.Text]
 relXsdString =
     [ relXsdStringEq
     , relXsdStringNe
     ]
 
 mkStrRel2 ::
-    String -> DatatypeRelPr String -> UnaryFnTable String
-    -> DatatypeRel String
+    T.Text -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
+    -> DatatypeRel T.Text
 mkStrRel2 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdString nam
     , dtRelFunc = altArgs pr fns unaryFnApp
@@ -187,34 +169,34 @@ lcomp p = liftL2 p head (head . tail)
 
 -- eq
 
-relXsdStringEq :: DatatypeRel String
+relXsdStringEq :: DatatypeRel T.Text
 relXsdStringEq = mkStrRel2 "eq" (lcomp (==))
     ( repeat (const True, []) )
 
 -- ne
 
-relXsdStringNe :: DatatypeRel String
+relXsdStringNe :: DatatypeRel T.Text
 relXsdStringNe = mkStrRel2 "ne" (lcomp (/=))
     ( repeat (const True, []) )
 
 -- |modXsdString contains variable binding modifiers for @xsd:string@ values.
 --
-modXsdString :: [RDFDatatypeMod String]
+modXsdString :: [RDFDatatypeMod T.Text]
 modXsdString =
     [ modXsdStringEq
     , modXsdStringNe
     ]
 
-modXsdStringEq, modXsdStringNe :: RDFDatatypeMod String
+modXsdStringEq, modXsdStringNe :: RDFDatatypeMod T.Text
 modXsdStringEq = modXsdStringCompare "eq" (==)
 modXsdStringNe = modXsdStringCompare "ne" (/=)
 
 modXsdStringCompare ::
-    String -> (String->String->Bool) -> RDFDatatypeMod String
+    T.Text -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
 modXsdStringCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
-    , dmAppf = makeVmod_2_0
+    , dmAppf = makeVmod20
     }
     where
         f0 vs@[v1,v2] = if rel v1 v2 then vs else []
@@ -229,22 +211,22 @@ rdfRulesetXsdString :: RDFRuleset
 rdfRulesetXsdString =
     makeRuleset namespaceXsdString axiomsXsdString rulesXsdString
 
-mkPrefix :: Namespace -> String
-mkPrefix ns =
-    "@prefix " ++ nsPrefix ns ++ ": <" ++ nsURI ns ++ "> . \n"
+mkPrefix :: Namespace -> B.Builder
+mkPrefix = namespaceToBuilder
 
-prefixXsdString :: String
-prefixXsdString =
-    mkPrefix namespaceRDF  ++
-    mkPrefix namespaceRDFS ++
-    mkPrefix namespaceRDFD ++
-    mkPrefix namespaceXSD  ++
-    mkPrefix namespaceXsdString ++
-    " \n"
-
-mkAxiom :: String -> String -> RDFFormula
+prefixXsdString :: B.Builder
+prefixXsdString = 
+  mconcat
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+  , mkPrefix namespaceRDFD
+  , mkPrefix namespaceXSD
+  , mkPrefix namespaceXsdString
+  ]
+  
+mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
-    makeRDFFormula namespaceXsdString local (prefixXsdString++gr)
+    makeRDFFormula namespaceXsdString local (prefixXsdString `mappend` gr)
 
 axiomsXsdString :: [RDFFormula]
 axiomsXsdString =
@@ -258,19 +240,22 @@ rulesXsdStringRestriction :: [RDFRule]
 rulesXsdStringRestriction =
     makeRDFDatatypeRestrictionRules rdfDatatypeValXsdString gr
     where
-        gr = makeRDFGraphFromN3String rulesXsdStringStr
+        gr = makeRDFGraphFromN3Builder rulesXsdStringBuilder
 
-rulesXsdStringStr :: String
-rulesXsdStringStr = prefixXsdString
-    +++ "xsd_string:Eq a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_string:eq ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_string:Ne a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_string:ne ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-
+rulesXsdStringBuilder :: B.Builder
+rulesXsdStringBuilder = 
+  mconcat
+  [ prefixXsdString
+    , "xsd_string:Eq a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_string:eq ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_string:Ne a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_string:ne ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    ]
+  
 rulesXsdStringClosure :: [RDFRule]
 rulesXsdStringClosure =
     [ xsdstrls

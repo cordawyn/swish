@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate RDF @xsd:integer@ datatyped literals.
@@ -26,7 +28,7 @@ where
 
 import Swish.RDF.RDFRuleset
     ( RDFFormula, RDFRule, RDFRuleset 
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     , makeRDFFormula
     )
 
@@ -37,13 +39,8 @@ import Swish.RDF.RDFDatatype
     , makeRdfDtOpenVarBindingModifiers
     )
 
-import Swish.RDF.ClassRestrictionRule
-    ( makeRDFDatatypeRestrictionRules
-    )
-
-import Swish.RDF.MapXsdInteger
-    ( mapXsdInteger
-    )
+import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
+import Swish.RDF.MapXsdInteger (mapXsdInteger)
 
 import Swish.RDF.Datatype
     ( Datatype(..)
@@ -54,18 +51,15 @@ import Swish.RDF.Datatype
     , BinaryFnTable,   binaryFnApp
     , BinMaybeFnTable, binMaybeFnApp
     , DatatypeMod(..) 
-    , makeVmod_1_1_inv, makeVmod_1_1
-    , makeVmod_2_1_inv, makeVmod_2_1
-    , makeVmod_2_0
-    , makeVmod_2_2
+    , makeVmod11inv, makeVmod11
+    , makeVmod21inv, makeVmod21
+    , makeVmod20
+    , makeVmod22
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -75,16 +69,19 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
+import Data.Monoid(Monoid(..))
+import Control.Monad (liftM)
 import Data.Maybe (maybeToList)
 
-import Control.Monad (liftM)
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Misc values
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
-nameXsdInteger :: String
+nameXsdInteger :: T.Text
 nameXsdInteger      = "integer"
 
 -- |Type name for xsd:integer datatype
@@ -94,14 +91,6 @@ typeNameXsdInteger  = ScopedName namespaceXSD nameXsdInteger
 -- |Namespace for xsd:integer datatype functions
 namespaceXsdInteger :: Namespace
 namespaceXsdInteger = namespaceXsdType nameXsdInteger
-
---  Helper to catenate strings with newline separator,
---  used for making textual representations of graphs.
---  (the newline makes N3 parser diagnostics easier to interpret)
---
-infixr 5 +++
-(+++) :: String -> ShowS
-(+++) str = ((str++"\n")++)
 
 --  Compose with function of two arguments
 c2 :: (b -> c) -> (a -> d -> b) -> a -> d -> c
@@ -177,7 +166,7 @@ relXsdInteger =
     ]
 
 mkIntRel2 ::
-    String -> DatatypeRelPr Integer -> UnaryFnTable Integer
+    T.Text -> DatatypeRelPr Integer -> UnaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel2 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdInteger nam
@@ -185,7 +174,7 @@ mkIntRel2 nam pr fns = DatatypeRel
     }
 
 mkIntRel3 ::
-    String -> DatatypeRelPr Integer -> BinaryFnTable Integer
+    T.Text -> DatatypeRelPr Integer -> BinaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3 nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdInteger nam
@@ -193,7 +182,7 @@ mkIntRel3 nam pr fns = DatatypeRel
     }
 
 mkIntRel3maybe ::
-    String -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
+    T.Text -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3maybe nam pr fns = DatatypeRel
     { dtRelName = ScopedName namespaceXsdInteger nam
@@ -317,7 +306,7 @@ modXsdIntegerAbs :: RDFDatatypeMod Integer
 modXsdIntegerAbs = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "abs"
     , dmModf = [ f0, f1 ]
-    , dmAppf = makeVmod_1_1
+    , dmAppf = makeVmod11
     }
     where
         f0 vs@[v1,v2] = if v1 == abs v2 then vs else []
@@ -329,7 +318,7 @@ modXsdIntegerNeg :: RDFDatatypeMod Integer
 modXsdIntegerNeg = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "neg"
     , dmModf = [ f0, f1, f1 ]
-    , dmAppf = makeVmod_1_1_inv
+    , dmAppf = makeVmod11inv
     }
     where
         f0 vs@[v1,v2] = if v1 == negate v2 then vs else []
@@ -341,7 +330,7 @@ modXsdIntegerSum :: RDFDatatypeMod Integer
 modXsdIntegerSum = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "sum"
     , dmModf = [ f0, f1, f2, f2 ]
-    , dmAppf = makeVmod_2_1_inv
+    , dmAppf = makeVmod21inv
     }
     where
         f0 vs@[v1,v2,v3] = if v1 == v2+v3 then vs else []
@@ -355,7 +344,7 @@ modXsdIntegerDiff :: RDFDatatypeMod Integer
 modXsdIntegerDiff = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "diff"
     , dmModf = [ f0, f1, f2, f3 ]
-    , dmAppf = makeVmod_2_1_inv
+    , dmAppf = makeVmod21inv
     }
     where
         f0 vs@[v1,v2,v3] = if v1 == v2-v3 then vs else []
@@ -371,7 +360,7 @@ modXsdIntegerProd :: RDFDatatypeMod Integer
 modXsdIntegerProd = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "prod"
     , dmModf = [ f0, f1, f2, f2 ]
-    , dmAppf = makeVmod_2_1_inv
+    , dmAppf = makeVmod21inv
     }
     where
         f0 vs@[v1,v2,v3] = if v1 == v2*v3 then vs else []
@@ -386,7 +375,7 @@ modXsdIntegerDivMod :: RDFDatatypeMod Integer
 modXsdIntegerDivMod = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "divmod"
     , dmModf = [ f0, f1 ]
-    , dmAppf = makeVmod_2_2
+    , dmAppf = makeVmod22
     }
     where
         f0 vs@[v1,v2,v3,v4] = if (v1,v2) == divMod v3 v4 then vs else []
@@ -398,7 +387,7 @@ modXsdIntegerPower :: RDFDatatypeMod Integer
 modXsdIntegerPower = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger "power"
     , dmModf = [ f0, f1 ]
-    , dmAppf = makeVmod_2_1
+    , dmAppf = makeVmod21
     }
     where
         f0 vs@[v1,v2,v3] = if Just v1 == intPower v2 v3 then vs else []
@@ -415,11 +404,11 @@ modXsdIntegerGt = modXsdIntegerCompare "gt" (>)
 modXsdIntegerGe = modXsdIntegerCompare "ge" (>=)
 
 modXsdIntegerCompare ::
-    String -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
+    T.Text -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
 modXsdIntegerCompare nam rel = DatatypeMod
     { dmName = ScopedName namespaceXsdInteger nam
     , dmModf = [ f0 ]
-    , dmAppf = makeVmod_2_0
+    , dmAppf = makeVmod20
     }
     where
         f0 vs@[v1,v2] = if rel v1 v2 then vs else []
@@ -437,22 +426,22 @@ rdfRulesetXsdInteger :: RDFRuleset
 rdfRulesetXsdInteger =
     makeRuleset namespaceXsdInteger axiomsXsdInteger rulesXsdInteger
 
-mkPrefix :: Namespace -> String
-mkPrefix ns =
-    "@prefix " ++ nsPrefix ns ++ ": <" ++ nsURI ns ++ "> . \n"
+mkPrefix :: Namespace -> B.Builder
+mkPrefix = namespaceToBuilder
 
-prefixXsdInteger :: String
-prefixXsdInteger =
-    mkPrefix namespaceRDF  ++
-    mkPrefix namespaceRDFS ++
-    mkPrefix namespaceRDFD ++
-    mkPrefix namespaceXSD  ++
-    mkPrefix namespaceXsdInteger ++
-    " \n"
+prefixXsdInteger :: B.Builder
+prefixXsdInteger = 
+  mconcat
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+  , mkPrefix namespaceRDFD
+  , mkPrefix namespaceXSD
+  , mkPrefix namespaceXsdInteger
+  ]
 
-mkAxiom :: String -> String -> RDFFormula
+mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
-    makeRDFFormula namespaceXsdInteger local (prefixXsdInteger++gr)
+    makeRDFFormula namespaceXsdInteger local (prefixXsdInteger `mappend` gr)
 
 axiomsXsdInteger :: [RDFFormula]
 axiomsXsdInteger =
@@ -462,63 +451,69 @@ axiomsXsdInteger =
 rulesXsdInteger :: [RDFRule]
 rulesXsdInteger = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdInteger gr
     where
-        gr = makeRDFGraphFromN3String rulesXsdIntegerStr
+        gr = makeRDFGraphFromN3Builder rulesXsdIntegerBuilder
 
-rulesXsdIntegerStr :: String
-rulesXsdIntegerStr = prefixXsdInteger
-    +++ "xsd_integer:Abs a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:abs ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Neg a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:neg ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Sum a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
-    +++ "  rdfd:constraint xsd_integer:sum ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Diff a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
-    +++ "  rdfd:constraint xsd_integer:diff ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Prod a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
-    +++ "  rdfd:constraint xsd_integer:prod ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:DivMod a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3 rdf:_4) ; "
-    +++ "  rdfd:constraint xsd_integer:divmod ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Power a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
-    +++ "  rdfd:constraint xsd_integer:power ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Eq a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:eq ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Ne a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:ne ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Lt a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:lt ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Le a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:le ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Gt a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:gt ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-    +++ "xsd_integer:Ge a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
-    +++ "  rdfd:constraint xsd_integer:ge ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-
+--- I have removed the newline which was added between each line
+--- to improve the clarity of parser errors.
+---
+rulesXsdIntegerBuilder :: B.Builder
+rulesXsdIntegerBuilder = 
+  mconcat
+  [ prefixXsdInteger
+    , "xsd_integer:Abs a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:abs ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Neg a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:neg ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Sum a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
+    , "  rdfd:constraint xsd_integer:sum ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Diff a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
+    , "  rdfd:constraint xsd_integer:diff ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Prod a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
+    , "  rdfd:constraint xsd_integer:prod ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:DivMod a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3 rdf:_4) ; "
+    , "  rdfd:constraint xsd_integer:divmod ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Power a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2 rdf:_3) ; "
+    , "  rdfd:constraint xsd_integer:power ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Eq a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:eq ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Ne a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:ne ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Lt a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:lt ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Le a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:le ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Gt a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:gt ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    , "xsd_integer:Ge a rdfd:GeneralRestriction ; "
+    , "  rdfd:onProperties (rdf:_1 rdf:_2) ; "
+    , "  rdfd:constraint xsd_integer:ge ; "
+    , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+    ]
+  
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke

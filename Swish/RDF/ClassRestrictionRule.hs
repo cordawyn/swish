@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses
+--  Portability :  MultiParamTypeClasses, OverloadedStrings
 --
 --  This module implements an inference rule based on a restruction on class
 --  membership of one or more values.
@@ -17,13 +18,13 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.ClassRestrictionRule
-    ( ClassRestriction(..), ClassRestrictionFn
-    , makeDatatypeRestriction, makeDatatypeRestrictionFn
-    , makeRDFClassRestrictionRules
-    , makeRDFDatatypeRestrictionRules
-    , falseGraph, falseGraphStr       
-    )
-where
+       ( ClassRestriction(..), ClassRestrictionFn
+       , makeDatatypeRestriction, makeDatatypeRestrictionFn
+       , makeRDFClassRestrictionRules
+       , makeRDFDatatypeRestrictionRules
+       , falseGraph, falseGraphStr       
+       )
+       where
 
 import Swish.RDF.RDFGraph
     ( RDFLabel(..)
@@ -33,19 +34,12 @@ import Swish.RDF.RDFGraph
     , merge
     , toRDFGraph, emptyRDFGraph
     , Arc(..)
-    , res_rdf_type
-    , res_rdfd_maxCardinality
+    , resRdfType
+    , resRdfdMaxCardinality
     )
 
-import Swish.RDF.RDFRuleset
-    ( RDFRule
-    , makeRDFGraphFromN3String
-    )
-
-import Swish.RDF.RDFDatatype
-    ( RDFDatatypeVal
-    , fromRDFLabel, toRDFLabel
-    )
+import Swish.RDF.RDFRuleset (RDFRule, makeRDFGraphFromN3Builder)
+import Swish.RDF.RDFDatatype (RDFDatatypeVal, fromRDFLabel, toRDFLabel)
 
 import Swish.RDF.RDFQuery
     ( rdfQueryFind
@@ -53,28 +47,13 @@ import Swish.RDF.RDFQuery
     , rdfFindList
     )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding )
-
-import Swish.RDF.Datatype
-    ( DatatypeVal(..)
-    , DatatypeRel(..), DatatypeRelFn
-    )
-
-import Swish.RDF.Rule
-    ( Rule(..)
-    , bwdCheckInference
-    )
-
+import Swish.RDF.RDFVarBinding (RDFVarBinding)
+import Swish.RDF.Datatype (DatatypeVal(..), DatatypeRel(..), DatatypeRelFn)
+import Swish.RDF.Rule ( Rule(..), bwdCheckInference)
 import Swish.RDF.VarBinding (VarBinding(..))
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    )
-
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
+import Swish.Utils.Namespace (Namespace(..),ScopedName(..), namespaceToBuilder)
 import Swish.Utils.PartOrderedCollection
     ( minima, maxima
     , partCompareEq, partComparePair
@@ -82,17 +61,16 @@ import Swish.Utils.PartOrderedCollection
     , partCompareListSubset
     )
 
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    , mapFindMaybe
-    )
-
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
 import Swish.Utils.ListHelpers (powerSet)
 
 import Control.Monad (liftM)
 
+import Data.Monoid (Monoid (..))
 import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import Data.List (delete, nub, (\\))
+
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Class restriction data type
@@ -156,20 +134,24 @@ makeDatatypeRestrictionFn dtv dtrelfn =
 --  Make rules from supplied class restrictions and graph
 ------------------------------------------------------------
 
-ruleQuery :: RDFGraph
-ruleQuery = makeRDFGraphFromN3String $
-    "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    " ?c a rdfd:GeneralRestriction ; " ++
-    "    rdfd:onProperties ?p ; "      ++
-    "    rdfd:constraint   ?r . "
+mkPrefix :: Namespace -> B.Builder
+mkPrefix = namespaceToBuilder
 
+ruleQuery :: RDFGraph
+ruleQuery = makeRDFGraphFromN3Builder $
+            mconcat
+            [ mkPrefix namespaceRDFD
+            , " ?c a rdfd:GeneralRestriction ; "
+            , "    rdfd:onProperties ?p ; "     
+            , "    rdfd:constraint   ?r . "
+            ]
+            
 --  Placeholder false graph for now.
 falseGraph :: RDFGraph
-falseGraph = makeRDFGraphFromN3String $
-    "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    falseGraphStr
+falseGraph = makeRDFGraphFromN3Builder $
+             mkPrefix namespaceRDFD `mappend` falseGraphStr
 
-falseGraphStr :: String
+falseGraphStr :: B.Builder
 falseGraphStr = "_:a rdfd:false _:b . "
 
 -- |Make a list of class restriction rules given a list of class restriction
@@ -191,7 +173,7 @@ makeRestrictionRule1 crs gr vb =
         p  = fromMaybe NoNode $ vbMap vb (Var "p")
         r  = fromMaybe NoNode $ vbMap vb (Var "r")
         cs = filter (>0) $ map fromInteger $
-             rdfFindPredInt c res_rdfd_maxCardinality gr
+             rdfFindPredInt c resRdfdMaxCardinality gr
         ps = rdfFindList gr p
         rn = mapFindMaybe (getScopedName r) (LookupMap crs)
 
@@ -220,7 +202,7 @@ fwdApplyRestriction restriction cls props cs antgrs =
     if isJust newgrs then concat $ fromJust newgrs else [falseGraph]
     where
         -- Instances of the named class in the graph:
-        ris = nub $ rdfFindValSubj res_rdf_type cls antgr
+        ris = nub $ rdfFindValSubj resRdfType cls antgr
         --  Merge antecedent graphs into one (with bnode renaming):
         --  (Uses 'if' and 'foldl1' to avoid merging in the common case
         --  of just one graph supplied.)
@@ -263,7 +245,7 @@ bwdApplyRestriction restriction cls props cs congr =
     fromMaybe [[falseGraph]] newgrs
     where
         -- Instances of the named class in the graph:
-        ris = rdfFindValSubj res_rdf_type cls congr
+        ris = rdfFindValSubj resRdfType cls congr
         --  Apply class restriction to single instance of the restricted class
         newgr :: RDFLabel -> Maybe [[RDFGraph]]
         newgr ri = bwdApplyRestriction1 restriction cls ri props cs congr
@@ -311,7 +293,7 @@ bwdApplyRestriction1 restriction cls ci props cs congr =
         newArcs dts =
             [ Arc ci p v | mvs <- dts, (p,Just v) <- zip props mvs ]
         --  Make graphs for one alternative
-        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci res_rdf_type cls :)
+        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci resRdfType cls :)
 
 --  Helper function to select sub-tuples from which some of a set of
 --  values can be derived using a class restriction.

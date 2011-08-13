@@ -19,64 +19,8 @@ module Swish.Utils.MiscHelpers
       ( hash -- RDFGraph, GraphMem, GraphMatch
       , hashModulus -- GraphMatch
       
-        -- * Deprecated routines
-        --
-        -- | These routines will be removed at the next minor release of
-        -- of Swish (@0.3.3@).
-        --
-      , assert -- GraphMatch QUS: can we use Control.Exception.assert?
-      , stricmp
-      , lower -- Vocabulary
-      , quote -- RDFGraph
- 
       )
 where
-
-import Data.Char (toLower)
-
-------------------------------------------------------------
---  assert test
-------------------------------------------------------------
-
-assert :: Bool -> String -> a -> a
-assert cond msg expr = if not cond then error msg else expr
-
-------------------------------------------------------------
---  Generate lowercase form of supplied string
-------------------------------------------------------------
-
-lower :: String -> String
-lower = foldr ((:) . toLower) "" 
-
-------------------------------------------------------------
---  Case insensitive compare.
-------------------------------------------------------------
---
---  Should be used only for values using just the US ASCII
---  character set.  Use with richer character sets can yield
---  surprising results.
-
-stricmp :: String -> String -> Bool
-stricmp (c1:s1) (c2:s2) = toLower c1 == toLower c2 && stricmp s1 s2
-stricmp []      []      = True
-stricmp _       _       = False
-
-------------------------------------------------------------
---  Generate quoted form of supplied string:
-------------------------------------------------------------
---
---  [[[TODO: The list of quoting options here is incomplete]]]
-
-quote :: String -> String
-quote  st = ['"'] ++ quote1 st ++ ['"']
-
-quote1 :: String -> String
-quote1 ('"': st)    = '\\':'"' : quote1 st
-quote1 ('\\':st)    = '\\':'\\': quote1 st
-quote1 ('\n':st)    = '\\':'n': quote1 st
-quote1 ('\r':st)    = '\\':'r': quote1 st
-quote1 (c:st)       = c: quote1 st
-quote1 []           = ""
 
 ------------------------------------------------------------
 --  Hash function and values

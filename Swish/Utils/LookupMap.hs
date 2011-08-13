@@ -37,13 +37,6 @@ module Swish.Utils.LookupMap
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
 
-    -- * Deprecated routines
-    --
-    -- | These routines will be removed at the next minor release of
-    -- of Swish (@0.3.3@).
-    --
-    , mapSortByKey, mapSortByVal
-
     )
     where
 
@@ -396,22 +389,6 @@ mapMerge (LookupMap s1) (LookupMap s2) =
                         then error ("mapMerge key conflict: " ++ show e1
                                     ++ " with " ++ show e2)
                         else e1 : merge et1 et2
-
--- |Creates a new map that is the same as the supplied map, except
---  that its entries are sorted by key value.
---
-mapSortByKey :: (LookupEntryClass a k v, Ord k) =>
-    LookupMap a -> LookupMap a
-mapSortByKey (LookupMap es) =
-    LookupMap $ L.sortBy (comparing entryKey) es
-
--- |Creates a new map that is the same as the supplied map, except
---  that its entries are sorted by key value.
---
-mapSortByVal :: (LookupEntryClass a k v, Ord v) =>
-    LookupMap a -> LookupMap a
-mapSortByVal (LookupMap es) =
-    LookupMap $ L.sortBy (comparing entryVal) es
 
 -- |An fmap-like function that returns a new lookup map that is a
 --  copy of the supplied map with entry keys replaced according to

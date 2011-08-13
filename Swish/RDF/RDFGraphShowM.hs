@@ -17,26 +17,18 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFGraphShowM()
-where
+module Swish.RDF.RDFGraphShowM() where
 
-import Swish.RDF.RDFGraph
-    ( RDFGraph )
+import Swish.RDF.RDFGraph (RDFGraph)
+import Swish.RDF.N3Formatter (formatGraphIndent)
+import Swish.Utils.ShowM (ShowM(..))
 
-import Swish.RDF.N3Formatter
-    ( formatGraphIndent )
-
-import Swish.Utils.ShowM
-    ( ShowM(..) )
-
-
-------------------------------------------------------------
---  ShowM instance for RDFGraph
-------------------------------------------------------------
+-- import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
 
 instance ShowM RDFGraph where
-    showms linebreak = formatGraphIndent linebreak False 
-
+    -- showms linebreak = shows . L.unpack . B.toLazyText . formatGraphIndent linebreak False 
+    showms linebreak = shows . formatGraphIndent (B.fromString linebreak) False 
 
 --------------------------------------------------------------------------------
 --

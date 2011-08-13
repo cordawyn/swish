@@ -155,11 +155,9 @@ splitArgument "-v" = Left "-v"
 splitArgument "-q" = Left "-q"
 splitArgument x    = Right x
 
--- | Represent an Swish action, with an optional argument and
--- the Swish routine to act on that argument.
+-- | Represent a Swish action.
 -- 
--- At present this type is a black box to external modules.
-newtype SwishAction = SA (Maybe String, Maybe String -> SwishStateIO ())
+newtype SwishAction = SA (SwishStateIO ())
 
 -- | Given a list of command-line arguments create the list of actions
 -- to perform or a string and status value indicating an input error.
@@ -179,7 +177,7 @@ validateCommand cmd =
       arg        = drop 1 more
       marg       = if null arg then Nothing else Just arg
       
-      wrap f = Right $ SA (marg, f)
+      wrap f = Right $ SA $ f marg
   in case nam of
     "-nt"   -> wrap $ swishFormat NT
     "-n3"   -> wrap $ swishFormat N3
@@ -198,17 +196,17 @@ swishCommands = mapM_ swishCommand
 
 -- | Execute an action.
 swishCommand :: SwishAction -> SwishStateIO ()
-swishCommand (SA (marg,act)) = act marg
+swishCommand (SA act) = act
 
 validateBase :: Maybe String -> Either (String, SwishStatus) SwishAction
-validateBase Nothing  = Right $ SA (Nothing, swishBase Nothing)
+validateBase Nothing  = Right $ SA $ swishBase Nothing Nothing
 validateBase (Just b) =
-  case parseURI b of
-    Just _ -> Right $ SA (Nothing, swishBase (Just (qnameFromURI b)))
+  case fmap qnameFromURI (parseURI b) of
+    j@(Just _) -> Right $ SA $ swishBase j Nothing
     _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
   
 ------------------------------------------------------------
---  Interactive test function (e.g. for use in Hugs)
+--  Interactive test function (e.g. for use in ghci)
 ------------------------------------------------------------
 
 -- this ignores the "flags" options, namely

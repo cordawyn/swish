@@ -1,10 +1,7 @@
 
 Some things I want to/should do (not in order)
 
-- use types better - e.g. ScopedName/Namespace has a lot of String
-  entries which could be replaced by Maybe String and URI
-
-  Should there be a type-level constaint that an RDF Arc can only have
+- Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?
 
 - the RDFLabel data type could be split up to add additional type
@@ -15,13 +12,6 @@ Some things I want to/should do (not in order)
 
   An alternative change would be to make it 'Lit RDFLiteral' with
   RDFLiteral having the Untyped/Typed/Language options.
-
-- remove parsec parser, replace by attoparsec-text
-
-  - use Text rather than String
-  - use attoparsec-text-enumerator?
-
-  This would require a minor version update
 
 - move a lot of parser/formatter tests out to ntriples files (ie the
   test data in external files).
@@ -40,16 +30,9 @@ Some things I want to/should do (not in order)
 - improve test coverage (-fhpc cabal flag)
 
 - how much of the support code - e.g. Swish.Utils.LookupMap - can now
-  be replaced with packages from hackage? Swish.Utils.DateTime is now
-  marked as deprecated since it isn't used by any other module.
+  be replaced with packages from hackage?
 
-- move to camel case for names, in particular for
-  Swish.RDF.Vocabulary; this would require a minor version update
-
-- change SwishAction from a tuple to a SwishStateIO (); requires an
-  minor version update
-
-  can we improve the processing of the commands, so that they
+- can we improve the processing of the commands, so that they
   exit on error immediately, with a single error message.
 
   An EDSL for the command language or for the base components
@@ -69,4 +52,64 @@ Some things I want to/should do (not in order)
   it may still be useful to have a typeclass for conversion between
   strings and values for the formatter/parser code (such as,
   perhaps, Swish.RDF.Datatype.DatatypeMap)
+
+Text conversion:
+
+  - converting to Text in pieces, so lots of conversion via String
+    is apparent. This needs fixing, including
+      RDFDatatypeXsdString
+    to convert to/from Text rather than String
+
+Issues in the conversion to URI for Namespace/QName/...
+
+* parse issues
+
+  @prefix : <file:///home/swish/photos/>.
+  @prefix me: <http://example.com/ns#>.
+  :me.jpg me:photoOf me:me .
+
+Is foo:me.jpg or :me.jpg valid? From my reading it is, but the '.' is
+potentially confusing.
+
+* base URI
+
+cwm rejects base URIs ending in # (need to try with a fragment as this 
+observation may be incorrect or fixed now).
+
+* Issues with the default prefix
+
+With the input file
+
+  @prefix : <file:///home/swish/photos/>.
+  @prefix my: <http://example.com/ns#>.
+  :mejpg my:photoOf my:me .
+
+old Swish will round-trip this to
+
+  @prefix : <file:///home/swish/photos/> .
+  @prefix my: <http://example.com/ns#> .
+  :mejpg my:photoOf my:me .
+
+but the current code creates
+
+  @prefix : <file:///home/swish/photos/> .
+  @prefix my: <http://example.com/ns#> .
+  <file:///home/swish/photos/mejpg> my:photoOf my:me .
+
+This happens when the default prefix is <http://foo.bar/baz/>, so
+it is unrelated to file.
+
+If we use a named prefix then things behave as expected: ie
+
+  @prefix p: <file:///home/swish/photos/>.
+  @prefix my: <http://example.com/ns#>.
+  p:mejpg my:photoOf my:me .
+
+is passed through unchnaged (except for an additional @prefix statement
+getting added).
+
+Need to add a test of this. Of course, the issue is what should the default
+namespace be on output; the one chosen from the input graph but then what
+if the input is from ntriples or there is another namespace with many more
+triples?
 

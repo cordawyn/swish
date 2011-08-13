@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains test cases for variable binding values and
 --  variable binding modifier values.
@@ -47,6 +49,8 @@ import Test.HUnit
 import Control.Monad (unless)
 import Data.List (union, intersect)
 import Data.Maybe (isJust, isNothing, fromJust)
+
+-- import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Test case helpers

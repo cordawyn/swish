@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines some commonly used vocabulary terms,
 --  using the 'Namespace' and 'ScopedName' data types.
@@ -16,8 +18,7 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Vocabulary
-    ( namespaceNull
-    , namespaceRDF
+    ( namespaceRDF
     , namespaceRDFS
     , namespaceRDFD
     , namespaceOWL
@@ -32,81 +33,70 @@ module Swish.RDF.Vocabulary
     , scopeRDF
     , scopeRDFS
     , scopeRDFD
-    , rdf_datatype, rdf_resource, rdf_about, rdf_ID
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
-    , rdfs_member
-    , rdfd_GeneralRestriction
-    , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs, log_implies
-    , xsd_type, xsd_string, xsd_boolean
-    , xsd_decimal, xsd_integer
-    , xsd_nonneg_integer, xsd_nonpos_integer, xsd_pos_integer, xsd_neg_integer
-    , xsd_float, xsd_double
-    , xsd_date, xsd_dateTime
-    , default_base
+    , rdfDatatype, rdfResource, rdfAbout, rdfID
+    , rdfType
+    , rdfFirst, rdfRest, rdfNil, rdfXMLLiteral
+    , rdfsMember
+    , rdfdGeneralRestriction
+    , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
+    , owlSameAs, logImplies
+    , xsdType, xsdString, xsdBoolean
+    , xsdDecimal, xsdInteger
+    , xsdNonNegInteger, xsdNonPosInteger, xsdPosInteger, xsdNegInteger
+    , xsdFloat, xsdDouble
+    , xsdDate, xsdDateTime
+    , defaultBase
     )
 where
 
 import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
-import Swish.Utils.MiscHelpers (lower)
+
+import Data.Monoid (mappend, mconcat)
+import Data.Maybe (fromMaybe)
+import Network.URI (parseURI)
+
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Define some common namespace values
 ------------------------------------------------------------
 
-namespaceNull :: Namespace
-namespaceNull
-    = Namespace "" ""
+toNS :: T.Text -> T.Text -> Namespace
+toNS p utxt = 
+  let ustr = T.unpack utxt
+      uri = fromMaybe (error ("Unable to convert " ++ ustr ++ " to a URI")) $
+            parseURI ustr
+  in Namespace (Just p) uri
+
+namespaceXsdType :: T.Text -> Namespace
+namespaceXsdType dtn = toNS ("xsd_" `mappend` dtn)
+                       (mconcat ["http://id.ninebynine.org/2003/XMLSchema/", dtn, "#"])
 
 namespaceRDF :: Namespace
-namespaceRDF    =
-    Namespace   "rdf"   "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-
 namespaceRDFS :: Namespace
-namespaceRDFS   =
-    Namespace   "rdfs"  "http://www.w3.org/2000/01/rdf-schema#"
-
 namespaceRDFD :: Namespace
-namespaceRDFD   =
-    Namespace   "rdfd"  "http://id.ninebynine.org/2003/rdfext/rdfd#"
-
 namespaceOWL :: Namespace
-namespaceOWL    =
-    Namespace   "owl"   "http://www.w3.org/2002/07/owl#"
-
 namespaceXSD :: Namespace
-namespaceXSD    =
-    Namespace   "xsd"   "http://www.w3.org/2001/XMLSchema#"
-
-namespaceXsdType :: String -> Namespace
-namespaceXsdType dtname =
-    Namespace   ("xsd_"++dtname)
-                ("http://id.ninebynine.org/2003/XMLSchema/"++dtname++"#")
-
 namespaceMATH :: Namespace
-namespaceMATH   =
-    Namespace   "math"  "http://www.w3.org/2000/10/swap/math#"
-
 namespaceLOG :: Namespace
-namespaceLOG    =
-    Namespace   "log"   "http://www.w3.org/2000/10/swap/log#"
-    -- Namespace   "log"   "http://www.w3.org/2000/10/swap/log.n3#"
-
 namespaceDAML :: Namespace
-namespaceDAML   =
-    Namespace   "daml"  "http://www.daml.org/2000/10/daml-ont#"
-
-namespaceDefault :: Namespace
-namespaceDefault
-    -- = Namespace "default" "#"
-    = Namespace "default" "http://id.ninebynine.org/default/"
-
 namespaceSwish :: Namespace
-namespaceSwish
-    = Namespace "swish" "http://id.ninebynine.org/2003/Swish/"
+namespaceDefault :: Namespace
+namespaceLang :: Namespace
 
-swishName :: String -> ScopedName
+namespaceRDF     = toNS "rdf"     "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+namespaceRDFS    = toNS "rdfs"    "http://www.w3.org/2000/01/rdf-schema#"
+namespaceRDFD    = toNS "rdfd"    "http://id.ninebynine.org/2003/rdfext/rdfd#"
+namespaceOWL     = toNS "owl"     "http://www.w3.org/2002/07/owl#"
+namespaceXSD     = toNS "xsd"     "http://www.w3.org/2001/XMLSchema#"
+namespaceMATH    = toNS "math"    "http://www.w3.org/2000/10/swap/math#"
+namespaceLOG     = toNS "log"     "http://www.w3.org/2000/10/swap/log#"
+namespaceDAML    = toNS "daml"    "http://www.daml.org/2000/10/daml-ont#"
+namespaceSwish   = toNS "swish"   "http://id.ninebynine.org/2003/Swish/"
+namespaceLang    = toNS "lang"    "http://id.ninebynine.org/2003/Swish/Lang/" -- To be replaced by urn:ietf:params:lang?
+namespaceDefault = toNS "default" "http://id.ninebynine.org/default/"
+
+swishName :: T.Text -> ScopedName
 swishName = ScopedName namespaceSwish
 
 -----------------------------------------------------------
@@ -119,15 +109,10 @@ swishName = ScopedName namespaceSwish
 --  Fortunately, they do not currently need to appear in Notation3 as
 --  distinct labels (but future developments may change that).
 
-namespaceLang :: Namespace
-namespaceLang
-    = Namespace "lang" "http://id.ninebynine.org/2003/Swish/Lang/"
-    -- To be replaced by urn:ietf:params:lang?
+langName :: T.Text -> ScopedName
+langName = ScopedName namespaceLang . T.toLower
 
-langName :: String -> ScopedName
-langName = ScopedName namespaceLang . lower
-
-langTag :: ScopedName -> String
+langTag :: ScopedName -> T.Text
 langTag = snLocal
 
 isLang :: ScopedName -> Bool
@@ -137,109 +122,99 @@ isLang sname = snScope sname == namespaceLang
 --  Define namespaces for RDF rules, axioms, etc
 ------------------------------------------------------------
 
-scopeRDF :: Namespace
-scopeRDF        =
-    Namespace   "rs_rdf"   "http://id.ninebynine.org/2003/Ruleset/rdf#"
+scopeRDF, scopeRDFS, scopeRDFD :: Namespace
 
-scopeRDFS :: Namespace
-scopeRDFS       =
-    Namespace   "rs_rdfs"  "http://id.ninebynine.org/2003/Ruleset/rdfs#"
-
-scopeRDFD :: Namespace
-scopeRDFD       =
-    Namespace   "rs_rdfd"  "http://id.ninebynine.org/2003/Ruleset/rdfd#"
+scopeRDF  = toNS "rs_rdf"   "http://id.ninebynine.org/2003/Ruleset/rdf#"
+scopeRDFS = toNS "rs_rdfs"  "http://id.ninebynine.org/2003/Ruleset/rdfs#"
+scopeRDFD = toNS "rs_rdfd"  "http://id.ninebynine.org/2003/Ruleset/rdfd#"
 
 ------------------------------------------------------------
 --  Define some common vocabulary terms
 ------------------------------------------------------------
 
-rdf_datatype            :: ScopedName
-rdf_datatype            = ScopedName namespaceRDF  "datatype"
+toRDF, toRDFS, toRDFD :: T.Text -> ScopedName
+toRDF  = ScopedName namespaceRDF
+toRDFS = ScopedName namespaceRDFS
+toRDFD = ScopedName namespaceRDFD
 
-rdf_resource            :: ScopedName
-rdf_resource            = ScopedName namespaceRDF  "resource"
+rdfDatatype   :: ScopedName
+rdfResource   :: ScopedName
+rdfAbout      :: ScopedName
+rdfID         :: ScopedName
+rdfType       :: ScopedName
+rdfFirst      :: ScopedName
+rdfRest       :: ScopedName
+rdfNil        :: ScopedName
+rdfXMLLiteral :: ScopedName
 
-rdf_about               :: ScopedName
-rdf_about               = ScopedName namespaceRDF  "about"
+rdfDatatype   = toRDF "datatype"
+rdfResource   = toRDF "resource"
+rdfAbout      = toRDF "about"
+rdfID         = toRDF "ID"
+rdfType       = toRDF "type"
+rdfFirst      = toRDF "first"
+rdfRest       = toRDF "rest"
+rdfNil        = toRDF "nil"
+rdfXMLLiteral = toRDF "XMLLiteral"
 
-rdf_ID                  :: ScopedName
-rdf_ID                  = ScopedName namespaceRDF  "ID"
+rdfsMember    :: ScopedName
+rdfsMember    = toRDFS "member"
 
-rdf_type                :: ScopedName
-rdf_type                = ScopedName namespaceRDF  "type"
+rdfdGeneralRestriction :: ScopedName
+rdfdOnProperties       :: ScopedName
+rdfdConstraint         :: ScopedName
+rdfdMaxCardinality     :: ScopedName
 
-rdf_first               :: ScopedName
-rdf_first               = ScopedName namespaceRDF  "first"
+rdfdGeneralRestriction = toRDFD "GeneralRestriction"
+rdfdOnProperties       = toRDFD "onProperties"
+rdfdConstraint         = toRDFD "constraint"
+rdfdMaxCardinality     = toRDFD "maxCardinality"
 
-rdf_rest                :: ScopedName
-rdf_rest                = ScopedName namespaceRDF  "rest"
+xsdType             :: T.Text -> ScopedName
+xsdType             = ScopedName namespaceXSD
 
-rdf_nil                 :: ScopedName
-rdf_nil                 = ScopedName namespaceRDF  "nil"
+xsdString           :: ScopedName
+xsdString           = xsdType "string"
 
-rdf_XMLLiteral          :: ScopedName
-rdf_XMLLiteral          = ScopedName namespaceRDF  "XMLLiteral"
+xsdBoolean          :: ScopedName
+xsdBoolean          = xsdType "boolean"
 
-rdfs_member             :: ScopedName
-rdfs_member             = ScopedName namespaceRDFS "member"
+xsdDecimal          :: ScopedName
+xsdDecimal          = xsdType "decimal"
 
-rdfd_GeneralRestriction :: ScopedName
-rdfd_GeneralRestriction = ScopedName namespaceRDFD "GeneralRestriction"
+xsdInteger          :: ScopedName
+xsdInteger          = xsdType "integer"
 
-rdfd_onProperties       :: ScopedName
-rdfd_onProperties       = ScopedName namespaceRDFD "onProperties"
+xsdNonNegInteger   :: ScopedName
+xsdNonNegInteger   = xsdType "nonNegativeInteger"
 
-rdfd_constraint         :: ScopedName
-rdfd_constraint         = ScopedName namespaceRDFD "constraint"
+xsdNonPosInteger   :: ScopedName
+xsdNonPosInteger   = xsdType "nonPositiveInteger"
 
-rdfd_maxCardinality     :: ScopedName
-rdfd_maxCardinality     = ScopedName namespaceRDFD "maxCardinality"
+xsdPosInteger      :: ScopedName
+xsdPosInteger      = xsdType "positiveInteger"
 
-xsd_type                :: String -> ScopedName
-xsd_type                = ScopedName namespaceXSD
+xsdNegInteger      :: ScopedName
+xsdNegInteger      = xsdType "negativeInteger"
 
-xsd_string              :: ScopedName
-xsd_string              = xsd_type "string"
+xsdFloat            :: ScopedName
+xsdFloat            = xsdType "float"
 
-xsd_boolean             :: ScopedName
-xsd_boolean             = xsd_type "boolean"
+xsdDouble           :: ScopedName
+xsdDouble           = xsdType "double"
 
-xsd_decimal             :: ScopedName
-xsd_decimal             = xsd_type "decimal"
+xsdDate, xsdDateTime :: ScopedName
+xsdDate = xsdType "date"
+xsdDateTime = xsdType "dateTime"
 
-xsd_integer             :: ScopedName
-xsd_integer             = xsd_type "integer"
+owlSameAs   :: ScopedName
+owlSameAs   = ScopedName namespaceOWL  "sameAs"
 
-xsd_nonneg_integer      :: ScopedName
-xsd_nonneg_integer      = xsd_type "nonNegativeInteger"
+logImplies  :: ScopedName
+logImplies  = ScopedName namespaceLOG "implies"
 
-xsd_nonpos_integer      :: ScopedName
-xsd_nonpos_integer      = xsd_type "nonPositiveInteger"
-
-xsd_pos_integer         :: ScopedName
-xsd_pos_integer         = xsd_type "positiveInteger"
-
-xsd_neg_integer         :: ScopedName
-xsd_neg_integer         = xsd_type "negativeInteger"
-
-xsd_float               :: ScopedName
-xsd_float               = xsd_type "float"
-
-xsd_double              :: ScopedName
-xsd_double              = xsd_type "double"
-
-xsd_date, xsd_dateTime :: ScopedName
-xsd_date = xsd_type "date"
-xsd_dateTime = xsd_type "dateTime"
-
-owl_sameAs              :: ScopedName
-owl_sameAs              = ScopedName namespaceOWL  "sameAs"
-
-log_implies             :: ScopedName
-log_implies             = ScopedName namespaceLOG "implies"
-
-default_base            :: ScopedName
-default_base            = ScopedName namespaceDefault "base"
+defaultBase :: ScopedName
+defaultBase = ScopedName namespaceDefault "base"
 
 --------------------------------------------------------------------------------
 --

@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances
+--  Portability :  FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings
 --
 --  This module defines a memory-based RDF graph instance.
 --
@@ -26,7 +28,9 @@ module Swish.RDF.RDFGraph
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp, isUri, isBlank, isQueryVar
     , getLiteralText, getScopedName, makeBlank
-                                     
+    , quote
+    , quoteT
+      
       -- * RDF Graphs
     , RDFTriple
     , toRDFTriple, fromRDFTriple
@@ -47,17 +51,17 @@ module Swish.RDF.RDFGraph
     , arc, arcSubj, arcPred, arcObj, Selector
       
       -- * Export selected RDFLabel values
-    , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
-    , res_rdfs_member
-    , res_rdfd_GeneralRestriction
-    , res_rdfd_onProperties, res_rdfd_constraint, res_rdfd_maxCardinality
-    , res_owl_sameAs, res_log_implies
+    , resRdfType, resRdfFirst, resRdfRest, resRdfNil
+    , resRdfsMember
+    , resRdfdGeneralRestriction
+    , resRdfdOnProperties, resRdfdConstraint, resRdfdMaxCardinality
+    , resOwlSameAs, resLogImplies
       
       -- * Exported for testing
     , grMatchMap, grEq
     , mapnode, maplist
     )
-where
+    where
 
 import Swish.Utils.Namespace
     ( Namespace(..)
@@ -65,22 +69,21 @@ import Swish.Utils.Namespace
     , ScopedName(..)
     , getQName
     , makeQNameScopedName
-    , makeUriScopedName
+    , makeURIScopedName
     , nullScopedName
     )
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , langTag, isLang
-    , rdf_type
-    , rdf_first, rdf_rest, rdf_nil, rdf_XMLLiteral
-    , rdfs_member
-    , rdfd_GeneralRestriction
-    , rdfd_onProperties, rdfd_constraint, rdfd_maxCardinality
-    , owl_sameAs, log_implies
-    -- , xsd_type
-    , xsd_boolean, xsd_decimal, xsd_float, xsd_double, xsd_integer
-    , xsd_dateTime, xsd_date                                                
+    , rdfType
+    , rdfFirst, rdfRest, rdfNil, rdfXMLLiteral
+    , rdfsMember
+    , rdfdGeneralRestriction
+    , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
+    , owlSameAs, logImplies
+    , xsdBoolean, xsdDecimal, xsdFloat, xsdDouble, xsdInteger
+    , xsdDateTime, xsdDate                                                
     )
 
 import Swish.RDF.GraphClass
@@ -91,7 +94,7 @@ import Swish.RDF.GraphClass
 import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
 
 import Swish.Utils.QName (QName)
-import Swish.Utils.MiscHelpers (hash, quote)
+import Swish.Utils.MiscHelpers (hash)
 import Swish.Utils.ListHelpers (addSetElem)
 
 import Swish.Utils.LookupMap
@@ -100,16 +103,22 @@ import Swish.Utils.LookupMap
     , mapFind, mapFindMaybe, mapReplaceOrAdd, mapAddIfNew
     , mapVals, mapKeys )
 
-import qualified Data.Foldable as F
-import qualified Data.Traversable as T
+import qualified Data.Foldable as Foldable
+import qualified Data.Traversable as Traversable
+
+import qualified Data.Text as T
+import qualified Data.Text.Read as T
+-- import qualified Data.Text.Lazy as L
+-- import Data.Text.Format (format)
+-- import Data.Text.Buildable
+-- import Data.Text.Format.Types (Only(..))
 
 import Control.Applicative (Applicative, liftA, (<$>), (<*>))
--- import Control.Monad (liftM, ap)
 
-import Network.URI (URI, parseURI, uriToString)
+import Network.URI (URI)
 
 import Data.Monoid (Monoid(..))
-import Data.Char (isDigit, toLower)
+import Data.Char (ord, isDigit)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
 import Data.String (IsString(..))
@@ -138,7 +147,7 @@ import Text.Printf
 --
 data RDFLabel =
       Res ScopedName                    -- ^ resource
-    | Lit String (Maybe ScopedName)     -- ^ literal [type/language]
+    | Lit T.Text (Maybe ScopedName)     -- ^ literal [type/language]
     | Blank String                      -- ^ blank node
     | Var String                        -- ^ variable (not used in ordinary graphs)
     | NoNode                            -- ^ no node  (not used in ordinary graphs)
@@ -160,17 +169,17 @@ instance Eq RDFLabel where
     Lit s1 Nothing   == Lit s2 Nothing   = s1 == s2
     Lit s1 (Just t1) == Lit s2 (Just t2) = s1 == s2 && (t1 == t2 ||
                                                         (isLang t1 && isLang t2 &&
-                                                         (map toLower . langTag) t1 == (map toLower . langTag) t2))
+                                                         (T.toLower . langTag) t1 == (T.toLower . langTag) t2))
     
     _  == _ = False
 
 instance Show RDFLabel where
     show (Res sn)           = show sn
-    show (Lit st Nothing)   = quote st
+    show (Lit st Nothing)   = quote1Str st
     show (Lit st (Just nam))
-        | isLang nam = quote st ++ "@"  ++ langTag nam
-        | nam `elem` [xsd_boolean, xsd_double, xsd_decimal, xsd_integer] = st
-        | otherwise  = quote st ++ "^^" ++ show nam
+        | isLang nam = quote1Str st ++ "@"  ++ T.unpack (langTag nam)
+        | nam `elem` [xsdBoolean, xsdDouble, xsdDecimal, xsdInteger] = T.unpack st
+        | otherwise  = quote1Str st ++ "^^" ++ show nam
     show (Blank ln)         = "_:"++ln
     show (Var ln)           = '?' : ln
     show NoNode             = "<NoNode>"
@@ -199,7 +208,7 @@ instance Label RDFLabel where
     labelIsVar _            = False
     getLocal   (Blank loc)  = loc
     getLocal   (Var   loc)  = '?':loc
-    getLocal   (Res   sn)   = "Res_"++snLocal sn
+    getLocal   (Res   sn)   = "Res_" ++ T.unpack (snLocal sn)
     getLocal   (NoNode)     = "None"
     getLocal   _            = "Lit_"
     makeLabel  ('?':loc)    = Var loc
@@ -207,7 +216,7 @@ instance Label RDFLabel where
     labelHash seed lb       = hash seed (showCanon lb)
 
 instance IsString RDFLabel where
-  fromString = flip Lit Nothing
+  fromString = flip Lit Nothing . T.pack
 
 {-|
 A type that can be converted to a RDF Label.
@@ -269,104 +278,140 @@ instance ToRDFLabel RDFLabel where
 instance FromRDFLabel RDFLabel where
   fromRDFLabel = Just . id
   
--- TODO: need to check that the Haskell read/show instances match
---       the RDF syntactical constraints
-
-maybeRead :: (Read a) => String -> Maybe a
-maybeRead inStr = 
-  case reads inStr of
-    [(val, "")] -> Just val
+-- TODO: remove this hack when finished conversion to Text
+maybeReadStr :: (Read a) => T.Text -> Maybe a  
+maybeReadStr txt = case reads (T.unpack txt) of
+  [(val, "")] -> Just val
+  _ -> Nothing
+  
+maybeRead :: T.Reader a -> T.Text -> Maybe a
+maybeRead rdr inTxt = 
+  case rdr inTxt of
+    Right (val, "") -> Just val
     _ -> Nothing
     
-fLabel :: (String -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
+fLabel :: (T.Text -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
 fLabel conv dtype (Lit xs (Just dt)) | dt == dtype = conv xs
                                      | otherwise   = Nothing
 fLabel _    _     _ = Nothing
   
-tLabel :: (Show a) => ScopedName -> (String -> String) -> a -> RDFLabel                      
+tLabel :: (Show a) => ScopedName -> (String -> T.Text) -> a -> RDFLabel                      
 tLabel dtype conv = flip Lit (Just dtype) . conv . show                      
 
 -- | The character is converted to an untyped literal of length one.
 instance ToRDFLabel Char where
-  toRDFLabel = flip Lit Nothing . (:[])
+  toRDFLabel = flip Lit Nothing . T.singleton
 
 -- | The label must be an untyped literal containing a single character.
 instance FromRDFLabel Char where
-  fromRDFLabel (Lit [c] Nothing) = Just c
+  fromRDFLabel (Lit cs Nothing) | T.compareLength cs 1 == EQ = Just (T.head cs)
+                                | otherwise = Nothing
   fromRDFLabel _ = Nothing
 
 -- | Strings are converted to untyped literals.
 instance ToRDFLabel String where
-  toRDFLabel = flip Lit Nothing
+  toRDFLabel = flip Lit Nothing . T.pack
 
 -- | Only untyped literals are converted to strings.
 instance FromRDFLabel String where
-  fromRDFLabel (Lit xs Nothing) = Just xs
+  fromRDFLabel (Lit xs Nothing) = Just (T.unpack xs)
   fromRDFLabel _ = Nothing
 
-strToBool :: String -> Maybe Bool
-strToBool s | s `elem` ["1", "true"]  = Just True
-            | s `elem` ["0", "false"] = Just False
-            | otherwise               = Nothing
+textToBool :: T.Text -> Maybe Bool
+textToBool s | s `elem` ["1", "true"]  = Just True
+             | s `elem` ["0", "false"] = Just False
+             | otherwise               = Nothing
 
 -- | Converts to a literal with a @xsd:boolean@ datatype.
 instance ToRDFLabel Bool where
-  toRDFLabel b = Lit (if b then "true" else "false") (Just xsd_boolean)
+  toRDFLabel b = Lit (if b then "true" else "false") (Just xsdBoolean)
                                                  
 -- | Converts from a literal with a @xsd:boolean@ datatype. The
 -- literal can be any of the supported XSD forms - e.g. \"0\" or
 -- \"true\".
 instance FromRDFLabel Bool where
-  fromRDFLabel = fLabel strToBool xsd_boolean
+  fromRDFLabel = fLabel textToBool xsdBoolean
 
+-- fromRealFloat :: (RealFloat a, Buildable a) => ScopedName -> a -> RDFLabel
 fromRealFloat :: (RealFloat a, PrintfArg a) => ScopedName -> a -> RDFLabel
 fromRealFloat dtype f | isNaN f      = toL "NaN"
                       | isInfinite f = toL $ if f > 0.0 then "INF" else "-INF"
-                      | otherwise    = toL $ printf "%E" f
+                      -- 
+                      -- Would like to use Data.Text.Format.format but there are                                                                        
+                      -- issues with this module; 0.3.0.2 doesn't build under
+                      -- 6.12.3 due to a missing RelaxedPolyRec language extension
+                      -- and it relies on double-conversion which has issues
+                      -- when used in ghci due to a dlopen issue with libstdc++.
+                      -- 
+                      -- -- | otherwise    = toL $ L.toStrict $ format "{}" (Only f)  
+                      -- 
+                      | otherwise    = toL $ T.pack $ printf "%E" f
+                        
                         where
                           toL = flip Lit (Just dtype)
 
-strToRealFloat :: (RealFloat a, Read a) => (a -> Maybe a) -> String -> Maybe a
-strToRealFloat conv = rconv
+-- textToRealFloat :: (RealFloat a) => (a -> Maybe a) -> T.Text -> Maybe a
+textToRealFloat :: (RealFloat a, Read a) => (a -> Maybe a) -> T.Text -> Maybe a
+textToRealFloat conv = rconv
     where
       rconv "NaN"  = Just (0.0/0.0) -- how best to create a NaN?
       rconv "INF"  = Just (1.0/0.0) -- ditto for Infinity
       rconv "-INF" = Just ((-1.0)/0.0)
-      rconv istr 
-        -- xsd semantics allows "2." but Haskell syntax does not so add on a "0" in this case
-        | null istr        = Nothing
-        | last istr == '.' = maybeRead (istr ++ "0") >>= conv
-        | otherwise        = maybeRead istr >>= conv
+      rconv ival 
+        -- xsd semantics allows "2." but Haskell syntax does not.
+        | T.null ival = Nothing
+          
+        | otherwise = case maybeReadStr ival of
+          Just val -> conv val
+          _        -> if T.last ival == '.' -- could drop the check
+                      then maybeReadStr (T.snoc ival '0') >>= conv
+                      else Nothing
+                               
+        {-
+
+        Unfortunately T.rational does not handle "3.01e4" the same
+        as read; see https://bitbucket.org/bos/text/issue/7/
+
+        | otherwise = case maybeRead T.rational ival of
+          Just val -> conv val
+          _        -> if T.last ival == '.' -- could drop the check
+                      then maybeRead T.rational (T.snoc ival '0') >>= conv
+                      else Nothing
+        -}
+                        
+        -- not sure the above is any improvement on the following
+        -- -- | T.last ival == '.' = maybeRead T.rational (T.snoc ival '0') >>= conv
+        -- -- | otherwise          = maybeRead T.rational ival >>= conv
       
-strToFloat :: String -> Maybe Float
-strToFloat = 
+textToFloat :: T.Text -> Maybe Float
+textToFloat = 
   let -- assume that an invalid value (NaN/Inf) from maybeRead means
       -- that the value is out of bounds for Float so we do not
       -- convert
       conv f | isNaN f || isInfinite f = Nothing
              | otherwise               = Just f
-  in strToRealFloat conv
+  in textToRealFloat conv
 
-strToDouble :: String -> Maybe Double      
-strToDouble = strToRealFloat Just
+textToDouble :: T.Text -> Maybe Double      
+textToDouble = textToRealFloat Just
 
 -- | Converts to a literal with a @xsd:float@ datatype.
 instance ToRDFLabel Float where
-  toRDFLabel = fromRealFloat xsd_float
+  toRDFLabel = fromRealFloat xsdFloat
   
 -- | Converts from a literal with a @xsd:float@ datatype.
 -- The conversion will fail if the value is outside the valid range of
 -- a Haskell `Float`.
 instance FromRDFLabel Float where
-  fromRDFLabel = fLabel strToFloat xsd_float
+  fromRDFLabel = fLabel textToFloat xsdFloat
                  
 -- | Converts to a literal with a @xsd:double@ datatype.
 instance ToRDFLabel Double where
-  toRDFLabel = fromRealFloat xsd_double
+  toRDFLabel = fromRealFloat xsdDouble
   
 -- | Converts from a literal with a @xsd:double@ datatype.
 instance FromRDFLabel Double where
-  fromRDFLabel = fLabel strToDouble xsd_double
+  fromRDFLabel = fLabel textToDouble xsdDouble
   
 -- TODO: are there subtypes of xsd::integer that are  
 --       useful here?  
@@ -376,40 +421,36 @@ instance FromRDFLabel Double where
 
 -- | Converts to a literal with a @xsd:integer@ datatype.
 instance ToRDFLabel Int where
-  toRDFLabel = tLabel xsd_integer id
+  toRDFLabel = tLabel xsdInteger T.pack
 
 {-
-it appears that reads doesn't fail when the input is outside
-the Int range; instead it overflows. So instead of
-
-  fromRDFLabel = fLabel maybeRead xsd_integer
-
-we convert via Integer.
+Since decimal will just over/under-flow when converting to Int
+we go via Integer and explicitlu check for overflow.
 -}
 
-strToInt :: String -> Maybe Int
-strToInt s = 
+textToInt :: T.Text -> Maybe Int
+textToInt s = 
   let conv :: Integer -> Maybe Int
       conv i = 
         let lb = fromIntegral (minBound :: Int)
             ub = fromIntegral (maxBound :: Int)
         in if (i >= lb) && (i <= ub) then Just (fromIntegral i) else Nothing
   
-  in maybeRead s >>= conv
+  in maybeRead (T.signed T.decimal) s >>= conv
 
 -- | Converts from a literal with a @xsd:integer@ datatype.
 -- The conversion will fail if the value is outside the valid range of
 -- a Haskell `Int`.
 instance FromRDFLabel Int where
-  fromRDFLabel = fLabel strToInt xsd_integer
+  fromRDFLabel = fLabel textToInt xsdInteger
 
 -- | Converts to a literal with a @xsd:integer@ datatype.
 instance ToRDFLabel Integer where
-  toRDFLabel = tLabel xsd_integer id
+  toRDFLabel = tLabel xsdInteger T.pack
 
 -- | Converts from a literal with a @xsd:integer@ datatype.
 instance FromRDFLabel Integer where
-  fromRDFLabel = fLabel maybeRead xsd_integer
+  fromRDFLabel = fLabel (maybeRead (T.signed T.decimal)) xsdInteger
 
 {-
 Support an ISO-8601 style format supporting
@@ -448,27 +489,27 @@ toTimeFormat fmt inVal =
       o@(Just _) -> o
       _ -> pt fmt 
   
-toUTCFormat :: String -> Maybe UTCTime
-toUTCFormat = toTimeFormat "%FT%T%Q"
+toUTCFormat :: T.Text -> Maybe UTCTime
+toUTCFormat = toTimeFormat "%FT%T%Q" . T.unpack
     
-toDayFormat :: String -> Maybe Day
-toDayFormat = toTimeFormat "%F"
+toDayFormat :: T.Text -> Maybe Day
+toDayFormat = toTimeFormat "%F" . T.unpack
     
 -- | Converts to a literal with a @xsd:datetime@ datatype.
 instance ToRDFLabel UTCTime where
-  toRDFLabel = flip Lit (Just xsd_dateTime) . fromUTCFormat
+  toRDFLabel = flip Lit (Just xsdDateTime) . T.pack . fromUTCFormat
   
 -- | Converts from a literal with a @xsd:datetime@ datatype.
 instance FromRDFLabel UTCTime where
-  fromRDFLabel = fLabel toUTCFormat xsd_dateTime
+  fromRDFLabel = fLabel toUTCFormat xsdDateTime
   
 -- | Converts to a literal with a @xsd:date@ datatype.
 instance ToRDFLabel Day where
-  toRDFLabel = flip Lit (Just xsd_date) . fromDayFormat
+  toRDFLabel = flip Lit (Just xsdDate) . T.pack . fromDayFormat
 
 -- | Converts from a literal with a @xsd:date@ datatype.
 instance FromRDFLabel Day where
-  fromRDFLabel = fLabel toDayFormat xsd_date
+  fromRDFLabel = fLabel toDayFormat xsdDate
   
 -- | Converts to a Resource.
 instance ToRDFLabel ScopedName where  
@@ -490,11 +531,11 @@ instance FromRDFLabel QName where
   
 -- | Converts to a Resource.
 instance ToRDFLabel URI where  
-  toRDFLabel u = Res $ makeUriScopedName $ uriToString id u ""
+  toRDFLabel = Res . makeURIScopedName
   
 -- | Converts from a Resource.
 instance FromRDFLabel URI where
-  fromRDFLabel (Res sn) = parseURI $ getScopedNameURI sn
+  fromRDFLabel (Res sn) = Just $ getScopedNameURI sn
   fromRDFLabel _        = Nothing
 
 -- | Get the canonical string for RDF label.
@@ -503,34 +544,79 @@ instance FromRDFLabel URI where
 --  the same hash value.
 --    
 showCanon :: RDFLabel -> String
-showCanon (Res sn)           = "<"++getScopedNameURI sn++">"
+showCanon (Res sn)           = "<"++show (getScopedNameURI sn)++">"
 showCanon (Lit st (Just nam))
-        | isLang nam = quote st ++ "@"  ++ langTag nam
-        | otherwise  = quote st ++ "^^" ++ getScopedNameURI nam
+        | isLang nam = quote1Str st ++ "@"  ++ T.unpack (langTag nam)
+        | otherwise  = quote1Str st ++ "^^" ++ show (getScopedNameURI nam)
 showCanon s                  = show s
 
+-- | See `quote`.
+quoteT :: Bool -> T.Text -> T.Text
+quoteT f = T.pack . quote f . T.unpack 
+
+{-| N3-style quoting rules for a string.
+
+TODO: when flag is `False` need to worry about multiple quotes (> 2)
+in a row.
+-}
+
+quote :: 
+  Bool  -- ^ @True@ if the string is to be displayed using one rather than three quotes.
+  -> String -- ^ String to quote.
+  -> String
+quote _     []           = ""
+quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
+                         | otherwise  = [c, '\\', '"']
+
+quote True  ('"': st)    = '\\':'"': quote True  st
+quote True  ('\n':st)    = '\\':'n': quote True  st
+
+quote True  ('\t':st)    = '\\':'t': quote True  st
+quote False ('"': st)    =      '"': quote False st
+quote False ('\n':st)    =     '\n': quote False st
+quote False ('\t':st)    =     '\t': quote False st
+quote f ('\r':st)    = '\\':'r': quote f st
+quote f ('\\':st)    = '\\':'\\': quote f st -- not sure about this
+quote f (c:st) = 
+  let nc = ord c
+      rst = quote f st
+      
+      -- lazy way to convert to a string
+      hstr = printf "%08X" nc
+      ustr = hstr ++ rst
+
+  in if nc > 0xffff 
+     then '\\':'U': ustr
+     else if nc > 0x7e || nc < 0x20
+          then '\\':'u': drop 4 ustr
+          else c : rst
+
+-- surround a string with quotes ("...")
+
+quote1Str :: T.Text -> String
+quote1Str t = '"' : quote False (T.unpack t) ++ ['"']
 
 ---------------------------------------------------------
 --  Selected RDFLabel values
 ---------------------------------------------------------
 
-res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil,
-  res_rdfs_member, res_rdfd_GeneralRestriction,
-  res_rdfd_onProperties, res_rdfd_constraint,
-  res_rdfd_maxCardinality, res_owl_sameAs, res_log_implies
+resRdfType, resRdfFirst, resRdfRest, resRdfNil,
+  resRdfsMember, resRdfdGeneralRestriction,
+  resRdfdOnProperties, resRdfdConstraint,
+  resRdfdMaxCardinality, resOwlSameAs, resLogImplies
   :: RDFLabel
 
-res_rdf_type                = Res rdf_type 
-res_rdf_first               = Res rdf_first 
-res_rdf_rest                = Res rdf_rest
-res_rdf_nil                 = Res rdf_nil
-res_rdfs_member             = Res rdfs_member
-res_rdfd_GeneralRestriction = Res rdfd_GeneralRestriction
-res_rdfd_onProperties       = Res rdfd_onProperties
-res_rdfd_constraint         = Res rdfd_constraint
-res_rdfd_maxCardinality     = Res rdfd_maxCardinality
-res_owl_sameAs              = Res owl_sameAs
-res_log_implies             = Res log_implies
+resRdfType               = Res rdfType 
+resRdfFirst               = Res rdfFirst 
+resRdfRest                = Res rdfRest
+resRdfNil                 = Res rdfNil
+resRdfsMember             = Res rdfsMember
+resRdfdGeneralRestriction = Res rdfdGeneralRestriction
+resRdfdOnProperties       = Res rdfdOnProperties
+resRdfdConstraint         = Res rdfdConstraint
+resRdfdMaxCardinality     = Res rdfdMaxCardinality
+resOwlSameAs              = Res owlSameAs
+resLogImplies             = Res logImplies
 
 ---------------------------------------------------------
 --  Additional functions on RDFLabel values
@@ -559,7 +645,7 @@ isTypedLiteral  _                = False
 
 -- |Test if supplied labal is an XML literal node
 isXMLLiteral :: RDFLabel -> Bool
-isXMLLiteral = isDatatyped rdf_XMLLiteral
+isXMLLiteral = isDatatyped rdfXMLLiteral
 
 -- |Test if supplied label is an typed literal node of a given datatype
 isDatatyped :: ScopedName -> RDFLabel -> Bool
@@ -573,8 +659,8 @@ isDatatyped _  _                = False
 --  remaining characters of local name are all digits
 isMemberProp :: RDFLabel -> Bool
 isMemberProp (Res sn) = snScope sn == namespaceRDF &&
-                        head loc   == '_' &&
-                        all isDigit (tail loc)
+                        T.head loc   == '_' &&
+                        T.all isDigit (T.tail loc)
                         where
                             loc = snLocal sn
 isMemberProp _        = False
@@ -590,7 +676,7 @@ isQueryVar (Var _) = True
 isQueryVar  _      = False
 
 -- |Extract text value from a literal node
-getLiteralText :: RDFLabel -> String
+getLiteralText :: RDFLabel -> T.Text
 getLiteralText (Lit s _) = s
 getLiteralText  _        = ""
 
@@ -617,7 +703,7 @@ type RDFTriple = Arc RDFLabel
 
 -- | Convert 3 RDF labels to a RDF triple.
 --
---   See also `Swish.RDF.GraphClass.arcFromTriple`.
+--   See also @Swish.RDF.GraphClass.arcFromTriple@.
 toRDFTriple :: 
   (ToRDFLabel s, ToRDFLabel p, ToRDFLabel o) 
   => s -- ^ Subject 
@@ -629,7 +715,7 @@ toRDFTriple s p o =
 
 -- | Extract the contents of a RDF triple.
 --
---   See also `Swish.RDF.GraphClass.arcToTriple`.
+--   See also @Swish.RDF.GraphClass.arcToTriple@.
 fromRDFTriple :: 
   (FromRDFLabel s, FromRDFLabel p, FromRDFLabel o) 
   => RDFTriple 
@@ -645,7 +731,7 @@ type NamespaceMap = LookupMap Namespace
 
 data RevNamespace = RevNamespace Namespace
 
-instance LookupEntryClass RevNamespace String String where
+instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
     keyVal   (RevNamespace (Namespace pre uri)) = (uri,pre)
     newEntry (uri,pre) = RevNamespace (Namespace pre uri)
 
@@ -700,14 +786,14 @@ formulaEntryMap f (Formula k gr) = Formula (f k) (fmap f gr)
 
 formulaeMapA :: Applicative f => (lb -> f l2) -> 
                 FormulaMap lb -> f (FormulaMap l2)
-formulaeMapA f = T.traverse (formulaEntryMapA f)
+formulaeMapA f = Traversable.traverse (formulaEntryMapA f)
 
 formulaEntryMapA ::
   (Applicative f) => 
   (lb -> f l2)
   -> Formula lb
   -> f (Formula l2)
-formulaEntryMapA f (Formula k gr) = Formula `liftA` f k <*> T.traverse f gr
+formulaEntryMapA f (Formula k gr) = Formula `liftA` f k <*> Traversable.traverse f gr
 
 {-
 formulaeMapM ::
@@ -791,12 +877,12 @@ instance Functor NSGraph where
   fmap f (NSGraph ns fml stmts) =
     NSGraph ns (formulaeMap f fml) ((map $ fmap f) stmts)
 
-instance F.Foldable NSGraph where
-  foldMap = T.foldMapDefault
+instance Foldable.Foldable NSGraph where
+  foldMap = Traversable.foldMapDefault
 
-instance T.Traversable NSGraph where
+instance Traversable.Traversable NSGraph where
   traverse f (NSGraph ns fml stmts) = 
-    NSGraph ns <$> formulaeMapA f fml <*> (T.traverse $ T.traverse f) stmts
+    NSGraph ns <$> formulaeMapA f fml <*> (Traversable.traverse $ Traversable.traverse f) stmts
   
 instance (Label lb) => Eq (NSGraph lb) where
     (==) = grEq

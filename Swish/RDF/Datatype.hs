@@ -1,4 +1,5 @@
-{-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses #-}
+{-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  ExistentialQuantification, MultiParamTypeClasses
+--  Portability :  ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings
 --
 --  This module defines the structures used by Swish to represent and
 --  manipulate datatypes.  It is designed as a basis for handling datatyped
@@ -43,11 +44,11 @@ module Swish.RDF.Datatype
     , ApplyModifier
     , nullDatatypeMod
     -- , applyDatatypeMod
-    , makeVmod_1_1_inv, makeVmod_1_1
-    , makeVmod_2_1_inv, makeVmod_2_1
-    , makeVmod_2_0
-    , makeVmod_2_2
-    , makeVmod_N_1
+    , makeVmod11inv, makeVmod11
+    , makeVmod21inv, makeVmod21
+    , makeVmod20
+    , makeVmod22
+    , makeVmodN1
     , DatatypeSub(..)
     )
 where
@@ -94,6 +95,8 @@ import Data.Maybe( isJust, catMaybes )
 
 import Control.Monad( join, liftM )
 
+import qualified Data.Text as T
+
 ------------------------------------------------------------
 --  Datatype framework
 ------------------------------------------------------------
@@ -135,7 +138,7 @@ getTypeRule :: ScopedName -> Datatype ex lb vn -> Maybe (Rule ex)
 getTypeRule nam dt = getRulesetRule nam (typeRules dt)
 
 -- |Get the canonical form of a datatype value.
-typeMkCanonicalForm :: Datatype ex lb vn -> String -> Maybe String
+typeMkCanonicalForm :: Datatype ex lb vn -> T.Text -> Maybe T.Text
 typeMkCanonicalForm (Datatype dtv) = tvalMkCanonicalForm dtv
 
 ------------------------------------------------------------
@@ -265,7 +268,7 @@ getDTMod nam dtv =
 
 -- |Get the canonical form of a datatype value, or @Nothing@.
 --
-tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> String -> Maybe String
+tvalMkCanonicalForm :: DatatypeVal ex vt lb vn -> T.Text -> Maybe T.Text
 tvalMkCanonicalForm dtv str = can
     where
       dtmap = tvalMap dtv
@@ -275,16 +278,17 @@ tvalMkCanonicalForm dtv str = can
 -- |DatatypeMap consists of methods that perform lexical-to-value
 --  and value-to-canonical-lexical mappings for a datatype.
 --
---  The datatype mappings apply to string lexical forms.
+--  The datatype mappings apply to string lexical forms which
+--  are stored as `Data.Text`.
 --
 data DatatypeMap vt = DatatypeMap
-    { mapL2V  :: String -> Maybe vt
+    { mapL2V  :: T.Text -> Maybe vt
                             -- ^ Function to map a lexical string to
                             --   the datatype value.  This effectively
                             --   defines the lexical space of the
                             --   datatype to be all strings for which
                             --   yield a value other than @Nothing@.
-    , mapV2L  :: vt -> Maybe String
+    , mapV2L  :: vt -> Maybe T.Text
                             -- ^ Function to map a value to its canonical
                             --   lexical form, if it has such.
     }
@@ -430,8 +434,8 @@ dmAppf dtmod (dmName dtmod)
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod_1_1_inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_1_1_inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
+makeVmod11inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod11inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -443,8 +447,8 @@ makeVmod_1_1_inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
         app2 [Nothing,Just v2] vbind = addv lb1 (f1 [v2])    vbind
         app2 [Just v1,Nothing] vbind = addv lb2 (f2 [v1])    vbind
         app2 _                     _     = []
-makeVmod_1_1_inv _ _ _ =
-    error "makeVmod_1_1_inv: requires 3 functions and 2 labels"
+makeVmod11inv _ _ _ =
+    error "makeVmod11inv: requires 3 functions and 2 labels"
 
 -- |'ApplyModifier' function for use with 'DatatypeMod' in cases when
 --  the value mapping is a non-invertable @1->1@ injection, such as
@@ -469,8 +473,8 @@ makeVmod_1_1_inv _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod_1_1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_1_1 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
+makeVmod11 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod11 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -481,8 +485,8 @@ makeVmod_1_1 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
         app2 [Just v1,Just v2] vbind = selv (f0 [v1,v2])  vbind
         app2 [Nothing,Just v2] vbind = addv lb1 (f1 [v2]) vbind
         app2 _                     _     = []
-makeVmod_1_1 _ _ _ =
-    error "makeVmod_1_1: requires 2 functions and 2 labels"
+makeVmod11 _ _ _ =
+    error "makeVmod11: requires 2 functions and 2 labels"
 
 -- |'ApplyModifier' function for use with 'DatatypeMod' in cases
 --  when the value mapping is a @2->1@ invertable function, such as
@@ -514,8 +518,8 @@ makeVmod_1_1 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod_2_1_inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_2_1_inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
+makeVmod21inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod21inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -528,8 +532,8 @@ makeVmod_2_1_inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
         app2 [Just v1,Nothing,Just v3] vbind = addv lb2 (f2 [v1,v3]) vbind
         app2 [Just v1,Just v2,Nothing] vbind = addv lb3 (f3 [v1,v2]) vbind
         app2 _                               _     = []
-makeVmod_2_1_inv _ _ _ =
-    error "makeVmod_2_1_inv: requires 4 functions and 3 labels"
+makeVmod21inv _ _ _ =
+    error "makeVmod21inv: requires 4 functions and 3 labels"
 
 -- |'ApplyModifier' function for use with 'DatatypeMod' in cases
 --  when the value mapping is a @2->1@ non-invertable function, such as
@@ -555,8 +559,8 @@ makeVmod_2_1_inv _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod_2_1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_2_1 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
+makeVmod21 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod21 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -567,8 +571,8 @@ makeVmod_2_1 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
         app2 [Just v1,Just v2,Just v3] vbind = selv (f0 [v1,v2,v3]) vbind
         app2 [Nothing,Just v2,Just v3] vbind = addv lb1 (f1 [v2,v3]) vbind
         app2 _                               _     = []
-makeVmod_2_1 _ _ _ =
-    error "makeVmod_2_1: requires 2 functions and 3 labels"
+makeVmod21 _ _ _ =
+    error "makeVmod21: requires 2 functions and 3 labels"
 
 -- |'ApplyModifier' function for use with 'DatatypeMod' in cases
 --  when the value mapping is a simple comparson of two values.
@@ -590,8 +594,8 @@ makeVmod_2_1 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod_2_0 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_2_0 nam [f0] lbs@(~[_,_]) = VarBindingModify
+makeVmod20 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod20 nam [f0] lbs@(~[_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -601,8 +605,8 @@ makeVmod_2_0 nam [f0] lbs@(~[_,_]) = VarBindingModify
         app1 vbind = app2 (map (vbMap vbind) lbs) vbind
         app2 [Just v1,Just v2] vbind = selv (f0 [v1,v2]) vbind
         app2 _                     _     = []
-makeVmod_2_0 _ _ _ =
-    error "makeVmod_2_0: requires 1 function and 2 labels"
+makeVmod20 _ _ _ =
+    error "makeVmod20: requires 1 function and 2 labels"
 
 -- |'ApplyModifier' function for use with 'DatatypeMod' in cases
 --  when the value mapping is a @2->2@ non-invertable function, such as
@@ -631,8 +635,8 @@ makeVmod_2_0 _ _ _ =
 --  NOTE: this might be generalized to allow one of @w@ or @x@ to be
 --  specified, and return null if it doesn't match the calculated value.
 --
-makeVmod_2_2 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_2_2 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
+makeVmod22 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod22 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -645,8 +649,8 @@ makeVmod_2_2 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
         app2 [Nothing,Nothing,Just v3,Just v4] vbind =
             addv2 lb1 lb2 (f1 [v3,v4]) vbind
         app2 _                               _     = []
-makeVmod_2_2 _ _ _ =
-    error "makeVmod_2_2: requires 2 functions and 4 labels"
+makeVmod22 _ _ _ =
+    error "makeVmod22: requires 2 functions and 4 labels"
 
 -- |'ApplyModifier' function for use with 'DatatypeMod' in cases
 --  when the value mapping is a @N->1@ function,
@@ -671,8 +675,8 @@ makeVmod_2_2 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod_N_1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
-makeVmod_N_1 nam [f0,f1] lbs@(~(lb1:_)) = VarBindingModify
+makeVmodN1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmodN1 nam [f0,f1] lbs@(~(lb1:_)) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
     , vbmVocab  = lbs
@@ -689,8 +693,8 @@ makeVmod_N_1 nam [f0,f1] lbs@(~(lb1:_)) = VarBindingModify
                 jvs      = catMaybes vs
         app2 _ _ = error "app2 sent empty list" -- -Wall
 
-makeVmod_N_1 _ _ _ =
-    error "makeVmod_N_1: requires 2 functions and at 1 or more labels"
+makeVmodN1 _ _ _ =
+    error "makeVmodN1: requires 2 functions and at 1 or more labels"
 
 --------------------------------------------------------
 --  Local helper functions for makeVmodXXX variants

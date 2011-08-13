@@ -52,11 +52,10 @@ import Swish.Utils.Namespace
 import Swish.RDF.VarBinding
     ( VarBindingModify(..) )
 
-import Data.Maybe
-    ( fromMaybe, isJust, fromJust )
+import Control.Monad (liftM)
+import Data.Maybe (fromMaybe, isJust, fromJust)
 
-import Control.Monad
-    ( liftM )
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Specialize datatype framework types for use with RDF
@@ -177,9 +176,9 @@ toRDFLabel dtv =
         dtmap = tvalMap dtv
 
 -- | Create a typed literal from the given value.
-makeDatatypedLiteral :: ScopedName -> String -> RDFLabel
-makeDatatypedLiteral dtnam strval =
-    Lit strval (Just dtnam)
+makeDatatypedLiteral :: ScopedName -> T.Text -> RDFLabel
+makeDatatypedLiteral dtnam txtval =
+    Lit txtval (Just dtnam)
 
 --------------------------------------------------------------------------------
 --

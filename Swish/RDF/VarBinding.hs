@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses, TypeSynonymInstances
+--  Portability :  MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings
 --
 --  This module defines functions for representing and manipulating query
 --  binding variable sets.  This is the key data that mediates between
@@ -49,6 +50,9 @@ import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 
 import Data.List (find, intersect, union, (\\), foldl')
 
+import Data.Monoid (mconcat)
+
+-- import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Query variable bindings
@@ -303,7 +307,7 @@ vbmCompose
     (VarBindingModify nam1 app1 voc1 use1)
     (VarBindingModify nam2 app2 voc2 use2)
     | not (null use12) = Just VarBindingModify
-        { vbmName  = swishName ("_"++ snLocal nam1 ++"_"++ snLocal nam2 ++"_")
+        { vbmName  = swishName $ mconcat ["_", snLocal nam1, "_", snLocal nam2, "_"]
         , vbmApply = app2 . app1
         , vbmVocab = voc1 `union` voc2
         , vbmUsage = use12

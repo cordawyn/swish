@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  SwishCommands:  functions to deal with indivudual Swish command options.
 --
@@ -37,9 +39,7 @@ import Swish.RDF.SwishMonad
     , reportLine
     )
 
-import Swish.RDF.SwishScript
-    ( parseScriptFromString
-    )
+import Swish.RDF.SwishScript (parseScriptFromText)
 
 import Swish.RDF.GraphPartition
     ( GraphPartition(..)
@@ -53,8 +53,9 @@ import Swish.RDF.RDFGraph
 import qualified Swish.RDF.N3Formatter as N3F
 import qualified Swish.RDF.NTFormatter as NTF
 
-import Swish.RDF.N3Parser (parseN3) -- (parseN3fromString)
+import Swish.RDF.N3Parser (parseN3)
 import Swish.RDF.NTParser (parseNT)
+import Swish.RDF.RDFParser (appendURIs)
 
 import Swish.RDF.GraphClass
     ( LDGraph(..)
@@ -65,19 +66,19 @@ import Swish.Utils.QName (QName, qnameFromURI, qnameFromFilePath, getQNameURI)
 
 import System.IO
     ( Handle, openFile, IOMode(..)
-    , hPutStr, hPutStrLn, hClose, hGetContents
+    , hPutStr, hPutStrLn, hClose
     , hIsReadable, hIsWritable
     , stdin, stdout
     )
 
-import Network.URI (URI, 
-                    relativeTo,
-                    parseURI, parseURIReference, uriToString)
+import Network.URI (parseURIReference)
 
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (modify, gets)
 import Control.Monad (liftM, when)
 
+import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy.IO as IO
 import System.IO.Error
 
 import Data.Maybe (isJust, fromMaybe)
@@ -209,47 +210,31 @@ Needs some work.
 -}
 
 defURI :: QName
-defURI = qnameFromURI "http://id.ninebynine.org/2003/Swish/"
+defURI = "http://id.ninebynine.org/2003/Swish/"
 
 calculateBaseURI ::
   Maybe FilePath -- ^ file name
   -> SwishStateIO QName -- ^ base URI
-  
 calculateBaseURI Nothing = fromMaybe defURI `liftM` gets base
-    
-calculateBaseURI (Just fnam) = do
-  mbase <- gets base
-  case mbase of
-    Just buri -> case appendUris (getQNameURI buri) fnam of
-      Left emsg -> fail emsg -- TODO: think about this ...
-      Right res -> return $ qnameFromURI $ showURI res
-    Nothing -> lift $ qnameFromFilePath fnam
+calculateBaseURI (Just fnam) =
+  case parseURIReference fnam of
+    Just furi -> do
+      mbase <- gets base
+      case mbase of
+        Just buri -> case appendURIs (getQNameURI buri) furi of
+          Left emsg -> fail emsg -- TODO: think about this ...
+          Right res -> return $ qnameFromURI res
+        Nothing -> lift $ qnameFromFilePath fnam
+        
+    Nothing -> fail $ "Unable to convert to URI: filepath=" ++ fnam
 
--- this is also in N3Parser
-showURI :: URI -> String
-showURI u = uriToString id u ""
-
--- this is also in N3Parser
-appendUris :: String -> String -> Either String URI
-appendUris buri uri =
-  case parseURI uri of
-    Just absuri -> Right absuri
-    _ -> case parseURIReference uri of
-      Just reluri -> case parseURI buri of
-        Just baseuri -> case relativeTo reluri baseuri of
-          Just resuri -> Right resuri
-          _ -> Left $ "Unable to append <" ++ uri ++ "> to base=<" ++ buri ++ ">"
-          
-        _ -> Left $ "Invalid base URI: <" ++ buri ++ ">"
-      _ -> Left $ "Invalid URI: <" ++ uri ++ ">"
-      
 swishParseScript ::
   Maybe String -- file name (or "stdin" if Nothing)
-  -> String  -- script contents
+  -> T.Text    -- script contents
   -> SwishStateIO [SwishStateIO ()]
 swishParseScript mfpath inp = do
   buri <- calculateBaseURI mfpath
-  case parseScriptFromString (Just buri) inp of
+  case parseScriptFromText (Just buri) inp of
     Left err -> do
       let inName = maybe "standard input" ("file " ++) mfpath
       swishError ("Script syntax error in " ++ inName ++ ": "++err) SwishDataInputError
@@ -283,11 +268,11 @@ swishOutputGraph _ hnd = do
   
   let writeOut formatter = do
         out <- gets $ formatter . graph
-        lift $ hPutStrLn hnd (out "")
+        lift $ IO.hPutStrLn hnd out
         
   case fmt of
-    N3 -> writeOut N3F.formatGraphAsShowS
-    NT -> writeOut NTF.formatGraphAsShowS
+    N3 -> writeOut N3F.formatGraphAsLazyText
+    NT -> writeOut NTF.formatGraphAsLazyText
     -- _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError
 
 ------------------------------------------------------------
@@ -303,14 +288,14 @@ swishReadGraph = swishReadFile swishParse Nothing
 -- | Open a file (or stdin), read its contents, and process them.
 --
 swishReadFile :: 
-  (Maybe String -> String -> SwishStateIO a) -- ^ Convert filename and contents into desired value
+  (Maybe String -> T.Text -> SwishStateIO a) -- ^ Convert filename and contents into desired value
   -> a -- ^ the value to use if the file can not be read in
   -> Maybe String -- ^ the file name or @stdin@ if @Nothing@
   -> SwishStateIO a
 swishReadFile conv errVal fnam = 
   let reader (h,f,i) = do
         res <- conv fnam i
-        when f $ lift $ hClose h
+        when f $ lift $ hClose h -- given that we use IO.hGetContents not sure the close is needed
         return res
   
   in swishOpenFile fnam >>= maybe (return errVal) reader
@@ -318,7 +303,7 @@ swishReadFile conv errVal fnam =
 -- | Open and read file, returning its handle and content, or Nothing
 -- WARNING:  the handle must not be closed until input is fully evaluated
 --
-swishOpenFile :: Maybe String -> SwishStateIO (Maybe (Handle, Bool, String))
+swishOpenFile :: Maybe String -> SwishStateIO (Maybe (Handle, Bool, T.Text))
 swishOpenFile Nothing     = readFromHandle stdin Nothing
 swishOpenFile (Just fnam) = do
   o <- lift $ try $ openFile fnam ReadMode
@@ -329,12 +314,12 @@ swishOpenFile (Just fnam) = do
       
     Right hnd -> readFromHandle hnd $ Just ("file: " ++ fnam)
 
-readFromHandle :: Handle -> Maybe String -> SwishStateIO (Maybe (Handle, Bool, String))
+readFromHandle :: Handle -> Maybe String -> SwishStateIO (Maybe (Handle, Bool, T.Text))
 readFromHandle hdl mlbl = do
   hrd <- lift $ hIsReadable hdl
   if hrd
     then do
-      fc <- lift $ hGetContents hdl
+      fc <- lift $ IO.hGetContents hdl
       return $ Just (hdl, isJust mlbl, fc)
   
     else do
@@ -346,7 +331,7 @@ readFromHandle hdl mlbl = do
 
 swishParse :: 
   Maybe String -- ^ filename (if not stdin)
-  -> String  -- ^ contents of file
+  -> T.Text    -- ^ contents of file
   -> SwishStateIO (Maybe RDFGraph)
 swishParse mfpath inp = do
   fmt <- gets format

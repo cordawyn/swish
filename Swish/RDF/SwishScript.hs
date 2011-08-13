@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@ License     :  GPL V2
 
 Maintainer  :  Douglas Burke
 Stability   :  experimental
-Portability :  H98
+Portability :  OverloadedStrings
 
 This module implements the Swish script processor:  it parses a script
 from a supplied string, and returns a list of Swish state transformer
@@ -66,7 +67,7 @@ module Swish.RDF.SwishScript
       
       -- * Parsing
       
-      parseScriptFromString 
+      parseScriptFromText 
     )
 where
 
@@ -106,12 +107,12 @@ import Swish.RDF.RDFGraph
     , merge, add
     )
 
+import Swish.RDF.RDFParser (whiteSpace, lexeme, symbol, eoln, manyTill)
+
 import Swish.RDF.N3Parser
-    ( parseAnyfromString
+    ( parseAnyfromText
     , parseN3      
     , N3Parser, N3State(..)
-    , whiteSpace, symbol, lexeme
-    , eof, identLetter
     , getPrefix
     , subgraph
     , n3symbol -- was uriRef2,
@@ -120,55 +121,29 @@ import Swish.RDF.N3Parser
     , newBlankNode
     )
 
-import Swish.RDF.N3Formatter
-    ( formatGraphAsShowS )
+import Swish.RDF.N3Formatter (formatGraphAsBuilder)
+import Swish.RDF.Datatype (typeMkRules)
+import Swish.RDF.Proof (explainProof, showsProof)
+import Swish.RDF.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
+import Swish.RDF.Rule (Formula(..), Rule(..)) 
+import Swish.RDF.VarBinding (composeSequence)
 
-import Swish.RDF.Datatype
-    ( typeMkRules )
-
-import Swish.RDF.Proof
-    ( explainProof, showsProof )
-
-import Swish.RDF.Ruleset
-    ( makeRuleset, getRulesetRule, getMaybeContextRule )
-
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..) -- , RuleMap
-    )
-
-import Swish.RDF.VarBinding
-    ( composeSequence )
-
-import Swish.Utils.Namespace
-    ( ScopedName(..) )
-
+import Swish.Utils.Namespace (ScopedName(..))
 import Swish.Utils.QName (QName, qnameFromURI)
+import Swish.Utils.LookupMap (mapReplaceOrAdd)
+import Swish.Utils.ListHelpers (equiv, flist)
 
-import Swish.Utils.LookupMap
-    ( mapReplaceOrAdd )
-
-import Swish.Utils.ListHelpers
-    ( equiv, flist )
-
-import Text.ParserCombinators.Parsec
-    ( (<?>) 
-    -- , (<|>)
-    -- , many
-    , manyTill
-    , option, sepBy, between, try, notFollowedBy
-    , string, anyChar
-    , getState
-    )
-
-import Control.Applicative
-
-import Control.Monad.State
-    ( modify, gets, lift
-    )
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+import qualified Data.Text.Lazy.IO as LIO
+import Text.ParserCombinators.Poly.StateText
 
 import Control.Monad (unless, when, liftM)
+import Control.Monad.State (modify, gets, lift)
 
-import Data.List (isPrefixOf)
+import Network.URI (URI(..))
+
+import Data.Monoid (Monoid(..))
 
 import qualified System.IO.Error as IO
 
@@ -183,15 +158,18 @@ import qualified System.IO.Error as IO
 -- 
 
 -- | Parser for Swish script processor
-parseScriptFromString :: 
+parseScriptFromText :: 
   Maybe QName -- ^ Default base for the script
-  -> String -- ^ Swish script
+  -> L.Text   -- ^ Swish script
   -> Either String [SwishStateIO ()]
-parseScriptFromString = parseAnyfromString script 
+parseScriptFromText = parseAnyfromText script 
 
 ----------------------------------------------------------------------
 --  Syntax productions
 ----------------------------------------------------------------------
+
+between :: Parser s lbr -> Parser s rbr -> Parser s a -> Parser s a
+between = bracket
 
 n3SymLex :: N3Parser ScopedName
 n3SymLex = lexeme n3symbol
@@ -234,11 +212,11 @@ command =
   <|> checkProofCmd
   <|> fwdChain
   <|> bwdChain
-  <?> "script command"
 
 prefixLine :: N3Parser (SwishStateIO ())
 prefixLine = do
-  try $ isymbol "@prefix"
+  -- try $ isymbol "@prefix"
+  isymbol "@prefix"
   getPrefix
   whiteSpace
   isymbol "."
@@ -250,7 +228,7 @@ nameItem :: N3Parser (SwishStateIO ())
 nameItem = 
   ssAddGraph <$> n3SymLex <*> (symbol ":-" *> graphOrList)
   
-maybeURI :: N3Parser (Maybe String)
+maybeURI :: N3Parser (Maybe URI)
 maybeURI = (Just <$> lexUriRef) <|> return Nothing
 
 --  @read name  [ <uri> ]
@@ -306,7 +284,7 @@ defineRule =
             ; ags <- graphOrList
             ; isymbol "=>"
             ; cg  <- graphExpr
-            ; vms <- option [] varModifiers
+            ; vms <- varModifiers <|> pure []
             ; return $ ssDefineRule rn ags cg vms
             }
 
@@ -356,8 +334,8 @@ fwdChain =
             ; ags <- graphOrList
             ; isymbol "=>"
             ; cn  <- n3SymLex
-            ; s <- getState             :: N3Parser N3State
-            ; let prefs = prefixUris s  :: NamespaceMap
+            ; s <- stGet
+            ; let prefs = prefixUris s
             ; return $ ssFwdChain sn rn ags cn prefs
             }
 
@@ -371,8 +349,8 @@ bwdChain =
             ; cg  <- graphExpr
             ; isymbol "<="
             ; an  <- n3SymLex
-            ; s <- getState             :: N3Parser N3State
-            ; let prefs = prefixUris s  :: NamespaceMap
+            ; s <- stGet
+            ; let prefs = prefixUris s
             ; return $ ssBwdChain sn rn cg an prefs
             }
 
@@ -380,17 +358,13 @@ bwdChain =
 --  Syntax clause helpers
 ----------------------------------------------------------------------
 
+-- TODO: is the loss of identLetter a problem?
 commandName :: String -> N3Parser ()
-commandName cmd = try (string cmd *> notFollowedBy identLetter *> whiteSpace)
-
--- taken from NTParser
-eoln :: N3Parser ()
--- eoln = ignore (newline <|> (lineFeed *> optional newline))
-eoln = (try (string "\r\n") <|> string "\r" <|> string "\n") >> return ()
-       <?> "new line"
+-- commandName cmd = try (string cmd *> notFollowedBy identLetter *> whiteSpace)
+commandName cmd = symbol cmd *> pure ()
 
 restOfLine :: N3Parser String
-restOfLine = manyTill anyChar eoln <* whiteSpace
+restOfLine = manyTill (satisfy (const True)) eoln <* whiteSpace
   
 br :: N3Parser a -> N3Parser a
 br = between (symbol "(") (symbol ")")
@@ -405,7 +379,6 @@ nameOrList :: N3Parser [ScopedName]
 nameOrList =
   (toList <$> n3SymLex)      
   <|> nameList
-  <?> "Name, or list of names"
   
 graphExpr :: N3Parser (SwishStateIO (Either String RDFGraph))
 graphExpr =
@@ -414,34 +387,28 @@ graphExpr =
         do  { f <- formulaExpr
             ; return $ liftM (liftM formExpr) f
             }
-    <?>
-        "Graph expression, graph name or named graph definition"
 
 graphOnly :: N3Parser (SwishStateIO (Either String RDFGraph))
 graphOnly =
         do  { isymbol "{"
             ; b <- newBlankNode
-            ; g <- subgraph b       :: N3Parser RDFGraph
+            ; g <- subgraph b
             ; isymbol "}"
-            ; s <- getState
+            ; s <- stGet
             ; let gp = setNamespaces (prefixUris s) g
             ; return $ return (Right gp)
             }
 
 graphList :: N3Parser [SwishStateIO (Either String RDFGraph)]
 graphList = br (many graphExpr)
-    <?> "List of graphs"
 
 graphOrList :: N3Parser [SwishStateIO (Either String RDFGraph)]
 graphOrList =
   (toList <$> graphExpr)
   <|> graphList
-  <?> "Graph, or list of graphs"
 
 formulaExpr :: N3Parser (SwishStateIO (Either String RDFFormula))
-formulaExpr = 
-  (n3SymLex >>= namedGraph)
-  <?> "Formula (name or named graph)"
+formulaExpr = n3SymLex >>= namedGraph
 
 namedGraph :: ScopedName -> N3Parser (SwishStateIO (Either String RDFFormula))
 namedGraph n =
@@ -450,7 +417,6 @@ namedGraph n =
 
 formulaList :: N3Parser [SwishStateIO (Either String RDFFormula)]
 formulaList = between (symbol "(") (symbol ")") (many formulaExpr)
-    <?> "List of formulae (names or named graphs)"
 
 varModifiers :: N3Parser [(ScopedName,[RDFLabel])]
 varModifiers = symbol "|" *> varModList
@@ -525,10 +491,10 @@ ssGetList nam = gets find
             Nothing  -> Left ("Graph or list not present: "++show nam)
             Just grs -> Right grs
 
-ssRead :: ScopedName -> Maybe String -> SwishStateIO ()
+ssRead :: ScopedName -> Maybe URI -> SwishStateIO ()
 ssRead nam muri = ssAddGraph nam [ssReadGraph muri]
 
-ssReadGraph :: Maybe String -> SwishStateIO (Either String RDFGraph)
+ssReadGraph :: Maybe URI -> SwishStateIO (Either String RDFGraph)
 ssReadGraph muri = 
   let gf inp = case inp of
         Left  es -> Left es
@@ -537,41 +503,29 @@ ssReadGraph muri =
   in gf `liftM` getResourceData muri
 
 ssWriteList ::
-    Maybe String -> SwishStateIO (Either String [RDFGraph]) -> String
+    Maybe URI -> SwishStateIO (Either String [RDFGraph]) -> String
     -> SwishStateIO ()
-ssWriteList muri gf comment =
-        do  { esgs <- gf
-            ; case esgs of
-                Left  er   -> modify $ setError ("Cannot write list: "++er)
-                Right []   -> putResourceData Nothing (("# " ++ comment ++ "\n+ Swish: Writing empty list")++)
-                Right [gr] -> ssWriteGraph muri gr comment
-                Right grs  -> mapM_ writegr (zip [(0::Int)..] grs)
-                  where
-                    writegr (n,gr) = ssWriteGraph (murin muri n) gr
-                        ("["++show n++"] "++comment)
-                    murin Nothing    _ = Nothing
-                    murin (Just uri) n = Just (inituri++show n++lasturi)
-                        where
-                            splituri1 = splitBy (=='/') uri
-                            splituri2 = splitBy (=='.') (lastseg splituri1)
-                            inituri   = concat (initseg splituri1 ++ initseg splituri2)
-                            lasturi   = lastseg splituri2
-            }
-
-splitBy :: (a->Bool) -> [a] -> [[a]]
-splitBy _ []  = []
-splitBy p (s0:str) = let (s1,sr) = break p str in
-    (s0:s1):splitBy p sr
-
-lastseg :: [[a]] -> [a]
-lastseg []   = []
-lastseg [_]  = []
-lastseg ass  = last ass
-
-initseg :: [[a]] -> [[a]]
-initseg []   = []
-initseg [as] = [as]
-initseg ass  = init ass
+ssWriteList muri gf comment = do
+  esgs <- gf
+  case esgs of
+    Left  er   -> modify $ setError ("Cannot write list: "++er)
+    Right []   -> putResourceData Nothing (B.fromLazyText (L.concat ["# ", L.pack comment, "\n+ Swish: Writing empty list"]))
+    Right [gr] -> ssWriteGraph muri gr comment
+    Right grs  -> mapM_ writegr (zip [(0::Int)..] grs)
+      where
+        writegr (n,gr) = ssWriteGraph (murin muri n) gr
+                         ("["++show n++"] "++comment)
+        murin Nothing    _ = Nothing
+        murin (Just uri) n = 
+          let rp = reverse $ uriPath uri
+              (rLastSet, rRest) = break (=='/') rp
+              (before, after) = break (=='.') $ reverse rLastSet
+              newPath = reverse rRest ++ "/" ++ before ++ show n ++ after
+          in case rLastSet of
+            "" -> error $ "Invalid URI (path ends in /): " ++ show uri
+            _ -> Just $ uri { uriPath = newPath }
+         
+  
 
 {-
 ssWrite ::
@@ -585,11 +539,11 @@ ssWrite muri gf comment =
             }
 -}
 
-ssWriteGraph :: Maybe String -> RDFGraph -> String -> SwishStateIO ()
+ssWriteGraph :: Maybe URI -> RDFGraph -> String -> SwishStateIO ()
 ssWriteGraph muri gr comment =
-    putResourceData muri ((c++) . formatGraphAsShowS gr)
+    putResourceData muri (c `mappend` formatGraphAsBuilder gr)
     where
-        c = "# "++comment++"\n"
+        c = B.fromLazyText $ L.concat ["# ", L.pack comment, "\n"]
 
 ssMerge ::
     ScopedName -> [SwishStateIO (Either String RDFGraph)]
@@ -804,8 +758,10 @@ ssCheckProof pn sns igf stfs rgf =
             ; when False $ case proof of
                     (Left  _)  -> return ()
                     (Right pr) -> putResourceData Nothing $
-                                    (("Proof "++show pn++"\n")++)
-                                    . showsProof "\n" pr
+                                    B.fromLazyText (L.concat ["Proof ", L.pack (show pn), "\n"])
+                                    `mappend`
+                                    B.fromString (showsProof "\n" pr "\n")
+                                    -- TODO: clean up
             ; let checkproof = case proof of
                     (Left  er) -> setError er
                     (Right pr) ->
@@ -923,26 +879,24 @@ ssBwdChain sn rn cgf an prefs =
 --  Temporary implementation:  just read local file WNH     
 --  (Add logic to separate filenames from URIs, and
 --  attempt HTTP GET, or similar.)
-getResourceData :: Maybe String -> SwishStateIO (Either String String)
+getResourceData :: Maybe URI -> SwishStateIO (Either String L.Text)
 getResourceData muri =
     case muri of
         Nothing  -> fromStdin
         Just uri -> fromUri uri
     where
     fromStdin =
-        do  { dat <- lift getContents
+        do  { dat <- lift LIO.getContents
             ; return $ Right dat
             }
     fromUri = fromFile
-    fromFile uri | "file://" `isPrefixOf` uri = do
-      dat <- lift $ readFile $ drop 7 uri
-      return $ Right dat
-                 | otherwise = error $ "Unsupported file name for read: " ++ uri
+    fromFile uri | uriScheme uri == "file:" = Right `fmap` (lift $ LIO.readFile $ uriPath uri)
+                 | otherwise = error $ "Unsupported file name for read: " ++ show uri
                                
 --  Temporary implementation:  just write local file
 --  (Need to add logic to separate filenames from URIs, and
 --  attempt HTTP PUT, or similar.)
-putResourceData :: Maybe String -> ShowS -> SwishStateIO ()
+putResourceData :: Maybe URI -> B.Builder -> SwishStateIO ()
 putResourceData muri gsh =
     do  { ios <- lift $ IO.try $
             case muri of
@@ -955,10 +909,10 @@ putResourceData muri gsh =
             Right a   -> return a
         }
     where
-        toStdout  = putStrLn gstr
-        toUri uri | "file://" `isPrefixOf` uri = writeFile (drop 7 uri) gstr
-                  | otherwise = error $ "Unsupported file name for write: " ++ uri
-        gstr = gsh "\n"
+        toStdout  = LIO.putStrLn gstr
+        toUri uri | uriScheme uri == "file:" = LIO.writeFile (uriPath uri) gstr
+                  | otherwise                = error $ "Unsupported file name for write: " ++ show uri
+        gstr = B.toLazyText gsh
 
 {- $syntax
 

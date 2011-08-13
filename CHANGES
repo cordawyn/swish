@@ -1,3 +1,42 @@
+0.4.0.0:
+
+  - Use polyparse rather than parsec-2 for parsing. As part of this,
+    the parsing is done using Text rather than String values, where
+    sensible.  Some parsing should be faster now, but that is more due
+    to a better use of parser combinators than differences in the
+    parsing library used. No serious attempt at optimisation has been
+    attempted.
+
+    Unfortunately the error messages created on invalid input are
+    significantly less helpfull than in the previous version.
+
+  - removed Swish.Utils.DateTime and Swish.Utils.TraceHelpers
+
+  - removed the following exported symbols from Swish.Utils.LookupMap:
+        mapSortByKey, mapSortByVal
+
+  - removed the following exported symbols from Swish.Utils.ListHelpers:
+        allf, anyf, combinations, ffold, hasPartitions,
+        mapset, pairsUngroup, powerSequences, powerSequences_inf
+
+  - removed the following exported symbols from Swish.Utils.MiscHelpers:
+        assert, stricmp, lower, quote
+
+  - removed _ from exported symbols; the conversion is mainly to camel
+    case but some may retain lower case parts (e.g. xxx_1_1_inv to
+    xxx11inv).
+
+  - Namespace now uses Maybe Text to store the optional prefix rather
+    than an ad-hoc ""/"?" solution and URI rather than String for the
+    URI.  The local part of ScopedName is now Text.  QName also uses
+    URIs and no longer exports the constructor so newQName or related
+    should be used to create QNames.
+
+    We have currently lost N3 formatting of the default prefix (any
+    default prefix elements end up getting written out fully
+    qualified). The output is still valid N3 but perhaps not what
+    you'd expect.
+
 0.3.2.1:
 
   - use foldl' rather than foldl in some modules

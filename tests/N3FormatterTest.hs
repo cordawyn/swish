@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module defines test cases for module Parse parsing functions.
 --
@@ -17,11 +19,10 @@
 module Main where
 
 import Swish.RDF.N3Formatter
-    ( formatGraphAsStringNl
-    , formatGraphAsString
+    ( formatGraphAsLazyText
     , formatGraphDiag )
 
-import Swish.RDF.N3Parser (parseN3fromString)
+import Swish.RDF.N3Parser (parseN3)
 
 import Swish.RDF.RDFGraph
     ( RDFGraph, RDFTriple
@@ -30,11 +31,11 @@ import Swish.RDF.RDFGraph
     , NamespaceMap
     , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph, toRDFTriple
-    , res_rdf_type, res_rdf_first, res_rdf_rest, res_rdf_nil
-    , res_owl_sameAs
+    , resRdfType, resRdfFirst, resRdfRest, resRdfNil
+    , resOwlSameAs
     )
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
@@ -45,8 +46,16 @@ import Swish.RDF.GraphClass (Arc, arc)
 
 import Swish.RDF.Vocabulary (langName, namespaceRDF, namespaceXSD)
 
+import Network.URI (URI, parseURI)
+
 import Data.Monoid (Monoid(..))
+import Data.Maybe (fromJust)
+
 import Data.String (IsString(..))
+
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -68,16 +77,36 @@ testGraphEq lab eq gg1 gg2 =
 --  Define some common values
 ------------------------------------------------------------
 
-base1, base2, base3, base4 :: Namespace
-base1 = Namespace "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
-base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
-base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
-base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+toURI :: String -> URI
+toURI = fromJust . parseURI
 
-s1, s2, s3 :: RDFLabel
-s1 = Res $ ScopedName base1 "s1"
-s2 = Res $ ScopedName base2 "s2"
-s3 = Res $ ScopedName base3 "s3"
+toNS :: T.Text -> String -> Namespace
+toNS p = Namespace (Just p) . toURI
+
+toRes :: Namespace -> T.Text -> RDFLabel
+toRes ns = Res . ScopedName ns
+
+base1, base2, base3, base4, basef, baseu, basem :: Namespace
+base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
+base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
+base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
+base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basef = toNS "fbase" "file:///home/swish/photos/"
+baseu = toNS "ubase" "urn:one:two:3.14"
+basem = toNS "me"    "http://example.com/ns#"
+  
+s1, s2, s3, sf, su :: RDFLabel
+s1 = toRes base1 "s1"
+s2 = toRes base2 "s2"
+s3 = toRes base3 "s3"
+
+sf = toRes basef "me.png"
+su = toRes baseu ""
+
+meDepicts, meMe, meHasURN :: RDFLabel
+meDepicts = toRes basem "depicts"
+meMe      = toRes basem "me"
+meHasURN  = toRes basem "hasURN"
 
 b1, b2, b3, b4, b5, b6, b7, b8 :: RDFLabel
 b1 = Blank "b1"
@@ -113,7 +142,7 @@ o1 = Res $ ScopedName base1 "o1"
 o2 = Res $ ScopedName base2 "o2"
 o3 = Res $ ScopedName base3 "o3"
 
-l1txt, l2txt, l3txt, l11txt, l12txt, l13txt, l14txt :: String
+l1txt, l2txt, l3txt, l11txt, l12txt, l13txt, l14txt :: B.Builder
 l1txt = "l1"
 l2txt = "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'"
 l3txt = "l3--\r\"'\\--\x0020\&--\x00A0\&--"
@@ -122,14 +151,17 @@ l12txt = "lx12"
 l13txt = "lx13"
 l14txt = "lx14"
 
+toL :: B.Builder -> RDFLabel
+toL = flip Lit Nothing . L.toStrict . B.toLazyText
+
 l1, l2, l3, l11, l12, l13, l14 :: RDFLabel
-l1  = Lit l1txt  Nothing
-l2  = Lit l2txt  Nothing
-l3  = Lit l3txt  Nothing
-l11 = Lit l11txt Nothing
-l12 = Lit l12txt Nothing
-l13 = Lit l13txt Nothing
-l14 = Lit l14txt Nothing
+l1  = toL l1txt
+l2  = toL l2txt
+l3  = toL l3txt
+l11 = toL l11txt
+l12 = toL l12txt
+l13 = toL l13txt
+l14 = toL l14txt
 
 lfr, lfoobar :: RDFLabel
 lfr = Lit "chat et chien" (Just (langName "fr"))
@@ -210,6 +242,13 @@ g1f3 = NSGraph
         f02 = arc s1 p1 b3
         formb3g1f2 = LookupMap [Formula b3 g1f2]
 
+g1fu1 :: RDFGraph
+g1fu1 =
+  mempty
+  { namespaces = makeLookupMap [basem, Namespace Nothing (toURI "file:///home/swish/photos/")]
+  , statements = [arc sf meDepicts meMe, arc sf meHasURN su]
+  }
+  
 ----
 
 g2, g3, g4, g5, g6, g7 :: RDFGraph
@@ -221,8 +260,8 @@ g6 = toGraph [t01,t06]
 g7 = toGraph [t01,t07]
 
 t801, t802, t807, t808, t809, t810 :: Arc RDFLabel
-t801 = arc s1 res_rdf_type       o1
-t802 = arc s2 res_owl_sameAs     o2
+t801 = arc s1 resRdfType       o1
+t802 = arc s2 resOwlSameAs     o2
 t807 = arc o1 p1 s1
 t808 = arc s2 p1 o2
 t809 = arc s1 p2 o1
@@ -282,8 +321,8 @@ g11 = toGraph [ arc s1 p1 v1
 tx101, tx102, tx111, tx112, tx113, tx114,
   tx121, tx122, tx123, tx124, tx125, tx126,
   tx127, tx128 :: Arc RDFLabel
-tx101 = arc b1 res_owl_sameAs s1
-tx102 = arc s2 res_owl_sameAs b2
+tx101 = arc b1 resOwlSameAs s1
+tx102 = arc s2 resOwlSameAs b2
 tx111 = arc b1 p1 o1
 tx112 = arc b1 p1 o2
 tx113 = arc b1 p2 o2
@@ -306,8 +345,8 @@ x1 = toGraph [tx101,tx102,
 tx201, tx202, tx211, tx212, tx213, tx214,
   tx221, tx222, tx223, tx224, tx225, tx226,
   tx227 :: Arc RDFLabel
-tx201 = arc b1 res_owl_sameAs s1
-tx202 = arc s2 res_owl_sameAs b2
+tx201 = arc b1 resOwlSameAs s1
+tx202 = arc s2 resOwlSameAs b2
 tx211 = arc b1 p1 o1
 tx212 = arc o2 p1 b1
 tx213 = arc b1 p2 o2
@@ -350,15 +389,15 @@ x3 = toGraph [tx311,tx312,tx313,tx314,
 
 tx401, tx402, tx403, tx404, tx405, tx406,
   tx407, tx408, tx409 :: Arc RDFLabel
-tx401 = arc s1 res_owl_sameAs b1
-tx402 = arc b1 res_rdf_first  o1
-tx403 = arc b1 res_rdf_rest   b2
-tx404 = arc b2 res_rdf_first  o2
-tx405 = arc b2 res_rdf_rest   b3
-tx406 = arc b3 res_rdf_first  o3
-tx407 = arc b3 res_rdf_rest   b4
-tx408 = arc b4 res_rdf_first  l1
-tx409 = arc b4 res_rdf_rest   res_rdf_nil
+tx401 = arc s1 resOwlSameAs b1
+tx402 = arc b1 resRdfFirst  o1
+tx403 = arc b1 resRdfRest   b2
+tx404 = arc b2 resRdfFirst  o2
+tx405 = arc b2 resRdfRest   b3
+tx406 = arc b3 resRdfFirst  o3
+tx407 = arc b3 resRdfRest   b4
+tx408 = arc b4 resRdfFirst  l1
+tx409 = arc b4 resRdfRest   resRdfNil
 
 x4 :: RDFGraph
 x4 = toGraph [tx401,tx402,tx403,tx404,
@@ -366,15 +405,15 @@ x4 = toGraph [tx401,tx402,tx403,tx404,
               tx409]
 
 x5 :: RDFGraph
-x5 = toGraph [ arc b1 res_owl_sameAs s1
-             , arc b1 res_rdf_first  o1
-             , arc b1 res_rdf_rest   b2
-             , arc b2 res_rdf_first  o2
-             , arc b2 res_rdf_rest   b3
-             , arc b3 res_rdf_first  o3
-             , arc b3 res_rdf_rest   b4
-             , arc b4 res_rdf_first  l1
-             , arc b4 res_rdf_rest   res_rdf_nil
+x5 = toGraph [ arc b1 resOwlSameAs s1
+             , arc b1 resRdfFirst  o1
+             , arc b1 resRdfRest   b2
+             , arc b2 resRdfFirst  o2
+             , arc b2 resRdfRest   b3
+             , arc b3 resRdfFirst  o3
+             , arc b3 resRdfRest   b4
+             , arc b4 resRdfFirst  l1
+             , arc b4 resRdfRest   resRdfNil
              ]
 
 {-
@@ -396,14 +435,14 @@ on the output format too (eg n3 vs ntriples).
 -}
 
 x6 :: RDFGraph
-x6 = toGraph [ arc s1 res_rdf_first o1
-             , arc s1 res_rdf_rest  b2
-             , arc b2 res_rdf_first o2
-             , arc b2 res_rdf_rest  b3
-             , arc b3 res_rdf_first o3
-             , arc b3 res_rdf_rest  b4
-             , arc b4 res_rdf_first l1
-             , arc b4 res_rdf_rest  res_rdf_nil
+x6 = toGraph [ arc s1 resRdfFirst o1
+             , arc s1 resRdfRest  b2
+             , arc b2 resRdfFirst o2
+             , arc b2 resRdfRest  b3
+             , arc b3 resRdfFirst o3
+             , arc b3 resRdfRest  b4
+             , arc b4 resRdfFirst l1
+             , arc b4 resRdfRest  resRdfNil
              ]
 
 x7 :: RDFGraph
@@ -448,12 +487,12 @@ x12fg  = toRDFGraph [ arc s2 p2 b4
 --  List of simple anon nodes
 
 x13 :: RDFGraph
-x13 = toGraph [ arc s1 res_rdf_first b1
-              , arc s1 res_rdf_rest  c1
-              , arc c1 res_rdf_first b2
-              , arc c1 res_rdf_rest  c2
-              , arc c2 res_rdf_first b3
-              , arc c2 res_rdf_rest  res_rdf_nil
+x13 = toGraph [ arc s1 resRdfFirst b1
+              , arc s1 resRdfRest  c1
+              , arc c1 resRdfFirst b2
+              , arc c1 resRdfRest  c2
+              , arc c2 resRdfFirst b3
+              , arc c2 resRdfRest  resRdfNil
               , arc b1 p1 o1
               , arc b2 p1 o2
               , arc b3 p1 o3
@@ -462,12 +501,12 @@ x13 = toGraph [ arc s1 res_rdf_first b1
 --  List of simple anon nodes using autogenerated bnodes
 
 x13a :: RDFGraph
-x13a = toGraph [ arc s1  res_rdf_first b_1
-               , arc s1  res_rdf_rest  c_1
-               , arc c_1 res_rdf_first b_2
-               , arc c_1 res_rdf_rest  c_2
-               , arc c_2 res_rdf_first b_3
-               , arc c_2 res_rdf_rest  res_rdf_nil
+x13a = toGraph [ arc s1  resRdfFirst b_1
+               , arc s1  resRdfRest  c_1
+               , arc c_1 resRdfFirst b_2
+               , arc c_1 resRdfRest  c_2
+               , arc c_2 resRdfFirst b_3
+               , arc c_2 resRdfRest  resRdfNil
                , arc b_1 p1 o1
                , arc b_2 p1 o2
                , arc b_3 p1 o3
@@ -482,12 +521,12 @@ x13a = toGraph [ arc s1  res_rdf_first b_1
 --  List of more complex anon nodes
 
 x14 :: RDFGraph
-x14 = toGraph [ arc s1 res_rdf_first b1
-              , arc s1 res_rdf_rest  c1
-              , arc c1 res_rdf_first b2
-              , arc c1 res_rdf_rest  c2
-              , arc c2 res_rdf_first b3
-              , arc c2 res_rdf_rest  res_rdf_nil
+x14 = toGraph [ arc s1 resRdfFirst b1
+              , arc s1 resRdfRest  c1
+              , arc c1 resRdfFirst b2
+              , arc c1 resRdfRest  c2
+              , arc c2 resRdfFirst b3
+              , arc c2 resRdfRest  resRdfNil
               , arc b1 p1 o1
               , arc b1 p2 o1
               , arc b2 p1 o2
@@ -499,22 +538,22 @@ x14 = toGraph [ arc s1 res_rdf_first b1
 --  List with nested list
 
 x15 :: RDFGraph
-x15 = toGraph [ arc s1 res_rdf_first b1
-              , arc s1 res_rdf_rest  c1
-              , arc c1 res_rdf_first b2
-              , arc c1 res_rdf_rest  c2
-              , arc c2 res_rdf_first b3
-              , arc c2 res_rdf_rest  res_rdf_nil
+x15 = toGraph [ arc s1 resRdfFirst b1
+              , arc s1 resRdfRest  c1
+              , arc c1 resRdfFirst b2
+              , arc c1 resRdfRest  c2
+              , arc c2 resRdfFirst b3
+              , arc c2 resRdfRest  resRdfNil
               , arc b1 p1 o1
               , arc b2 p2 c3
               , arc b3 p1 o3
 
-              , arc c3 res_rdf_first b4
-              , arc c3 res_rdf_rest  c4
-              , arc c4 res_rdf_first b5
-              , arc c4 res_rdf_rest  c5
-              , arc c5 res_rdf_first b6
-              , arc c5 res_rdf_rest  res_rdf_nil
+              , arc c3 resRdfFirst b4
+              , arc c3 resRdfRest  c4
+              , arc c4 resRdfFirst b5
+              , arc c4 resRdfRest  c5
+              , arc c5 resRdfFirst b6
+              , arc c5 resRdfRest  resRdfNil
               , arc b4 p1 o1
               , arc b5 p1 o2
               , arc b6 p1 o3
@@ -523,24 +562,24 @@ x15 = toGraph [ arc s1 res_rdf_first b1
 --  More complex list with nested list
 
 x16 :: RDFGraph
-x16 = toGraph [ arc s1 res_rdf_first b1
-              , arc s1 res_rdf_rest  c1
-              , arc c1 res_rdf_first b2
-              , arc c1 res_rdf_rest  c2
-              , arc c2 res_rdf_first b3
-              , arc c2 res_rdf_rest  res_rdf_nil
+x16 = toGraph [ arc s1 resRdfFirst b1
+              , arc s1 resRdfRest  c1
+              , arc c1 resRdfFirst b2
+              , arc c1 resRdfRest  c2
+              , arc c2 resRdfFirst b3
+              , arc c2 resRdfRest  resRdfNil
               , arc b1 p1 o1
               , arc b1 p2 o1
               , arc b2 p2 c3
               , arc b3 p1 o3
               , arc b3 p2 o3
 
-              , arc c3 res_rdf_first b4
-              , arc c3 res_rdf_rest  c4
-              , arc c4 res_rdf_first b5
-              , arc c4 res_rdf_rest  c5
-              , arc c5 res_rdf_first b6
-              , arc c5 res_rdf_rest  res_rdf_nil
+              , arc c3 resRdfFirst b4
+              , arc c3 resRdfRest  c4
+              , arc c4 resRdfFirst b5
+              , arc c4 resRdfRest  c5
+              , arc c5 resRdfFirst b6
+              , arc c5 resRdfRest  resRdfNil
               , arc b4 p1 o1
               , arc b4 p2 o1
               , arc b5 p1 o2
@@ -552,11 +591,11 @@ x16 = toGraph [ arc s1 res_rdf_first b1
 --  Troublesome example
 
 x17 :: RDFGraph
-x17 = toGraph [ arc s1 res_rdf_type  o1
-              , arc s1 res_rdf_first b1
-              , arc s1 res_rdf_rest  c1
-              , arc c1 res_rdf_first b2
-              , arc c1 res_rdf_rest  res_rdf_nil
+x17 = toGraph [ arc s1 resRdfType  o1
+              , arc s1 resRdfFirst b1
+              , arc s1 resRdfRest  c1
+              , arc c1 resRdfFirst b2
+              , arc c1 resRdfRest  resRdfNil
 
               , arc b1 p21 o2
               , arc b1 p22 c2
@@ -564,10 +603,10 @@ x17 = toGraph [ arc s1 res_rdf_type  o1
               , arc b2 p24 o3
               , arc b2 p25 l13
 
-              , arc c2 res_rdf_first b3
-              , arc c2 res_rdf_rest  c3
-              , arc c3 res_rdf_first l12
-              , arc c3 res_rdf_rest  res_rdf_nil
+              , arc c2 resRdfFirst b3
+              , arc c2 resRdfRest  c3
+              , arc c3 resRdfFirst l12
+              , arc c3 resRdfRest  resRdfNil
 
               , arc b3 p23 l11
               ]
@@ -576,36 +615,36 @@ x17 = toGraph [ arc s1 res_rdf_type  o1
 
 graph_c1, graph_c1rev, graph_c2, graph_c2rev,
   graph_c3 :: RDFGraph
-graph_c1    = toGraph [arc s1 p1 res_rdf_nil]
-graph_c1rev = toGraph [arc res_rdf_nil p1 o1]
+graph_c1    = toGraph [arc s1 p1 resRdfNil]
+graph_c1rev = toGraph [arc resRdfNil p1 o1]
 graph_c2    = toGraph [arc s1 p1 b1,
-                       arc b1 res_rdf_first l1,
-                       arc b1 res_rdf_rest b2,
-                       arc b2 res_rdf_first o2,
-                       arc b2 res_rdf_rest b3,
-                       arc b3 res_rdf_first l2,
-                       arc b3 res_rdf_rest b4,
-                       arc b4 res_rdf_first o3,
-                       arc b4 res_rdf_rest res_rdf_nil]
-graph_c2rev = toGraph [arc b1 res_rdf_first l1,
-                       arc b1 res_rdf_rest b2,
-                       arc b2 res_rdf_first o2,
-                       arc b2 res_rdf_rest b3,
-                       arc b3 res_rdf_first l2,
-                       arc b3 res_rdf_rest b4,
-                       arc b4 res_rdf_first o3,
-                       arc b4 res_rdf_rest res_rdf_nil,
+                       arc b1 resRdfFirst l1,
+                       arc b1 resRdfRest b2,
+                       arc b2 resRdfFirst o2,
+                       arc b2 resRdfRest b3,
+                       arc b3 resRdfFirst l2,
+                       arc b3 resRdfRest b4,
+                       arc b4 resRdfFirst o3,
+                       arc b4 resRdfRest resRdfNil]
+graph_c2rev = toGraph [arc b1 resRdfFirst l1,
+                       arc b1 resRdfRest b2,
+                       arc b2 resRdfFirst o2,
+                       arc b2 resRdfRest b3,
+                       arc b3 resRdfFirst l2,
+                       arc b3 resRdfRest b4,
+                       arc b4 resRdfFirst o3,
+                       arc b4 resRdfRest resRdfNil,
                        arc b1 p1 o1]
 graph_c3    = toGraph [arc s1 p1 b1,
-                       arc b1 res_rdf_first l1,
-                       arc b1 res_rdf_rest b2,
-                       arc b2 res_rdf_first o2,
-                       arc b2 res_rdf_rest b3,
-                       arc b3 res_rdf_first l2,
-                       arc b3 res_rdf_rest b4,
-                       arc b4 res_rdf_first o3,
-                       arc b4 res_rdf_rest res_rdf_nil,
-                       arc s1 p2 res_rdf_nil,
+                       arc b1 resRdfFirst l1,
+                       arc b1 resRdfRest b2,
+                       arc b2 resRdfFirst o2,
+                       arc b2 resRdfRest b3,
+                       arc b3 resRdfFirst l2,
+                       arc b3 resRdfRest b4,
+                       arc b4 resRdfFirst o3,
+                       arc b4 resRdfRest resRdfNil,
+                       arc s1 p2 resRdfNil,
                        arc s2 p2 o2]
 
 -- bnode graphs
@@ -625,11 +664,11 @@ graph_b3    = toRDFGraph [arc s1 p1 b1,
                           arc b1 o2 o3,
                           arc s1 p2 b2,
                           arc s2 p2 o2]
-graph_b4    = toRDFGraph [arc b1 res_rdf_type o1,
-                          arc b2 res_rdf_type o2]
-graph_b5    = toRDFGraph [arc b1 res_rdf_type o1,
+graph_b4    = toRDFGraph [arc b1 resRdfType o1,
+                          arc b2 resRdfType o2]
+graph_b5    = toRDFGraph [arc b1 resRdfType o1,
                           arc b2 p2 o2,
-                          arc b3 res_rdf_type o3]
+                          arc b3 resRdfType o3]
 
 -- datatype/literal graphs
 
@@ -656,7 +695,7 @@ graph_l3 =
   -}
   in toRDFGraph arcs
    
-graph_l4 = toGraph [ toRDFTriple s1 p1 "A string with \"quotes\""
+graph_l4 = toGraph [ toRDFTriple s1 p1 ("A string with \"quotes\"" :: RDFLabel)
                    , toRDFTriple s2 p2 (Lit "A typed string with \"quotes\"" (Just (fromString "urn:a#b")))
                    ]                    
                     
@@ -667,97 +706,91 @@ graph_l4 = toGraph [ toRDFTriple s1 p1 "A string with \"quotes\""
 --  These are very basic tests that confirm that output for a
 --  simple graph corresponds exactly to some supplied string.
 
-formatTest :: String -> RDFGraph -> String -> Test
+formatTest :: String -> RDFGraph -> B.Builder -> Test
 formatTest lab gr out =
     TestList
-      [ TestCase ( assertEqual ("formatTest:"++lab) out res )
+      [ TestCase ( assertEqual ("formatTest:"++lab) outTxt res )
       ]
     where
-      res = formatGraphAsStringNl gr
+      outTxt = B.toLazyText out
+      res = formatGraphAsLazyText gr
 
-diagTest :: String -> RDFGraph -> String -> Test
+diagTest :: String -> RDFGraph -> L.Text -> Test
 diagTest lab gr out =
     TestList
-      [ TestCase ( assertEqual ("diag:text:"++lab) out (res "") )
+      [ TestCase ( assertEqual ("diag:text:"++lab) out resTxt )
       , TestCase ( assertEqual ("diag:map:"++lab) emptyLookupMap nmap )
       , TestCase ( assertEqual ("diag:gen:"++lab) 0 ngen )
       , TestCase ( assertEqual ("diag:trc:"++lab) [] trc )
       ]
     where
-      (res,nmap,ngen,trc) = formatGraphDiag gr
+      (res,nmap,ngen,trc) = formatGraphDiag "\n" True gr
+      resTxt = B.toLazyText res
 
-mkPrefix :: String -> Namespace -> String
-mkPrefix lbl ns = "@prefix " ++ lbl ++ ": <" ++ nsURI ns ++ "> .\n"
+mkPrefix :: Namespace -> B.Builder
+mkPrefix = namespaceToBuilder
 
-prefixList :: [String]
+prefixList :: [B.Builder]
 prefixList = 
-  [ mkPrefix "base1" base1
-  , mkPrefix "base2" base2
-  , mkPrefix "base3" base3
-  , mkPrefix "base4" base4
-  , mkPrefix "rdf"   namespaceRDF
-  , mkPrefix "xsd"   namespaceXSD
+  [ mkPrefix base1
+  , mkPrefix base2
+  , mkPrefix base3
+  , mkPrefix base4
+  , mkPrefix namespaceRDF
+  , mkPrefix namespaceXSD
   ]
 
-commonPrefixes :: String
+commonPrefixesN :: [Int] -> B.Builder
+commonPrefixesN = mconcat . map (prefixList !!)
+
+commonPrefixes :: B.Builder
 commonPrefixes = commonPrefixesN [0..3]
 
-commonPrefixesN :: [Int] -> String
-commonPrefixesN = concatMap (prefixList !!)
-
-commonPrefixes21 :: String
-commonPrefixes21 = concatMap (prefixList !!) [1, 0]
-
-commonPrefixes321 :: String
-commonPrefixes321 = concatMap (prefixList !!) [2, 1, 0]
-
-commonPrefixes132 :: String
-commonPrefixes132 = concatMap (prefixList !!) [0, 2, 1]
+commonPrefixes21, commonPrefixes321, commonPrefixes132 :: B.Builder
+commonPrefixes21  = commonPrefixesN [1,0]
+commonPrefixes321 = commonPrefixesN [2,1,0]
+commonPrefixes132 = commonPrefixesN [0,2,1]
 
 --  Single statement using <uri> form
 
-simpleN3Graph_g1_01 :: String
+simpleN3Graph_g1_01 :: B.Builder
 simpleN3Graph_g1_01 =
-    "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> " ++
-    "<http://id.ninebynine.org/wip/2003/test/graph1/node#p1> " ++
-    "<http://id.ninebynine.org/wip/2003/test/graph1/node#o1> .\n"
+  "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> <http://id.ninebynine.org/wip/2003/test/graph1/node#p1> <http://id.ninebynine.org/wip/2003/test/graph1/node#o1> .\n"
 
 --  Single statement using prefix:name form
-simpleN3Graph_g1_02 :: String
+simpleN3Graph_g1_02 :: B.Builder
 simpleN3Graph_g1_02 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "base1:s1 base1:p1 base1:o1 .\n"
 
 --  Single blank node
-simpleN3Graph_g1_03 :: String
+simpleN3Graph_g1_03 :: B.Builder
 simpleN3Graph_g1_03 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "[\n base1:p1 base1:o1\n] .\n"
-    -- "_:b1 base1:p1 base1:o1 .\n"
 
 --  Single auto-allocated blank node
-simpleN3Graph_g1_04 :: String
+simpleN3Graph_g1_04 :: B.Builder
 simpleN3Graph_g1_04 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "[\n base1:p1 base1:o1\n] .\n"
-    -- "_:_1 base1:p1 base1:o1 .\n"
 
 --  Single literal object
-simpleN3Graph_g1_05 :: String
+simpleN3Graph_g1_05 :: B.Builder
 simpleN3Graph_g1_05 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "base1:s1 base1:p1 \"l1\" .\n"
 
 --  Single multiline literal object
-simpleN3Graph_g1_06 :: String
+simpleN3Graph_g1_06 :: B.Builder
 simpleN3Graph_g1_06 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "base1:s1 base1:p1 \"l2-'\\\"line1\\\"'\\n\\nl2-'\\\"\\\"line2\\\"\\\"'\" .\n"
 
 -- this 'round trips' into a triple-quoted string
-simpleN3Graph_g1_06_rt :: String
+simpleN3Graph_g1_06_rt :: B.Builder
 simpleN3Graph_g1_06_rt =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "base1:s1 base1:p1 \"\"\"l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'\"\"\" .\n"
 
 {-
@@ -773,39 +806,57 @@ simpleN3Graph_g1_07 =
 -}
 
 --  Single statement with formula blank node
-simpleN3Graph_g1_08 :: String
+simpleN3Graph_g1_08 :: B.Builder
 simpleN3Graph_g1_08 =
-    commonPrefixes ++
-    "base1:s1 base1:p1  { \n"++
-    "    base1:s1 base1:p1 base1:o1\n"++
-    " }  .\n"
-    
+  mconcat
+  [ commonPrefixes
+  , "base1:s1 base1:p1  { \n"
+  , "    base1:s1 base1:p1 base1:o1\n"
+  , " }  .\n"
+  ]
+  
 --  Three blank nodes (or is that blind mice?)
-simpleN3Graph_g1_09 :: String
+simpleN3Graph_g1_09 :: B.Builder
 simpleN3Graph_g1_09 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "[\n _:b2 []\n] .\n"
-    -- "_:b1 _:b2 _:b3 .\n"
 
 --  Simple nested formula case
-simpleN3Graph_g1_10 :: String
+simpleN3Graph_g1_10 :: B.Builder
 simpleN3Graph_g1_10 =
-    commonPrefixes ++
-    "base1:s1 base1:p1  { \n"           ++
-    "    base1:s1 base1:p1  { \n"       ++
-    "        base1:s1 base1:p1 base1:o1\n" ++
-    "     } \n"                          ++
-    " }  .\n"
+  mconcat
+  [ commonPrefixes 
+  , "base1:s1 base1:p1  { \n"           
+  , "    base1:s1 base1:p1  { \n"       
+  , "        base1:s1 base1:p1 base1:o1\n" 
+  , "     } \n"                          
+  , " }  .\n"
+  ]
+
+-- try out URIs that do not use the http scheme
+simpleN3Graph_g1_fu1 :: B.Builder
+simpleN3Graph_g1_fu1 =
+  mconcat
+  [ "@prefix me: <http://example.com/ns#> .\n"
+  , "@prefix : <file:///home/swish/photos/> .\n"
+  -- , ":me.png me:depicts me:me ;\n"
+  , "<file:///home/swish/photos/me.png> me:depicts me:me ;\n"
+  , "     me:hasURN <urn:one:two:3.14> .\n"
+  ]
 
 {-
 Simple troublesome case
 -}
     
-simpleN3Graph_x13a :: String
+simpleN3Graph_x13a :: B.Builder
 simpleN3Graph_x13a =
-    commonPrefixes ++
-    "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> " ++ b1s ++ " ;\n"++
-    "         <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( " ++ b2s ++ " " ++ b3s ++ " ) .\n"
+  mconcat
+  [ commonPrefixes 
+  , "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> " 
+  , b1s
+  , " ;\n"
+  , "     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( ", b2s, " ", b3s, " ) .\n"
+  ]
     where
       b1s = "[\n base1:p1 base1:o1\n]"
       b2s = "[\n base1:p1 base2:o2\n]"
@@ -816,108 +867,127 @@ Simple collection tests; may replicate some of the
 previous tests.
 -}
 
-simpleN3Graph_c1 :: String
+simpleN3Graph_c1 :: B.Builder
 simpleN3Graph_c1 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "base1:s1 base1:p1 () .\n"
 
-simpleN3Graph_c1rev :: String
+simpleN3Graph_c1rev :: B.Builder
 simpleN3Graph_c1rev =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "() base1:p1 base1:o1 .\n"
 
-collItems :: String
-collItems = "( \"l1\" base2:o2 \"\"\"" ++ l2txt ++ "\"\"\" base3:o3 )"
+collItems :: B.Builder
+collItems = 
+  mconcat
+  [ "( \"l1\" base2:o2 \"\"\""
+  , l2txt
+  , "\"\"\" base3:o3 )" ]
 
-simpleN3Graph_c2 :: String
+simpleN3Graph_c2 :: B.Builder
 simpleN3Graph_c2 =
-    commonPrefixes ++
-    "base1:s1 base1:p1 " ++ collItems ++ " .\n"
+  mconcat
+  [ commonPrefixes
+  , "base1:s1 base1:p1 "
+  , collItems
+  , " .\n" ]
 
-simpleN3Graph_c2rev :: String
+simpleN3Graph_c2rev :: B.Builder
 simpleN3Graph_c2rev =
-    commonPrefixes ++
-    collItems ++ " base1:p1 base1:o1 .\n"
+    mconcat
+    [ commonPrefixes 
+    , collItems, " base1:p1 base1:o1 .\n" ]
 
-simpleN3Graph_c3 :: String
+simpleN3Graph_c3 :: B.Builder
 simpleN3Graph_c3 =
-    commonPrefixes ++
-    "base1:s1 base1:p1 " ++ collItems ++ " ;\n" ++
-    "         base2:p2 () .\n" ++
-    "base2:s2 base2:p2 base2:o2 .\n"
+  mconcat
+  [ commonPrefixes
+  , "base1:s1 base1:p1 ", collItems, " ;\n"
+  , "     base2:p2 () .\n"
+  , "base2:s2 base2:p2 base2:o2 .\n" ]
 
 {-
 Simple bnode tests; may replicate some of the
 previous tests.
 -}
 
-simpleN3Graph_b1 :: String
+simpleN3Graph_b1 :: B.Builder
 simpleN3Graph_b1 =
-    head prefixList ++
+    commonPrefixesN [0] `mappend`
     "base1:s1 base1:p1 [] .\n"
 
-simpleN3Graph_b1rev :: String
+simpleN3Graph_b1rev :: B.Builder
 simpleN3Graph_b1rev =
-    head prefixList ++
-    "[\n base1:p1 base1:o1\n] .\n"
+  commonPrefixesN [0] `mappend`
+  "[\n base1:p1 base1:o1\n] .\n"
 
-simpleN3Graph_b2 :: String
+simpleN3Graph_b2 :: B.Builder
 simpleN3Graph_b2 =
-    commonPrefixesN [2,1,0] ++
-    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+  commonPrefixesN [2,1,0] `mappend`
+  "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
-simpleN3Graph_b2rev :: String
+simpleN3Graph_b2rev :: B.Builder
 simpleN3Graph_b2rev =
-    commonPrefixesN [0,2,1] ++
-    "[\n base1:p1 base1:o1 ;\n base2:o2 base3:o3 ;\n base2:p2 \"l1\"\n] .\n"
+  commonPrefixesN [0,2,1] `mappend`
+  "[\n base1:p1 base1:o1 ;\n     base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
-simpleN3Graph_b3 :: String
+simpleN3Graph_b3 :: B.Builder
 simpleN3Graph_b3 =
-    commonPrefixesN [2,1,0] ++
-    "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n base2:p2 \"\"\"" ++ l2txt ++ "\"\"\"\n] ;\n" ++
-    "         base2:p2 [] .\n" ++
-    "base2:s2 base2:p2 base2:o2 .\n"
+  mconcat
+  [ commonPrefixesN [2,1,0]
+  , "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"", l2txt, "\"\"\"\n] ;\n"
+  , "     base2:p2 [] .\n"
+  , "base2:s2 base2:p2 base2:o2 .\n" ]
 
-simpleN3Graph_b4 :: String
+simpleN3Graph_b4 :: B.Builder
 simpleN3Graph_b4 =
-  commonPrefixesN [1,0,4] ++
-  "[\n a base1:o1\n] .\n" ++ 
-  "[\n a base2:o2\n] .\n"
+  mconcat
+  [ commonPrefixesN [1,0,4]
+  , "[\n a base1:o1\n] .\n"
+  , "[\n a base2:o2\n] .\n" ]
 
-simpleN3Graph_b5 :: String
+simpleN3Graph_b5 :: B.Builder
 simpleN3Graph_b5 =
-  commonPrefixesN [2,1,0,4] ++
-  "[\n a base1:o1\n] .\n" ++ 
-  "[\n base2:p2 base2:o2\n] .\n" ++
-  "[\n a base3:o3\n] .\n"
+  mconcat
+  [ commonPrefixesN [2,1,0,4]
+  , "[\n a base1:o1\n] .\n"
+  , "[\n base2:p2 base2:o2\n] .\n"
+  , "[\n a base3:o3\n] .\n" ]
 
 {-
 Simple datatype/language tests; may replicate some of the
 previous tests.
 -}
-simpleN3Graph_l1 :: String
+simpleN3Graph_l1 :: B.Builder
 simpleN3Graph_l1 =
-  commonPrefixes ++
+  commonPrefixes `mappend`
   "base1:s1 base1:p1 \"chat et chien\"@fr .\n"
   
-simpleN3Graph_l2 :: String
+simpleN3Graph_l2 :: B.Builder
 simpleN3Graph_l2 =
-  commonPrefixes ++
+  commonPrefixes `mappend`
   "base1:s1 base1:p1 \"foo bar\"^^base1:o1 .\n"
   
-simpleN3Graph_l3 :: String
+simpleN3Graph_l3 :: B.Builder
 simpleN3Graph_l3 =
-  commonPrefixesN [5,0] ++
-  "\n" ++ -- TODO: why do we need this newline?
-  "base1:s1 base1:p1 \"2.34E1\"^^xsd:float,\n" ++ 
+  mconcat
+  [ commonPrefixesN [5,0]
+  , "\n" -- TODO: why do we need this newline?
+  , "base1:s1 base1:p1 \"2.34E1\"^^xsd:float,\n"
+  , "     -2.304e-108,\n" 
+  , "     12,     true .\n" ]
+
+{-
   "                  -2.304e-108,\n" ++ 
   "                  12,                  true .\n"
+-}
 
-simpleN3Graph_l4 :: String
+simpleN3Graph_l4 :: B.Builder
 simpleN3Graph_l4 =
-  commonPrefixes ++
-  "base1:s1 base1:p1 \"\"\"A string with \"quotes\\\"\"\"\" .\n" ++
-  "base2:s2 base2:p2 \"\"\"A typed string with \"quotes\\\"\"\"\"^^<urn:a#b> .\n"
+  mconcat 
+  [ commonPrefixes
+  , "base1:s1 base1:p1 \"\"\"A string with \"quotes\\\"\"\"\" .\n" 
+  , "base2:s2 base2:p2 \"\"\"A typed string with \"quotes\\\"\"\"\"^^<urn:a#b> .\n" ]
 
 trivialTestSuite :: Test
 trivialTestSuite = TestList
@@ -932,6 +1002,7 @@ trivialTestSuite = TestList
  , formatTest "trivialTest09" g1b3 simpleN3Graph_g1_09
  , formatTest "trivialTest10" g1f3 simpleN3Graph_g1_10
  , formatTest "trivialTest13a" x13a simpleN3Graph_x13a
+ , formatTest "trivialTestfu1" g1fu1 simpleN3Graph_g1_fu1
 
  , formatTest "trivialTestc1" graph_c1 simpleN3Graph_c1
  , formatTest "trivialTestc2" graph_c2 simpleN3Graph_c2
@@ -962,16 +1033,16 @@ trivialTestSuite = TestList
 --  Parser tests to cross-check round-trip testing
 ------------------------------------------------------------
 
-parseTest :: String -> String -> RDFGraph -> String -> Test
+parseTest :: String -> B.Builder -> RDFGraph -> String -> Test
 parseTest lab inp gr er =
     TestList
       [ TestCase ( assertEqual ("parseTestError:"++lab) er pe )
       , TestCase ( assertEqual ("parseTestGraph:"++lab) gr pg )
       ]
     where
-        (pe,pg) = case parseN3fromString inp of
-            Right g -> ("",g)
-            Left  s -> (s,emptyRDFGraph)
+        (pe,pg) = case parseN3 (B.toLazyText inp) Nothing of
+            Right g -> ("", g)
+            Left  s -> (s, emptyRDFGraph)
 
 noError, errorText :: String
 noError   = ""
@@ -1007,15 +1078,15 @@ roundTripTest lab gr =
       -- , TestCase ( assertEqual ("Formatted:"++lab) "" out )
       ]
     where
-        out     = formatGraphAsString gr
-        (pe,pg) = case parseN3fromString out of
+        out     = formatGraphAsLazyText gr
+        (pe,pg) = case parseN3 out Nothing of
             Right g -> ("", g)
             Left  s -> (s, mempty)
 
 --  Full round trip from graph source.  This test may pick up some errors
 --  the bnode generation logic that are not tested by hand-assembled graph
 --  data structures.
-fullRoundTripTest :: String -> String -> Test
+fullRoundTripTest :: String -> B.Builder -> Test
 fullRoundTripTest lab grstr =
     TestList
       [ TestCase ( assertEqual ("FullRoundTrip:gr:"++lab) gr pg )
@@ -1023,13 +1094,16 @@ fullRoundTripTest lab grstr =
       -- , TestCase ( assertEqual ("FullRoundTrip:"++lab) "" out )
       ]
     where
-        (_,gr) = case parseN3fromString grstr of
-            Right g -> ("", g)
-            Left  s -> (s, mempty)
-        out     = formatGraphAsString gr
-        (pe,pg) = case parseN3fromString out of
-            Right g -> ("", g)
-            Left  s -> (s, mempty)
+      grtxt = B.toLazyText grstr
+      
+      (_,gr) = case parseN3 grtxt Nothing of
+        Right g -> ("", g)
+        Left  s -> (s, mempty)
+        
+      out     = formatGraphAsLazyText gr
+      (pe,pg) = case parseN3 out Nothing of
+        Right g -> ("", g)
+        Left  s -> (s, mempty)
 
 roundTripTestSuite :: Test
 roundTripTestSuite = TestList
@@ -1055,6 +1129,7 @@ roundTripTestSuite = TestList
   , fullRoundTripTest "16rt" simpleN3Graph_g1_06_rt
     -- roundTripTest17 = fullRoundTripTest "17" simpleN3Graph_g1_07 -- TODO: :- with named node for formula
   , fullRoundTripTest "18" simpleN3Graph_g1_08
+  , fullRoundTripTest "fu1" simpleN3Graph_g1_fu1
   
   , fullRoundTripTest "l1"    simpleN3Graph_l1
   , fullRoundTripTest "l2"    simpleN3Graph_l2
@@ -1108,46 +1183,49 @@ exoticTest lab gr =
       -- , TestCase ( assertEqual ("ExoticTest:"++lab)    "" out )
       ]
     where
-        out     = formatGraphAsString gr
-        (pe,pg) = case parseN3fromString out of
-            Right g -> ("",g)
-            Left  s -> (s,emptyRDFGraph)
+        out     = formatGraphAsLazyText gr
+        (pe,pg) = case parseN3 out Nothing of
+            Right g -> ("", g)
+            Left  s -> (s, mempty)
 
 --  Simple anon nodes, with semicolons and commas
-exoticN3Graph_x1 :: String
+exoticN3Graph_x1 :: B.Builder
 exoticN3Graph_x1 =
-    commonPrefixes ++
-    " [ base1:p1 base1:o1 ; \n" ++
-    "   base1:p1 base2:o2 ; \n" ++
-    "   base2:p2 base2:o2 ; \n" ++
-    "   base2:p2 base3:o3 ] = base1:s1 . \n" ++
-    " base2:s2 = \n" ++
-    " [ base1:p1 base1:o1 , \n" ++
-    "   base2:o2 , \n" ++
-    "   base3:o3 , \n" ++
-    "   \"l1\"   ; \n" ++
-    "   base2:p2 base1:o1 , \n" ++
-    "            base2:o2 , \n" ++
-    "            base3:o3 , \n" ++
-    "            \"\"\"" ++ l2txt ++ "\"\"\"   ] . \n"
+  mconcat
+  [ commonPrefixes
+  , " [ base1:p1 base1:o1 ; \n"
+  , "   base1:p1 base2:o2 ; \n"
+  , "   base2:p2 base2:o2 ; \n"
+  , "   base2:p2 base3:o3 ] = base1:s1 . \n"
+  , " base2:s2 = \n"
+  , " [ base1:p1 base1:o1 , \n"
+  , "   base2:o2 , \n"
+  , "   base3:o3 , \n"
+  , "   \"l1\"   ; \n"
+  , "   base2:p2 base1:o1 , \n"
+  , "            base2:o2 , \n"
+  , "            base3:o3 , \n"
+  , "            \"\"\"", l2txt, "\"\"\"   ] . \n"
+  ]
 
 --  Simple anon nodes, with 'is ... of' and semicolons and commas
-exoticN3Graph_x2 :: String
+exoticN3Graph_x2 :: B.Builder
 exoticN3Graph_x2 =
-    commonPrefixes ++
-    " [ @has base1:p1     base1:o1 ; \n" ++
-    "   @is  base1:p1 @of base2:o2 ; \n" ++
-    "   @has base2:p2     base2:o2 ; \n" ++
-    "   @is  base2:p2 @of base3:o3 ] = base1:s1 . \n" ++
-    " base2:s2 = \n" ++
-    " [ @has base1:p1 base1:o1 , \n" ++
-    "                 base2:o2 , \n" ++
-    "                 base3:o3 , \n" ++
-    "                 \"l1\"   ; \n" ++
-    "   @is  base2:p2 @of base1:o1 , \n" ++
-    "                     base2:o2 , \n" ++
-    "                     base3:o3 ] . \n"
-    -- "                   \"l1\"   ] . \n"
+  mconcat
+  [ commonPrefixes
+  , " [ @has base1:p1     base1:o1 ; \n"
+  , "   @is  base1:p1 @of base2:o2 ; \n"
+  , "   @has base2:p2     base2:o2 ; \n"
+  , "   @is  base2:p2 @of base3:o3 ] = base1:s1 . \n"
+  , " base2:s2 = \n"
+  , " [ @has base1:p1 base1:o1 , \n"
+  , "                 base2:o2 , \n"
+  , "                 base3:o3 , \n"
+  , "                 \"l1\"   ; \n"
+  , "   @is  base2:p2 @of base1:o1 , \n"
+  , "                     base2:o2 , \n"
+  , "                     base3:o3 ] . \n"
+  ]
 
 --  Simple anon nodes, attached to identified node
 {-
@@ -1171,14 +1249,14 @@ exoticN3Graph_x3 =
 
 --  List nodes, with and without :-
 
-exoticN3Graph_x4 :: String
+exoticN3Graph_x4 :: B.Builder
 exoticN3Graph_x4 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "base1:s1 = ( base1:o1 base2:o2 base3:o3 \"l1\" ) .\n"
 
-exoticN3Graph_x5 :: String
+exoticN3Graph_x5 :: B.Builder
 exoticN3Graph_x5 =
-    commonPrefixes ++
+    commonPrefixes `mappend`
     "( base1:o1 base2:o2 base3:o3 \"l1\" ) = base1:s1 .\n"
 
 {-
@@ -1189,24 +1267,28 @@ exoticN3Graph_x6 =
 
 --  Formula nodes
 
-exoticN3Graph_x7 :: String
+exoticN3Graph_x7 :: B.Builder
 exoticN3Graph_x7 =
-    commonPrefixes ++
-    " { \n" ++
-    "    base1:s1 base1:p1 base1:o1 .\n" ++
-    "    base2:s2 base1:p1 base2:o2 .\n" ++
-    "    base3:s3 base1:p1 base3:o3\n" ++
-    " }  base2:p2 base2:f2 .\n"
-
+  mconcat
+  [ commonPrefixes
+  , " { \n"
+  , "    base1:s1 base1:p1 base1:o1 .\n"
+  , "    base2:s2 base1:p1 base2:o2 .\n"
+  , "    base3:s3 base1:p1 base3:o3\n"
+  , " }  base2:p2 base2:f2 .\n"
+  ]
+  
 -- as above with the trailing . in the formula
-exoticN3Graph_x7a :: String
+exoticN3Graph_x7a :: B.Builder
 exoticN3Graph_x7a =
-    commonPrefixes ++
-    " { \n" ++
-    "    base1:s1 base1:p1 base1:o1 .\n" ++
-    "    base2:s2 base1:p1 base2:o2 .\n" ++
-    "    base3:s3 base1:p1 base3:o3 .\n" ++
-    " }  base2:p2 base2:f2 ."
+  mconcat 
+  [ commonPrefixes 
+  , " { \n"
+  , "    base1:s1 base1:p1 base1:o1 .\n"
+  , "    base2:s2 base1:p1 base2:o2 .\n"
+  , "    base3:s3 base1:p1 base3:o3 .\n"
+  , " }  base2:p2 base2:f2 ."
+  ]
 
 {-
 exoticN3Graph_x8 =
@@ -1227,14 +1309,16 @@ exoticN3Graph_x9 =
 -}
 
 --  Test allocation of bnodes over a nested formula
-exoticN3Graph_x12 :: String
+exoticN3Graph_x12 :: B.Builder
 exoticN3Graph_x12 =
-    commonPrefixes ++
-    " base1:s1 base1:p1 [ base1:p1 base1:o1 ] .     \n" ++
-    " { base2:s2 base2:p2 [ base2:p2 base2:o2 ] . } \n" ++
-    "            base2:p2 base2:f2 .                \n" ++
-    " base3:s3 base3:p3 [ base3:p3 base3:o3 ] ."
-
+  mconcat
+  [ commonPrefixes
+  , " base1:s1 base1:p1 [ base1:p1 base1:o1 ] .     \n"
+  , " { base2:s2 base2:p2 [ base2:p2 base2:o2 ] . } \n"
+  , "            base2:p2 base2:f2 .                \n"
+  , " base3:s3 base3:p3 [ base3:p3 base3:o3 ] ."
+  ]
+  
 --  List of bnodes
 {-
 exoticN3Graph_x13 =
@@ -1267,14 +1351,16 @@ exoticN3Graph_x14 =
     "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
     "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
 -}
-exoticN3Graph_x14 :: String
+exoticN3Graph_x14 :: B.Builder
 exoticN3Graph_x14 =
-    commonPrefixes ++
-    " base1:s1 = \n" ++
-    "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n" ++
-    "    [base1:p1 base2:o2; base2:p2 base2:o2] \n" ++
-    "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
-
+  mconcat
+  [ commonPrefixes
+  , " base1:s1 = \n"
+  , "  ( [base1:p1 base1:o1; base2:p2 base1:o1] \n"
+  , "    [base1:p1 base2:o2; base2:p2 base2:o2] \n"
+  , "    [base1:p1 base3:o3; base2:p2 base3:o3] ) .\n"
+  ]
+  
 --  List with nested list
 {-
 exoticN3Graph_x15 =

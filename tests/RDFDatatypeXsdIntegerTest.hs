@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains test cases for variable binding values and
 --  variable binding modifier values.
@@ -25,23 +27,15 @@ import Swish.RDF.RDFDatatypeXsdInteger
     , prefixXsdInteger
     )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding )
+import Swish.RDF.RDFVarBinding (RDFVarBinding)
 
 import Swish.RDF.RDFRuleset
     ( RDFRule 
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     )
 
-import Swish.RDF.RDFDatatype
-    ( RDFDatatypeMod
-    , applyRDFDatatypeMod
-    )
-
-import Swish.RDF.RDFGraph
-    ( RDFLabel(..), RDFGraph
-    )
-
+import Swish.RDF.RDFDatatype (RDFDatatypeMod, applyRDFDatatypeMod)
+import Swish.RDF.RDFGraph (RDFLabel(..), RDFGraph)
 import Swish.RDF.ClassRestrictionRule (falseGraphStr)
 
 import Swish.RDF.Datatype
@@ -54,33 +48,13 @@ import Swish.RDF.Datatype
     , nullDatatypeMod
     )
 
-import Swish.RDF.Ruleset
-    ( Ruleset(..)
-    , getRulesetRule
-    )
-
-import Swish.RDF.Rule
-    ( Formula(..), Rule(..)
-    , nullFormula, nullRule
-    )
-
+import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
+import Swish.RDF.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.RDF.VarBinding (makeVarBinding)
-
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..)
-    , makeScopedName
-    )
-
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), makeScopedName)
 import Swish.RDF.Vocabulary (namespaceDefault)
-
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , mapFindMaybe
-    )
-
-import Swish.Utils.ListHelpers
-    ( equiv )
+import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
+import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -89,10 +63,15 @@ import Test.HUnit
     , runTestTT
     )
 
+import Network.URI (URI, parseURI)
+
 import Control.Monad (unless)
+import Data.Monoid (Monoid(..))
+import Data.Maybe (isJust, isNothing, fromMaybe, fromJust)
+import Data.List (intersperse)
 
-import Data.Maybe (isJust, isNothing, fromMaybe)
-
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -179,30 +158,33 @@ testMaybeEqv lab a1 a2 =
 --  Misc values
 ------------------------------------------------------------
 
-xsd_int_name :: String -> ScopedName
-xsd_int_name = ScopedName namespaceXsdInteger 
+toURI :: String -> URI
+toURI = fromJust . parseURI
+
+xsdIntName :: T.Text -> ScopedName
+xsdIntName = ScopedName namespaceXsdInteger 
 
 axiomXsdIntegerDT :: ScopedName
-axiomXsdIntegerDT       = xsd_int_name "dt"
+axiomXsdIntegerDT       = xsdIntName "dt"
 
 ruleXsdIntegerAbs, ruleXsdIntegerNeg, ruleXsdIntegerSum,
   ruleXsdIntegerDiff, ruleXsdIntegerProd, ruleXsdIntegerDivMod,
   ruleXsdIntegerPower, ruleXsdIntegerEq, ruleXsdIntegerNe, 
   ruleXsdIntegerLt, ruleXsdIntegerLe, ruleXsdIntegerGt,
   ruleXsdIntegerGe :: ScopedName
-ruleXsdIntegerAbs       = xsd_int_name "Abs"
-ruleXsdIntegerNeg       = xsd_int_name "Neg"
-ruleXsdIntegerSum       = xsd_int_name "Sum"
-ruleXsdIntegerDiff      = xsd_int_name "Diff"
-ruleXsdIntegerProd      = xsd_int_name "Prod"
-ruleXsdIntegerDivMod    = xsd_int_name "DivMod"
-ruleXsdIntegerPower     = xsd_int_name "Power"
-ruleXsdIntegerEq        = xsd_int_name "Eq"
-ruleXsdIntegerNe        = xsd_int_name "Ne"
-ruleXsdIntegerLt        = xsd_int_name "Lt"
-ruleXsdIntegerLe        = xsd_int_name "Le"
-ruleXsdIntegerGt        = xsd_int_name "Gt"
-ruleXsdIntegerGe        = xsd_int_name "Ge"
+ruleXsdIntegerAbs       = xsdIntName "Abs"
+ruleXsdIntegerNeg       = xsdIntName "Neg"
+ruleXsdIntegerSum       = xsdIntName "Sum"
+ruleXsdIntegerDiff      = xsdIntName "Diff"
+ruleXsdIntegerProd      = xsdIntName "Prod"
+ruleXsdIntegerDivMod    = xsdIntName "DivMod"
+ruleXsdIntegerPower     = xsdIntName "Power"
+ruleXsdIntegerEq        = xsdIntName "Eq"
+ruleXsdIntegerNe        = xsdIntName "Ne"
+ruleXsdIntegerLt        = xsdIntName "Lt"
+ruleXsdIntegerLe        = xsdIntName "Le"
+ruleXsdIntegerGt        = xsdIntName "Gt"
+ruleXsdIntegerGe        = xsdIntName "Ge"
 
 ------------------------------------------------------------
 --  Basic rdfDatatypeXsdInteger tests
@@ -280,19 +262,19 @@ dmodXsdIntegerAbs, dmodXsdIntegerNeg, dmodXsdIntegerSum,
   dmodXsdIntegerLt, dmodXsdIntegerLe, dmodXsdIntegerGt, 
   dmodXsdIntegerGe :: ScopedName
 
-dmodXsdIntegerAbs    = xsd_int_name "abs"
-dmodXsdIntegerNeg    = xsd_int_name "neg"
-dmodXsdIntegerSum    = xsd_int_name "sum"
-dmodXsdIntegerDiff   = xsd_int_name "diff"
-dmodXsdIntegerProd   = xsd_int_name "prod"
-dmodXsdIntegerDivMod = xsd_int_name "divmod"
-dmodXsdIntegerPower  = xsd_int_name "power"
-dmodXsdIntegerEq     = xsd_int_name "eq"
-dmodXsdIntegerNe     = xsd_int_name "ne"
-dmodXsdIntegerLt     = xsd_int_name "lt"
-dmodXsdIntegerLe     = xsd_int_name "le"
-dmodXsdIntegerGt     = xsd_int_name "gt"
-dmodXsdIntegerGe     = xsd_int_name "ge"
+dmodXsdIntegerAbs    = xsdIntName "abs"
+dmodXsdIntegerNeg    = xsdIntName "neg"
+dmodXsdIntegerSum    = xsdIntName "sum"
+dmodXsdIntegerDiff   = xsdIntName "diff"
+dmodXsdIntegerProd   = xsdIntName "prod"
+dmodXsdIntegerDivMod = xsdIntName "divmod"
+dmodXsdIntegerPower  = xsdIntName "power"
+dmodXsdIntegerEq     = xsdIntName "eq"
+dmodXsdIntegerNe     = xsdIntName "ne"
+dmodXsdIntegerLt     = xsdIntName "lt"
+dmodXsdIntegerLe     = xsdIntName "le"
+dmodXsdIntegerGt     = xsdIntName "gt"
+dmodXsdIntegerGe     = xsdIntName "ge"
 
 testVmodN :: [RDFLabel]
     -> String -> Maybe (RDFDatatypeMod Integer)
@@ -321,10 +303,10 @@ rdfVB :: (String, String) -> (RDFLabel, RDFLabel)
 rdfVB (v,b) = (Var v,Blank b)                   -- (Variable,Blank)
 
 rdfVL :: (String, String) -> (RDFLabel, RDFLabel)
-rdfVL (v,l) = (Var v,Lit l Nothing)             -- (Variable,Untyped literal)
+rdfVL (v,l) = (Var v,Lit (T.pack l) Nothing)             -- (Variable,Untyped literal)
 
 rdfVI :: (String, String) -> (RDFLabel, RDFLabel)
-rdfVI (v,l) = (Var v,Lit l (Just typeNameXsdInteger))
+rdfVI (v,l) = (Var v,Lit (T.pack l) (Just typeNameXsdInteger))
                                                 -- (Variable,Integer literal)
 
 makeBVR :: [(String,ScopedName)] -> RDFVarBinding
@@ -395,7 +377,7 @@ testVarModifyAbs08 = testVmod2  "testVarModifyAbs08"
 
 testVarModifyAbs09 = testVmod2  "testVarModifyAbs09"
                     (getDTMod dmodXsdIntegerAbs rdfDatatypeValXsdInteger)
-                    [makeBVR [("b",makeScopedName "" "http://ex.org/" "123")]]
+                    [makeBVR [("b",makeScopedName Nothing (toURI "http://ex.org/") "123")]]
                     []
 
 testVarModifyAbs10 = testVmod2  "testVarModifyAbs10"
@@ -844,12 +826,13 @@ testVarModifySuite = TestList
 --  Test rules defined for datatype
 ------------------------------------------------------------
 
-mkGraph :: String -> RDFGraph
-mkGraph grstr = makeRDFGraphFromN3String (prefixXsdInteger++base++grstr)
-    where
-        base = "@prefix : <"++nsURI namespaceDefault++"> . \n"
+mkGraph :: B.Builder -> RDFGraph
+mkGraph gr = 
+  let base = "@prefix : <" `mappend` (ns `mappend` "> . \n")
+      ns = B.fromString $ show $ nsURI namespaceDefault
+  in makeRDFGraphFromN3Builder (prefixXsdInteger `mappend` (base `mappend` gr))
 
-testRuleFwd :: String -> Maybe (Rule RDFGraph) -> String -> [String] -> Test
+testRuleFwd :: String -> Maybe (Rule RDFGraph) -> B.Builder -> [B.Builder] -> Test
 testRuleFwd lab (Just rule) antstr constrs =
     let
         antgr  = mkGraph antstr
@@ -859,7 +842,7 @@ testRuleFwd lab (Just rule) antstr constrs =
 testRuleFwd lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleFwd:"++lab++", null rule supplied"
 
-testRuleBwd :: String -> Maybe (Rule RDFGraph) -> String -> [[String]] -> Test
+testRuleBwd :: String -> Maybe (Rule RDFGraph) -> B.Builder -> [[B.Builder]] -> Test
 testRuleBwd lab (Just rule) antstr prestrss =
     let
         antgr   = mkGraph antstr
@@ -869,6 +852,7 @@ testRuleBwd lab (Just rule) antstr prestrss =
 testRuleBwd lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleBwd:"++lab++", null rule supplied"
 
+{-
 testRuleChk :: String -> Maybe (Rule RDFGraph) -> String -> String -> Test
 testRuleChk lab (Just rule) antstr constr =
     let
@@ -878,6 +862,7 @@ testRuleChk lab (Just rule) antstr constr =
         test lab $ checkInference rule [antgr] congr
 testRuleChk lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleChk:"++lab++", null rule supplied"
+-}
 
 xsdIntRules :: Ruleset RDFGraph
 xsdIntRules = typeRules rdfDatatypeXsdInteger
@@ -906,114 +891,58 @@ rulege      = getRulesetRule  ruleXsdIntegerGe       xsdIntRules
 
 -- Test cases for the arithmetic functions
 
+-- don't want to use text-format at present
+qconv :: (Show a) => a -> B.Builder
+qconv = B.fromString . show
+
 -- abs
 
-abs01inp :: String
-abs01inp =
-        "_:a a xsd_integer:Abs ; "
-    +++ "  rdf:_2 \"1\"^^xsd:integer . "
+-- assume that vals is not empty
+multiInp :: B.Builder -> [(Int, Int)] -> B.Builder
+multiInp lbl vals = 
+  let iConv (lval, val) = 
+        mconcat
+        [
+          "  rdf:_", qconv lval, " \"", qconv val, "\"^^xsd:integer "
+        ]
+        
+  in mconcat $
+     [ "_:a a xsd_integer:"
+     , lbl
+     , " ;"
+     ] ++ intersperse ";" (map iConv vals) ++ ["."]
+  
+singleInp :: B.Builder -> Int -> Int -> B.Builder
+singleInp lbl lval val = multiInp lbl [(lval, val)]
+
+abs01inp, abs02inp, abs03inp, abs04inp :: B.Builder
+abs01inp = singleInp "Abs" 2 1
+abs02inp = singleInp "Abs" 2 (-1)
+abs03inp = singleInp "Abs" 1 1
+abs04inp = singleInp "Abs" 1 (-1)
     
-abs01fwd :: [String]
-abs01fwd =
-    [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
-
-abs01bwd :: [[String]]
-abs01bwd = []
-
-abs02inp :: String
-abs02inp =
-        "_:a a xsd_integer:Abs ; "
-    +++ "  rdf:_2 \"-1\"^^xsd:integer . "
-    
-abs02fwd :: [String]
-abs02fwd =
-    [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
-
-abs02bwd :: [[String]]
-abs02bwd =
-    []
-
-abs03inp :: String
-abs03inp =
-        "_:a a xsd_integer:Abs ; "
-    +++ "  rdf:_1 \"1\"^^xsd:integer . "
-
-abs03fwd :: [String]
-abs03fwd = []
-
-abs03bwd :: [[String]]
+abs03bwd :: [[B.Builder]]
 abs03bwd =
-    [ [ "_:a a xsd_integer:Abs . "
-      , "_:a rdf:_2 \"1\"^^xsd:integer . "
-      ]
-    , [ "_:a a xsd_integer:Abs . "
-      , "_:a rdf:_2 \"-1\"^^xsd:integer . "
-      ]
+  [ [ "_:a a xsd_integer:Abs . "
+    , "_:a rdf:_2 \"1\"^^xsd:integer . "
     ]
-
-abs04inp :: String
-abs04inp =
-        "_:a a xsd_integer:Abs ; "
-    +++ "  rdf:_1 \"-1\"^^xsd:integer . "
-
-abs04fwd :: [String]
-abs04fwd =
-    [ falseGraphStr
+  , [ "_:a a xsd_integer:Abs . "
+    , "_:a rdf:_2 \"-1\"^^xsd:integer . "
     ]
-
-abs04bwd :: [[String]]
-abs04bwd =
-    [ [ falseGraphStr
-      ]
-    ]
+  ]
 
 -- neg
 
-neg01inp :: String
-neg01inp =
-        "_:a a xsd_integer:Neg ; "
-    +++ "  rdf:_2 \"1\"^^xsd:integer . "
-    
-neg01fwd :: [String]
-neg01fwd =
-    [ "_:a rdf:_1 \"-1\"^^xsd:integer . " ]
-
-neg01bwd :: [[String]]
-neg01bwd =
-    [ [ "_:a a xsd_integer:Neg . "
-      , "_:a rdf:_1 \"-1\"^^xsd:integer . "
-      ]
-    ]
-
-neg02inp :: String
-neg02inp =
-        "_:a a xsd_integer:Neg ; "
-    +++ "  rdf:_2 \"-2\"^^xsd:integer . "
-    
-neg02fwd :: [String]
-neg02fwd =
-    [ "_:a rdf:_1 \"2\"^^xsd:integer . " ]
-
-neg02bwd :: [[String]]
-neg02bwd =
-    [ [ "_:a a xsd_integer:Neg . "
-      , "_:a rdf:_1 \"2\"^^xsd:integer . "
-      ]
-    ]
+neg01inp, neg02inp :: B.Builder
+neg01inp = singleInp "Neg" 2 1
+neg02inp = singleInp "Neg" 2 (-2)
 
 -- sum
 
-sum01inp :: String
-sum01inp =
-        "_:a a xsd_integer:Sum ; "
-    +++ "  rdf:_2 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"20\"^^xsd:integer . "
-
-sum01fwd :: [String]
-sum01fwd =
-    [ "_:a rdf:_1 \"51\"^^xsd:integer . " ]
-
-sum01bwd :: [[String]]
+sum01inp :: B.Builder
+sum01inp = multiInp "Sum" [(2, 31), (3, 20)]
+  
+sum01bwd :: [[B.Builder]]
 sum01bwd =
     [ [ "_:a a xsd_integer:Sum . "
       , "_:a rdf:_1 \"51\"^^xsd:integer . "
@@ -1025,17 +954,10 @@ sum01bwd =
       ]
     ]
 
-sum02inp :: String
-sum02inp =
-        "_:a a xsd_integer:Sum ; "
-    +++ "  rdf:_1 \"52\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"21\"^^xsd:integer . "
-    
-sum02fwd :: [String]    
-sum02fwd =
-    [ "_:a rdf:_2 \"31\"^^xsd:integer . " ]
-
-sum02bwd :: [[String]]
+sum02inp :: B.Builder
+sum02inp = multiInp "Sum" [(1, 52), (3, 21)]
+  
+sum02bwd :: [[B.Builder]]
 sum02bwd =
     [ [ "_:a a xsd_integer:Sum . "
       , "_:a rdf:_1 \"52\"^^xsd:integer . "
@@ -1047,17 +969,10 @@ sum02bwd =
       ]
     ]
 
-sum03inp :: String
-sum03inp =
-        "_:a a xsd_integer:Sum ; "
-    +++ "  rdf:_1 \"53\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"32\"^^xsd:integer . "
+sum03inp :: B.Builder
+sum03inp = multiInp "Sum" [(1, 53), (2, 32)]
 
-sum03fwd :: [String]
-sum03fwd =
-    [ "_:a rdf:_3 \"21\"^^xsd:integer . " ]
-
-sum03bwd :: [[String]]
+sum03bwd :: [[B.Builder]]
 sum03bwd =
     [ [ "_:a a xsd_integer:Sum . "
       , "_:a rdf:_1 \"53\"^^xsd:integer . "
@@ -1071,17 +986,12 @@ sum03bwd =
 
 -- diff
 
-diff01inp :: String
-diff01inp =
-        "_:a a xsd_integer:Diff ; "
-    +++ "  rdf:_2 \"222\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"333\"^^xsd:integer . "
+diff01inp, diff02inp, diff03inp :: B.Builder
+diff01inp = multiInp "Diff" [(2, 222), (3, 333)]
+diff02inp = multiInp "Diff" [(1, -111), (3, 333)]
+diff03inp = multiInp "Diff" [(1, -111), (2, 222)]
     
-diff01fwd :: [String]
-diff01fwd =
-    [ "_:a rdf:_1 \"-111\"^^xsd:integer . " ]
-
-diff01bwd :: [[String]]
+diff01bwd :: [[B.Builder]]
 diff01bwd =
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
@@ -1093,17 +1003,7 @@ diff01bwd =
       ]
     ]
 
-diff02inp :: String
-diff02inp =
-        "_:a a xsd_integer:Diff ; "
-    +++ "  rdf:_1 \"-111\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"333\"^^xsd:integer . "
-
-diff02fwd :: [String]
-diff02fwd =
-    [ "_:a rdf:_2 \"222\"^^xsd:integer . " ]
-
-diff02bwd :: [[String]]
+diff02bwd :: [[B.Builder]]
 diff02bwd =
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
@@ -1115,17 +1015,7 @@ diff02bwd =
       ]
     ]
 
-diff03inp :: String
-diff03inp =
-        "_:a a xsd_integer:Diff ; "
-    +++ "  rdf:_1 \"-111\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"222\"^^xsd:integer . "
-
-diff03fwd :: [String]
-diff03fwd =
-    [ "_:a rdf:_3 \"333\"^^xsd:integer . " ]
-
-diff03bwd :: [[String]]
+diff03bwd :: [[B.Builder]]
 diff03bwd =
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
@@ -1139,17 +1029,12 @@ diff03bwd =
 
 -- prod
 
-prod01inp :: String
-prod01inp =
-        "_:a a xsd_integer:Prod ; "
-    +++ "  rdf:_2 \"222\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"3\"^^xsd:integer . "
+prod01inp, prod02inp, prod03inp :: B.Builder
+prod01inp = multiInp "Prod" [(2, 222), (3, 3)]
+prod02inp = multiInp "Prod" [(1, 666), (3, 3)]
+prod03inp = multiInp "Prod" [(1, 666), (2, 222)]
 
-prod01fwd :: [String]
-prod01fwd =
-    [ "_:a rdf:_1 \"666\"^^xsd:integer . " ]
-
-prod01bwd :: [[String]]
+prod01bwd :: [[B.Builder]]
 prod01bwd =
     [ [ "_:a a xsd_integer:Prod . "
       , "_:a rdf:_1 \"666\"^^xsd:integer . "
@@ -1161,17 +1046,7 @@ prod01bwd =
       ]
     ]
 
-prod02inp :: String
-prod02inp =
-        "_:a a xsd_integer:Prod ; "
-    +++ "  rdf:_1 \"666\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"3\"^^xsd:integer . "
-
-prod02fwd :: [String]
-prod02fwd =
-    [ "_:a rdf:_2 \"222\"^^xsd:integer . " ]
-
-prod02bwd :: [[String]]
+prod02bwd :: [[B.Builder]]
 prod02bwd =
     [ [ "_:a a xsd_integer:Prod . "
       , "_:a rdf:_1 \"666\"^^xsd:integer . "
@@ -1183,17 +1058,7 @@ prod02bwd =
       ]
     ]
 
-prod03inp :: String
-prod03inp =
-        "_:a a xsd_integer:Prod ; "
-    +++ "  rdf:_1 \"666\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"222\"^^xsd:integer . "
-
-prod03fwd :: [String]
-prod03fwd =
-    [ "_:a rdf:_3 \"3\"^^xsd:integer . " ]
-
-prod03bwd :: [[String]]
+prod03bwd :: [[B.Builder]]
 prod03bwd =
     [ [ "_:a a xsd_integer:Prod . "
       , "_:a rdf:_1 \"666\"^^xsd:integer . "
@@ -1207,340 +1072,61 @@ prod03bwd =
 
 -- divmod
 
-divmod01inp :: String
-divmod01inp =
-        "_:a a xsd_integer:DivMod ; "
-    +++ "  rdf:_3 \"33\"^^xsd:integer ; "
-    +++ "  rdf:_4 \"5\"^^xsd:integer . "
-
-divmod01fwd :: [String]
-divmod01fwd =
-    [     "_:a rdf:_1 \"6\"^^xsd:integer . "
-      +++ "_:a rdf:_2 \"3\"^^xsd:integer . "
-    ]
-
-divmod01bwd :: [[String]]
-divmod01bwd =
-    [ {- "_:a a xsd_integer:DivMod . "
-      , "_:a rdf:_1 \"6\"^^xsd:integer . "
-      , "_:a rdf:_2 \"3\"^^xsd:integer . "
-      , "_:a rdf:_4 \"5\"^^xsd:integer . "
-      -}
-    ]
-
-divmod02inp :: String
-divmod02inp =
-        "_:a a xsd_integer:DivMod ; "
-    +++ "  rdf:_1 \"6\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"3\"^^xsd:integer ; "
-    +++ "  rdf:_4 \"5\"^^xsd:integer . "
-
-divmod02fwd :: [String]
-divmod02fwd =
-    [ ]
-
-divmod02bwd :: [[String]]
-divmod02bwd =
-    [ {- "_:a a xsd_integer:DivMod . "
-      , "_:a rdf:_3 \"33\"^^xsd:integer . "
-      , "_:a rdf:_4 \"5\"^^xsd:integer . "
-      -}
-    ]
-
-divmod03inp :: String
-divmod03inp =
-        "_:a a xsd_integer:DivMod ; "
-    +++ "  rdf:_3 \"-33\"^^xsd:integer ; "
-    +++ "  rdf:_4 \"5\"^^xsd:integer . "
-
-divmod03fwd :: [String]
-divmod03fwd =
-    [     "_:a rdf:_1 \"-7\"^^xsd:integer . "
-      +++ "_:a rdf:_2 \"2\"^^xsd:integer . "
-    ]
-
-divmod03bwd :: [[String]]
-divmod03bwd =
-    [ ]
+divmod01inp, divmod02inp, divmod03inp :: B.Builder
+divmod01inp = multiInp "DivMod" [(3, 33), (4, 5)]
+divmod02inp = multiInp "DivMod" [(1, 6), (2, 3), (4, 5)]
+divmod03inp = multiInp "DivMod" [(3, -33), (4, 5)]
 
 -- power
 
-power01inp :: String
-power01inp =
-        "_:a a xsd_integer:Power ; "
-    +++ "  rdf:_2 \"2\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"5\"^^xsd:integer . "
-
-power01fwd :: [String]
-power01fwd =
-    [ "_:a rdf:_1 \"32\"^^xsd:integer . " ]
-
-power01bwd :: [[String]]
-power01bwd =
-    [ ]
-
-power02inp :: String
-power02inp =
-        "_:a a xsd_integer:Power ; "
-    +++ "  rdf:_2 \"111\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"0\"^^xsd:integer . "
-
-power02fwd :: [String]
-power02fwd =
-    [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
-
-power02bwd :: [[String]]
-power02bwd =
-    [ ]
-
-power03inp :: String
-power03inp =
-        "_:a a xsd_integer:Power ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer ; "
-    +++ "  rdf:_3 \"-33\"^^xsd:integer . "
-
-power03fwd :: [String]
-power03fwd =
-    [ falseGraphStr ]
-
-power03bwd :: [[String]]
-power03bwd =
-    [ [ falseGraphStr ]
-    ]
+power01inp, power02inp, power03inp :: B.Builder
+power01inp = multiInp "Power" [(2, 2), (3, 5)]
+power02inp = multiInp "Power" [(2, 111), (3, 0)]
+power03inp = multiInp "Power" [(2, 22), (3, -33)]
 
 -- eq
 
-eq01inp :: String
-eq01inp =
-        "_:a a xsd_integer:Eq ; "
-    +++ "  rdf:_1 \"11\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"11\"^^xsd:integer . "
-
-eq01fwd :: [String]
-eq01fwd = [ ]
-
-eq01bwd :: [[String]]
-eq01bwd = [ ]
-
-eq02inp :: String
-eq02inp =
-        "_:a a xsd_integer:Eq ; "
-    +++ "  rdf:_1 \"21\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer . "
-
-eq02fwd :: [String]
-eq02fwd = [ falseGraphStr ]
-
-eq02bwd :: [[String]]
-eq02bwd = [ [falseGraphStr] ]
-
-eq03inp :: String
-eq03inp =
-        "_:a a xsd_integer:Eq ; "
-    +++ "  rdf:_1 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"-32\"^^xsd:integer . "
-
-eq03fwd :: [String]
-eq03fwd = [ falseGraphStr ]
-
-eq03bwd :: [[String]]
-eq03bwd = [ [falseGraphStr] ]
+eq01inp, eq02inp, eq03inp :: B.Builder
+eq01inp = multiInp "Eq" [(1, 11), (2, 11)]
+eq02inp = multiInp "Eq" [(1, 21), (2, 22)]
+eq03inp = multiInp "Eq" [(1, 31), (2, -32)]
 
 -- ne
 
-ne01inp :: String
-ne01inp =
-        "_:a a xsd_integer:Ne ; "
-    +++ "  rdf:_1 \"11\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"11\"^^xsd:integer . "
-
-ne01fwd :: [String]
-ne01fwd = [ falseGraphStr ]
-
-ne01bwd :: [[String]]
-ne01bwd = [ [falseGraphStr] ]
-
-ne02inp :: String
-ne02inp =
-        "_:a a xsd_integer:Ne ; "
-    +++ "  rdf:_1 \"21\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer . "
-
-ne02fwd :: [String]
-ne02fwd = [ ]
-
-ne02bwd :: [[String]]
-ne02bwd = [ ]
-
-ne03inp :: String
-ne03inp =
-        "_:a a xsd_integer:Ne ; "
-    +++ "  rdf:_1 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"-32\"^^xsd:integer . "
-
-ne03fwd :: [String]
-ne03fwd = [ ]
-
-ne03bwd :: [[String]]
-ne03bwd = [ ]
+ne01inp, ne02inp, ne03inp :: B.Builder
+ne01inp = multiInp "Ne" [(1, 11), (2, 11)]
+ne02inp = multiInp "Ne" [(1, 21), (2, 22)]
+ne03inp = multiInp "Ne" [(1, 31), (2, -32)]
 
 -- lt
 
-lt01inp :: String
-lt01inp =
-        "_:a a xsd_integer:Lt ; "
-    +++ "  rdf:_1 \"11\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"11\"^^xsd:integer . "
-
-lt01fwd :: [String]
-lt01fwd = [ falseGraphStr ]
-
-lt01bwd :: [[String]]
-lt01bwd = [ [falseGraphStr] ]
-
-lt02inp :: String
-lt02inp =
-        "_:a a xsd_integer:Lt ; "
-    +++ "  rdf:_1 \"21\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer . "
-
-lt02fwd :: [String]
-lt02fwd = [ ]
-
-lt02bwd :: [[String]]
-lt02bwd = [ ]
-
-lt03inp :: String
-lt03inp =
-        "_:a a xsd_integer:Lt ; "
-    +++ "  rdf:_1 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"-32\"^^xsd:integer . "
-
-lt03fwd :: [String]
-lt03fwd = [ falseGraphStr ]
-
-lt03bwd :: [[String]]
-lt03bwd = [ [falseGraphStr] ]
+lt01inp, lt02inp, lt03inp :: B.Builder
+lt01inp = multiInp "Lt" [(1, 11), (2, 11)]
+lt02inp = multiInp "Lt" [(1, 21), (2, 22)]
+lt03inp = multiInp "Lt" [(1, 31), (2, -32)]
 
 -- le
 
-le01inp :: String
-le01inp =
-        "_:a a xsd_integer:Le ; "
-    +++ "  rdf:_1 \"11\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"11\"^^xsd:integer . "
-
-le01fwd :: [String]
-le01fwd = [ ]
-
-le01bwd :: [[String]]
-le01bwd = [ ]
-
-le02inp :: String
-le02inp =
-        "_:a a xsd_integer:Le ; "
-    +++ "  rdf:_1 \"21\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer . "
-
-le02fwd :: [String]
-le02fwd = [ ]
-
-le02bwd :: [[String]]
-le02bwd = [ ]
-
-le03inp :: String
-le03inp =
-        "_:a a xsd_integer:Le ; "
-    +++ "  rdf:_1 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"-32\"^^xsd:integer . "
-
-le03fwd :: [String]
-le03fwd = [ falseGraphStr ]
-
-le03bwd :: [[String]]
-le03bwd = [ [falseGraphStr] ]
+le01inp, le02inp, le03inp :: B.Builder
+le01inp = multiInp "Le" [(1, 11), (2, 11)]
+le02inp = multiInp "Le" [(1, 21), (2, 22)]
+le03inp = multiInp "Le" [(1, 31), (2, -32)]
 
 -- gt
 
-gt01inp :: String
-gt01inp =
-        "_:a a xsd_integer:Gt ; "
-    +++ "  rdf:_1 \"11\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"11\"^^xsd:integer . "
-
-gt01fwd :: [String]
-gt01fwd = [ falseGraphStr ]
-
-gt01bwd :: [[String]]
-gt01bwd = [ [falseGraphStr] ]
-
-gt02inp :: String
-gt02inp =
-        "_:a a xsd_integer:Gt ; "
-    +++ "  rdf:_1 \"21\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer . "
-
-gt02fwd :: [String]
-gt02fwd = [ falseGraphStr ]
-
-gt02bwd :: [[String]]
-gt02bwd = [ [falseGraphStr] ]
-
-gt03inp :: String
-gt03inp =
-        "_:a a xsd_integer:Gt ; "
-    +++ "  rdf:_1 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"-32\"^^xsd:integer . "
-
-gt03fwd :: [String]
-gt03fwd = [ ]
-
-gt03bwd :: [[String]]
-gt03bwd = [ ]
+gt01inp, gt02inp, gt03inp :: B.Builder
+gt01inp = multiInp "Gt" [(1, 11), (2, 11)]
+gt02inp = multiInp "Gt" [(1, 21), (2, 22)]
+gt03inp = multiInp "Gt" [(1, 31), (2, -32)]
 
 -- ge
 
-ge01inp :: String
-ge01inp =
-        "_:a a xsd_integer:Ge ; "
-    +++ "  rdf:_1 \"11\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"11\"^^xsd:integer . "
-
-ge01fwd :: [String]
-ge01fwd = [ ]
-
-ge01bwd :: [[String]]
-ge01bwd = [ ]
-
-ge02inp :: String
-ge02inp =
-        "_:a a xsd_integer:Ge ; "
-    +++ "  rdf:_1 \"21\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"22\"^^xsd:integer . "
-
-ge02fwd :: [String]
-ge02fwd = [ falseGraphStr ]
-
-ge02bwd :: [[String]]
-ge02bwd = [ [falseGraphStr] ]
-
-ge03inp :: String
-ge03inp =
-        "_:a a xsd_integer:Ge ; "
-    +++ "  rdf:_1 \"31\"^^xsd:integer ; "
-    +++ "  rdf:_2 \"-32\"^^xsd:integer . "
-
-ge03fwd :: [String]
-ge03fwd = [ ]
-
-ge03bwd :: [[String]]
-ge03bwd = [ ]
+ge01inp, ge02inp, ge03inp :: B.Builder
+ge01inp = multiInp "Ge" [(1, 11), (2, 11)]
+ge02inp = multiInp "Ge" [(1, 21), (2, 22)]
+ge03inp = multiInp "Ge" [(1, 31), (2, -32)]
 
 -- Test cases from design notes
-
-infixr 5 +++
-(+++) :: String -> ShowS
-(+++) str = ((str++"\n")++)
 
 -- Make a vector of rules using the graph string below
 
@@ -1548,18 +1134,17 @@ pvRules :: [RDFRule]
 -- pvRules = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdInteger gr
 pvRules = typeMkRules rdfDatatypeXsdInteger gr
     where
-        gr = mkGraph pvRulesStr
-
-pvRulesStr :: String
-pvRulesStr =
-        ":PassengerVehicle a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (:totalCapacity :seatedCapacity :standingCapacity) ; "
-    +++ "  rdfd:constraint xsd_integer:sum . "
-    +++ ":PassengerVehicle1 a rdfd:GeneralRestriction ; "
-    +++ "  rdfd:onProperties (:totalCapacity :seatedCapacity :standingCapacity) ; "
-    +++ "  rdfd:constraint xsd_integer:sum ; "
-    +++ "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
-
+        gr = mkGraph $
+             mconcat
+             [ ":PassengerVehicle a rdfd:GeneralRestriction ; "
+             , "  rdfd:onProperties (:totalCapacity :seatedCapacity :standingCapacity) ; "
+             , "  rdfd:constraint xsd_integer:sum . "
+             , ":PassengerVehicle1 a rdfd:GeneralRestriction ; "
+             , "  rdfd:onProperties (:totalCapacity :seatedCapacity :standingCapacity) ; "
+             , "  rdfd:constraint xsd_integer:sum ; "
+             , "  rdfd:maxCardinality \"1\"^^xsd:nonNegativeInteger . "
+             ]
+             
 --  Now the test cases that use the rules created above.
 
 pvRule0, pvRule1 :: Maybe (Rule RDFGraph)
@@ -1570,17 +1155,18 @@ pvRule1 = mapFindMaybe
             (ScopedName namespaceDefault "PassengerVehicle1")
             (LookupMap pvRules)
 
-pv01inp :: String
+pv01inp :: B.Builder
 pv01inp =
-        "_:a a :PassengerVehicle ; "
-    +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
-    +++ "  :standingCapacity \"20\"^^xsd:integer . "
+  mconcat
+  [ "_:a a :PassengerVehicle ; "
+  , "  :seatedCapacity \"30\"^^xsd:integer ; "
+  , "  :standingCapacity \"20\"^^xsd:integer . "
+  ]
 
-pv01fwd :: [String]
-pv01fwd =
-    [ "_:a :totalCapacity \"50\"^^xsd:integer . " ]
+pv01fwd :: [B.Builder]
+pv01fwd = [ "_:a :totalCapacity \"50\"^^xsd:integer . " ]
 
-pv01bwd :: [[String]]
+pv01bwd :: [[B.Builder]]
 pv01bwd =
     [ [ "_:a a :PassengerVehicle . "
       , "_:a :totalCapacity \"50\"^^xsd:integer . "
@@ -1592,22 +1178,24 @@ pv01bwd =
       ]
     ]
 
-pv02inp :: String
+pv02inp :: B.Builder
 pv02inp =
-        "_:a a :PassengerVehicle ; "
-    +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
-    +++ "  :totalCapacity \"51\"^^xsd:integer . "
-    +++ "_:b a :PassengerVehicle ; "
-    +++ "  :standingCapacity \"20\"^^xsd:integer ; "
-    +++ "  :totalCapacity \"52\"^^xsd:integer . "
+  mconcat
+  [ "_:a a :PassengerVehicle ; "
+  , "  :seatedCapacity \"30\"^^xsd:integer ; "
+  , "  :totalCapacity \"51\"^^xsd:integer . "
+  , "_:b a :PassengerVehicle ; "
+  , "  :standingCapacity \"20\"^^xsd:integer ; "
+  , "  :totalCapacity \"52\"^^xsd:integer . "
+  ]
 
-pv02fwd :: [String]
+pv02fwd :: [B.Builder]
 pv02fwd =
     [ "_:a :standingCapacity \"21\"^^xsd:integer . "
     , "_:b :seatedCapacity \"32\"^^xsd:integer . "
     ]
 
-pv02bwd :: [[String]]
+pv02bwd :: [[B.Builder]]
 pv02bwd =
     [ [ "_:a a :PassengerVehicle . "
       , "_:a :standingCapacity \"21\"^^xsd:integer . "
@@ -1639,121 +1227,135 @@ pv02bwd =
       ]
     ]
 
-pv03inp :: String
+pv03inp :: B.Builder
 pv03inp =
-        "_:a a :PassengerVehicle ; "
-    +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
-    +++ "  :standingCapacity \"23\"^^xsd:integer ; "
-    +++ "  :totalCapacity \"53\"^^xsd:integer . "
+  mconcat
+  [ "_:a a :PassengerVehicle ; "
+  , "  :seatedCapacity \"30\"^^xsd:integer ; "
+  , "  :standingCapacity \"23\"^^xsd:integer ; "
+  , "  :totalCapacity \"53\"^^xsd:integer . "
+  ]
 
-pv03fwd :: [String]
+pv03fwd :: [B.Builder]
 pv03fwd = []
 
-pv04inp :: String
+pv04inp :: B.Builder
 pv04inp =
-        "_:a a :PassengerVehicle ; "
-    +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
-    +++ "  :standingCapacity \"20\"^^xsd:integer ; "
-    +++ "  :totalCapacity \"54\"^^xsd:integer . "
-
-pv04fwd :: [String]
+  mconcat
+  [ "_:a a :PassengerVehicle ; "
+  , "  :seatedCapacity \"30\"^^xsd:integer ; "
+  , "  :standingCapacity \"20\"^^xsd:integer ; "
+  , "  :totalCapacity \"54\"^^xsd:integer . "
+  ]
+  
+pv04fwd :: [B.Builder]
 pv04fwd =
-    [     "_:a :standingCapacity \"24\"^^xsd:integer . "
-      +++ "_:a :seatedCapacity \"34\"^^xsd:integer . "
-      +++ "_:a :totalCapacity \"50\"^^xsd:integer . "
+  [ mconcat
+    [ "_:a :standingCapacity \"24\"^^xsd:integer . "
+    , "_:a :seatedCapacity \"34\"^^xsd:integer . "
+    , "_:a :totalCapacity \"50\"^^xsd:integer . "
     ]
+  ]
 
-pv05inp :: String
+pv05inp :: B.Builder
 pv05inp =
-        "_:a a :PassengerVehicle1 ; "
-    +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
-    +++ "  :standingCapacity \"25\"^^xsd:integer ; "
-    +++ "  :totalCapacity \"55\"^^xsd:integer . "
+   mconcat     
+   [ "_:a a :PassengerVehicle1 ; "
+   , "  :seatedCapacity \"30\"^^xsd:integer ; "
+   , "  :standingCapacity \"25\"^^xsd:integer ; "
+   , "  :totalCapacity \"55\"^^xsd:integer . "
+   ]
 
-pv05fwd :: [String]
+pv05fwd :: [B.Builder]
 pv05fwd = []
 
-pv06inp :: String
+pv06inp :: B.Builder
 pv06inp =
-        "_:a a :PassengerVehicle1 ; "
-    +++ "  :seatedCapacity \"30\"^^xsd:integer ; "
-    +++ "  :standingCapacity \"20\"^^xsd:integer ; "
-    +++ "  :totalCapacity \"56\"^^xsd:integer . "
-
-pv06fwd :: [String]
+  mconcat
+  [ "_:a a :PassengerVehicle1 ; "
+  , "  :seatedCapacity \"30\"^^xsd:integer ; "
+  , "  :standingCapacity \"20\"^^xsd:integer ; "
+  , "  :totalCapacity \"56\"^^xsd:integer . "
+  ]
+  
+pv06fwd :: [B.Builder]
 pv06fwd =
     [ falseGraphStr
     ]
 
-pv06bwd :: [[String]]
+pv06bwd :: [[B.Builder]]
 pv06bwd =
     [ [ falseGraphStr
       ]
     ]
 
-pv07inp :: String
+pv07inp :: B.Builder
 pv07inp =
-        "_:a a :PassengerVehicle ; "
-    +++ "  :totalCapacity \"57\"^^xsd:integer . "
+  "_:a a :PassengerVehicle ; " `mappend`
+  "  :totalCapacity \"57\"^^xsd:integer . "
 
-pv07fwd :: [String]
+pv07fwd :: [B.Builder]
 pv07fwd = []
 
 -- how come this isn't [[String]] ?
-pv07bwd :: [String]
+pv07bwd :: [B.Builder]
 pv07bwd = []
 
 --  Full suite for datatype rule tests
 
 testDatatypeRuleSuite :: Test
 testDatatypeRuleSuite = TestList
-  [ testRuleFwd "testRuleFwdAbs01" ruleabs abs01inp abs01fwd
-  , testRuleFwd "testRuleFwdAbs02" ruleabs abs02inp abs02fwd
-  , testRuleFwd "testRuleFwdAbs03" ruleabs abs03inp abs03fwd
-  , testRuleFwd "testRuleFwdAbs04" ruleabs abs04inp abs04fwd
-  , testRuleFwd "testRuleFwdNeg01" ruleneg neg01inp neg01fwd
-  , testRuleFwd "testRuleFwdNeg02" ruleneg neg02inp neg02fwd
-  , testRuleFwd "testRuleFwdSum01" rulesum sum01inp sum01fwd
-  , testRuleFwd "testRuleFwdSum02" rulesum sum02inp sum02fwd
-  , testRuleFwd "testRuleFwdSum03" rulesum sum03inp sum03fwd
-  , testRuleFwd "testRuleFwdDiff01" rulediff diff01inp diff01fwd
-  , testRuleFwd "testRuleFwdDiff02" rulediff diff02inp diff02fwd
-  , testRuleFwd "testRuleFwdDiff03" rulediff diff03inp diff03fwd
-  , testRuleFwd "testRuleFwdProd01" ruleprod prod01inp prod01fwd
-  , testRuleFwd "testRuleFwdProd02" ruleprod prod02inp prod02fwd
-  , testRuleFwd "testRuleFwdProd03" ruleprod prod03inp prod03fwd
-  , testRuleFwd "testRuleFwdDivMod01" ruledivmod divmod01inp divmod01fwd
-  , testRuleFwd "testRuleFwdDivMod02" ruledivmod divmod02inp divmod02fwd
-  , testRuleFwd "testRuleFwdDivMod03" ruledivmod divmod03inp divmod03fwd
-  , testRuleFwd "testRuleFwdPower01" rulepower power01inp power01fwd
-  , testRuleFwd "testRuleFwdPower02" rulepower power02inp power02fwd
-  , testRuleFwd "testRuleFwdPower03" rulepower power03inp power03fwd
-  , testRuleFwd "testRuleFwdEq01" ruleeq eq01inp eq01fwd
-  , testRuleFwd "testRuleFwdEq02" ruleeq eq02inp eq02fwd
-  , testRuleFwd "testRuleFwdEq03" ruleeq eq03inp eq03fwd
-  , testRuleFwd "testRuleFwdNe01" rulene ne01inp ne01fwd
-  , testRuleFwd "testRuleFwdNe02" rulene ne02inp ne02fwd
-  , testRuleFwd "testRuleFwdNe03" rulene ne03inp ne03fwd
-  , testRuleFwd "testRuleFwdLt01" rulelt lt01inp lt01fwd
-  , testRuleFwd "testRuleFwdLt02" rulelt lt02inp lt02fwd
-  , testRuleFwd "testRuleFwdLt03" rulelt lt03inp lt03fwd
-  , testRuleFwd "testRuleFwdLe01" rulele le01inp le01fwd
-  , testRuleFwd "testRuleFwdLe02" rulele le02inp le02fwd
-  , testRuleFwd "testRuleFwdLe03" rulele le03inp le03fwd
-  , testRuleFwd "testRuleFwdGt01" rulegt gt01inp gt01fwd
-  , testRuleFwd "testRuleFwdGt02" rulegt gt02inp gt02fwd
-  , testRuleFwd "testRuleFwdGt03" rulegt gt03inp gt03fwd
-  , testRuleFwd "testRuleFwdGe01" rulege ge01inp ge01fwd
-  , testRuleFwd "testRuleFwdGe02" rulege ge02inp ge02fwd
-  , testRuleFwd "testRuleFwdGe03" rulege ge03inp ge03fwd
+  [ testRuleFwd "testRuleFwdAbs01" ruleabs abs01inp [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdAbs02" ruleabs abs02inp [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdAbs03" ruleabs abs03inp []
+  , testRuleFwd "testRuleFwdAbs04" ruleabs abs04inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdNeg01" ruleneg neg01inp [ "_:a rdf:_1 \"-1\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdNeg02" ruleneg neg02inp [ "_:a rdf:_1 \"2\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdSum01" rulesum sum01inp [ "_:a rdf:_1 \"51\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdSum02" rulesum sum02inp [ "_:a rdf:_2 \"31\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdSum03" rulesum sum03inp [ "_:a rdf:_3 \"21\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdDiff01" rulediff diff01inp [ "_:a rdf:_1 \"-111\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdDiff02" rulediff diff02inp [ "_:a rdf:_2 \"222\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdDiff03" rulediff diff03inp [ "_:a rdf:_3 \"333\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdProd01" ruleprod prod01inp [ "_:a rdf:_1 \"666\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdProd02" ruleprod prod02inp [ "_:a rdf:_2 \"222\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdProd03" ruleprod prod03inp [ "_:a rdf:_3 \"3\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdDivMod01" ruledivmod divmod01inp
+    [ "_:a rdf:_1 \"6\"^^xsd:integer . " `mappend` "_:a rdf:_2 \"3\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdDivMod02" ruledivmod divmod02inp []
+  , testRuleFwd "testRuleFwdDivMod03" ruledivmod divmod03inp 
+    [ "_:a rdf:_1 \"-7\"^^xsd:integer . " `mappend` "_:a rdf:_2 \"2\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdPower01" rulepower power01inp [ "_:a rdf:_1 \"32\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdPower02" rulepower power02inp [ "_:a rdf:_1 \"1\"^^xsd:integer . " ]
+  , testRuleFwd "testRuleFwdPower03" rulepower power03inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdEq01" ruleeq eq01inp []
+  , testRuleFwd "testRuleFwdEq02" ruleeq eq02inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdEq03" ruleeq eq03inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdNe01" rulene ne01inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdNe02" rulene ne02inp []
+  , testRuleFwd "testRuleFwdNe03" rulene ne03inp []
+  , testRuleFwd "testRuleFwdLt01" rulelt lt01inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdLt02" rulelt lt02inp []
+  , testRuleFwd "testRuleFwdLt03" rulelt lt03inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdLe01" rulele le01inp []
+  , testRuleFwd "testRuleFwdLe02" rulele le02inp []
+  , testRuleFwd "testRuleFwdLe03" rulele le03inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdGt01" rulegt gt01inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdGt02" rulegt gt02inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdGt03" rulegt gt03inp []
+  , testRuleFwd "testRuleFwdGe01" rulege ge01inp []
+  , testRuleFwd "testRuleFwdGe02" rulege ge02inp [falseGraphStr]
+  , testRuleFwd "testRuleFwdGe03" rulege ge03inp []
                                       
     -- backard chaining tests
-  , testRuleBwd "testRuleBwdAbs01" ruleabs abs01inp abs01bwd
-  , testRuleBwd "testRuleBwdAbs02" ruleabs abs02inp abs02bwd
+  , testRuleBwd "testRuleBwdAbs01" ruleabs abs01inp []
+  , testRuleBwd "testRuleBwdAbs02" ruleabs abs02inp []
   , testRuleBwd "testRuleBwdAbs03" ruleabs abs03inp abs03bwd
-  , testRuleBwd "testRuleBwdAbs04" ruleabs abs04inp abs04bwd
-  , testRuleBwd "testRuleBwdNeg01" ruleneg neg01inp neg01bwd
-  , testRuleBwd "testRuleBwdNeg02" ruleneg neg02inp neg02bwd
+  , testRuleBwd "testRuleBwdAbs04" ruleabs abs04inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdNeg01" ruleneg neg01inp
+    [[ "_:a a xsd_integer:Neg . ", "_:a rdf:_1 \"-1\"^^xsd:integer . "]]
+  , testRuleBwd "testRuleBwdNeg02" ruleneg neg02inp 
+    [[ "_:a a xsd_integer:Neg . ", "_:a rdf:_1 \"2\"^^xsd:integer . "]]
   , testRuleBwd "testRuleBwdSum01" rulesum sum01inp sum01bwd
   , testRuleBwd "testRuleBwdSum02" rulesum sum02inp sum02bwd
   , testRuleBwd "testRuleBwdSum03" rulesum sum03inp sum03bwd
@@ -1763,30 +1365,30 @@ testDatatypeRuleSuite = TestList
   , testRuleBwd "testRuleBwdProd01" ruleprod prod01inp prod01bwd
   , testRuleBwd "testRuleBwdProd02" ruleprod prod02inp prod02bwd
   , testRuleBwd "testRuleBwdProd03" ruleprod prod03inp prod03bwd
-  , testRuleBwd "testRuleBwdDivMod01" ruledivmod divmod01inp divmod01bwd
-  , testRuleBwd "testRuleBwdDivMod02" ruledivmod divmod02inp divmod02bwd
-  , testRuleBwd "testRuleBwdDivMod03" ruledivmod divmod03inp divmod03bwd
-  , testRuleBwd "testRuleBwdPower01" rulepower power01inp power01bwd
-  , testRuleBwd "testRuleBwdPower02" rulepower power02inp power02bwd
-  , testRuleBwd "testRuleBwdPower03" rulepower power03inp power03bwd
-  , testRuleBwd "testRuleBwdEq01" ruleeq eq01inp eq01bwd
-  , testRuleBwd "testRuleBwdEq02" ruleeq eq02inp eq02bwd
-  , testRuleBwd "testRuleBwdEq03" ruleeq eq03inp eq03bwd
-  , testRuleBwd "testRuleBwdNe01" rulene ne01inp ne01bwd
-  , testRuleBwd "testRuleBwdNe02" rulene ne02inp ne02bwd
-  , testRuleBwd "testRuleBwdNe03" rulene ne03inp ne03bwd
-  , testRuleBwd "testRuleBwdLt01" rulelt lt01inp lt01bwd
-  , testRuleBwd "testRuleBwdLt02" rulelt lt02inp lt02bwd
-  , testRuleBwd "testRuleBwdLt03" rulelt lt03inp lt03bwd
-  , testRuleBwd "testRuleBwdLe01" rulele le01inp le01bwd
-  , testRuleBwd "testRuleBwdLe02" rulele le02inp le02bwd
-  , testRuleBwd "testRuleBwdLe03" rulele le03inp le03bwd
-  , testRuleBwd "testRuleBwdGt01" rulegt gt01inp gt01bwd
-  , testRuleBwd "testRuleBwdGt02" rulegt gt02inp gt02bwd
-  , testRuleBwd "testRuleBwdGt03" rulegt gt03inp gt03bwd
-  , testRuleBwd "testRuleBwdGe01" rulege ge01inp ge01bwd
-  , testRuleBwd "testRuleBwdGe02" rulege ge02inp ge02bwd
-  , testRuleBwd "testRuleBwdGe03" rulege ge03inp ge03bwd
+  , testRuleBwd "testRuleBwdDivMod01" ruledivmod divmod01inp []
+  , testRuleBwd "testRuleBwdDivMod02" ruledivmod divmod02inp []
+  , testRuleBwd "testRuleBwdDivMod03" ruledivmod divmod03inp []
+  , testRuleBwd "testRuleBwdPower01" rulepower power01inp []
+  , testRuleBwd "testRuleBwdPower02" rulepower power02inp []
+  , testRuleBwd "testRuleBwdPower03" rulepower power03inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdEq01" ruleeq eq01inp []
+  , testRuleBwd "testRuleBwdEq02" ruleeq eq02inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdEq03" ruleeq eq03inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdNe01" rulene ne01inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdNe02" rulene ne02inp []
+  , testRuleBwd "testRuleBwdNe03" rulene ne03inp []
+  , testRuleBwd "testRuleBwdLt01" rulelt lt01inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdLt02" rulelt lt02inp []
+  , testRuleBwd "testRuleBwdLt03" rulelt lt03inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdLe01" rulele le01inp []
+  , testRuleBwd "testRuleBwdLe02" rulele le02inp []
+  , testRuleBwd "testRuleBwdLe03" rulele le03inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdGt01" rulegt gt01inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdGt02" rulegt gt02inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdGt03" rulegt gt03inp []
+  , testRuleBwd "testRuleBwdGe01" rulege ge01inp []
+  , testRuleBwd "testRuleBwdGe02" rulege ge02inp [[falseGraphStr]]
+  , testRuleBwd "testRuleBwdGe03" rulege ge03inp []
 
     -- test cases from design notes
   , testRuleFwd "testRuleFwdPv01" pvRule0 pv01inp pv01fwd

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,27 +10,38 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines an algebraic datatype for qualified names (QNames).
 --
 --------------------------------------------------------------------------------
 
+-- At present we support using URI references rather than forcing an absolute
+-- URI. This is partly to support the existing tests (to lazy to resolve whether
+-- the tests really should be using relative URIs in this case).
+
 module Swish.Utils.QName
-    ( QName(..) -- , maybeQnEq
-    , newQName, qnameFromPair, qnameFromURI
-    , getNamespace, getLocalName, getQNameURI
-    , splitURI
+    ( QName
+    , newQName
+    , qnameFromURI
+    , getNamespace
+    , getLocalName
+    , getQNameURI
     , qnameFromFilePath
     )
-where
-
-import Data.Char (isAlpha, isAlphaNum)
+    where
 
 import System.Directory (canonicalizePath)
-import System.FilePath (splitDirectories)
+-- import System.FilePath (splitDirectories)
+
+import Network.URI (URI(..), URIAuth(..), parseURIReference)
+
 import Data.String (IsString(..))
-import Data.List (intercalate)
+-- import Data.Char (isAlpha, isAlphaNum)
+import Data.Maybe (fromMaybe)
+-- import Data.List (intercalate)
+
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Qualified name
@@ -36,98 +49,145 @@ import Data.List (intercalate)
 --
 --  cf. http://www.w3.org/TR/REC-xml-names/
 
-data QName = QName { qnNsuri, qnLocal :: String }
+{-| 
 
+A qualified name, consisting of a namespace URI
+and the local part of the identifier.
+
+-}
+
+{-
+For now I have added in storing the actual URI
+as well as the namespace component. This may or
+may not be a good idea (space vs time saving).
+-}
+
+data QName = QName
+             { qnURI :: URI       -- ^ URI
+             , qnNsuri :: URI     -- ^ namespace 
+             , qnLocal :: T.Text  -- ^ local component
+             }
+
+-- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString QName where
-  fromString = qnameFromURI
+  fromString s =   
+    maybe (error ("Unable to convert " ++ s ++ " into a QName"))
+          qnameFromURI (parseURIReference s)
 
 instance Eq QName where
     (==) = qnEq
 
+-- ugly, use show instance
+    
 instance Ord QName where
+  {-
     (QName u1 l1) <= (QName u2 l2) =
         if up1 /= up2 then up1 <= up2 else (ur1++l1) <= (ur2++l2)
         where
             n   = min (length u1) (length u2)
             (up1,ur1) = splitAt n u1
             (up2,ur2) = splitAt n u2
-
+  -}
+  
+  -- TODO: which is faster?
+  (QName u1 _ _) <= (QName u2 _ _) = show u1 <= show u2
+  {-
+  (QName _ uri1 l1) <= (QName _ uri2 l2) =
+    if up1 /= up2 then up1 <= up2 else (ur1 ++ T.unpack l1) <= (ur2 ++ T.unpack l2)
+      where
+        u1 = show uri1
+        u2 = show uri2
+        
+        n   = min (length u1) (length u2)
+        (up1,ur1) = splitAt n u1
+        (up2,ur2) = splitAt n u2
+  -}
+  
 instance Show QName where
-    show (QName ns ln) = "<" ++ ns ++ ln ++ ">"
+    show (QName u _ _) = "<" ++ show u ++ ">"
 
-newQName :: String -> String -> QName
-newQName = QName
+{-
+Should this be clever and ensure that local doesn't
+contain /, say?
 
-qnameFromPair :: (String,String) -> QName
-qnameFromPair = uncurry QName
+We could also me more clever, and safer, when constructing
+the overall uri.
+-}
+newQName :: URI -> T.Text -> QName
+newQName ns local = 
+  let l   = T.unpack local
+      uristr = show ns ++ l
+      uri = fromMaybe (error ("Unable to parse URI from: '" ++ show ns ++ "' + '" ++ l ++ "'")) (parseURIReference uristr)
+  in QName uri ns local
 
-qnameFromURI :: String -> QName
-qnameFromURI = qnameFromPair . splitURI
+{-
 
-getNamespace :: QName -> String
+old behavior
+
+ splitQname "http://example.org/aaa#bbb" = ("http://example.org/aaa#","bbb")
+ splitQname "http://example.org/aaa/bbb" = ("http://example.org/aaa/","bbb")
+ splitQname "http://example.org/aaa/"    = ("http://example.org/aaa/","")
+
+Should "urn:foo:bar" have a local name of "" or "foo:bar"? For now go
+with the first option.
+
+-}
+
+qnameFromURI :: URI -> QName
+qnameFromURI uri =
+  let uf = uriFragment uri
+      up = uriPath uri
+      q0 = QName uri uri ""
+  in case uf of
+    "#"    -> q0
+    '#':xs -> QName uri (uri { uriFragment = "#" }) (T.pack xs)
+    ""     -> case break (=='/') (reverse up) of
+      ("",_) -> q0 -- path ends in / or is empty
+      (_,"") -> q0 -- path contains no /
+      (rlname,rpath) -> QName uri (uri {uriPath = reverse rpath}) (T.pack (reverse rlname))
+      
+    e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
+
+getNamespace :: QName -> URI
 getNamespace = qnNsuri
 
-getLocalName :: QName -> String
+getLocalName :: QName -> T.Text
 getLocalName = qnLocal
 
-getQNameURI :: QName -> String
-getQNameURI (QName ns ln) = ns++ln
+getQNameURI :: QName -> URI
+getQNameURI = qnURI
 
---  Original used comparison of concatenated strings,
---  but that was very inefficient.  This version does the
---  comparison without constructing new values
+{-
+Original used comparison of concatenated strings,
+but that was very inefficient.  The longer version below
+does the comparison without constructing new values but is
+no longer valid with the namespace being stored as a URI,
+so for now just compare the overall URIs and we can
+optimize this at a later date if needed.
+-}
 qnEq :: QName -> QName -> Bool
-qnEq (QName n1 l1) (QName n2 l2) = qnEq1 n1 n2 l1 l2
+qnEq (QName u1 _ _) (QName u2 _ _) = u1 == u2
+{-
+qnEq (QName _ n1 l1) (QName _ n2 l2) = qnEq1 n1 n2 l1 l2
   where
     qnEq1 (c1:ns1) (c2:ns2)  ln1 ln2   = c1==c2 && qnEq1 ns1 ns2 ln1 ln2
     qnEq1 []  ns2  ln1@(_:_) ln2       = qnEq1 ln1 ns2 []  ln2
     qnEq1 ns1 []   ln1       ln2@(_:_) = qnEq1 ns1 ln2 ln1 []
     qnEq1 []  []   []        []        = True
     qnEq1 _   _    _         _         = False
-
-{-
---  Define equality of (Maybe QName)
-maybeQnEq :: (Maybe QName) -> (Maybe QName) -> Bool
-maybeQnEq Nothing   Nothing   = True
-maybeQnEq (Just q1) (Just q2) = q1 == q2
-maybeQnEq _         _         = False
 -}
-
--- Separate URI string into namespace URI and local name
-splitURI :: String -> ( String, String )
-  -- splitQname "http://example.org/aaa#bbb" = ("http://example.org/aaa#","bbb")
-  -- splitQname "http://example.org/aaa/bbb" = ("http://example.org/aaa/","bbb")
-  -- splitQname "http://example.org/aaa/"    = ("http://example.org/aaa/","")
-splitURI qn = splitAt (scanURI qn (-1) 0) qn
-
--- helper function for splitQName
--- Takes 3 arguments:
---   QName to scan
---   index of last name-start char, or (-1)
---   number of characters scanned so far
--- Returns index of start of name, or length of list
---
-scanURI :: String -> Int -> Int -> Int
-scanURI (nextch:more) (-1) nc
-    | isNameStartChar nextch  = scanURI more nc   (nc+1)
-    | otherwise               = scanURI more (-1) (nc+1)
-scanURI (nextch:more) ns nc
-    | not (isNameChar nextch) = scanURI more (-1) (nc+1)
-    | otherwise               = scanURI more ns   (nc+1)
-scanURI "" (-1) nc = nc
-scanURI "" ns   _  = ns
-
-
 
 -- Definitions here per XML namespaces, NCName production,
 -- restricted to characters used in URIs.
 -- cf. http://www.w3.org/TR/REC-xml-names/
 
+{-
 isNameStartChar :: Char -> Bool
 isNameStartChar c = isAlpha c || c == '_'
 
 isNameChar :: Char -> Bool
 isNameChar      c = isAlphaNum c || c `elem` ".-_"
+-}
 
 {-|
 Convert a filepath to a file: URI stored in a QName. If the
@@ -135,24 +195,49 @@ input file path is relative then the working directory is used
 to convert it into an absolute path.
 
 If the input represents a directory then it *must* end in 
-the directory separator - e.g. @\"\/foo\/bar\/\"@ rather than 
-@\"\/foo\/bar\"@
-for Posix systems.
+the directory separator - so for Posix systems use 
+@\"\/foo\/bar\/\"@ rather than 
+@\"\/foo\/bar\"@.
 
 This has not been tested on Windows.
 -}
+
+{-
+NOTE: not sure what I say directories should end in the path
+seperator since
+
+ghci> System.Directory.canonicalizePath "/Users/dburke/haskell/swish-text"
+"/Users/dburke/haskell/swish-text"
+ghci> System.Directory.canonicalizePath "/Users/dburke/haskell/swish-text/"
+"/Users/dburke/haskell/swish-text"
+
+-}
+
+-- since we build up the URI manually we could
+-- create the QName directly, but leave that 
+-- for now.
+
 qnameFromFilePath :: FilePath -> IO QName
 qnameFromFilePath = fmap qnameFromURI . filePathToURI
   
-filePathToURI :: FilePath -> IO String
+emptyAuth :: Maybe URIAuth
+emptyAuth = Just $ URIAuth "" "" ""
+
+filePathToURI :: FilePath -> IO URI
 filePathToURI fname = do
   ipath <- canonicalizePath fname
+  
+  {-
   let paths = splitDirectories ipath
       txt = intercalate "/" $ case paths of
         "/":rs -> rs
         _      -> paths
+  -}
   
-  return $ "file:///" ++ txt
+  -- Is manually creating the URI sensible?
+  -- return $ fromJust $ parseURI $ "file:///" ++ txt
+  -- return $ URI "file:" emptyAuth txt "" ""
+  return $ URI "file:" emptyAuth ipath "" ""
 
 --------------------------------------------------------------------------------
 --

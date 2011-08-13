@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +9,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This Module implements a NTriples formatter (see [1])
 --  for an RDFGraph value.
@@ -24,8 +25,9 @@
 
 module Swish.RDF.NTFormatter
     ( NodeGenLookupMap
-    , formatGraphAsString
-    , formatGraphAsShowS
+    , formatGraphAsText
+    , formatGraphAsLazyText
+    , formatGraphAsBuilder
     )
 where
 
@@ -45,11 +47,19 @@ import Swish.Utils.LookupMap
     , mapFind, mapAdd
     )
 
-import Text.Printf (printf)
-import Data.Char (ord)
+import Data.Char (ord, intToDigit, toUpper)
 
--- import "mtl" Control.Monad.State
 import Control.Monad.State
+import Control.Applicative ((<$>))
+import Data.Monoid
+
+-- it strikes me that using Lazy Text here is likely to be
+-- wrong; however I have done no profiling to back this
+-- assumption up!
+
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
 
 ----------------------------------------------------------------------
 --  Graph formatting state monad
@@ -74,46 +84,41 @@ emptyNTFS = NTFS {
 
 type Formatter a = State NTFormatterState a
 
-----------------------------------------------------------------------
---  Define a top-level formatter function:
---  accepts a graph and returns a string
-----------------------------------------------------------------------
+-- | Convert a RDF graph to NTriples format.
+formatGraphAsText :: RDFGraph -> T.Text
+formatGraphAsText = L.toStrict . formatGraphAsLazyText
 
-formatGraphAsString :: RDFGraph -> String
-formatGraphAsString gr = formatGraphAsShowS gr "\n"
+-- | Convert a RDF graph to NTriples format.
+formatGraphAsLazyText :: RDFGraph -> L.Text
+formatGraphAsLazyText = B.toLazyText . formatGraphAsBuilder
 
-formatGraphAsShowS :: RDFGraph -> ShowS
-formatGraphAsShowS gr = 
-    let (out, _, _) = formatGraphInternal gr
-    in out 
-
-formatGraphInternal :: RDFGraph -> (ShowS, NodeGenLookupMap, Int)
-formatGraphInternal gr = 
-    let (out, st) = runState (formatGraph gr) emptyNTFS
-    in (out, ntfsNodeMap st, ntfsNodeGen st)
+-- | Convert a RDF graph to NTriples format.
+formatGraphAsBuilder :: RDFGraph -> B.Builder
+formatGraphAsBuilder gr = fst $ runState (formatGraph gr) emptyNTFS
 
 ----------------------------------------------------------------------
 --  Formatting as a monad-based computation
 ----------------------------------------------------------------------
 
--- Are there better ways to do this (could look at moving to a Builder
--- style system)?
--- 
-applyShowS :: [ShowS] -> ShowS
-applyShowS = foldr (.) id
+formatGraph :: RDFGraph -> Formatter B.Builder
+formatGraph gr = mconcat <$> mapM formatArc (getArcs gr)
 
-formatGraph :: RDFGraph -> Formatter ShowS
-formatGraph gr = do
-  ls <- mapM formatArc (getArcs gr)
-  return $ applyShowS ls
+-- TODO: this reverses the contents but may be faster?
+--       that is if I've got the order right in the mappend call
+-- formatGraphBuilder gr = foldl' (\a b -> b `mappend` (formatArcBuilder a)) B.empty (getArcs gr)
 
-formatArc :: Arc RDFLabel -> Formatter ShowS
+space, nl :: B.Builder
+space = B.singleton ' '
+nl    = " .\n"
+
+formatArc :: Arc RDFLabel -> Formatter B.Builder
 formatArc (Arc s p o) = do
   sl <- formatLabel s
   pl <- formatLabel p
   ol <- formatLabel o
-  return $ applyShowS $ map showString [sl, " ", pl, " ", ol, " .\n"]
-
+  return $ mconcat [sl, space, pl, space, ol, nl]
+  -- return $ sl `mappend` $ space `mappend` $ pl `mappend` $ space `mappend` $ ol `mappend` nl
+  
 {-
 If we have a blank node then can
 
@@ -129,18 +134,23 @@ formatLabel lab@(Blank (lnc:_)) =
 formatLabel lab = return $ show lab
 -}
 
-formatLabel :: RDFLabel -> Formatter String
+squote, at, carets  :: B.Builder
+squote = "\""
+at     = "@"
+carets = "^^"
+
+formatLabel :: RDFLabel -> Formatter B.Builder
 formatLabel lab@(Blank _) = mapBlankNode lab
 formatLabel (Res sn) = return $ showScopedName sn
-formatLabel (Lit lit Nothing) = return $ quoteStr lit
-formatLabel (Lit lit (Just nam)) | isLang nam = return $ quoteStr lit ++ "@" ++ langTag nam
-                                 | otherwise  = return $ quoteStr lit ++ "^^" ++ showScopedName nam
+formatLabel (Lit lit Nothing) = return $ quoteText lit
+formatLabel (Lit lit (Just nam)) | isLang nam = return $ mconcat [quoteText lit, at, B.fromText (langTag nam)]
+                                 | otherwise  = return $ mconcat [quoteText lit, carets, showScopedName nam]
 
 -- do not expect to get the following, but include
 -- just in case rather than failing
-formatLabel lab = return $ show lab
+formatLabel lab = return $ B.fromString $ show lab
 
-mapBlankNode :: RDFLabel -> Formatter String
+mapBlankNode :: RDFLabel -> Formatter B.Builder
 mapBlankNode lab = do
   st <- get
   let cmap = ntfsNodeMap st
@@ -156,42 +166,58 @@ mapBlankNode lab = do
 
             n -> return n
 
-  return $ "_:swish" ++ show nv
+  return $ "_:swish" `mappend` B.fromString (show nv)
 
-showScopedName :: ScopedName -> String
+-- TODO: can we use Network.URI to protect the URI?
+showScopedName :: ScopedName -> B.Builder
 showScopedName (ScopedName n l) = 
-  let uri = nsURI n ++ l
-  in "<" ++ quote uri ++ ">"
+  let uri = T.pack (show (nsURI n)) `mappend` l
+  in mconcat ["<", B.fromText (quote uri), ">"]
 
 {-
 Swish.Utils.MiscHelpers contains a quote routine
 which we expand upon here to match the NT syntax.
 -}
 
-quoteStr :: String -> String
-quoteStr  st = '"' : quote st ++ "\""
+quoteText :: T.Text -> B.Builder
+quoteText  st = mconcat [squote, B.fromText (quote st), squote]
 
-quote :: String -> String
-quote []           = ""
-quote ('\\':st)    = '\\':'\\': quote st
-quote ('"': st)    = '\\':'"': quote st
-quote ('\n':st)    = '\\':'n': quote st
-quote ('\r':st)    = '\\':'r': quote st
-quote ('\t':st)    = '\\':'t': quote st
-quote (c:st) = 
+{-
+QUS: should we be operating on Text like this?
+-}
+
+quote :: T.Text -> T.Text
+quote = T.concatMap quoteT
+
+quoteT :: Char -> T.Text
+quoteT '\\' = "\\\\"
+quoteT '"'  = "\\\""
+quoteT '\n' = "\\n"
+quoteT '\t' = "\\t"
+quoteT '\r' = "\\r"
+quoteT c    = 
   let nc = ord c
-      rst = quote st
       
-      -- lazy way to convert to a string
-      hstr = printf "%08X" nc
-      ustr = hstr ++ rst
-
   in if nc > 0xffff 
-     then '\\':'U': ustr
+     then T.pack ('\\':'U': numToHex 8 nc)
      else if nc > 0x7e || nc < 0x20
-          then '\\':'u': drop 4 ustr
-          else c : rst
+          then T.pack ('\\':'u': numToHex 4 nc)
+          else T.singleton c
                       
+-- we assume c > 0, n >= 0 and that the input value fits
+-- into the requested number of digits
+numToHex :: Int -> Int -> String
+numToHex c v = go [] v
+  where
+    go s 0 = replicate (c - length s) '0' ++ s
+    go s n = 
+      let (m,x) = divMod n 16
+      in go (iToD x:s) m
+
+    -- Data.Char.intToDigit uses lower-case Hex
+    iToD x | x < 10    = intToDigit x
+           | otherwise = toUpper $ intToDigit x
+      
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke

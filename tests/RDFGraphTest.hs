@@ -10,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module contains test cases for module RDFGraph.
 --
@@ -47,22 +47,24 @@ import Swish.RDF.RDFGraph
 import Swish.RDF.Vocabulary
   ( namespaceRDF
   , langName 
-  , rdf_XMLLiteral
-  , xsd_boolean
-  , xsd_integer
-  , xsd_float
-  , xsd_double
-  , xsd_dateTime
-  , xsd_date
+  , rdfXMLLiteral
+  , xsdBoolean
+  , xsdInteger
+  , xsdFloat
+  , xsdDouble
+  , xsdDateTime
+  , xsdDate
     )
 
-import qualified Data.Traversable as T
-import qualified Data.Foldable as F
+import qualified Data.Text as T
+
+import qualified Data.Traversable as Traversable
+import qualified Data.Foldable as Foldable
 
 import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.List (elemIndex, intercalate)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.Ord (comparing)
 
 import System.Locale (defaultTimeLocale)
@@ -146,20 +148,29 @@ testLangEqSuite = TestList
 base1Str :: String
 base1Str = "http://id.ninebynine.org/wip/2003/test/graph1/node#"
 
--- TODO: using a base of "" or "?" causes a fromJust failure somewhere
+toURI :: String -> URI
+toURI s = fromMaybe (error $ "Error: unable to parse URI " ++ s) (parseURI s)
+
+toNS :: T.Text -> String -> Namespace
+toNS p = Namespace (Just p) . toURI
+
+-- TODO: basee and baseu had prefixes of "" and "?" before the conversion
+--       to using Maybe String. Now both are Nothing; is this semantically
+--       correct? Probably.
+
 basee, baseu, base1, base2, base3, base4 :: Namespace
-basee = Namespace ""      "http://example.com/a#"
-baseu = Namespace "?"     "http://example.com/"
-base1 = Namespace "base1" base1Str
-base2 = Namespace "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
-base3 = Namespace "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
-base4 = Namespace "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
+basee = Namespace Nothing $ toURI "http://example.com/a#"
+baseu = Namespace Nothing $ toURI "http://example.com/"
+base1 = toNS "base1" base1Str
+base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
+base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
+base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
 qn1s1 :: QName
-qn1s1 = qnameFromURI $ base1Str ++ "s1"
+qn1s1 = qnameFromURI $ toURI $ base1Str ++ "s1"
 
 qu1s1 :: URI
-qu1s1 = fromJust $ parseURI $ base1Str ++ "s1"
+qu1s1 = toURI $ base1Str ++ "s1"
 
 qbes1, qbus1, qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: ScopedName
 qbes1 = ScopedName basee "s1"
@@ -251,21 +262,21 @@ l6   = Lit "l4"  (Just qb1t1)
 l7   = Lit "l4"  (Just qb1t2)           
 l8   = Lit "l4"  (Just qb1t2)           
 l9   = Lit "l4"  (Just qb1t2)           
-l10  = Lit "l10" (Just rdf_XMLLiteral)  
--- l11  = Lit "l11" (Just rdf_XMLLiteral)  
--- l12  = Lit "l12" (Just rdf_XMLLiteral)  
-l11  = Lit "l10" (Just rdf_XMLLiteral)   -- are these meant to both be l10?
-l12  = Lit "l10" (Just rdf_XMLLiteral)   -- if you change them some tests fail
+l10  = Lit "l10" (Just rdfXMLLiteral)  
+-- l11  = Lit "l11" (Just rdfXMLLiteral)  
+-- l12  = Lit "l12" (Just rdfXMLLiteral)  
+l11  = Lit "l10" (Just rdfXMLLiteral)   -- are these meant to both be l10?
+l12  = Lit "l10" (Just rdfXMLLiteral)   -- if you change them some tests fail
 
 nanF, infF, ninfF :: RDFLabel
-nanF  = Lit "NaN" (Just xsd_float)
-infF  = Lit "INF" (Just xsd_float)
-ninfF = Lit "-INF" (Just xsd_float)
+nanF  = Lit "NaN" (Just xsdFloat)
+infF  = Lit "INF" (Just xsdFloat)
+ninfF = Lit "-INF" (Just xsdFloat)
 
 nanD, infD, ninfD :: RDFLabel
-nanD  = Lit "NaN" (Just xsd_double)
-infD  = Lit "INF" (Just xsd_double)
-ninfD = Lit "-INF" (Just xsd_double)
+nanD  = Lit "NaN" (Just xsdDouble)
+infD  = Lit "INF" (Just xsdDouble)
+ninfD = Lit "-INF" (Just xsdDouble)
 
 v1, v2, v3, v4, vb3, vb4 :: RDFLabel
 v1  = Var "v1"  
@@ -336,21 +347,21 @@ testNodeEqSuite = TestList
     
 testToConv :: 
   (ToRDFLabel a, Eq a, Show a) 
-  => String -> String -> Maybe ScopedName -> a -> Test
+  => String -> T.Text -> Maybe ScopedName -> a -> Test
 testToConv lbl sVal dtype hVal = 
   let rdfVal = Lit sVal dtype
   in testEq (":tconv:" ++ lbl) rdfVal (toRDFLabel hVal)
   
 testFrConv :: 
   (FromRDFLabel a, Eq a, Show a) 
-  => String -> String -> Maybe ScopedName -> a -> Test
+  => String -> T.Text -> Maybe ScopedName -> a -> Test
 testFrConv lbl sVal dtype hVal = 
   let rdfVal = Lit sVal dtype
   in testEq (":fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
   
 testConv :: 
   (ToRDFLabel a, FromRDFLabel a, Eq a, Show a) 
-  => String -> String -> Maybe ScopedName -> a -> Test    
+  => String -> T.Text -> Maybe ScopedName -> a -> Test    
 testConv lbl sVal dtype hVal = 
   TestList [ 
     testToConv lbl sVal dtype hVal,
@@ -367,17 +378,17 @@ testConversionSuite =
     -- failure case
     testEq "fconv:fail chr1"    (Nothing :: Maybe Char)   (fromRDFLabel l1)
   , testEq "fconv:fail chr2"    (Nothing :: Maybe Char)   (fromRDFLabel s1)
-  , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (Lit "1.23" (Just xsd_float)))
+  , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (Lit "1.23" (Just xsdFloat)))
   , testEq "fconv:fail bool1"   (Nothing :: Maybe Bool)  (fromRDFLabel l1)
-  , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "True" (Just xsd_boolean))) -- should we just let this be valid?
-  , testEq "fconv:fail bool3"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "true" (Just xsd_float)))
+  , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "True" (Just xsdBoolean))) -- should we just let this be valid?
+  , testEq "fconv:fail bool3"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "true" (Just xsdFloat)))
   , testEq "fconv:fail int1"    (Nothing :: Maybe Int)  (fromRDFLabel l1)
-  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (Lit "123456789012345" (Just xsd_integer))) 
+  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (Lit "123456789012345" (Just xsdInteger))) 
   , testEq "fconv:fail float1"  (Nothing :: Maybe Float)  (fromRDFLabel l1)
-  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "1.234e101" (Just xsd_float))) -- invalid input 
-  , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsd_float))) -- invalid input 
-  , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "NaNs" (Just xsd_float))) -- invalid input 
-  , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (Lit "1.23" (Just xsd_float))) -- invalid input 
+  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "1.234e101" (Just xsdFloat))) -- invalid input 
+  , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsdFloat))) -- invalid input 
+  , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "NaNs" (Just xsdFloat))) -- invalid input 
+  , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (Lit "1.23" (Just xsdFloat))) -- invalid input 
   , testEq "fconv:fail sn1"     (Nothing :: Maybe ScopedName) (fromRDFLabel l1)
   , testEq "fconv:fail qn1"     (Nothing :: Maybe QName)      (fromRDFLabel l1)
   , testEq "fconv:fail qu1"     (Nothing :: Maybe URI)        (fromRDFLabel l1)
@@ -391,10 +402,10 @@ testConversionSuite =
   , testConv   "l1-2"                "l1"                Nothing    ("l1"::String)
     
     -- boolean
-  , testFrConv  "True1"    "1"       (Just xsd_boolean)   True
-  , testFrConv  "False0"   "0"       (Just xsd_boolean)   False
-  , testConv    "True"     "true"    (Just xsd_boolean)   True
-  , testConv    "False"    "false"   (Just xsd_boolean)   False
+  , testFrConv  "True1"    "1"       (Just xsdBoolean)   True
+  , testFrConv  "False0"   "0"       (Just xsdBoolean)   False
+  , testConv    "True"     "true"    (Just xsdBoolean)   True
+  , testConv    "False"    "false"   (Just xsdBoolean)   False
     
     {-
 For example, -1E4, 1267.43233E12, 12.78e-2, 12 , -0, 0 and INF are all legal literals for float.
@@ -406,60 +417,60 @@ Valid values for xsd:integer include -123456789012345678901234567890, 2147483647
      -}
     
     -- numeric types
-  , testConv   "int 0"    "0"       (Just xsd_integer) (0::Int)
-  , testConv   "int -10"  "-10"     (Just xsd_integer) ((-10)::Int)
-  , testConv   "int 10"   "10"      (Just xsd_integer) (10::Int)
-  , testConv   "integer 0"    "0"       (Just xsd_integer) (0::Integer)
-  , testConv   "integer -10"  "-10"     (Just xsd_integer) ((-10)::Integer)
-  , testConv   "integer 10"   "10"      (Just xsd_integer) (10::Integer)
-  , testFrConv "integer -0..05" "-0000000000000000000005" (Just xsd_integer)  ((-5)::Integer)
-  , testConv   "integer big"  "123456789012345678901234567890"      (Just xsd_integer) (123456789012345678901234567890::Integer)
-  , testConv   "integer -big" "-123456789012345678901234567890"     (Just xsd_integer) ((-123456789012345678901234567890)::Integer)
+  , testConv   "int 0"    "0"       (Just xsdInteger) (0::Int)
+  , testConv   "int -10"  "-10"     (Just xsdInteger) ((-10)::Int)
+  , testConv   "int 10"   "10"      (Just xsdInteger) (10::Int)
+  , testConv   "integer 0"    "0"       (Just xsdInteger) (0::Integer)
+  , testConv   "integer -10"  "-10"     (Just xsdInteger) ((-10)::Integer)
+  , testConv   "integer 10"   "10"      (Just xsdInteger) (10::Integer)
+  , testFrConv "integer -0..05" "-0000000000000000000005" (Just xsdInteger)  ((-5)::Integer)
+  , testConv   "integer big"  "123456789012345678901234567890"      (Just xsdInteger) (123456789012345678901234567890::Integer)
+  , testConv   "integer -big" "-123456789012345678901234567890"     (Just xsdInteger) ((-123456789012345678901234567890)::Integer)
   
-  , testToConv "float NaN"    "NaN"          (Just xsd_float)   ((0.0::Float)/0.0)
-  , testToConv "float INF"    "INF"          (Just xsd_float)   ((1.0::Float)/0.0)
-  , testToConv "float -INF"   "-INF"         (Just xsd_float)   (((-1.0)::Float)/0.0)
+  , testToConv "float NaN"    "NaN"          (Just xsdFloat)   ((0.0::Float)/0.0)
+  , testToConv "float INF"    "INF"          (Just xsdFloat)   ((1.0::Float)/0.0)
+  , testToConv "float -INF"   "-INF"         (Just xsdFloat)   (((-1.0)::Float)/0.0)
   , testEq     ":fconv:float NaN"  (Just True)  (fmap isNaN (fromRDFLabel nanF :: Maybe Float))
   , testEq     ":fconv:float INF"  (Just True)  (fmap isInfinite (fromRDFLabel infF :: Maybe Float))
   , testEq     ":fconv:float -INF" (Just True)  (fmap isInfinite (fromRDFLabel ninfF :: Maybe Float))
   
-  , testToConv "double NaN"    "NaN"          (Just xsd_double)   ((0.0::Double)/0.0)
-  , testToConv "double INF"    "INF"          (Just xsd_double)   ((1.0::Double)/0.0)
-  , testToConv "double -INF"   "-INF"         (Just xsd_double)   (((-1.0)::Double)/0.0)
+  , testToConv "double NaN"    "NaN"          (Just xsdDouble)   ((0.0::Double)/0.0)
+  , testToConv "double INF"    "INF"          (Just xsdDouble)   ((1.0::Double)/0.0)
+  , testToConv "double -INF"   "-INF"         (Just xsdDouble)   (((-1.0)::Double)/0.0)
   , testEq     ":fconv:double NaN"  (Just True)  (fmap isNaN (fromRDFLabel nanD :: Maybe Double))
   , testEq     ":fconv:double INF"  (Just True)  (fmap isInfinite (fromRDFLabel infD :: Maybe Double))
   , testEq     ":fconv:double -INF" (Just True)  (fmap isInfinite (fromRDFLabel ninfD :: Maybe Double))
   
-  , testFrConv "float 0.0"      "0.0"       (Just xsd_float)   (0::Float)
-  , testToConv "float 0.0"      "0.0E0"     (Just xsd_float)   (0::Float)
-  , testFrConv "float 0."       "0."        (Just xsd_float)   (0::Float)
-  , testFrConv "float -0"       "-0"        (Just xsd_float)   (0::Float)
-  , testFrConv "float 0.2"      "0.2"       (Just xsd_float) (0.2::Float)
-  , testToConv "float 0.2"      "2.0E-1"    (Just xsd_float) (0.2::Float)
-  , testFrConv "float -0.2"     "-0.2"      (Just xsd_float) ((-0.2)::Float)
-  , testToConv "float -0.2"     "-2.0E-1"   (Just xsd_float) ((-0.2)::Float)
-  , testConv   "float 2.01e-4"  "2.01E-4"   (Just xsd_float) (0.000201::Float)
-  , testConv   "float -2.01e-4" "-2.01E-4"  (Just xsd_float) ((-0.000201)::Float)
-  , testConv   "float 2.01e38"  "2.01E38"   (Just xsd_float) (2.01e38::Float)
-  , testConv   "float -2.01e38" "-2.01E38"  (Just xsd_float) ((-2.01e38)::Float)
+  , testFrConv "float 0.0"      "0.0"       (Just xsdFloat)   (0::Float)
+  , testToConv "float 0.0"      "0.0E0"     (Just xsdFloat)   (0::Float)
+  , testFrConv "float 0."       "0."        (Just xsdFloat)   (0::Float)
+  , testFrConv "float -0"       "-0"        (Just xsdFloat)   (0::Float)
+  , testFrConv "float 0.2"      "0.2"       (Just xsdFloat) (0.2::Float)
+  , testToConv "float 0.2"      "2.0E-1"    (Just xsdFloat) (0.2::Float)
+  , testFrConv "float -0.2"     "-0.2"      (Just xsdFloat) ((-0.2)::Float)
+  , testToConv "float -0.2"     "-2.0E-1"   (Just xsdFloat) ((-0.2)::Float)
+  , testConv   "float 2.01e-4"  "2.01E-4"   (Just xsdFloat) (0.000201::Float)
+  , testConv   "float -2.01e-4" "-2.01E-4"  (Just xsdFloat) ((-0.000201)::Float)
+  , testConv   "float 2.01e38"  "2.01E38"   (Just xsdFloat) (2.01e38::Float)
+  , testConv   "float -2.01e38" "-2.01E38"  (Just xsdFloat) ((-2.01e38)::Float)
     
-  , testFrConv "double 0"        "0.0"     (Just xsd_double) (0::Double)
-  , testToConv "double 0"        "0.0E0"   (Just xsd_double) (0::Double)
-  , testFrConv "double 0."       "0."      (Just xsd_double)   (0::Double)
-  , testFrConv "double -0"       "-0"      (Just xsd_double)   (0::Double)
-  , testFrConv "double 0.2"      "0.2"     (Just xsd_double) (0.2::Double)
-  , testToConv "double 0.2"      "2.0E-1"  (Just xsd_double) (0.2::Double)
-  , testFrConv "double -0.2"     "-0.2"    (Just xsd_double) ((-0.2)::Double)
-  , testToConv "double -0.2"     "-2.0E-1" (Just xsd_double) ((-0.2)::Double)
-  , testFrConv "double 2.01e-4"  "2.01e-4"  (Just xsd_double) (0.000201::Double)
-  , testToConv "double 2.01e-4"  "2.01E-4"  (Just xsd_double) (0.000201::Double)
-  , testFrConv "double -2.01e-4" "-2.01e-4" (Just xsd_double) ((-0.000201)::Double)
-  , testToConv "double -2.01e-4" "-2.01E-4" (Just xsd_double) ((-0.000201)::Double)
-  , testConv   "double 2.01e38"  "2.01E38"  (Just xsd_double) (2.01e38::Double)
-  , testConv   "double -2.01e38" "-2.01E38" (Just xsd_double) ((-2.01e38)::Double)
-  , testConv   "double 2.01e108"  "2.01E108"  (Just xsd_double) (2.01e108::Double)
-  , testConv   "double -2.01e108" "-2.01E108" (Just xsd_double) ((-2.01e108)::Double)
-  
+  , testFrConv "double 0"        "0.0"     (Just xsdDouble) (0::Double)
+  , testToConv "double 0"        "0.0E0"   (Just xsdDouble) (0::Double)
+  , testFrConv "double 0."       "0."      (Just xsdDouble)   (0::Double)
+  , testFrConv "double -0"       "-0"      (Just xsdDouble)   (0::Double)
+  , testFrConv "double 0.2"      "0.2"     (Just xsdDouble) (0.2::Double)
+  , testToConv "double 0.2"      "2.0E-1"  (Just xsdDouble) (0.2::Double)
+  , testFrConv "double -0.2"     "-0.2"    (Just xsdDouble) ((-0.2)::Double)
+  , testToConv "double -0.2"     "-2.0E-1" (Just xsdDouble) ((-0.2)::Double)
+  , testFrConv "double 2.01e-4"  "2.01e-4"  (Just xsdDouble) (0.000201::Double)
+  , testToConv "double 2.01e-4"  "2.01E-4"  (Just xsdDouble) (0.000201::Double)
+  , testFrConv "double -2.01e-4" "-2.01e-4" (Just xsdDouble) ((-0.000201)::Double)
+  , testToConv "double -2.01e-4" "-2.01E-4" (Just xsdDouble) ((-0.000201)::Double)
+  , testConv   "double 2.01e38"  "2.01E38"  (Just xsdDouble) (2.01e38::Double)
+  , testConv   "double -2.01e38" "-2.01E38" (Just xsdDouble) ((-2.01e38)::Double)
+  , testConv   "double 2.01e108"  "2.01E108"  (Just xsdDouble) (2.01e108::Double)
+  , testConv   "double -2.01e108" "-2.01E108" (Just xsdDouble) ((-2.01e108)::Double)
+    
     -- URI related types
   , testEq "tconv:sname s1"    s1             (toRDFLabel qb1s1)
   , testEq "fconv:sname s1"    (Just qb1s1)   (fromRDFLabel s1)
@@ -471,18 +482,18 @@ Valid values for xsd:integer include -123456789012345678901234567890, 2147483647
   , testEq "fconv:URI s1"      (Just qu1s1)   (fromRDFLabel s1)
     
     -- time values
-  , testConv   "time1"   "1970-01-01T00:00:00Z"            (Just xsd_dateTime)  utc1
-  , testToConv "time2"   "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
-  , testFrConv "time2a"  "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
-  , testFrConv "time2b"  "2011-02-28T17:04:02.304-03:00"   (Just xsd_dateTime)  utc2
-  , testFrConv "time2c"  "2011-03-01T00:04:02.304+04:00"   (Just xsd_dateTime)  utc2
-  , testFrConv "time2d"  "2011-02-28T20:04:02.304"         (Just xsd_dateTime)  utc2
-  , testConv   "time2Z"  "2011-02-28T20:04:02.304Z"        (Just xsd_dateTime)  utc2
+  , testConv   "time1"   "1970-01-01T00:00:00Z"            (Just xsdDateTime)  utc1
+  , testToConv "time2"   "2011-02-28T20:04:02.304Z"        (Just xsdDateTime)  utc2
+  , testFrConv "time2a"  "2011-02-28T20:04:02.304Z"        (Just xsdDateTime)  utc2
+  , testFrConv "time2b"  "2011-02-28T17:04:02.304-03:00"   (Just xsdDateTime)  utc2
+  , testFrConv "time2c"  "2011-03-01T00:04:02.304+04:00"   (Just xsdDateTime)  utc2
+  , testFrConv "time2d"  "2011-02-28T20:04:02.304"         (Just xsdDateTime)  utc2
+  , testConv   "time2Z"  "2011-02-28T20:04:02.304Z"        (Just xsdDateTime)  utc2
                               
-  , testConv   "day1a"   "1970-01-01Z"                     (Just xsd_date)      day1
-  , testFrConv "day1b"   "1970-01-01"                      (Just xsd_date)      day1
-  , testFrConv "day1c"   "1970-01-01-03:00"                (Just xsd_date)      day1
-  , testFrConv "day1d"   "1970-01-01+04:00"                (Just xsd_date)      day1
+  , testConv   "day1a"   "1970-01-01Z"                     (Just xsdDate)      day1
+  , testFrConv "day1b"   "1970-01-01"                      (Just xsdDate)      day1
+  , testFrConv "day1c"   "1970-01-01-03:00"                (Just xsdDate)      day1
+  , testFrConv "day1d"   "1970-01-01+04:00"                (Just xsdDate)      day1
     
     -- basic fromRDFTriple test
     
@@ -510,7 +521,7 @@ testClass :: String -> (RDFLabel -> Bool) -> RDFLabel -> Bool -> Test
 testClass lab clsf nod eq = testCompare "testClass:" lab eq (clsf nod)
 
 altIsXmlLit :: RDFLabel -> Bool
-altIsXmlLit = isDatatyped rdf_XMLLiteral
+altIsXmlLit = isDatatyped rdfXMLLiteral
 
 testNodeClassSuite :: Test
 testNodeClassSuite = TestList
@@ -840,8 +851,8 @@ tt04 = toRDFTriple st1 p1 ("l1" :: RDFLabel)
 tt05 = arc st2 p1 l4
 tt06 = arc st3 p1 l10
 
-makeNewPrefixNamespace :: (String,Namespace) -> Namespace
-makeNewPrefixNamespace (pre,ns) = Namespace pre (nsURI ns)
+makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
+makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
 
 nslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace
@@ -987,21 +998,21 @@ showLabel = (" " ++) . show
 testGraphFoldSuite :: Test
 testGraphFoldSuite = TestList
   [ 
-    testEq "fold0"    (mempty :: RDFGraph) (F.fold [])
-  , testEq "foldE"    (mempty :: RDFGraph) (F.fold [mempty])
-  , testEq "foldEE"   (mempty :: RDFGraph) (F.fold [mempty,mempty])
-  , testEq "foldg1"   g1                   (F.fold [g1])
-  , testEq "foldg1E"  g1                   (F.fold [g1,mempty])
-  , testEq "foldEg1"  g1                   (F.fold [mempty,g1])
-  , testEq "foldg1g2" fg1g2                (F.fold [g1,g2])
-  , testEq "foldg2g1" fg1g2                (F.fold [g2,g1])
-  , testEq "foldMap0" ""                   (F.foldMap showLabel (mempty::RDFGraph))
+    testEq "fold0"    (mempty :: RDFGraph) (Foldable.fold [])
+  , testEq "foldE"    (mempty :: RDFGraph) (Foldable.fold [mempty])
+  , testEq "foldEE"   (mempty :: RDFGraph) (Foldable.fold [mempty,mempty])
+  , testEq "foldg1"   g1                   (Foldable.fold [g1])
+  , testEq "foldg1E"  g1                   (Foldable.fold [g1,mempty])
+  , testEq "foldEg1"  g1                   (Foldable.fold [mempty,g1])
+  , testEq "foldg1g2" fg1g2                (Foldable.fold [g1,g2])
+  , testEq "foldg2g1" fg1g2                (Foldable.fold [g2,g1])
+  , testEq "foldMap0" ""                   (Foldable.foldMap showLabel (mempty::RDFGraph))
   , testEq "foldMapg1"                    
     (concatMap showLabel [s1,p1,o1])
-    (F.foldMap showLabel g1)
+    (Foldable.foldMap showLabel g1)
   , testEq "foldMapg1f2"                    
     (concatMap showLabel $ s2 : concatMap (\(Arc s p o) -> [s,p,o]) g2Labels ++ [s1,p1,o1])
-    (F.foldMap showLabel g1f2)
+    (Foldable.foldMap showLabel g1f2)
   ]
   
 ------------------------------------------------------------
@@ -1249,14 +1260,14 @@ ftm3   = LookupMap [Formula st1 gt1,Formula st2 gt2,Formula st3 gt3]
 
 gt1f1aM, gt1f1bM, gt1f2aM, gt1f2bM, gt1f5M :: Maybe RDFGraph
 gt1f1aM = Just gt1
-gt1f1bM = T.mapM translateM g1f1
+gt1f1bM = Traversable.mapM translateM g1f1
 gt1f2aM = Just gt1f2a
-gt1f2bM = T.mapM translateM g1f2
-gt1f5M = T.mapM translateM g1f5
+gt1f2bM = Traversable.mapM translateM g1f2
+gt1f5M = Traversable.mapM translateM g1f5
 
 ft1M, ft2M :: FormulaMap RDFLabel
-ft1M = getFormulae $ fromJust gt1f1bM
-ft2M = getFormulae $ fromJust gt1f2bM
+ft1M = getFormulae $ fromMaybe (error "Unexpected: gt1f1bM") gt1f1bM
+ft2M = getFormulae $ fromMaybe (error "Unexpected: gt1f2bM") gt1f2bM
 
 testGraphTranslateSuite :: Test
 testGraphTranslateSuite = TestLabel "TestTranslate" $ TestList

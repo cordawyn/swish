@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
 --  This module defines some datatypes and functions that are
 --  used to define rules and rulesets over RDF graphs.
@@ -24,7 +26,7 @@ module Swish.RDF.RDFRuleset
     , RDFClosure, RDFRuleset, RDFRulesetMap
     , nullRDFFormula
     , GraphClosure(..), makeGraphClosureRule
-    , makeRDFGraphFromN3String
+    , makeRDFGraphFromN3Builder
     , makeRDFFormula
     , makeRDFClosureRule
       -- * Create rules using Notation3 statements
@@ -51,15 +53,9 @@ import Swish.RDF.RDFGraph
     , merge, allLabels
     , toRDFGraph, emptyRDFGraph )
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding, RDFVarBindingModify )
-
-import Swish.RDF.N3Parser
-    ( parseN3fromString )
-
-import Swish.RDF.Ruleset
-    ( Ruleset(..), RulesetMap
-    )
+import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
+import Swish.RDF.N3Parser (parseN3)
+import Swish.RDF.Ruleset (Ruleset(..), RulesetMap)
 
 import Swish.RDF.Rule
     ( Formula(..), Rule(..), RuleMap
@@ -75,10 +71,7 @@ import Swish.RDF.VarBinding
     , varBindingId
     )
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName(..) )
-
+import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 
 {-
@@ -86,14 +79,15 @@ import Swish.RDF.Proof
     ( Proof(..), Step(..) )
 -}
 
-import Swish.RDF.GraphClass
-    ( Label(..), Arc(..), LDGraph(..) )
-
-import Swish.Utils.ListHelpers
-    ( equiv, flist )
+import Swish.RDF.GraphClass (Label(..), Arc(..), LDGraph(..))
+import Swish.Utils.ListHelpers (equiv, flist)
 
 import Data.List (nub)
 import Data.Maybe (fromMaybe)
+import Data.Monoid (Monoid(..))
+
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Datatypes for RDF ruleset
@@ -240,30 +234,35 @@ querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 --  Method for creating an RDF formula value from N3 text
 ------------------------------------------------------------
 
-prefixRDF :: String
-prefixRDF =
-    "@prefix rdf:  <" ++ nsURI namespaceRDF  ++ "> . \n" ++
-    "@prefix rdfs: <" ++ nsURI namespaceRDFS ++ "> . \n" ++
-    -- "@prefix rdfd: <" ++ nsURI namespaceRDFD ++ "> . \n" ++
-    " \n"
+mkPrefix :: Namespace -> B.Builder
+mkPrefix = namespaceToBuilder
+
+prefixRDF :: B.Builder
+prefixRDF = 
+  mconcat 
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+    ]
 
 -- |Helper function to parse a string containing Notation3
 --  and return the corresponding RDFGraph value.
 --
-makeRDFGraphFromN3String :: String -> RDFGraph
-makeRDFGraphFromN3String str = case parseN3fromString (prefixRDF ++ str) of
+makeRDFGraphFromN3Builder :: B.Builder -> RDFGraph
+makeRDFGraphFromN3Builder b = 
+  let t = B.toLazyText (prefixRDF `mappend` b)
+  in case parseN3 t Nothing of
     Left  msg -> error msg
     Right gr  -> gr
 
 -- |Create an RDF formula.
 makeRDFFormula ::
-    Namespace -- ^ namespace to which the formula is allocated
-    -> String -- ^ local name for the formula in the namespace
-    -> String -- ^ graph in Notation 3 format
+    Namespace     -- ^ namespace to which the formula is allocated
+    -> T.Text     -- ^ local name for the formula in the namespace
+    -> B.Builder  -- ^ graph in Notation 3 format
     -> RDFFormula
 makeRDFFormula scope local gr = Formula
     { formName = ScopedName scope local
-    , formExpr = makeRDFGraphFromN3String gr
+    , formExpr = makeRDFGraphFromN3Builder gr
     }
 
 ------------------------------------------------------------
@@ -318,12 +317,12 @@ makeRDFClosureRule sname antgrs congr vmod = makeGraphClosureRule
 --
 makeN3ClosureRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the namespace
-    -> String 
+    -> T.Text -- ^ local name for the rule in the namespace
+    -> B.Builder 
     -- ^ the Notation3 representation
     --   of the antecedent graph.  (Note: multiple antecedents
     --   can be handled by combining multiple graphs.)
-    -> String -- ^ the Notation3 representation of the consequent graph.
+    -> B.Builder -- ^ the Notation3 representation of the consequent graph.
     -> RDFVarBindingModify
     -- ^ a variable binding modifier value that may impose
     --   additional conditions on the variable bindings that
@@ -342,20 +341,20 @@ makeN3ClosureRule ::
 makeN3ClosureRule scope local ant con =
     makeRDFClosureRule (ScopedName scope local) [antgr] congr
     where
-        antgr = makeRDFGraphFromN3String ant
-        congr = makeRDFGraphFromN3String con
+        antgr = makeRDFGraphFromN3Builder ant
+        congr = makeRDFGraphFromN3Builder con
 
 -- |Construct a simple RDF graph closure rule without
 --  additional node allocations or variable binding constraints.
 --
 makeN3ClosureSimpleRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the namepace
-    -> String 
+    -> T.Text -- ^ local name for the rule in the namepace
+    -> B.Builder
     -- ^ the Notation3 representation
     --   of the antecedent graph.  (Note: multiple antecedents
     --   can be handled by combining multiple graphs.)
-    -> String  -- ^ the Notation3 representation of the consequent graph.
+    -> B.Builder  -- ^ the Notation3 representation of the consequent graph.
     -> RDFRule
 makeN3ClosureSimpleRule scope local ant con =
     makeN3ClosureRule scope local ant con varBindingId
@@ -365,11 +364,11 @@ makeN3ClosureSimpleRule scope local ant con =
 --
 makeN3ClosureModifyRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the given namespace
-    -> String -- ^ the Notation3 representation
-    --             of the antecedent graph.  (Note: multiple antecedents
-    --             can be handled by combining multiple graphs.)
-    -> String -- ^ the Notation3 representation of the consequent graph.
+    -> T.Text -- ^ local name for the rule in the given namespace
+    -> B.Builder -- ^ the Notation3 representation
+    --                of the antecedent graph.  (Note: multiple antecedents
+    --                can be handled by combining multiple graphs.)
+    -> B.Builder -- ^ the Notation3 representation of the consequent graph.
     -> RDFVarBindingModify
     -- ^ a variable binding modifier value that may impose
     --   additional conditions on the variable bindings that
@@ -408,11 +407,11 @@ makeN3ClosureModifyRule scope local ant con vflt vmod =
 --
 makeN3ClosureAllocatorRule ::
     Namespace -- ^ namespace to which the rule is allocated
-    -> String -- ^ local name for the rule in the given namespace
-    -> String -- ^ the Notation3 representation
-    --             of the antecedent graph.  (Note: multiple antecedents
-    --             can be handled by combining multiple graphs.)
-    -> String -- ^ the Notation3 representation of the consequent graph.
+    -> T.Text -- ^ local name for the rule in the given namespace
+    -> B.Builder -- ^ the Notation3 representation
+    --                of the antecedent graph.  (Note: multiple antecedents
+    --                can be handled by combining multiple graphs.)
+    -> B.Builder -- ^ the Notation3 representation of the consequent graph.
     -> RDFVarBindingModify
     -- ^ variable binding modifier value that may impose
     --   additional conditions on the variable bindings that
@@ -432,8 +431,8 @@ makeN3ClosureAllocatorRule ::
 makeN3ClosureAllocatorRule scope local ant con vflt aloc =
     makeRDFClosureRule (ScopedName scope local) [antgr] congr modc
     where
-        antgr = makeRDFGraphFromN3String ant
-        congr = makeRDFGraphFromN3String con
+        antgr = makeRDFGraphFromN3Builder ant
+        congr = makeRDFGraphFromN3Builder con
         vmod  = aloc (allLabels labelIsVar antgr)
         modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
 
