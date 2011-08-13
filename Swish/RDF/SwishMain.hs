@@ -155,11 +155,8 @@ splitArgument "-v" = Left "-v"
 splitArgument "-q" = Left "-q"
 splitArgument x    = Right x
 
--- | Represent an Swish action, with an optional argument and
--- the Swish routine to act on that argument.
+-- | Represent a Swish action.
 -- 
--- At present this type is a black box to external modules.
--- newtype SwishAction = SA (Maybe String, Maybe String -> SwishStateIO ())
 newtype SwishAction = SA (SwishStateIO ())
 
 -- | Given a list of command-line arguments create the list of actions
