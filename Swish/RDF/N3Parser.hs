@@ -963,6 +963,9 @@ numericliteral ::=		|	decimal
 		|	double
 		|	integer
 
+We actually support 1. for decimal values which isn't supported 
+by the above production.
+
 TODO: we could convert via something like
 
   maybeRead value :: Double >>= Just . toRDFLabel
@@ -994,7 +997,8 @@ n3integer = do
     _ -> return ds
 
 n3decimal :: N3Parser String
-n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many1 digit )
+-- n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many1 digit )
+n3decimal = (++) <$> n3integer <*> ( (:) <$> char '.' <*> many digit )
            
 n3double :: N3Parser String
 n3double = (++) <$> n3decimal <*> ( (:) <$> satisfy (`elem` "eE") <*> n3integer )
