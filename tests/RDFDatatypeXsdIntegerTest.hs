@@ -51,7 +51,7 @@ import Swish.RDF.Datatype
 import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
 import Swish.RDF.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.RDF.VarBinding (makeVarBinding)
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), makeScopedName)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeScopedName, makeNSScopedName)
 import Swish.RDF.Vocabulary (namespaceDefault)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 import Swish.Utils.ListHelpers (equiv)
@@ -162,7 +162,7 @@ toURI :: String -> URI
 toURI = fromJust . parseURI
 
 xsdIntName :: T.Text -> ScopedName
-xsdIntName = ScopedName namespaceXsdInteger 
+xsdIntName = makeNSScopedName namespaceXsdInteger 
 
 axiomXsdIntegerDT :: ScopedName
 axiomXsdIntegerDT       = xsdIntName "dt"
@@ -1149,10 +1149,10 @@ pvRules = typeMkRules rdfDatatypeXsdInteger gr
 
 pvRule0, pvRule1 :: Maybe (Rule RDFGraph)
 pvRule0 = mapFindMaybe
-            (ScopedName namespaceDefault "PassengerVehicle")
+            (makeNSScopedName namespaceDefault "PassengerVehicle")
             (LookupMap pvRules)
 pvRule1 = mapFindMaybe
-            (ScopedName namespaceDefault "PassengerVehicle1")
+            (makeNSScopedName namespaceDefault "PassengerVehicle1")
             (LookupMap pvRules)
 
 pv01inp :: B.Builder

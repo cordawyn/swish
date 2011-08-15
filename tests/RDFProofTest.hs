@@ -50,7 +50,7 @@ import Swish.RDF.VarBinding
     )
 
 import Swish.RDF.Rule (Rule(..))
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -660,7 +660,7 @@ vocab4 :: [RDFLabel]
 vocab4 = allNodes (not . labelIsVar) graph4
 
 name4 :: ScopedName
-name4 = ScopedName scope4 "instance4"
+name4 = makeNSScopedName scope4 "instance4"
 
 rule4 :: RDFRule
 rule4 = makeRdfInstanceEntailmentRule name4 vocab4
@@ -847,7 +847,7 @@ graph5 = mkGr2
          ]
 
 name5 :: ScopedName
-name5 = ScopedName scope5 "subgraph5"
+name5 = makeNSScopedName scope5 "subgraph5"
 
 rule5 :: RDFRule
 rule5 = makeRdfSubgraphEntailmentRule name5
@@ -916,7 +916,7 @@ graph6 = mkGr2
          ]
 
 name6 :: ScopedName
-name6 = ScopedName scope5 "subgraph6"
+name6 = makeNSScopedName scope5 "subgraph6"
 
 rule6 :: RDFRule
 rule6 = makeRdfSimpleEntailmentRule name6

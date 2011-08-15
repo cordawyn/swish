@@ -16,25 +16,15 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.BuiltInDatatypes
-    ( allDatatypes, findRDFDatatype )
-where
+       ( allDatatypes, findRDFDatatype )
+    where
 
-import Swish.RDF.RDFDatatype
-    ( RDFDatatype
-    )
+import Swish.RDF.RDFDatatype (RDFDatatype)
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..), mapFindMaybe
-    )
-
-import Swish.Utils.Namespace
-    ( ScopedName(..) )
-
-import Swish.RDF.RDFDatatypeXsdString
-    ( rdfDatatypeXsdString )
-
-import Swish.RDF.RDFDatatypeXsdInteger
-    ( rdfDatatypeXsdInteger )
+import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
+import Swish.Utils.Namespace (ScopedName)
+import Swish.RDF.RDFDatatypeXsdString (rdfDatatypeXsdString)
+import Swish.RDF.RDFDatatypeXsdInteger (rdfDatatypeXsdInteger)
 
 ------------------------------------------------------------
 --  Declare datatype map

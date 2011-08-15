@@ -49,7 +49,7 @@ import Swish.RDF.VarBinding
 
 import Swish.RDF.Datatype (typeRules, typeMkModifiers)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
-import Swish.Utils.Namespace (ScopedName(..))
+import Swish.Utils.Namespace (ScopedName)
 
 ------------------------------------------------------------
 --  Declare variable binding filters list

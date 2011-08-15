@@ -90,8 +90,7 @@ import Swish.Utils.LookupMap
     , mapFind, mapFindMaybe, mapAdd, mapDelete, mapMerge
     )
 
-import Swish.Utils.Namespace
-    ( ScopedName(..), getScopeURI )
+import Swish.Utils.Namespace (ScopedName, getScopeLocal, getScopeURI)
 
 import Data.Char (isDigit)
 
@@ -733,7 +732,7 @@ formatLabel _ lab@(Res sn) =
     Nothing -> do
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
-          local  = snLocal sn
+          local  = getScopeLocal sn
           premap = reverseLookupMap pr :: RevNamespaceMap
           prefix = mapFindMaybe nsuri premap
           

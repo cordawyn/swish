@@ -1,3 +1,10 @@
+0.5.0.0:
+
+  - Changes to ScopedName to provide a significant reduction in the time
+    taken to write out a graph. As this is an experimental change the
+    record fields are no longer exported (to avoid exposing internal
+    details that may change).
+  
 0.4.0.0:
 
   - Use polyparse rather than parsec-2 for parsing. As part of this,

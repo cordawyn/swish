@@ -66,7 +66,8 @@ module Swish.RDF.RDFGraph
 import Swish.Utils.Namespace
     ( Namespace(..)
     , getScopedNameURI
-    , ScopedName(..)
+    , ScopedName
+    , getScopeLocal, getScopeNamespace
     , getQName
     , makeQNameScopedName
     , makeURIScopedName
@@ -208,7 +209,7 @@ instance Label RDFLabel where
     labelIsVar _            = False
     getLocal   (Blank loc)  = loc
     getLocal   (Var   loc)  = '?':loc
-    getLocal   (Res   sn)   = "Res_" ++ T.unpack (snLocal sn)
+    getLocal   (Res   sn)   = "Res_" ++ T.unpack (getScopeLocal sn)
     getLocal   (NoNode)     = "None"
     getLocal   _            = "Lit_"
     makeLabel  ('?':loc)    = Var loc
@@ -522,7 +523,7 @@ instance FromRDFLabel ScopedName where
   
 -- | Converts to a Resource.
 instance ToRDFLabel QName where  
-  toRDFLabel = Res . makeQNameScopedName
+  toRDFLabel = Res . makeQNameScopedName Nothing
   
 -- | Converts from a Resource.
 instance FromRDFLabel QName where
@@ -658,11 +659,11 @@ isDatatyped _  _                = False
 --  first character of local name is '_' and
 --  remaining characters of local name are all digits
 isMemberProp :: RDFLabel -> Bool
-isMemberProp (Res sn) = snScope sn == namespaceRDF &&
+isMemberProp (Res sn) = getScopeNamespace sn == namespaceRDF &&
                         T.head loc   == '_' &&
                         T.all isDigit (T.tail loc)
                         where
-                            loc = snLocal sn
+                            loc = getScopeLocal sn
 isMemberProp _        = False
 
 -- |Test if supplied labal is a blank node
@@ -1080,8 +1081,8 @@ toRDFGraph :: [RDFTriple] -> RDFGraph
 -- toRDFGraph arcs = emptyRDFGraph { statements = arcs }
 toRDFGraph arcs = 
   let lbls = concatMap (\(Arc s p o) -> [s,p,o]) arcs
-      ns1  = map (snScope . getScopedName) (filter isUri lbls)
-      ns2  = map (snScope . getDataType) (filter isTypedLiteral lbls)
+      ns1  = map (getScopeNamespace . getScopedName) (filter isUri lbls)
+      ns2  = map (getScopeNamespace . getDataType) (filter isTypedLiteral lbls)
       getDataType (Lit _ (Just dt)) = dt
       getDataType _ = nullScopedName -- should not happen
       nsmap = foldl' mapAddIfNew emptyNamespaceMap (ns1++ns2)

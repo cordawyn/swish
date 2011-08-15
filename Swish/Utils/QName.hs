@@ -17,11 +17,11 @@
 --------------------------------------------------------------------------------
 
 -- At present we support using URI references rather than forcing an absolute
--- URI. This is partly to support the existing tests (to lazy to resolve whether
+-- URI. This is partly to support the existing tests (too lazy to resolve whether
 -- the tests really should be using relative URIs in this case).
 
 module Swish.Utils.QName
-    ( QName
+    ( QName(..)
     , newQName
     , qnameFromURI
     , getNamespace

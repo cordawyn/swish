@@ -55,7 +55,7 @@ import Swish.RDF.Ruleset
 
 import Swish.RDF.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), makeScopedName, namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -228,15 +228,15 @@ testRulesetSuite =
   , testSameAxioms    "testAX01" a1s (getRulesetAxioms r1)
   , testSameRules     "testRU01" r1s (getRulesetRules r1)
   , testEqual "testGeta11" (Just a11) $
-      getRulesetAxiom (ScopedName rn1 "a11") r1
+      getRulesetAxiom (makeNSScopedName rn1 "a11") r1
   , testEqual "testGeta11" (Just a12) $
-      getRulesetAxiom (ScopedName rn1 "a12") r1
+      getRulesetAxiom (makeNSScopedName rn1 "a12") r1
   , testEqual "testGetr11" (Just r11) $
-      getRulesetRule (ScopedName rn1 "r11") r1
+      getRulesetRule (makeNSScopedName rn1 "r11") r1
   , testEqual "testGetr12" (Just r12) $
-      getRulesetRule (ScopedName rn1 "r12") r1
+      getRulesetRule (makeNSScopedName rn1 "r12") r1
   , testEqual "testGetnone" Nothing $
-      getRulesetRule (ScopedName rn1 "none") r1
+      getRulesetRule (makeNSScopedName rn1 "none") r1
   ]
 
 ------------------------------------------------------------
@@ -273,7 +273,7 @@ rdfr2modc = vbmCompose (makeVarFilterModify $ isXMLLit "l") rdfr2modv
 
 rdfr2grc :: RDFClosure 
 rdfr2grc = GraphClosure
-            { nameGraphRule = ScopedName scopeRDF "r2"
+            { nameGraphRule = makeNSScopedName scopeRDF "r2"
             , ruleAnt       = getArcs rdfr2ant
             , ruleCon       = getArcs rdfr2con
             , ruleModify    = fromJust rdfr2modc

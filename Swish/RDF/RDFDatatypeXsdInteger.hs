@@ -59,7 +59,7 @@ import Swish.RDF.Datatype
 
 import Swish.RDF.Ruleset (makeRuleset)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, namespaceToBuilder, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -86,7 +86,7 @@ nameXsdInteger      = "integer"
 
 -- |Type name for xsd:integer datatype
 typeNameXsdInteger :: ScopedName
-typeNameXsdInteger  = ScopedName namespaceXSD nameXsdInteger
+typeNameXsdInteger  = makeNSScopedName namespaceXSD nameXsdInteger
 
 -- |Namespace for xsd:integer datatype functions
 namespaceXsdInteger :: Namespace
@@ -169,7 +169,7 @@ mkIntRel2 ::
     T.Text -> DatatypeRelPr Integer -> UnaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel2 nam pr fns = DatatypeRel
-    { dtRelName = ScopedName namespaceXsdInteger nam
+    { dtRelName = makeNSScopedName namespaceXsdInteger nam
     , dtRelFunc = altArgs pr fns unaryFnApp
     }
 
@@ -177,7 +177,7 @@ mkIntRel3 ::
     T.Text -> DatatypeRelPr Integer -> BinaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3 nam pr fns = DatatypeRel
-    { dtRelName = ScopedName namespaceXsdInteger nam
+    { dtRelName = makeNSScopedName namespaceXsdInteger nam
     , dtRelFunc = altArgs pr fns binaryFnApp
     }
 
@@ -185,7 +185,7 @@ mkIntRel3maybe ::
     T.Text -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3maybe nam pr fns = DatatypeRel
-    { dtRelName = ScopedName namespaceXsdInteger nam
+    { dtRelName = makeNSScopedName namespaceXsdInteger nam
     , dtRelFunc = altArgs pr fns binMaybeFnApp
     }
 
@@ -304,7 +304,7 @@ modXsdInteger =
 
 modXsdIntegerAbs :: RDFDatatypeMod Integer
 modXsdIntegerAbs = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "abs"
+    { dmName = makeNSScopedName namespaceXsdInteger "abs"
     , dmModf = [ f0, f1 ]
     , dmAppf = makeVmod11
     }
@@ -316,7 +316,7 @@ modXsdIntegerAbs = DatatypeMod
 
 modXsdIntegerNeg :: RDFDatatypeMod Integer
 modXsdIntegerNeg = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "neg"
+    { dmName = makeNSScopedName namespaceXsdInteger "neg"
     , dmModf = [ f0, f1, f1 ]
     , dmAppf = makeVmod11inv
     }
@@ -328,7 +328,7 @@ modXsdIntegerNeg = DatatypeMod
 
 modXsdIntegerSum :: RDFDatatypeMod Integer
 modXsdIntegerSum = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "sum"
+    { dmName = makeNSScopedName namespaceXsdInteger "sum"
     , dmModf = [ f0, f1, f2, f2 ]
     , dmAppf = makeVmod21inv
     }
@@ -342,7 +342,7 @@ modXsdIntegerSum = DatatypeMod
 
 modXsdIntegerDiff :: RDFDatatypeMod Integer
 modXsdIntegerDiff = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "diff"
+    { dmName = makeNSScopedName namespaceXsdInteger "diff"
     , dmModf = [ f0, f1, f2, f3 ]
     , dmAppf = makeVmod21inv
     }
@@ -358,7 +358,7 @@ modXsdIntegerDiff = DatatypeMod
 
 modXsdIntegerProd :: RDFDatatypeMod Integer
 modXsdIntegerProd = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "prod"
+    { dmName = makeNSScopedName namespaceXsdInteger "prod"
     , dmModf = [ f0, f1, f2, f2 ]
     , dmAppf = makeVmod21inv
     }
@@ -373,7 +373,7 @@ modXsdIntegerProd = DatatypeMod
 
 modXsdIntegerDivMod :: RDFDatatypeMod Integer
 modXsdIntegerDivMod = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "divmod"
+    { dmName = makeNSScopedName namespaceXsdInteger "divmod"
     , dmModf = [ f0, f1 ]
     , dmAppf = makeVmod22
     }
@@ -385,7 +385,7 @@ modXsdIntegerDivMod = DatatypeMod
 
 modXsdIntegerPower :: RDFDatatypeMod Integer
 modXsdIntegerPower = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger "power"
+    { dmName = makeNSScopedName namespaceXsdInteger "power"
     , dmModf = [ f0, f1 ]
     , dmAppf = makeVmod21
     }
@@ -406,7 +406,7 @@ modXsdIntegerGe = modXsdIntegerCompare "ge" (>=)
 modXsdIntegerCompare ::
     T.Text -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
 modXsdIntegerCompare nam rel = DatatypeMod
-    { dmName = ScopedName namespaceXsdInteger nam
+    { dmName = makeNSScopedName namespaceXsdInteger nam
     , dmModf = [ f0 ]
     , dmAppf = makeVmod20
     }

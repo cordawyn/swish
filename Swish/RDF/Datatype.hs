@@ -63,12 +63,8 @@ import Swish.RDF.Rule
     , Rule(..)
     )
 
-import Swish.Utils.Namespace
-    ( ScopedName(..)
-    )
-
-import Swish.RDF.Vocabulary
-    ( swishName )
+import Swish.RDF.Vocabulary (swishName)
+import Swish.Utils.Namespace (ScopedName)
 
 import Swish.RDF.VarBinding
     ( VarBinding(..)

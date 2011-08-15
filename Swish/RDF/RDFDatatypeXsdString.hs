@@ -59,7 +59,7 @@ import Swish.RDF.Datatype
     )
 
 import Swish.RDF.Ruleset (makeRuleset)
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, namespaceToBuilder, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -84,9 +84,9 @@ import qualified Data.Text.Lazy.Builder as B
 nameXsdString :: T.Text
 nameXsdString = "string"
 
--- |Type name for @xsd:string@ datatype
+-- | Type name for @xsd:string@ datatype
 typeNameXsdString :: ScopedName
-typeNameXsdString  = ScopedName namespaceXSD nameXsdString
+typeNameXsdString  = makeNSScopedName namespaceXSD nameXsdString
 
 -- |Namespace for @xsd:string@ datatype functions
 namespaceXsdString :: Namespace
@@ -138,8 +138,9 @@ relXsdString =
 mkStrRel2 ::
     T.Text -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
     -> DatatypeRel T.Text
-mkStrRel2 nam pr fns = DatatypeRel
-    { dtRelName = ScopedName namespaceXsdString nam
+mkStrRel2 nam pr fns = 
+  DatatypeRel
+    { dtRelName = makeNSScopedName namespaceXsdString nam
     , dtRelFunc = altArgs pr fns unaryFnApp
     }
 
@@ -194,7 +195,7 @@ modXsdStringNe = modXsdStringCompare "ne" (/=)
 modXsdStringCompare ::
     T.Text -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
 modXsdStringCompare nam rel = DatatypeMod
-    { dmName = ScopedName namespaceXsdString nam
+    { dmName = makeNSScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
     , dmAppf = makeVmod20
     }
@@ -285,7 +286,7 @@ stringPlain svar lvar = stringPlainValue (Var svar) (Var lvar)
 stringPlainValue ::
     RDFLabel -> RDFLabel -> RDFVarBindingModify
 stringPlainValue svar lvar = VarBindingModify
-        { vbmName   = ScopedName namespaceRDFD "stringPlain"
+        { vbmName   = makeNSScopedName namespaceRDFD "stringPlain"
         , vbmApply  = concatMap app1
         , vbmVocab  = [svar,lvar]
         , vbmUsage  = [[svar],[lvar],[]]

@@ -332,7 +332,7 @@ testSQRoundTrip :: String -> String -> Test
 testSQRoundTrip lbl uri = 
   let u = (fromJust . parseURIReference) uri
       qn = qnameFromURI u
-      sn = makeQNameScopedName qn
+      sn = makeQNameScopedName Nothing qn
   in TestList
      [ testIsEq "SQ:URI"   lbl u  (getScopedNameURI sn)
      , testIsEq "SQ:Qname" lbl qn (getQName sn)

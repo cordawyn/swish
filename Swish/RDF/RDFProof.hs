@@ -44,9 +44,7 @@ import Swish.RDF.RDFGraph
     , toRDFGraph -}, emptyRDFGraph
     )
 
-import Swish.RDF.VarBinding
-    (  makeVarBinding
-    )
+import Swish.RDF.VarBinding (makeVarBinding)
 
 import Swish.RDF.Proof
     ( Proof(..), Step(..) )
@@ -54,9 +52,7 @@ import Swish.RDF.Proof
 import Swish.RDF.Rule
     ( Expression(..), Rule(..) )
 
-import Swish.Utils.Namespace
-    ( ScopedName(..)
-    )
+import Swish.Utils.Namespace (ScopedName)
 
 import Swish.RDF.GraphClass
     ( Label(..), LDGraph(..), replaceArcs )

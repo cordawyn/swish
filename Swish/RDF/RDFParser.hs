@@ -63,7 +63,7 @@ import Swish.RDF.Vocabulary
     )
 
 import Swish.Utils.LookupMap (LookupMap(..))
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName)
 
 import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L
@@ -285,7 +285,7 @@ hex4 = do
   case mhex of
     Left emsg     -> failBad $ "Internal error: unable to parse hex4: " ++ emsg
     Right (v, "") -> return $ chr v
-    Right (_, vs) -> failBad $ "Internal error: hex4 has remained of " ++ T.unpack vs
+    Right (_, vs) -> failBad $ "Internal error: hex4 remainder = " ++ T.unpack vs
         
 hex8 :: Parser a Char
 hex8 = do
@@ -296,7 +296,7 @@ hex8 = do
     Right (v, "") -> if v <= 0x10FFFF
                      then return $ chr v
                      else failBad "\\UHHHHHHHH format is limited to a maximum of \\U0010FFFF"
-    Right (_, vs) -> failBad $ "Internal error: hex8 has remained of " ++ T.unpack vs
+    Right (_, vs) -> failBad $ "Internal error: hex8 remainder = " ++ T.unpack vs
         
 --------------------------------------------------------------------------------
 --

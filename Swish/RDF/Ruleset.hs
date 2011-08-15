@@ -31,7 +31,7 @@ where
 
 import Swish.Utils.Namespace
     ( Namespace(..)
-    , ScopedName(..)
+    , ScopedName
     )
 
 import Swish.RDF.Rule (Formula(..), Rule(..))

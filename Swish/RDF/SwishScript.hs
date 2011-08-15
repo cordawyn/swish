@@ -128,7 +128,7 @@ import Swish.RDF.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
 import Swish.RDF.Rule (Formula(..), Rule(..)) 
 import Swish.RDF.VarBinding (composeSequence)
 
-import Swish.Utils.Namespace (ScopedName(..))
+import Swish.Utils.Namespace (ScopedName, getScopeNamespace)
 import Swish.Utils.QName (QName, qnameFromURI)
 import Swish.Utils.LookupMap (mapReplaceOrAdd)
 import Swish.Utils.ListHelpers (equiv, flist)
@@ -674,7 +674,7 @@ ssDefineRuleset sn ans rns =
                     (Right ags,Right rls) ->
                         modRulesets (mapReplaceOrAdd rs)
                         where
-                            rs = makeRuleset (snScope sn) ags rls
+                            rs = makeRuleset (getScopeNamespace sn) ags rls
             ; modify frs
             }
 
@@ -709,7 +709,7 @@ ssDefineConstraints  sn cgfs dtns =
                     (Right cgr,Right dts) ->
                         modRulesets (mapReplaceOrAdd rs)
                         where
-                            rs  = makeRuleset (snScope sn) [] rls
+                            rs  = makeRuleset (getScopeNamespace sn) [] rls
                             rls = concatMap (`typeMkRules` cgr) dts
             ; modify frs
             }

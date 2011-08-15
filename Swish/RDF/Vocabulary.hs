@@ -28,7 +28,8 @@ module Swish.RDF.Vocabulary
     , namespaceLOG
     , namespaceDAML
     , namespaceDefault
-    , namespaceSwish, swishName
+    , namespaceSwish 
+    , swishName
     , namespaceLang,  langName, langTag, isLang
     , scopeRDF
     , scopeRDFS
@@ -49,11 +50,11 @@ module Swish.RDF.Vocabulary
     )
 where
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName, getScopeLocal, getScopeNamespace, makeScopedName)
 
 import Data.Monoid (mappend, mconcat)
 import Data.Maybe (fromMaybe)
-import Network.URI (parseURI)
+import Network.URI (URI, parseURI)
 
 import qualified Data.Text as T
 
@@ -67,6 +68,9 @@ toNS p utxt =
       uri = fromMaybe (error ("Unable to convert " ++ ustr ++ " to a URI")) $
             parseURI ustr
   in Namespace (Just p) uri
+
+toNSU :: T.Text -> URI -> Namespace
+toNSU p = Namespace (Just p)
 
 namespaceXsdType :: T.Text -> Namespace
 namespaceXsdType dtn = toNS ("xsd_" `mappend` dtn)
@@ -84,20 +88,38 @@ namespaceSwish :: Namespace
 namespaceDefault :: Namespace
 namespaceLang :: Namespace
 
-namespaceRDF     = toNS "rdf"     "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-namespaceRDFS    = toNS "rdfs"    "http://www.w3.org/2000/01/rdf-schema#"
-namespaceRDFD    = toNS "rdfd"    "http://id.ninebynine.org/2003/rdfext/rdfd#"
-namespaceOWL     = toNS "owl"     "http://www.w3.org/2002/07/owl#"
-namespaceXSD     = toNS "xsd"     "http://www.w3.org/2001/XMLSchema#"
+namespaceRDF     = toNSU "rdf"    namespaceRDFURI
+namespaceRDFS    = toNSU "rdfs"   namespaceRDFSURI
+namespaceRDFD    = toNSU "rdfd"   namespaceRDFDURI
+namespaceOWL     = toNSU "owl"    namespaceOWLURI
+namespaceXSD     = toNSU "xsd"    namespaceXSDURI
 namespaceMATH    = toNS "math"    "http://www.w3.org/2000/10/swap/math#"
-namespaceLOG     = toNS "log"     "http://www.w3.org/2000/10/swap/log#"
+namespaceLOG     = toNSU "log"    namespaceLOGURI
 namespaceDAML    = toNS "daml"    "http://www.daml.org/2000/10/daml-ont#"
-namespaceSwish   = toNS "swish"   "http://id.ninebynine.org/2003/Swish/"
-namespaceLang    = toNS "lang"    "http://id.ninebynine.org/2003/Swish/Lang/" -- To be replaced by urn:ietf:params:lang?
-namespaceDefault = toNS "default" "http://id.ninebynine.org/default/"
+namespaceSwish   = toNSU "swish"  namespaceSwishURI
+namespaceLang    = toNSU "lang"   namespaceLangURI
+namespaceDefault = toNSU "default" namespaceDefaultURI
+
+tU :: String -> URI
+tU = fromMaybe (error "Internal error processing namespace URI") . parseURI
+
+namespaceRDFURI, namespaceRDFSURI, namespaceRDFDURI, 
+  namespaceXSDURI, namespaceOWLURI, namespaceLOGURI,
+  namespaceSwishURI, 
+  namespaceLangURI, namespaceDefaultURI :: URI
+namespaceRDFURI   = tU "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+namespaceRDFSURI  = tU "http://www.w3.org/2000/01/rdf-schema#"
+namespaceRDFDURI  = tU "http://id.ninebynine.org/2003/rdfext/rdfd#"
+namespaceOWLURI   = tU "http://www.w3.org/2002/07/owl#"
+namespaceXSDURI   = tU "http://www.w3.org/2001/XMLSchema#"
+namespaceLOGURI   = tU "http://www.w3.org/2000/10/swap/log#"
+namespaceSwishURI = tU "http://id.ninebynine.org/2003/Swish/"
+namespaceLangURI  = tU "http://id.ninebynine.org/2003/Swish/Lang/" -- To be replaced by urn:ietf:params:lang?  
+namespaceDefaultURI = tU "http://id.ninebynine.org/default/"
 
 swishName :: T.Text -> ScopedName
-swishName = ScopedName namespaceSwish
+-- swishName = ScopedName namespaceSwish
+swishName = makeScopedName (Just "swish") namespaceSwishURI
 
 -----------------------------------------------------------
 --  Language tags
@@ -110,13 +132,14 @@ swishName = ScopedName namespaceSwish
 --  distinct labels (but future developments may change that).
 
 langName :: T.Text -> ScopedName
-langName = ScopedName namespaceLang . T.toLower
+-- langName = ScopedName namespaceLang . T.toLower
+langName = makeScopedName (Just "lang") namespaceLangURI . T.toLower
 
 langTag :: ScopedName -> T.Text
-langTag = snLocal
+langTag = getScopeLocal
 
 isLang :: ScopedName -> Bool
-isLang sname = snScope sname == namespaceLang
+isLang sname = getScopeNamespace sname == namespaceLang
 
 ------------------------------------------------------------
 --  Define namespaces for RDF rules, axioms, etc
@@ -133,9 +156,9 @@ scopeRDFD = toNS "rs_rdfd"  "http://id.ninebynine.org/2003/Ruleset/rdfd#"
 ------------------------------------------------------------
 
 toRDF, toRDFS, toRDFD :: T.Text -> ScopedName
-toRDF  = ScopedName namespaceRDF
-toRDFS = ScopedName namespaceRDFS
-toRDFD = ScopedName namespaceRDFD
+toRDF  = makeScopedName (Just "rdf")  namespaceRDFURI
+toRDFS = makeScopedName (Just "rdfs") namespaceRDFSURI
+toRDFD = makeScopedName (Just "rdfd") namespaceRDFDURI
 
 rdfDatatype   :: ScopedName
 rdfResource   :: ScopedName
@@ -171,7 +194,7 @@ rdfdConstraint         = toRDFD "constraint"
 rdfdMaxCardinality     = toRDFD "maxCardinality"
 
 xsdType             :: T.Text -> ScopedName
-xsdType             = ScopedName namespaceXSD
+xsdType             = makeScopedName (Just "xsd") namespaceXSDURI
 
 xsdString           :: ScopedName
 xsdString           = xsdType "string"
@@ -208,13 +231,13 @@ xsdDate = xsdType "date"
 xsdDateTime = xsdType "dateTime"
 
 owlSameAs   :: ScopedName
-owlSameAs   = ScopedName namespaceOWL  "sameAs"
+owlSameAs   = makeScopedName (Just "owl") namespaceOWLURI "sameAs"
 
 logImplies  :: ScopedName
-logImplies  = ScopedName namespaceLOG "implies"
+logImplies  = makeScopedName (Just "log") namespaceLOGURI "implies"
 
 defaultBase :: ScopedName
-defaultBase = ScopedName namespaceDefault "base"
+defaultBase = makeScopedName (Just "default") namespaceDefaultURI "base"
 
 --------------------------------------------------------------------------------
 --

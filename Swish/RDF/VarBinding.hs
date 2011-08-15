@@ -42,7 +42,7 @@ import Swish.Utils.LookupMap
     , makeLookupMap, mapFindMaybe
     )
 
-import Swish.Utils.Namespace (ScopedName(..))
+import Swish.Utils.Namespace (ScopedName, getScopeLocal)
 import Swish.RDF.Vocabulary (swishName)
 import Swish.Utils.ListHelpers (equiv, subset, flist, headOrNothing, permutations)
 
@@ -307,7 +307,7 @@ vbmCompose
     (VarBindingModify nam1 app1 voc1 use1)
     (VarBindingModify nam2 app2 voc2 use2)
     | not (null use12) = Just VarBindingModify
-        { vbmName  = swishName $ mconcat ["_", snLocal nam1, "_", snLocal nam2, "_"]
+        { vbmName  = swishName $ mconcat ["_", getScopeLocal nam1, "_", getScopeLocal nam2, "_"]
         , vbmApply = app2 . app1
         , vbmVocab = voc1 `union` voc2
         , vbmUsage = use12

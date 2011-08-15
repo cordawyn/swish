@@ -88,14 +88,17 @@ import Swish.Utils.LookupMap
 
 import Swish.Utils.Namespace
     ( Namespace(..)
-    , ScopedName(..)
+    , ScopedName
+    , getScopeNamespace
     , getScopedNameURI
+    , getScopeNamespace
     , makeURIScopedName
     , makeQNameScopedName
+    , makeNSScopedName
     , nullScopedName
     )
 
-import Swish.Utils.QName (QName)
+import Swish.Utils.QName (QName(..))
 
 import Swish.RDF.Vocabulary
     ( langName
@@ -248,7 +251,7 @@ parseAnyfromText :: N3Parser a      -- ^ parser to apply
                     -> Either String a
 parseAnyfromText parser mbase input =
   let pmap   = LookupMap [Namespace Nothing hashURI]
-      muri   = fmap makeQNameScopedName mbase
+      muri   = fmap (makeQNameScopedName Nothing) mbase
       smap   = LookupMap $ specialTable muri
       pstate = N3State
               { graphState = emptyRDFGraph
@@ -382,9 +385,10 @@ TODO:
     
 -}
 operatorLabel :: ScopedName -> N3Parser RDFLabel
-operatorLabel snam@(ScopedName sns _) = do
+operatorLabel snam = do
   st <- stGet
-  let opmap = prefixUris st
+  let sns = getScopeNamespace snam
+      opmap = prefixUris st
       pkey = entryKey sns
       pval = entryVal sns
       
@@ -421,7 +425,7 @@ addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsdBoolean, xsdInteger, 
   let stmt = arc s p o
       oldp = prefixUris ost
       ogs = graphState ost
-      newp = mapReplaceOrAdd (snScope dtype) oldp
+      newp = mapReplaceOrAdd (getScopeNamespace dtype) oldp
   stUpdate $ \st -> st { prefixUris = newp, graphState = addArc stmt ogs }
 addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 
@@ -731,21 +735,19 @@ TODO:
 
 qname :: N3Parser ScopedName
 qname =
-  (char ':' *> toSN getDefaultPrefix)
+  -- (char ':' *> toSN getDefaultPrefix)
+  (char ':' >> g >>= return . uncurry makeNSScopedName)
   <|> (n3Name >>= fullOrLocalQName)
     where
-      toSN p = ScopedName <$> p <*> (n3Name <|> return "")
-          
+      g = (,) <$> getDefaultPrefix <*> (n3Name <|> return "")
+               
 fullOrLocalQName :: T.Text -> N3Parser ScopedName
 fullOrLocalQName name = 
   (char ':' *> fullQName name)
   <|> localQName name
   
 fullQName :: T.Text -> N3Parser ScopedName
-fullQName name = do
-  pre <- findPrefix name
-  lname <- n3Name <|> return ""
-  return $ ScopedName pre lname
+fullQName name = makeNSScopedName <$> findPrefix name <*> (n3Name <|> pure "")
   
 findPrefix :: T.Text -> N3Parser Namespace
 findPrefix pre = do
@@ -758,7 +760,9 @@ localQName :: T.Text -> N3Parser ScopedName
 localQName name = do
   st <- stGet
   if getAllowLocalNames st
-    then ScopedName <$> getDefaultPrefix <*> pure name
+    then let g = (,) <$> getDefaultPrefix <*> pure name
+         in uncurry makeNSScopedName <$> g
+            
     else fail ("Invalid 'bare' word: " ++ T.unpack name)-- TODO: not ideal error message; can we handle this case differently?
 
 {-

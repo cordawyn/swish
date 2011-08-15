@@ -35,8 +35,7 @@ import Swish.RDF.Ruleset
     , getMaybeContextRule
     )
 
-import Swish.Utils.Namespace
-    ( ScopedName(..) )
+import Swish.Utils.Namespace (makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( swishName
@@ -154,11 +153,11 @@ testVarMod03 = testJust "testVarMod03" $
 testVarMod04 = testJust "testVarMod04" $
     findRDFOpenVarBindingModifier (swishName "nullVarBindingModify")
 testVarMod05 = testJust "testVarMod05" $
-    findRDFOpenVarBindingModifier (ScopedName namespaceXsdInteger "abs")
+    findRDFOpenVarBindingModifier (makeNSScopedName namespaceXsdInteger "abs")
 testVarMod06 = testJust "testVarMod06" $
-    findRDFOpenVarBindingModifier (ScopedName namespaceXsdInteger "divmod")
+    findRDFOpenVarBindingModifier (makeNSScopedName namespaceXsdInteger "divmod")
 testVarMod07 = testJust "testVarMod07" $
-    findRDFOpenVarBindingModifier (ScopedName namespaceXsdInteger "ge")
+    findRDFOpenVarBindingModifier (makeNSScopedName namespaceXsdInteger "ge")
 
 testVarModSuite :: Test
 testVarModSuite = TestList
@@ -203,11 +202,11 @@ testRulesetSuite = TestList
 testFindAxiom01, testFindAxiom02, testFindAxiom03 :: Test
 
 testFindAxiom01 = testJust "testFindAxiom01" $
-    getMaybeContextAxiom (ScopedName scopeRDF "a1") allRulesets
+    getMaybeContextAxiom (makeNSScopedName scopeRDF "a1") allRulesets
 testFindAxiom02 = testJust "testFindAxiom02" $
-    getMaybeContextAxiom (ScopedName scopeRDFS "a01") allRulesets
+    getMaybeContextAxiom (makeNSScopedName scopeRDFS "a01") allRulesets
 testFindAxiom03 = testJust "testFindAxiom03" $
-    getMaybeContextAxiom (ScopedName (namespaceXsdType "integer") "dt")
+    getMaybeContextAxiom (makeNSScopedName (namespaceXsdType "integer") "dt")
         allRulesets
 
 testFindAxiomSuite :: Test
@@ -218,13 +217,13 @@ testFindAxiomSuite = TestList
 testFindRule01, testFindRule02, testFindRule03, testFindRule04 :: Test
 
 testFindRule01 = testJust "testFindRule01" $
-    getMaybeContextRule (ScopedName scopeRDF "r1") allRulesets
+    getMaybeContextRule (makeNSScopedName scopeRDF "r1") allRulesets
 testFindRule02 = testJust "testFindRule02" $
-    getMaybeContextRule (ScopedName scopeRDFS "r1") allRulesets
+    getMaybeContextRule (makeNSScopedName scopeRDFS "r1") allRulesets
 testFindRule03 = testJust "testFindRule03" $
-    getMaybeContextRule (ScopedName scopeRDFD "r1") allRulesets
+    getMaybeContextRule (makeNSScopedName scopeRDFD "r1") allRulesets
 testFindRule04 = testJust "testFindRule04" $
-    getMaybeContextRule (ScopedName (namespaceXsdType "integer") "Abs")
+    getMaybeContextRule (makeNSScopedName (namespaceXsdType "integer") "Abs")
         allRulesets
 
 testFindRuleSuite :: Test

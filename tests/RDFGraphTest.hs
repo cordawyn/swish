@@ -26,7 +26,7 @@ import Swish.Utils.ListHelpers (equiv)
 
 import Swish.RDF.GraphClass (Label(..), arc)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), nullScopedName)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName, nullScopedName)
 import Swish.Utils.QName (QName, qnameFromURI)
 
 import Swish.RDF.RDFGraph
@@ -173,14 +173,14 @@ qu1s1 :: URI
 qu1s1 = toURI $ base1Str ++ "s1"
 
 qbes1, qbus1, qb1s1, qb2s2, qb3s3, qb3, qb3bm, qb4m :: ScopedName
-qbes1 = ScopedName basee "s1"
-qbus1 = ScopedName baseu "s1"
-qb1s1 = ScopedName base1 "s1"
-qb2s2 = ScopedName base2 "s2"
-qb3s3 = ScopedName base3 "s3"
-qb3   = ScopedName base3 ""
-qb3bm = ScopedName base3 "basemore"
-qb4m  = ScopedName base4 "more"
+qbes1 = makeNSScopedName basee "s1"
+qbus1 = makeNSScopedName baseu "s1"
+qb1s1 = makeNSScopedName base1 "s1"
+qb2s2 = makeNSScopedName base2 "s2"
+qb3s3 = makeNSScopedName base3 "s3"
+qb3   = makeNSScopedName base3 ""
+qb3bm = makeNSScopedName base3 "basemore"
+qb4m  = makeNSScopedName base4 "more"
 
 es1, us1, s1, s2, s3, s4, s5, s6, s7, s8 :: RDFLabel
 es1 = Res qbes1
@@ -195,9 +195,9 @@ s7 = Res qb4m
 s8 = Blank "s8"
 
 st1, st2, st3 :: RDFLabel
-st1 = toRDFLabel $ ScopedName base1 "st1"
-st2 = toRDFLabel $ ScopedName base2 "st2" 
-st3 = toRDFLabel $ ScopedName base3 "st3"
+st1 = toRDFLabel $ makeNSScopedName base1 "st1"
+st2 = toRDFLabel $ makeNSScopedName base2 "st2" 
+st3 = toRDFLabel $ makeNSScopedName base3 "st3"
 
 bb, bb0, b1, b2, b3, b4, b5, b6, b7,
   b8, b9, b10 :: RDFLabel
@@ -233,22 +233,22 @@ bn5 = Blank "5"
 bn6 = Blank "6"
 
 p1, p2, p3, p4 :: RDFLabel
-p1 = Res $ ScopedName base1 "p1"
-p2 = Res $ ScopedName base2 "p2"
-p3 = Res $ ScopedName base3 "p3"
-p4 = Res $ ScopedName base3 "p4"
+p1 = Res $ makeNSScopedName base1 "p1"
+p2 = Res $ makeNSScopedName base2 "p2"
+p3 = Res $ makeNSScopedName base3 "p3"
+p4 = Res $ makeNSScopedName base3 "p4"
 
 o1, o2, o3, o4, o5, o6 :: RDFLabel
-o1 = Res $ ScopedName base1 "o1"
-o2 = Res $ ScopedName base2 "o2"
-o3 = Res $ ScopedName base3 "o3"
+o1 = Res $ makeNSScopedName base1 "o1"
+o2 = Res $ makeNSScopedName base2 "o2"
+o3 = Res $ makeNSScopedName base3 "o3"
 o4 = toRDFLabel qb3   
 o5 = Blank "o5"
 o6 = Blank "s5"
 
 qb1t1, qb1t2 :: ScopedName
-qb1t1 = ScopedName base1 "type1"
-qb1t2 = ScopedName base1 "type2"
+qb1t1 = makeNSScopedName base1 "type1"
+qb1t2 = makeNSScopedName base1 "type2"
 
 l1, l2, l2gb, l3, l4, l5, l6, l7, l8,
   l9, l10, l11, l12 :: RDFLabel
@@ -289,10 +289,10 @@ vb4 = Blank "v4"
 -- Test cases for isMemberProp
 
 cm1, cm2, nm1, nm2 :: RDFLabel
-cm1  = Res $ ScopedName namespaceRDF "_1"
-cm2  = Res $ ScopedName namespaceRDF "_234567"
-nm1  = Res $ ScopedName namespaceRDF "987"
-nm2  = Res $ ScopedName namespaceRDF "_987a65"
+cm1  = Res $ makeNSScopedName namespaceRDF "_1"
+cm2  = Res $ makeNSScopedName namespaceRDF "_234567"
+nm1  = Res $ makeNSScopedName namespaceRDF "987"
+nm2  = Res $ makeNSScopedName namespaceRDF "_987a65"
 
 ------------------------------------------------------------
 --  RDFLabel construction and equality tests

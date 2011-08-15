@@ -34,7 +34,7 @@ import Swish.RDF.Proof (Step(..), checkProof, checkStep, explainProof)
 import Swish.RDF.Ruleset (getContextAxiom, getContextRule)
 import Swish.RDF.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (mapFindMaybe)
 
 import Swish.RDF.Vocabulary
@@ -119,7 +119,7 @@ getAxiom :: String -> RDFFormula
 getAxiom nam = getContextAxiom (makeSName nam) nullRDFFormula rdfdContext
 
 makeSName :: String -> ScopedName
-makeSName nam = ScopedName ns (T.pack loc)
+makeSName nam = makeNSScopedName ns (T.pack loc)
     where
         (pre,_:loc) = break (==':') nam
         ns = case pre of
@@ -526,7 +526,7 @@ rdfProof08 = makeRDFProof rdfsContext rdfBase08 rdfGoal08
 
 rdfAxiomIntDt :: RDFFormula
 rdfAxiomIntDt = getContextAxiom
-                    (ScopedName (namespaceXsdType "integer") "dt")
+                    (makeNSScopedName (namespaceXsdType "integer") "dt")
                     nullFormula
                     allRulesets
 
@@ -594,7 +594,7 @@ p09sh = putStrLn ("\n"++showProof "\n" rdfProof09++"\n")
 
 rdfAxiomStrDt :: RDFFormula
 rdfAxiomStrDt = getContextAxiom
-                    (ScopedName (namespaceXsdType "string") "dt")
+                    (makeNSScopedName (namespaceXsdType "string") "dt")
                     nullFormula
                     allRulesets
 

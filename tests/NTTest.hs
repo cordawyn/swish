@@ -88,7 +88,7 @@ roundTrip lbl inp =
 --
 --  This is the contents of
 --    http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
---  retrived on 2011-03-23 11:25:46
+--  retrieved on 2011-03-23 11:25:46
 --
 ------------------------------------------------------------
 

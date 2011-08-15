@@ -36,8 +36,9 @@ import Swish.RDF.RDFGraph
 
 import Swish.Utils.Namespace (
   Namespace(..)
-  , ScopedName(..)
+  , ScopedName
   , makeScopedName
+  , makeNSScopedName
   , nullScopedName
   -- , makeUriScopedName
   , namespaceToBuilder
@@ -215,7 +216,7 @@ parseUriRef2Test :: String -> L.Text -> ScopedName -> String -> Test
 parseUriRef2Test = parseItemTest parseURIref2FromText nullScopedName
 
 sname01 :: ScopedName
-sname01  = ScopedName namespaceRDF "type"
+sname01  = makeNSScopedName namespaceRDF "type"
 
 uriRef02 :: L.Text
 uriRef02 = "<http://id.ninebynine.org/wip/2003/test/graph1/node#s1> "
@@ -255,28 +256,28 @@ xsdNS :: Namespace
 xsdNS = toNS "xsd" "http://www.w3.org/2001/XMLSchema#"
 
 u1 :: RDFLabel
-u1 = Res $ ScopedName base1 ""
+u1 = Res $ makeNSScopedName base1 ""
 
 ds1, ds2, ds3 :: RDFLabel
-ds1 = Res $ ScopedName dbase "s1"
-ds2 = Res $ ScopedName dbase "s2"
-ds3 = Res $ ScopedName dbase "s3"
+ds1 = Res $ makeNSScopedName dbase "s1"
+ds2 = Res $ makeNSScopedName dbase "s2"
+ds3 = Res $ makeNSScopedName dbase "s3"
 
 dp1, dp2, dp3 :: RDFLabel
-dp1 = Res $ ScopedName dbase "p1"
-dp2 = Res $ ScopedName dbase "p2"
-dp3 = Res $ ScopedName dbase "p3"
+dp1 = Res $ makeNSScopedName dbase "p1"
+dp2 = Res $ makeNSScopedName dbase "p2"
+dp3 = Res $ makeNSScopedName dbase "p3"
 
 do1, do2, do3 :: RDFLabel
-do1 = Res $ ScopedName dbase "o1"
-do2 = Res $ ScopedName dbase "o2"
-do3 = Res $ ScopedName dbase "o3"
+do1 = Res $ makeNSScopedName dbase "o1"
+do2 = Res $ makeNSScopedName dbase "o2"
+do3 = Res $ makeNSScopedName dbase "o3"
 
 s1, s2, s3, sa :: RDFLabel
-s1 = Res $ ScopedName base1 "s1"
-s2 = Res $ ScopedName base2 "s2"
-s3 = Res $ ScopedName base3 "s3"
-sa = Res $ ScopedName basea "a"
+s1 = Res $ makeNSScopedName base1 "s1"
+s2 = Res $ makeNSScopedName base2 "s2"
+s3 = Res $ makeNSScopedName base3 "s3"
+sa = Res $ makeNSScopedName basea "a"
 
 b1, b2, b3, b4, b5, b6, b7, b8 :: RDFLabel
 b1 = Blank "b1"
@@ -297,16 +298,16 @@ c5 = Blank "c5"
 c6 = Blank "c6"
 
 p1, p2, p3, pa :: RDFLabel
-p1 = Res $ ScopedName base1 "p1" 
-p2 = Res $ ScopedName base2 "p2" 
-p3 = Res $ ScopedName base3 "p3" 
-pa = Res $ ScopedName basea "b" 
+p1 = Res $ makeNSScopedName base1 "p1" 
+p2 = Res $ makeNSScopedName base2 "p2" 
+p3 = Res $ makeNSScopedName base3 "p3" 
+pa = Res $ makeNSScopedName basea "b" 
 
 o1, o2, o3, oa :: RDFLabel
-o1 = Res $ ScopedName base1 "o1"
-o2 = Res $ ScopedName base2 "o2"
-o3 = Res $ ScopedName base3 "o3"
-oa = Res $ ScopedName basea "c"
+o1 = Res $ makeNSScopedName base1 "o1"
+o2 = Res $ makeNSScopedName base2 "o2"
+o3 = Res $ makeNSScopedName base3 "o3"
+oa = Res $ makeNSScopedName basea "c"
 
 l1, l2, l3 :: RDFLabel
 l1 = Lit "l1"  Nothing
@@ -323,8 +324,8 @@ bTrue  = Lit "true"  $ Just xsdBoolean
 bFalse = Lit "false" $ Just xsdBoolean
 
 f1, f2 :: RDFLabel
-f1 = Res $ ScopedName base1 "f1"
-f2 = Res $ ScopedName base2 "f2" 
+f1 = Res $ makeNSScopedName base1 "f1"
+f2 = Res $ makeNSScopedName base2 "f2" 
 
 v1, v2, v3, v4 :: RDFLabel
 v1 = Var "var1"
@@ -372,7 +373,7 @@ dg2 = toRDFGraph
     
     ns4 = Namespace Nothing $ toURI "http://example.org/ns/foo/bar#"
     ns5 = Namespace Nothing $ toURI "http://example.org/ns2#"
-    mUN a b = Res (ScopedName a b)
+    mUN a b = Res (makeNSScopedName a b)
     xa4 = mUN ns4 "a4"
     xb4 = mUN ns4 "b4"
     xc4 = mUN ns4 "c4"
@@ -809,7 +810,7 @@ kg1 = toRDFGraph
       [ arc b a c ]
   where
     -- the document base is set to file:///dev/null to begin with
-    mUN = Res . ScopedName dbase
+    mUN = Res . makeNSScopedName dbase
     a = mUN "a"
     b = mUN "b"
     c = mUN "c"

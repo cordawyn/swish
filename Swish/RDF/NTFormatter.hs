@@ -39,7 +39,7 @@ import Swish.RDF.RDFGraph
 import Swish.RDF.GraphClass
     ( Arc(..) )
 
-import Swish.Utils.Namespace (ScopedName(..), nsURI)
+import Swish.Utils.Namespace (ScopedName, getQName)
 import Swish.RDF.Vocabulary (isLang, langTag)
 
 import Swish.Utils.LookupMap
@@ -170,9 +170,13 @@ mapBlankNode lab = do
 
 -- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder
+{-
 showScopedName (ScopedName n l) = 
   let uri = T.pack (show (nsURI n)) `mappend` l
   in mconcat ["<", B.fromText (quote uri), ">"]
+-}
+-- showScopedName s = mconcat ["<", B.fromText (quote (T.pack (show (getQName s)))), ">"]
+showScopedName s = B.fromText (quote (T.pack (show (getQName s)))) -- looks like qname already adds the <> around this
 
 {-
 Swish.Utils.MiscHelpers contains a quote routine

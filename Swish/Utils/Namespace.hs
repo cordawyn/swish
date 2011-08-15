@@ -25,19 +25,21 @@ module Swish.Utils.Namespace
     ( Namespace(..)
     , makeNamespaceQName
     -- , nullNamespace
-    , ScopedName(..)
+    , ScopedName
+    , getScopeNamespace, getScopeLocal
     , getScopePrefix, getScopeURI
     , getQName, getScopedNameURI
     , matchName
     , makeScopedName
     , makeQNameScopedName
     , makeURIScopedName
+    , makeNSScopedName
     , nullScopedName
     , namespaceToBuilder
     )
     where
 
-import Swish.Utils.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
+import Swish.Utils.QName (QName(..), newQName, getQNameURI, getNamespace, getLocalName)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
 
 import Data.Monoid (Monoid(..))
@@ -103,7 +105,17 @@ namespaceToBuilder (Namespace pre uri) =
 --  Some applications may handle null namespace URIs as meaning
 --  the local part is relative to some base URI.
 --
-data ScopedName = ScopedName { snScope :: Namespace, snLocal :: T.Text }
+data ScopedName = ScopedName 
+                  { snQName :: QName  -- ^ the full URI as a QName (optimisation, may be removed)
+                  , snScope :: Namespace
+                  , snLocal :: T.Text 
+                  }
+
+getScopeLocal :: ScopedName -> T.Text
+getScopeLocal = snLocal
+
+getScopeNamespace :: ScopedName -> Namespace
+getScopeNamespace = snScope
 
 getScopePrefix :: ScopedName -> Maybe T.Text
 getScopePrefix = nsPrefix . snScope
@@ -124,7 +136,7 @@ instance Ord ScopedName where
     (<=) = snLe
 
 instance Show ScopedName where
-    show (ScopedName n l) = case nsPrefix n of
+    show (ScopedName _ n l) = case nsPrefix n of
       Just pre -> T.unpack $ mconcat [pre, ":", l]
       _        -> "<" ++ show (nsURI n) ++ T.unpack l ++ ">"
 
@@ -138,7 +150,8 @@ snLe s1 s2 = getQName s1 <= getQName s2
 
 -- |Get QName corresponding to a scoped name
 getQName :: ScopedName -> QName
-getQName n = newQName (getScopeURI n) (snLocal n)
+-- getQName n = newQName (getScopeURI n) (snLocal n)
+getQName = snQName
 
 -- |Get URI corresponding to a scoped name (using RDF conventions)
 getScopedNameURI :: ScopedName -> URI
@@ -153,8 +166,13 @@ matchName str nam = str == show nam
 
 -- |Construct a ScopedName from prefix, URI and local name
 makeScopedName :: Maybe T.Text -> URI -> T.Text -> ScopedName
-makeScopedName pre nsuri =
-    ScopedName (Namespace pre nsuri)
+makeScopedName pre nsuri local =
+  let l = T.unpack local
+      uristr = show nsuri ++ l
+      uri = fromMaybe (error ("Unable to parse URI from: '" ++ show nsuri ++ "' + '" ++ l ++ "'")) (parseURIReference uristr)
+      qn = QName uri nsuri local
+      
+  in ScopedName qn (Namespace pre nsuri) local
 
 {-
 TODO: should just pass URIs around.
@@ -164,25 +182,23 @@ to know whether this is sensible (probably is, but should look at).
 -}
 
 -- |Construct a ScopedName from a QName
-makeQNameScopedName :: QName -> ScopedName
-{-
-The following is not correct
-makeQNameScopedName qn = makeScopedName Nothing (getNamespace qn) (getLocalName qn)
-since you get
-swish> let sn1 = makeQNameScopedName  "file:///foo/bar/baz"
-swish> sn1
-<file:///foo/barbaz>
--}
-makeQNameScopedName qn = 
+makeQNameScopedName :: Maybe T.Text -> QName -> ScopedName
+makeQNameScopedName pre qn = ScopedName qn (Namespace pre (getNamespace qn)) (getLocalName qn)
+{-  
   let ns = getNamespace qn
       ln = getLocalName qn
   in makeScopedName Nothing ns ln
+-}
 
--- |Construct a ScopedName for a bare URI (the label is set to \"\").
+-- | Construct a ScopedName for a bare URI (the label is set to \"\").
 makeURIScopedName :: URI -> ScopedName
 makeURIScopedName uri = makeScopedName Nothing uri ""
 
--- |This should never appear as a valid name
+-- | Construct a ScopedName from a Namespace and local component
+makeNSScopedName :: Namespace -> T.Text -> ScopedName
+makeNSScopedName ns local = ScopedName (newQName (nsURI ns) local) ns local
+
+-- | This should never appear as a valid name
 nullScopedName :: ScopedName
 nullScopedName = makeURIScopedName nullURI
 

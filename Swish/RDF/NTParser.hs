@@ -49,7 +49,7 @@ import Swish.RDF.RDFGraph
 
 import Swish.RDF.GraphClass (arc)
 
-import Swish.Utils.Namespace (ScopedName(..), makeURIScopedName)
+import Swish.Utils.Namespace (ScopedName, makeURIScopedName)
 
 import Swish.RDF.Vocabulary (langName)
 

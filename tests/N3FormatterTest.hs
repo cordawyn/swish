@@ -35,7 +35,7 @@ import Swish.RDF.RDFGraph
     , resOwlSameAs
     )
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace(..), makeNSScopedName, namespaceToBuilder)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
@@ -84,7 +84,7 @@ toNS :: T.Text -> String -> Namespace
 toNS p = Namespace (Just p) . toURI
 
 toRes :: Namespace -> T.Text -> RDFLabel
-toRes ns = Res . ScopedName ns
+toRes ns = Res . makeNSScopedName ns
 
 base1, base2, base3, base4, basef, baseu, basem :: Namespace
 base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node#"
@@ -127,20 +127,20 @@ c5 = Blank "c5"
 c6 = Blank "c6"
 
 p1, p2, p3, p21, p22, p23, p24, p25, p26 :: RDFLabel
-p1  = Res $ ScopedName base1 "p1"
-p2  = Res $ ScopedName base2 "p2"
-p3  = Res $ ScopedName base3 "p3"
-p21 = Res $ ScopedName base2 "p21"
-p22 = Res $ ScopedName base2 "p22"
-p23 = Res $ ScopedName base2 "p23"
-p24 = Res $ ScopedName base2 "p24"
-p25 = Res $ ScopedName base2 "p25"
-p26 = Res $ ScopedName base2 "p26"
+p1  = Res $ makeNSScopedName base1 "p1"
+p2  = Res $ makeNSScopedName base2 "p2"
+p3  = Res $ makeNSScopedName base3 "p3"
+p21 = Res $ makeNSScopedName base2 "p21"
+p22 = Res $ makeNSScopedName base2 "p22"
+p23 = Res $ makeNSScopedName base2 "p23"
+p24 = Res $ makeNSScopedName base2 "p24"
+p25 = Res $ makeNSScopedName base2 "p25"
+p26 = Res $ makeNSScopedName base2 "p26"
 
 o1, o2, o3 :: RDFLabel
-o1 = Res $ ScopedName base1 "o1"
-o2 = Res $ ScopedName base2 "o2"
-o3 = Res $ ScopedName base3 "o3"
+o1 = Res $ makeNSScopedName base1 "o1"
+o2 = Res $ makeNSScopedName base2 "o2"
+o3 = Res $ makeNSScopedName base3 "o3"
 
 l1txt, l2txt, l3txt, l11txt, l12txt, l13txt, l14txt :: B.Builder
 l1txt = "l1"
@@ -165,11 +165,11 @@ l14 = toL l14txt
 
 lfr, lfoobar :: RDFLabel
 lfr = Lit "chat et chien" (Just (langName "fr"))
-lfoobar = Lit "foo bar" (Just (ScopedName base1 "o1"))
+lfoobar = Lit "foo bar" (Just (makeNSScopedName base1 "o1"))
   
 f1, f2 :: RDFLabel
-f1 = Res $ ScopedName base1 "f1"
-f2 = Res $ ScopedName base2 "f2"
+f1 = Res $ makeNSScopedName base1 "f1"
+f2 = Res $ makeNSScopedName base2 "f2"
 
 v1, v2, v3, v4 :: RDFLabel
 v1 = Var "var1"

@@ -64,7 +64,7 @@ import Swish.RDF.VarBinding
 
 import Swish.RDF.Ruleset (makeRuleset)
 import Swish.RDF.Datatype (typeMkCanonicalForm)
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDFD
@@ -124,7 +124,7 @@ valueSame val1 typ1 val2 typ2 =
 sameDatatypedValue ::
     RDFLabel -> RDFLabel -> RDFLabel -> RDFLabel -> RDFVarBindingModify
 sameDatatypedValue val1 typ1 val2 typ2 = VarBindingModify
-        { vbmName   = ScopedName namespaceRDFD "sameValue"
+        { vbmName   = makeNSScopedName namespaceRDFD "sameValue"
         , vbmApply  = sameDatatypedValueApplyAll val1 typ1 val2 typ2
         , vbmVocab  = [val1,typ1,val2,typ2]
         , vbmUsage  = [[val2]]
@@ -261,14 +261,14 @@ axiomsRDF =
 --  RDF subgraph entailment (from RDF semantics document section 2)
 --
 rdfsub :: RDFRule 
-rdfsub = makeRdfSubgraphEntailmentRule (ScopedName scopeRDF "sub")
+rdfsub = makeRdfSubgraphEntailmentRule (makeNSScopedName scopeRDF "sub")
 
 --  RDF simple entailment (from RDF semantics document section 7.1)
 --  (Note: rules se1 and se2 are combined here, because the scope of
 --  the "allocatedTo" modifier is the application of a single rule.)
 --
 rdfse :: RDFRule
-rdfse = makeRdfSimpleEntailmentRule (ScopedName scopeRDF "se")
+rdfse = makeRdfSimpleEntailmentRule (makeNSScopedName scopeRDF "se")
 
 --  RDF bnode-for-literal assignments (from RDF semantics document section 7.1)
 --

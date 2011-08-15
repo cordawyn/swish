@@ -60,7 +60,7 @@ import Swish.RDF.Ruleset (Ruleset(..), RulesetMap)
 import Swish.RDF.Rule
     ( Formula(..), Rule(..), RuleMap
     , fwdCheckInference
-    , nullScope
+    , nullSN
     )
 
 import Swish.RDF.VarBinding
@@ -71,7 +71,7 @@ import Swish.RDF.VarBinding
     , varBindingId
     )
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..), namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 
 {-
@@ -112,7 +112,7 @@ type RDFRulesetMap  = RulesetMap RDFGraph
 -- | The null RDF formula.
 nullRDFFormula :: Formula RDFGraph
 nullRDFFormula = Formula
-    { formName = ScopedName nullScope "nullRDFGraph"
+    { formName = nullSN "nullRDFGraph"
     , formExpr = emptyRDFGraph
     }
 
@@ -260,8 +260,9 @@ makeRDFFormula ::
     -> T.Text     -- ^ local name for the formula in the namespace
     -> B.Builder  -- ^ graph in Notation 3 format
     -> RDFFormula
-makeRDFFormula scope local gr = Formula
-    { formName = ScopedName scope local
+makeRDFFormula scope local gr = 
+  Formula
+    { formName = makeNSScopedName scope local
     , formExpr = makeRDFGraphFromN3Builder gr
     }
 
@@ -339,7 +340,7 @@ makeN3ClosureRule ::
     --   'makeN3ClosureSimpleRule'.
     -> RDFRule
 makeN3ClosureRule scope local ant con =
-    makeRDFClosureRule (ScopedName scope local) [antgr] congr
+    makeRDFClosureRule (makeNSScopedName scope local) [antgr] congr
     where
         antgr = makeRDFGraphFromN3Builder ant
         congr = makeRDFGraphFromN3Builder con
@@ -429,13 +430,12 @@ makeN3ClosureAllocatorRule ::
     --   (See 'makeNodeAllocTo').
     -> RDFRule
 makeN3ClosureAllocatorRule scope local ant con vflt aloc =
-    makeRDFClosureRule (ScopedName scope local) [antgr] congr modc
+    makeRDFClosureRule (makeNSScopedName scope local) [antgr] congr modc
     where
         antgr = makeRDFGraphFromN3Builder ant
         congr = makeRDFGraphFromN3Builder con
         vmod  = aloc (allLabels labelIsVar antgr)
         modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
-
 
 ------------------------------------------------------------
 --  Query binding modifier for "allocated to" logic

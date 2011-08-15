@@ -21,18 +21,20 @@
 
 module Swish.RDF.Rule
        ( Expression(..), Formula(..), Rule(..), RuleMap
-       , nullScope, nullFormula, nullRule
+       , nullScope, nullSN, nullFormula, nullRule
        , fwdCheckInference, bwdCheckInference
        , showsFormula, showsFormulae, showsWidth
        )
        where
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName(..))
+import Swish.Utils.Namespace (Namespace(..), ScopedName, makeScopedName)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
 
-import Network.URI (parseURI)
+import Network.URI (URI, parseURI)
 import Data.Maybe (fromJust)
+
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Expressions
@@ -70,13 +72,21 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
 
 -- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
 nullScope :: Namespace
-nullScope = Namespace (Just "null") 
-            $ fromJust $ parseURI "http://id.ninebynine.org/2003/Ruleset/null"
+nullScope = Namespace (Just "null") nullScopeURI
+
+nullSN :: T.Text -> ScopedName
+nullSN = makeScopedName (Just "null") nullScopeURI
+
+tU :: String -> URI
+tU = fromJust . parseURI
+
+nullScopeURI :: URI
+nullScopeURI = tU "http://id.ninebynine.org/2003/Ruleset/null"
 
 -- | The null formula.
 nullFormula :: Formula ex
 nullFormula = Formula
-    { formName = ScopedName nullScope "nullFormula"
+    { formName = makeScopedName (Just "null") nullScopeURI "nullFormula"
     , formExpr = error "Null formula"
     }
 
@@ -191,7 +201,7 @@ bwdCheckInference rule ante cons = any checkAnts (bwdApply rule cons)
 -- | The null rule.
 nullRule :: Rule ex
 nullRule = Rule
-    { ruleName = ScopedName nullScope "nullRule"
+    { ruleName = makeScopedName (Just "null") nullScopeURI "nullRule"
     , fwdApply = \ _ -> []
     , bwdApply = \ _ -> []
     , checkInference = \ _ _ -> False

@@ -61,7 +61,7 @@ import Swish.RDF.Rule
     ( Formula(..)
     )
 
-import Swish.Utils.Namespace (ScopedName(..))
+import Swish.Utils.Namespace (ScopedName, getScopeNamespace)
 import Swish.Utils.QName (QName)
 
 import Swish.Utils.LookupMap
@@ -179,7 +179,7 @@ modRulesets rsmod state = state { rulesets = rsmod (rulesets state) }
 
 findRuleset ::
     ScopedName -> SwishState -> Maybe RDFRuleset
-findRuleset nam state = mapFindMaybe (snScope nam) (rulesets state)
+findRuleset nam state = mapFindMaybe (getScopeNamespace nam) (rulesets state)
 
 findOpenVarModify :: ScopedName -> SwishState -> Maybe RDFOpenVarBindingModify
 findOpenVarModify nam _ = findRDFOpenVarBindingModifier nam
