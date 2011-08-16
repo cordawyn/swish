@@ -71,7 +71,7 @@ import Swish.RDF.VarBinding
     , varBindingId
     )
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName, namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 
 {-

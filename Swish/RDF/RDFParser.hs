@@ -63,7 +63,7 @@ import Swish.RDF.Vocabulary
     )
 
 import Swish.Utils.LookupMap (LookupMap(..))
-import Swish.Utils.Namespace (Namespace(..), ScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName)
 
 import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L
@@ -122,7 +122,7 @@ prefixTable =   [ namespaceRDF
                 , namespaceRDFD     -- datatypes
                 , namespaceOWL
                 , namespaceLOG
-                , Namespace Nothing $ fromJust (parseURIReference "#") -- is this correct?
+                , makeNamespace Nothing $ fromJust (parseURIReference "#") -- is this correct?
                 ]
 
 {-|

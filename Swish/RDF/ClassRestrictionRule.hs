@@ -53,7 +53,7 @@ import Swish.RDF.Rule ( Rule(..), bwdCheckInference)
 import Swish.RDF.VarBinding (VarBinding(..))
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
-import Swish.Utils.Namespace (Namespace(..),ScopedName, namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder)
 import Swish.Utils.PartOrderedCollection
     ( minima, maxima
     , partCompareEq, partComparePair

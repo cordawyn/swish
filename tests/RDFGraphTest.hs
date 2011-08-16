@@ -26,7 +26,7 @@ import Swish.Utils.ListHelpers (equiv)
 
 import Swish.RDF.GraphClass (Label(..), arc)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName, nullScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.Utils.QName (QName, qnameFromURI)
 
 import Swish.RDF.RDFGraph
@@ -152,15 +152,15 @@ toURI :: String -> URI
 toURI s = fromMaybe (error $ "Error: unable to parse URI " ++ s) (parseURI s)
 
 toNS :: T.Text -> String -> Namespace
-toNS p = Namespace (Just p) . toURI
+toNS p = makeNamespace (Just p) . toURI
 
 -- TODO: basee and baseu had prefixes of "" and "?" before the conversion
 --       to using Maybe String. Now both are Nothing; is this semantically
 --       correct? Probably.
 
 basee, baseu, base1, base2, base3, base4 :: Namespace
-basee = Namespace Nothing $ toURI "http://example.com/a#"
-baseu = Namespace Nothing $ toURI "http://example.com/"
+basee = makeNamespace Nothing $ toURI "http://example.com/a#"
+baseu = makeNamespace Nothing $ toURI "http://example.com/"
 base1 = toNS "base1" base1Str
 base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node/"
 base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
@@ -852,7 +852,7 @@ tt05 = arc st2 p1 l4
 tt06 = arc st3 p1 l10
 
 makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
-makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
+makeNewPrefixNamespace (pre,ns) = makeNamespace (Just pre) (getNamespaceURI ns)
 
 nslist :: LookupMap Namespace
 nslist = LookupMap $ map makeNewPrefixNamespace

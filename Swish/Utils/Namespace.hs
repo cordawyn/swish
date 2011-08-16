@@ -22,8 +22,9 @@
 --------------------------------------------------------------------------------
 
 module Swish.Utils.Namespace
-    ( Namespace(..)
-    , makeNamespaceQName
+    ( Namespace
+    , makeNamespace, makeNamespaceQName
+      , getNamespacePrefix, getNamespaceURI, getNamespaceTuple
     -- , nullNamespace
     , ScopedName
     , getScopeNamespace, getScopeLocal
@@ -58,12 +59,28 @@ import qualified Data.Text.Lazy.Builder as B
 -- |A NameSpace value consists of an optional prefix and a corresponding URI.
 --
 
-data Namespace = Namespace
+data Namespace = Namespace (Maybe T.Text) URI
+-- data Namespace = Namespace (Maybe T.Text) !URI
+                 
+{-                 
                  {
                    nsPrefix :: Maybe T.Text
                  , nsURI :: URI
                  }
+-}
                  
+getNamespacePrefix :: Namespace -> Maybe T.Text
+getNamespacePrefix (Namespace p _) = p
+
+getNamespaceURI :: Namespace -> URI
+getNamespaceURI (Namespace _ u) = u
+
+getNamespaceTuple :: Namespace -> (Maybe T.Text, URI)
+getNamespaceTuple (Namespace p u) = (p, u)
+
+-- | Equality is defined by the URI, not by the prefix
+-- (so the same URI with different prefixes will be
+-- considered to be equal).
 instance Eq Namespace where
   (Namespace _ u1) == (Namespace _ u2) = u1 == u2
 
@@ -74,6 +91,9 @@ instance Show Namespace where
 instance LookupEntryClass Namespace (Maybe T.Text) URI where
     keyVal   (Namespace pre uri) = (pre,uri)
     newEntry (pre,uri)           = Namespace pre uri
+
+makeNamespace :: Maybe T.Text -> URI -> Namespace
+makeNamespace = Namespace
 
 makeNamespaceQName :: Namespace -> T.Text -> QName
 makeNamespaceQName (Namespace _ uri) = newQName uri
@@ -111,10 +131,10 @@ getScopeNamespace :: ScopedName -> Namespace
 getScopeNamespace (ScopedName _ ns _) = ns
 
 getScopePrefix :: ScopedName -> Maybe T.Text
-getScopePrefix = nsPrefix . getScopeNamespace
+getScopePrefix = getNamespacePrefix . getScopeNamespace
 
 getScopeURI :: ScopedName -> URI
-getScopeURI = nsURI . getScopeNamespace
+getScopeURI = getNamespaceURI . getScopeNamespace
 
 -- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString ScopedName where
@@ -129,9 +149,9 @@ instance Ord ScopedName where
     (<=) = snLe
 
 instance Show ScopedName where
-    show (ScopedName _ n l) = case nsPrefix n of
+    show (ScopedName _ n l) = case getNamespacePrefix n of
       Just pre -> T.unpack $ mconcat [pre, ":", l]
-      _        -> "<" ++ show (nsURI n) ++ T.unpack l ++ ">"
+      _        -> "<" ++ show (getNamespaceURI n) ++ T.unpack l ++ ">"
 
 --  Scoped names are equal if their corresponding QNames are equal
 snEq :: ScopedName -> ScopedName -> Bool
@@ -178,7 +198,7 @@ makeURIScopedName uri = makeScopedName Nothing uri ""
 
 -- | Construct a ScopedName from a Namespace and local component
 makeNSScopedName :: Namespace -> T.Text -> ScopedName
-makeNSScopedName ns local = ScopedName (newQName (nsURI ns) local) ns local
+makeNSScopedName ns local = ScopedName (newQName (getNamespaceURI ns) local) ns local
 
 -- | This should never appear as a valid name
 nullScopedName :: ScopedName

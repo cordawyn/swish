@@ -27,7 +27,7 @@ module Swish.RDF.Rule
        )
        where
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeScopedName)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
 
@@ -72,7 +72,7 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
 
 -- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
 nullScope :: Namespace
-nullScope = Namespace (Just "null") nullScopeURI
+nullScope = makeNamespace (Just "null") nullScopeURI
 
 nullSN :: T.Text -> ScopedName
 nullSN = makeScopedName (Just "null") nullScopeURI

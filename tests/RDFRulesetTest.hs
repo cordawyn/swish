@@ -55,7 +55,7 @@ import Swish.RDF.Ruleset
 
 import Swish.RDF.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -104,10 +104,8 @@ testSameNamespace :: String -> Namespace -> Namespace -> Test
 testSameNamespace lab n1 n2 =
     TestCase ( assertBool ("testSameNamespace:"++lab) ((p1==p2)&&(u1==u2)) )
     where
-        p1 = nsPrefix n1
-        p2 = nsPrefix n2
-        u1 = nsURI n1
-        u2 = nsURI n2
+      (p1, u1) = getNamespaceTuple n1
+      (p2, u2) = getNamespaceTuple n2
 
 testScopedNameEq :: String -> Bool -> ScopedName -> ScopedName -> Test
 testScopedNameEq lab eq n1 n2 =
@@ -135,14 +133,14 @@ testSameRules = testSameAs "Rules"
 ------------------------------------------------------------
 
 pref_rdf, pref_owl :: URI
-pref_rdf = nsURI namespaceRDF
-pref_owl = nsURI namespaceOWL
+pref_rdf = getNamespaceURI namespaceRDF
+pref_owl = getNamespaceURI namespaceOWL
 
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
 toNS :: Maybe T.Text -> String -> Namespace
-toNS p = Namespace p . toURI
+toNS p = makeNamespace p . toURI
 
 ------------------------------------------------------------
 --  Define and manipulate rulesets

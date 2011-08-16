@@ -2,7 +2,8 @@
 
   - The constructors for ScopedName and QName have been removed in
     order to allow a simple experimental optimisation (partly added in
-    0.4.0.0).
+    0.4.0.0). A similar change has been added for Namespace (but no
+    optimisation).
 
 0.4.0.0:
 

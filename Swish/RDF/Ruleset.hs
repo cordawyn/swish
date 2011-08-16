@@ -29,11 +29,7 @@ module Swish.RDF.Ruleset
     )
 where
 
-import Swish.Utils.Namespace
-    ( Namespace(..)
-    , ScopedName
-    )
-
+import Swish.Utils.Namespace (Namespace, ScopedName)
 import Swish.RDF.Rule (Formula(..), Rule(..))
 
 import Swish.Utils.LookupMap

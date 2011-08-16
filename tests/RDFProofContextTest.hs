@@ -34,7 +34,7 @@ import Swish.RDF.Proof (Step(..), checkProof, checkStep, explainProof)
 import Swish.RDF.Ruleset (getContextAxiom, getContextRule)
 import Swish.RDF.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName, namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (mapFindMaybe)
 
 import Swish.RDF.Vocabulary
@@ -136,7 +136,7 @@ toURI :: String -> URI
 toURI = fromJust . parseURI
 
 toNS :: Maybe T.Text -> String -> Namespace
-toNS p = Namespace p . toURI
+toNS p = makeNamespace p . toURI
 
 mkPrefix :: Namespace -> B.Builder
 mkPrefix = namespaceToBuilder

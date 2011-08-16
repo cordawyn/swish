@@ -64,7 +64,7 @@ import Swish.RDF.VarBinding
 
 import Swish.RDF.Ruleset (makeRuleset)
 import Swish.RDF.Datatype (typeMkCanonicalForm)
-import Swish.Utils.Namespace (Namespace(..), makeNSScopedName)
+import Swish.Utils.Namespace (Namespace, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDFD

@@ -50,7 +50,7 @@ module Swish.RDF.Vocabulary
     )
 where
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName, getScopeLocal, getScopeNamespace, makeScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, getScopeLocal, getScopeNamespace, makeScopedName)
 
 import Data.Monoid (mappend, mconcat)
 import Data.Maybe (fromMaybe)
@@ -67,10 +67,10 @@ toNS p utxt =
   let ustr = T.unpack utxt
       uri = fromMaybe (error ("Unable to convert " ++ ustr ++ " to a URI")) $
             parseURI ustr
-  in Namespace (Just p) uri
+  in makeNamespace (Just p) uri
 
 toNSU :: T.Text -> URI -> Namespace
-toNSU p = Namespace (Just p)
+toNSU p = makeNamespace (Just p)
 
 namespaceXsdType :: T.Text -> Namespace
 namespaceXsdType dtn = toNS ("xsd_" `mappend` dtn)

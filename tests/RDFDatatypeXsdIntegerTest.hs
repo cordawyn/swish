@@ -51,7 +51,7 @@ import Swish.RDF.Datatype
 import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
 import Swish.RDF.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.RDF.VarBinding (makeVarBinding)
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeScopedName, makeNSScopedName)
+import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName)
 import Swish.RDF.Vocabulary (namespaceDefault)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 import Swish.Utils.ListHelpers (equiv)
@@ -829,7 +829,7 @@ testVarModifySuite = TestList
 mkGraph :: B.Builder -> RDFGraph
 mkGraph gr = 
   let base = "@prefix : <" `mappend` (ns `mappend` "> . \n")
-      ns = B.fromString $ show $ nsURI namespaceDefault
+      ns = B.fromString $ show $ getNamespaceURI namespaceDefault
   in makeRDFGraphFromN3Builder (prefixXsdInteger `mappend` (base `mappend` gr))
 
 testRuleFwd :: String -> Maybe (Rule RDFGraph) -> B.Builder -> [B.Builder] -> Test

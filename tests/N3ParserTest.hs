@@ -35,7 +35,7 @@ import Swish.RDF.RDFGraph
     )
 
 import Swish.Utils.Namespace (
-  Namespace(..)
+  Namespace, makeNamespace, getNamespaceURI
   , ScopedName
   , makeScopedName
   , makeNSScopedName
@@ -242,10 +242,10 @@ dqn :: QName
 dqn = (qnameFromURI . toURI) baseFile
 
 toNS :: T.Text -> String -> Namespace
-toNS p = Namespace (Just p) . toURI
+toNS p = makeNamespace (Just p) . toURI
 
 dbase, base1, base2, base3, base4, basea :: Namespace
-dbase = Namespace Nothing $ toURI "#"
+dbase = makeNamespace Nothing $ toURI "#"
 base1 = toNS "base1" "http://id.ninebynine.org/wip/2003/test/graph1/node/"
 base2 = toNS "base2" "http://id.ninebynine.org/wip/2003/test/graph2/node#"
 base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
@@ -348,7 +348,7 @@ t06  = arc s3 p1 l2
 t07  = arc s3 p2 l3
 
 makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
-makeNewPrefixNamespace (pre,ns) = Namespace (Just pre) (nsURI ns)
+makeNewPrefixNamespace (pre,ns) = makeNamespace (Just pre) (getNamespaceURI ns)
 
 dg1, dg2, dg3 :: RDFGraph
 dg1 = toRDFGraph [arc ds1 dp1 do1]
@@ -371,8 +371,8 @@ dg2 = toRDFGraph
     xb3 = Res "http://example.org/ns/foo/b3"
     xc3 = Res "http://example.org/ns/foo/c3"
     
-    ns4 = Namespace Nothing $ toURI "http://example.org/ns/foo/bar#"
-    ns5 = Namespace Nothing $ toURI "http://example.org/ns2#"
+    ns4 = makeNamespace Nothing $ toURI "http://example.org/ns/foo/bar#"
+    ns5 = makeNamespace Nothing $ toURI "http://example.org/ns2#"
     mUN a b = Res (makeNSScopedName a b)
     xa4 = mUN ns4 "a4"
     xb4 = mUN ns4 "b4"
@@ -879,7 +879,7 @@ simpleN3Graph_g1_02a =
   "a:a a:b a:c ."
 
 nToB :: Namespace -> B.Builder
-nToB = B.fromString . show . nsURI
+nToB = B.fromString . show . getNamespaceURI
 
 --  Single statement using :name form
 simpleN3Graph_g1_03 :: B.Builder

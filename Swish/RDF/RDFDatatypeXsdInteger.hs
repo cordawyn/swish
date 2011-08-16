@@ -59,7 +59,7 @@ import Swish.RDF.Datatype
 
 import Swish.RDF.Ruleset (makeRuleset)
 
-import Swish.Utils.Namespace (Namespace(..), ScopedName, namespaceToBuilder, makeNSScopedName)
+import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF

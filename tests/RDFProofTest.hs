@@ -50,7 +50,7 @@ import Swish.RDF.VarBinding
     )
 
 import Swish.RDF.Rule (Rule(..))
-import Swish.Utils.Namespace (Namespace(..), ScopedName, makeNSScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -103,7 +103,7 @@ toURI :: String -> URI
 toURI = fromJust . parseURI
 
 toNS :: Maybe T.Text -> String -> Namespace
-toNS p = Namespace p . toURI
+toNS p = makeNamespace p . toURI
 
 --  test1:  simple query with URI, literal and blank nodes.
 

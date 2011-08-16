@@ -64,7 +64,7 @@ module Swish.RDF.RDFGraph
     where
 
 import Swish.Utils.Namespace
-    ( Namespace(..)
+    ( Namespace, makeNamespace, getNamespaceTuple
     , getScopedNameURI
     , ScopedName
     , getScopeLocal, getScopeNamespace
@@ -122,10 +122,14 @@ import Data.Monoid (Monoid(..))
 import Data.Char (ord, isDigit)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
+-- import Data.Tuple (swap) not in 6.12.3
 import Data.String (IsString(..))
 import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
 import System.Locale (defaultTimeLocale)  
 import Text.Printf
+
+swap :: (a,b) -> (b,a)
+swap (a,b) = (b,a)
 
 -- | RDF graph node values
 --
@@ -733,8 +737,8 @@ type NamespaceMap = LookupMap Namespace
 data RevNamespace = RevNamespace Namespace
 
 instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
-    keyVal   (RevNamespace (Namespace pre uri)) = (uri,pre)
-    newEntry (uri,pre) = RevNamespace (Namespace pre uri)
+    keyVal   (RevNamespace ns) = swap $ getNamespaceTuple ns
+    newEntry (uri,pre) = RevNamespace (makeNamespace pre uri)
 
 type RevNamespaceMap = LookupMap RevNamespace
 

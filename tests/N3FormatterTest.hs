@@ -35,7 +35,7 @@ import Swish.RDF.RDFGraph
     , resOwlSameAs
     )
 
-import Swish.Utils.Namespace (Namespace(..), makeNSScopedName, namespaceToBuilder)
+import Swish.Utils.Namespace (Namespace, makeNamespace, makeNSScopedName, namespaceToBuilder)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)
@@ -81,7 +81,7 @@ toURI :: String -> URI
 toURI = fromJust . parseURI
 
 toNS :: T.Text -> String -> Namespace
-toNS p = Namespace (Just p) . toURI
+toNS p = makeNamespace (Just p) . toURI
 
 toRes :: Namespace -> T.Text -> RDFLabel
 toRes ns = Res . makeNSScopedName ns
@@ -245,7 +245,7 @@ g1f3 = NSGraph
 g1fu1 :: RDFGraph
 g1fu1 =
   mempty
-  { namespaces = makeLookupMap [basem, Namespace Nothing (toURI "file:///home/swish/photos/")]
+  { namespaces = makeLookupMap [basem, makeNamespace Nothing (toURI "file:///home/swish/photos/")]
   , statements = [arc sf meDepicts meMe, arc sf meHasURN su]
   }
   

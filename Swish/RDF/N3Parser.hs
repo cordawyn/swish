@@ -87,7 +87,7 @@ import Swish.Utils.LookupMap
     , mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace )
 
 import Swish.Utils.Namespace
-    ( Namespace(..)
+    ( Namespace, makeNamespace
     , ScopedName
     , getScopeNamespace
     , getScopedNameURI
@@ -165,7 +165,7 @@ data N3State = N3State
 setPrefix :: Maybe T.Text -> URI -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
-        p' = mapReplaceOrAdd (Namespace pre uri) (prefixUris st)
+        p' = mapReplaceOrAdd (makeNamespace pre uri) (prefixUris st)
 
 -- | Set name for special syntax element
 setSName :: String -> ScopedName -> N3State -> N3State
@@ -250,7 +250,7 @@ parseAnyfromText :: N3Parser a      -- ^ parser to apply
                     -> L.Text       -- ^ input to be parsed
                     -> Either String a
 parseAnyfromText parser mbase input =
-  let pmap   = LookupMap [Namespace Nothing hashURI]
+  let pmap   = LookupMap [makeNamespace Nothing hashURI]
       muri   = fmap (makeQNameScopedName Nothing) mbase
       smap   = LookupMap $ specialTable muri
       pstate = N3State
@@ -576,7 +576,7 @@ getDefaultPrefix :: N3Parser Namespace
 getDefaultPrefix = do
   s <- stGet
   case getPrefixURI s Nothing of
-    Just uri -> return $ Namespace Nothing uri
+    Just uri -> return $ makeNamespace Nothing uri
     _ -> fail "No default prefix defined; how unexpected!"
 
 addBase :: URI -> N3Parser ()
@@ -753,7 +753,7 @@ findPrefix :: T.Text -> N3Parser Namespace
 findPrefix pre = do
   st <- stGet
   case mapFindMaybe (Just pre) (prefixUris st) of
-    Just uri -> return $ Namespace (Just pre) uri
+    Just uri -> return $ makeNamespace (Just pre) uri
     Nothing  -> failBad $ "Prefix '" ++ T.unpack pre ++ ":' not bound."
   
 localQName :: T.Text -> N3Parser ScopedName
