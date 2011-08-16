@@ -65,7 +65,7 @@ data Namespace = Namespace
                  }
                  
 instance Eq Namespace where
-    (==) = nsEq
+  (Namespace _ u1) == (Namespace _ u2) = u1 == u2
 
 instance Show Namespace where
     show (Namespace (Just p) u) = show p ++ ":<" ++ show u ++ ">"
@@ -74,9 +74,6 @@ instance Show Namespace where
 instance LookupEntryClass Namespace (Maybe T.Text) URI where
     keyVal   (Namespace pre uri) = (pre,uri)
     newEntry (pre,uri)           = Namespace pre uri
-
-nsEq :: Namespace -> Namespace -> Bool
-nsEq (Namespace _ u1) (Namespace _ u2) = u1 == u2
 
 makeNamespaceQName :: Namespace -> T.Text -> QName
 makeNamespaceQName (Namespace _ uri) = newQName uri
@@ -105,23 +102,19 @@ namespaceToBuilder (Namespace pre uri) =
 --  Some applications may handle null namespace URIs as meaning
 --  the local part is relative to some base URI.
 --
-data ScopedName = ScopedName 
-                  { snQName :: QName  -- ^ the full URI as a QName (optimisation, may be removed)
-                  , snScope :: Namespace
-                  , snLocal :: T.Text 
-                  }
+data ScopedName = ScopedName !QName Namespace T.Text
 
 getScopeLocal :: ScopedName -> T.Text
-getScopeLocal = snLocal
+getScopeLocal (ScopedName _ _ l) = l
 
 getScopeNamespace :: ScopedName -> Namespace
-getScopeNamespace = snScope
+getScopeNamespace (ScopedName _ ns _) = ns
 
 getScopePrefix :: ScopedName -> Maybe T.Text
-getScopePrefix = nsPrefix . snScope
+getScopePrefix = nsPrefix . getScopeNamespace
 
 getScopeURI :: ScopedName -> URI
-getScopeURI = nsURI . snScope
+getScopeURI = nsURI . getScopeNamespace
 
 -- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString ScopedName where
@@ -150,8 +143,7 @@ snLe s1 s2 = getQName s1 <= getQName s2
 
 -- |Get QName corresponding to a scoped name
 getQName :: ScopedName -> QName
--- getQName n = newQName (getScopeURI n) (snLocal n)
-getQName = snQName
+getQName (ScopedName qn _ _) = qn
 
 -- |Get URI corresponding to a scoped name (using RDF conventions)
 getScopedNameURI :: ScopedName -> URI
@@ -179,11 +171,6 @@ to know whether this is sensible (probably is, but should look at).
 -- |Construct a ScopedName from a QName
 makeQNameScopedName :: Maybe T.Text -> QName -> ScopedName
 makeQNameScopedName pre qn = ScopedName qn (Namespace pre (getNamespace qn)) (getLocalName qn)
-{-  
-  let ns = getNamespace qn
-      ln = getLocalName qn
-  in makeScopedName Nothing ns ln
--}
 
 -- | Construct a ScopedName for a bare URI (the label is set to \"\").
 makeURIScopedName :: URI -> ScopedName

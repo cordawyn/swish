@@ -60,20 +60,15 @@ as well as the namespace component. This may or
 may not be a good idea (space vs time saving).
 -}
 
-data QName = QName
-             { qnURI :: URI       -- ^ URI
-             , qnNsuri :: URI     -- ^ namespace 
-             , qnLocal :: T.Text  -- ^ local component
-             }
+data QName = QName !URI URI T.Text
 
 -- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString QName where
-  fromString s =   
-    maybe (error ("Unable to convert " ++ s ++ " into a QName"))
-          qnameFromURI (parseURIReference s)
-
+  fromString = qnameFromString
+               
 instance Eq QName where
-    (==) = qnEq
+  -- see qnEq comments below
+  (QName u1 _ _) == (QName u2 _ _) = u1 == u2
 
 -- ugly, use show instance
     
@@ -157,20 +152,25 @@ qnameFromURI uri =
       
     e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
 
+qnameFromString :: String -> QName
+qnameFromString s =   
+  maybe (error ("Unable to convert '" ++ s ++ "' into a QName"))
+  qnameFromURI (parseURIReference s)
+
 -- | Return the URI of the namespace stored in the QName.
 -- This does not contain the local component.
 --
 getNamespace :: QName -> URI
-getNamespace = qnNsuri
+getNamespace (QName _ ns _) = ns
 
 -- | Return the local component of the QName.
 getLocalName :: QName -> T.Text
-getLocalName = qnLocal
+getLocalName (QName _ _ l) = l
 
 -- | Returns the full URI of the QName (ie the combination of the
 -- namespace and local components).
 getQNameURI :: QName -> URI
-getQNameURI = qnURI
+getQNameURI (QName u _ _) = u
 
 {-
 Original used comparison of concatenated strings,
@@ -179,10 +179,9 @@ does the comparison without constructing new values but is
 no longer valid with the namespace being stored as a URI,
 so for now just compare the overall URIs and we can
 optimize this at a later date if needed.
--}
 qnEq :: QName -> QName -> Bool
 qnEq (QName u1 _ _) (QName u2 _ _) = u1 == u2
-{-
+
 qnEq (QName _ n1 l1) (QName _ n2 l2) = qnEq1 n1 n2 l1 l2
   where
     qnEq1 (c1:ns1) (c2:ns2)  ln1 ln2   = c1==c2 && qnEq1 ns1 ns2 ln1 ln2
@@ -190,18 +189,6 @@ qnEq (QName _ n1 l1) (QName _ n2 l2) = qnEq1 n1 n2 l1 l2
     qnEq1 ns1 []   ln1       ln2@(_:_) = qnEq1 ns1 ln2 ln1 []
     qnEq1 []  []   []        []        = True
     qnEq1 _   _    _         _         = False
--}
-
--- Definitions here per XML namespaces, NCName production,
--- restricted to characters used in URIs.
--- cf. http://www.w3.org/TR/REC-xml-names/
-
-{-
-isNameStartChar :: Char -> Bool
-isNameStartChar c = isAlpha c || c == '_'
-
-isNameChar :: Char -> Bool
-isNameChar      c = isAlphaNum c || c `elem` ".-_"
 -}
 
 {-|
