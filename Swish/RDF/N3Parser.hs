@@ -98,7 +98,7 @@ import Swish.Utils.Namespace
     , nullScopedName
     )
 
-import Swish.Utils.QName (QName(..))
+import Swish.Utils.QName (QName)
 
 import Swish.RDF.Vocabulary
     ( langName

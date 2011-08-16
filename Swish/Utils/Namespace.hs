@@ -39,7 +39,7 @@ module Swish.Utils.Namespace
     )
     where
 
-import Swish.Utils.QName (QName(..), newQName, getQNameURI, getNamespace, getLocalName)
+import Swish.Utils.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
 
 import Data.Monoid (Monoid(..))
@@ -167,12 +167,7 @@ matchName str nam = str == show nam
 -- |Construct a ScopedName from prefix, URI and local name
 makeScopedName :: Maybe T.Text -> URI -> T.Text -> ScopedName
 makeScopedName pre nsuri local =
-  let l = T.unpack local
-      uristr = show nsuri ++ l
-      uri = fromMaybe (error ("Unable to parse URI from: '" ++ show nsuri ++ "' + '" ++ l ++ "'")) (parseURIReference uristr)
-      qn = QName uri nsuri local
-      
-  in ScopedName qn (Namespace pre nsuri) local
+  ScopedName (newQName nsuri local) (Namespace pre nsuri) local
 
 {-
 TODO: should just pass URIs around.

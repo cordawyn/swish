@@ -21,7 +21,7 @@
 -- the tests really should be using relative URIs in this case).
 
 module Swish.Utils.QName
-    ( QName(..)
+    ( QName
     , newQName
     , qnameFromURI
     , getNamespace
@@ -32,14 +32,12 @@ module Swish.Utils.QName
     where
 
 import System.Directory (canonicalizePath)
--- import System.FilePath (splitDirectories)
 
-import Network.URI (URI(..), URIAuth(..), parseURIReference)
+import Network.URI (URI(..), URIAuth(..)
+                    , parseURIReference)
 
 import Data.String (IsString(..))
--- import Data.Char (isAlpha, isAlphaNum)
 import Data.Maybe (fromMaybe)
--- import Data.List (intercalate)
 
 import qualified Data.Text as T
 
@@ -103,6 +101,7 @@ instance Ord QName where
         (up2,ur2) = splitAt n u2
   -}
   
+-- The format of show QName may well change to remove the <>
 instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
 
@@ -118,6 +117,16 @@ newQName ns local =
   let l   = T.unpack local
       uristr = show ns ++ l
       uri = fromMaybe (error ("Unable to parse URI from: '" ++ show ns ++ "' + '" ++ l ++ "'")) (parseURIReference uristr)
+  
+  {- the following does not work since the semantics of relativeTo do not match the required
+     behavior here.  It may well be better to do something like the following, writing a replacement for
+     relativeTo, but leave that for a later date.
+  
+  let l   = T.unpack local
+      luri = fromMaybe (error ("Unable to parse local name as a URI reference: '" ++ l ++ "'")) (parseRelativeReference l)
+      uri = fromMaybe (error ("Unable to combine " ++ show ns ++ " with " ++ l)) $ luri `relativeTo` ns
+  -}
+      
   in QName uri ns local
 
 {-
@@ -148,12 +157,18 @@ qnameFromURI uri =
       
     e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
 
+-- | Return the URI of the namespace stored in the QName.
+-- This does not contain the local component.
+--
 getNamespace :: QName -> URI
 getNamespace = qnNsuri
 
+-- | Return the local component of the QName.
 getLocalName :: QName -> T.Text
 getLocalName = qnLocal
 
+-- | Returns the full URI of the QName (ie the combination of the
+-- namespace and local components).
 getQNameURI :: QName -> URI
 getQNameURI = qnURI
 
