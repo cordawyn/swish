@@ -47,7 +47,9 @@ Description:
   Changes:
   .
   [Version 0.5.0.0] The constructors for @ScopedName@ and @QName@ have been
-  removed to hide some experimental optimisations (partly added in 0.4.0.0).
+  removed to hide some experimental optimisations (partly added in 0.4.0.0);
+  @Namespace@ has seen a similar change but no optimisation. Output speed
+  should be improved but no systematic analysis has been performed.
   .
   [Version 0.4.0.0] Moving to using polyparse for parsing and @Text@ rather than
   @String@ where appropriate. Use of @URI@ and @Maybe Text@ rather than @String@ in the @Namespace@
