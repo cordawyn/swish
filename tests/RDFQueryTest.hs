@@ -53,7 +53,7 @@ import Swish.RDF.VarBinding
     , varFilterNE
     )
 
-import Swish.Utils.Namespace (Namespace, getNamespaceURI, ScopedName, makeScopedName)
+import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.RDF.Vocabulary (namespaceRDF, langName, swishName, rdfType, rdfXMLLiteral)
 import Swish.RDF.N3Parser (parseN3)
 import Swish.Utils.ListHelpers (equiv)
