@@ -1,3 +1,14 @@
+0.5.0.2:
+
+  - Removed random and bytesttring package constraints and moved HUnit
+    constraint to only apply if the tests flag is used. No code
+    change.
+
+0.5.0.1:
+
+  - updated package constraints in cabal file to try and support
+    building with ghc 7.2. No code change.
+
 0.5.0.0:
 
   - The constructors for ScopedName and QName have been removed in
