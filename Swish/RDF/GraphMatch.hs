@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 0.5.0.2:
 
   - Removed random and bytesttring package constraints and moved HUnit
-    constraint to only apply if the tests flag is used. No code
-    change.
+    constraint to only apply if the tests flag is used. Added
+    FlexibleInstances pragma for ghc 7.2 compatability.
 
 0.5.0.1:
 

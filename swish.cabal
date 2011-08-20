@@ -47,7 +47,8 @@ Description:
   Changes:
   .
   [Version 0.5.0.2] HUnit constraint is only added when the @tests@ flag
-  is used. Removed random and bytestring constraints.
+  is used. Removed random and bytestring constraints. Add @FlexibleInstances@
+  pragma for ghc 7.2 compatability.
   .
   [Version 0.5.0.1] Update bounds on package constraints to try and get a
   successful build on ghc 7.2; removed parallel constraint as not used.

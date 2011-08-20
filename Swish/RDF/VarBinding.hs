@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-} -- needed for ghc 7.12
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
@@ -10,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings
+--  Portability :  MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings, FlexibleInstances
 --
 --  This module defines functions for representing and manipulating query
 --  binding variable sets.  This is the key data that mediates between
