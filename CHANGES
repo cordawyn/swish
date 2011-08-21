@@ -1,6 +1,7 @@
+0.6.0.0:
 
-An attempt to using some form of hash-based representation for
-URIs to speed up comparison
+  - use the intern package to create Data.Interned.URI and use
+    this within QName to speed up the equality check.
 
 0.5.0.3:
 
