@@ -1,3 +1,7 @@
+
+An attempt to using some form of hash-based representation for
+URIs to speed up comparison
+
 0.5.0.3:
 
   - Missed a FlexibleInstances pragma for ghc 7.2.
