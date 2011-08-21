@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.5.0.3
+Version:            0.6.0.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,9 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.0.0] Add Data.Interned.URI and use it to speed up the QName
+  equality check.
   .
   [Version 0.5.0.3] Didn't get all the required @FlexibleInstances@.
   .
@@ -172,7 +175,9 @@ Library
       mtl >= 1 && < 3,
       network >= 2.2 && < 2.4,
       directory >= 1.0 && < 1.2,
-      filepath >= 1.1 && < 1.3
+      filepath >= 1.1 && < 1.3,
+      hashable == 1.1.*,
+      intern == 0.8.*
 
    Exposed-Modules:
       Swish
@@ -218,6 +223,7 @@ Library
       Swish.Utils.PartOrderedCollection
       Swish.Utils.QName
       Swish.Utils.ShowM
+      Data.Interned.URI
 
    other-modules:
       -- Paths_swish

@@ -1,3 +1,8 @@
+0.6.0.0:
+
+  - use the intern package to create Data.Interned.URI and use
+    this within QName to speed up the equality check.
+
 0.5.0.3:
 
   - Missed a FlexibleInstances pragma for ghc 7.2.

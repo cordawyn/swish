@@ -39,6 +39,9 @@ import Network.URI (URI(..), URIAuth(..)
 import Data.String (IsString(..))
 import Data.Maybe (fromMaybe)
 
+import Data.Interned (intern, unintern)
+import Data.Interned.URI (InternedURI)
+
 import qualified Data.Text as T
 
 ------------------------------------------------------------
@@ -60,7 +63,7 @@ as well as the namespace component. This may or
 may not be a good idea (space vs time saving).
 -}
 
-data QName = QName !URI URI T.Text
+data QName = QName !InternedURI URI T.Text
 
 -- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString QName where
@@ -83,7 +86,12 @@ instance Ord QName where
   -}
   
   -- TODO: which is faster?
+  -- Now we have changed to InternedURI, we could use the
+  -- Ord instance of it, but it is unclear to me what the
+  -- ordering means in that case, and whether the semantics
+  -- matter here?
   (QName u1 _ _) <= (QName u2 _ _) = show u1 <= show u2
+  
   {-
   (QName _ uri1 l1) <= (QName _ uri2 l2) =
     if up1 /= up2 then up1 <= up2 else (ur1 ++ T.unpack l1) <= (ur2 ++ T.unpack l2)
@@ -122,7 +130,7 @@ newQName ns local =
       uri = fromMaybe (error ("Unable to combine " ++ show ns ++ " with " ++ l)) $ luri `relativeTo` ns
   -}
       
-  in QName uri ns local
+  in QName (intern uri) ns local
 
 {-
 
@@ -141,14 +149,15 @@ qnameFromURI :: URI -> QName
 qnameFromURI uri =
   let uf = uriFragment uri
       up = uriPath uri
-      q0 = QName uri uri ""
+      q0 = QName iuri uri ""
+      iuri = intern uri
   in case uf of
     "#"    -> q0
-    '#':xs -> QName uri (uri { uriFragment = "#" }) (T.pack xs)
+    '#':xs -> QName iuri (uri { uriFragment = "#" }) (T.pack xs)
     ""     -> case break (=='/') (reverse up) of
       ("",_) -> q0 -- path ends in / or is empty
       (_,"") -> q0 -- path contains no /
-      (rlname,rpath) -> QName uri (uri {uriPath = reverse rpath}) (T.pack (reverse rlname))
+      (rlname,rpath) -> QName iuri (uri {uriPath = reverse rpath}) (T.pack (reverse rlname))
       
     e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
 
@@ -170,7 +179,7 @@ getLocalName (QName _ _ l) = l
 -- | Returns the full URI of the QName (ie the combination of the
 -- namespace and local components).
 getQNameURI :: QName -> URI
-getQNameURI (QName u _ _) = u
+getQNameURI (QName u _ _) = unintern u
 
 {-
 Original used comparison of concatenated strings,
