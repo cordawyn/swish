@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.5.0.2
+Version:            0.5.0.3
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,8 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.5.0.3] Didn't get all the required @FlexibleInstances@.
   .
   [Version 0.5.0.2] HUnit constraint is only added when the @tests@ flag
   is used. Removed random and bytestring constraints. Add @FlexibleInstances@

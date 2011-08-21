@@ -1,4 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-} -- needed for ghc 7.2
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  TypeSynonymInstances
+--  Portability :  TypeSynonymInstances, FlexibleInstances
 --
 --  This module defines a `ShowM` class instance for `RDFGraph`, to be
 --  used when displaying RDF Graph values as part of a proof sequence,
