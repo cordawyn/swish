@@ -37,10 +37,10 @@ import Control.Exception.Base (assert)
 
 import Data.Ord (comparing)
 import Data.List (foldl', nub, sortBy, partition)
-import qualified Data.List
+import qualified Data.List as L
 
 import Swish.RDF.GraphClass (Arc(..), Label(..),
-                             arc, arcSubj, arcPred, arcObj, arcLabels,
+                             arcLabels,
                              hasLabel, arcToTriple)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),
                               makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
@@ -129,7 +129,7 @@ ecSize = length . ecLabels
 -}
 
 ecRemoveLabel :: (Label lb) => EquivalenceClass lb -> lb -> EquivalenceClass lb
-ecRemoveLabel (lv,ls) l = (lv,Data.List.delete l ls)
+ecRemoveLabel (lv,ls) l = (lv, L.delete l ls)
 
 ------------------------------------------------------------
 --  Augmented graph label value - for graph matching
@@ -152,9 +152,7 @@ makeScopedLabel :: (Label lb) => Int -> lb -> ScopedLabel lb
 makeScopedLabel = ScopedLabel 
 
 makeScopedArc :: (Label lb) => Int -> Arc lb -> Arc (ScopedLabel lb)
-makeScopedArc scope a1 = arc (s arcSubj a1) (s arcPred a1) (s arcObj a1)
-    where
-        s f a = ScopedLabel scope (f a)
+makeScopedArc scope = fmap (ScopedLabel scope)
 
 instance (Label lb) => Label (ScopedLabel lb) where
     getLocal  lab    = error $ "getLocal for ScopedLabel: "++show lab
