@@ -34,6 +34,7 @@ module Swish.RDF.GraphMatch
       ) where
 
 import Control.Exception.Base (assert)
+import Control.Arrow (second)
 
 import Data.Ord (comparing)
 import Data.List (foldl', nub, sortBy, partition)
@@ -129,7 +130,7 @@ ecSize = length . ecLabels
 -}
 
 ecRemoveLabel :: (Label lb) => EquivalenceClass lb -> lb -> EquivalenceClass lb
-ecRemoveLabel (lv,ls) l = (lv, L.delete l ls)
+ecRemoveLabel xs l = second (L.delete l) xs
 
 ------------------------------------------------------------
 --  Augmented graph label value - for graph matching
@@ -389,8 +390,8 @@ labelMatch matchable lmap l1 l2 =
 --  resulting label map is incremented.
 --
 newLabelMap :: (Label lb) => LabelMap lb -> [(lb,Int)] -> LabelMap lb
-newLabelMap (LabelMap g f) [] = LabelMap (g+1) f -- new generation
-newLabelMap lmap (lv:lvs)     = setLabelHash (newLabelMap lmap lvs) lv
+newLabelMap lmap []       = newGenerationMap lmap
+newLabelMap lmap (lv:lvs) = setLabelHash (newLabelMap lmap lvs) lv
 
 -- | Replace a label and its associated value in a label map
 --  with a new value using the supplied hash value and the current
@@ -500,16 +501,18 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         LabelMap gen2 lm2 =
             remapLabels gs2 lmap $ foldl1 (++) $ map (ecLabels . snd) ecpairs
         lm' = mapReplaceMap lm $ mapMerge lm1 lm2
+        
+        tmap f (a,b) = (f a, f b)
+        
         -- ecGroups :: [([EquivalenceClass lb],[EquivalenceClass lb])]
-        ecGroups  = [ (remapEc ec1,remapEc ec2) | (ec1,ec2) <- ecpairs ]
+        ecGroups  = map (tmap remapEc) ecpairs
         ecpairs'  = concatMap (uncurry zip) ecGroups
         newPart   = any pairG1 lenGroups
         matchPart = all pairEq lenGroups
-        lenGroups = map subLength ecGroups
-        pairEq (p1,p2) = p1 == p2
+        lenGroups = map (tmap length) ecGroups
+        pairEq = uncurry (==)
         pairG1 (p1,p2) = p1 > 1 || p2 > 1
-        subLength (ls1,ls2) = (length ls1,length ls2)
-        remapEc ec = pairGroup $ map (newIndex lm') $ pairUngroup ec
+        remapEc = pairGroup . map (newIndex lm') . pairUngroup 
         newIndex x (_,lab) = (mapFind nullLabelVal lab x,lab)
 
 -- | Calculate a new index value for a supplied list of labels based on the
