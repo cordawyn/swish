@@ -134,6 +134,10 @@ class (Eq lb, Show lb, Ord lb) => Label lb where
     
   -- | Calculate the hash of the label using the supplied seed.
   labelHash   :: Int -> lb -> Int     
+  
+  -- could provide a default of 
+  --   labelHash = hashWithSalt
+  -- but this would then force a Hashable constraint
     
   -- | Extract the local id from a variable node.                 
   getLocal    :: lb -> String
