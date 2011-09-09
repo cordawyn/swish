@@ -32,9 +32,9 @@ module Swish.RDF.GraphMem
 
 import Swish.RDF.GraphClass
 import Swish.RDF.GraphMatch
-import Swish.Utils.MiscHelpers
-    ( hash )
+-- import Swish.Utils.MiscHelpers (hash)
 
+import Data.Hashable (Hashable(..), combine)
 import Data.Ord (comparing)
 
 import qualified Data.Foldable as F
@@ -114,13 +114,20 @@ data LabelMem
     = LF String
     | LV String
 
+instance Hashable LabelMem where
+  hash (LF l) = 1 `hashWithSalt` l
+  hash (LV l) = 2 `hashWithSalt` l
+  hashWithSalt salt (LF l) = salt `combine` 1 `hashWithSalt` l
+  hashWithSalt salt (LV l) = salt `combine` 2 `hashWithSalt` l
+
 instance Label LabelMem where
     labelIsVar (LV _)   = True
     labelIsVar _        = False
     getLocal   (LV loc) = loc
     getLocal   lab      = error "getLocal of non-variable label: " ++ show lab
     makeLabel           = LV 
-    labelHash  seed lb  = hash seed (show lb)
+    -- labelHash  seed lb  = hash seed (show lb)
+    labelHash = hashWithSalt
 
 instance Eq LabelMem where
     (LF l1) == (LF l2)  = l1 == l2

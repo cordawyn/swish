@@ -34,6 +34,8 @@ where
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
+import Data.Hashable (Hashable(..))
+
 import Data.List (foldl', union, (\\))
 
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
@@ -150,6 +152,10 @@ data Arc lb = Arc
               , aobj :: lb   -- ^ The object of the arc.
               }
             deriving (Eq, Functor, F.Foldable, T.Traversable)
+
+instance (Hashable lb) => Hashable (Arc lb) where
+  hash (Arc s p o) = hash s `hashWithSalt` p `hashWithSalt` o
+  hashWithSalt salt (Arc s p o) = salt `hashWithSalt` s `hashWithSalt` p `hashWithSalt` o
 
 -- | Return the subject of the arc.
 arcSubj :: Arc lb -> lb
