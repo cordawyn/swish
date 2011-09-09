@@ -56,8 +56,8 @@ instance Interned InternedURI where
 instance Uninternable InternedURI where
   unintern (InternedURI _ b) = b 
 
--- Rather than be clever, use the reverse of the string
--- representation of the URI
+-- Rather than access the URI components, just use the reverse of the
+-- string representation of the URI.
 instance Hashable (Description InternedURI) where
   hash = hashWithSalt 5381 -- use the stringSalt value from Data.Hashable
   hashWithSalt salt (DU u) = hashWithSalt salt ((reverse . show) u)

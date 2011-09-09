@@ -14,6 +14,13 @@
 --
 --------------------------------------------------------------------------------
 
+{- 
+
+Note: after changing the hash module the order and values of some
+of the tests; I have not checked that the new ordering makes sense.
+
+-}
+
 module Main where
 
 import qualified Data.Foldable as F
@@ -28,7 +35,6 @@ import Data.Maybe (fromJust)
 import Data.Ord (comparing)
 
 import Swish.Utils.ListHelpers
-import Swish.Utils.MiscHelpers
 import Swish.RDF.GraphClass (Arc(..), LDGraph(..),
                              Label(..), arc,
                              arcFromTriple,arcToTriple)
@@ -140,25 +146,6 @@ testSubsetSuite = TestList
     , testSubset "08" False [1,2,3]       []
     ]
 
--- hash
-
-testHash :: String -> Bool -> Int -> Int -> Test
-testHash lab eq h1 h2 = testeq ("Hash"++lab ) eq (h1 == h2)
-
-testHashEq :: String -> Int -> Int -> Test
-testHashEq lab = testeq ("Hash"++lab ) 
-
-testHashSuite :: Test
-testHashSuite = TestList
-    [ testHash "01" True  (hash 0 base1) (hash 0 base1)
-    , testHash "02" True  (hash 2 "")    (hash 2 "")
-    , testHash "03" False (hash 3 base1) (hash 3 base2)
-    , testHash "04" False (hash 4 base1) (hash 5 base1)
-    , testHash "05" False (hash 2 "")    (hash 3 "")
-    , testHashEq "06"     1424775        (hash 3 base1)
-    , testHashEq "07"     11801303       (hash 3 base2)
-    ]
-
 ------------------------------------------------------------
 --  Simple graph label tests
 ------------------------------------------------------------
@@ -170,10 +157,11 @@ testLabSuite = TestList
     , testeq "Lab03" False (labelIsVar lab2f)
     , testeq "Lab04" True  (labelIsVar lab2v)
 
-    , testeq "Lab05"  3436883 (labelHash 1 lab1f)
-    , testeq "Lab06" 10955600 (labelHash 1 lab1v)
-    , testeq "Lab07"  3436884 (labelHash 1 lab2f)
-    , testeq "Lab08" 10955601 (labelHash 1 lab2v)
+    , testeq "Lab05" 39495998 (labelHash 1 lab1f)
+    , testeq "Lab06" 45349309 (labelHash 1 lab1v)
+    , testeq "Lab07" 39495997 (labelHash 1 lab2f)
+    , testeq "Lab08" 45349310 (labelHash 1 lab2v)
+    
 
     , testeq "Lab09" "!lab1" (show lab1f)
     , testeq "Lab10" "?lab1" (show lab1v)
@@ -662,23 +650,85 @@ testGraphLabels16 = testeq  "GraphLabels16" str (show (graphLabels as6))
 -- assignLabels :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
 
 lmap5 :: LabelMap LabelMem
+{-
 lmap5 = tstLabelMap 2 [(s1,(1,142577)),(s2,(1,142578)),(s3,(1,142579)),
                        (p1,(1,142385)),(p2,(1,142386)),(p3,(1,142387)),
                        (o1,(1,142321)),(o2,(1,142322)),(o3,(1,142323)),
                        (l1,(1,142129)),(l4,(1,1709580)),(l10,(1,3766582)),
                        (b3,(1,262143)),(b4,(1,262143))]
-        
+-}
+
+bhash :: Int
+bhash = 23
+
+l1hash, l4hash, l10hash :: Int
+l1hash = 2524
+l4hash = -1302210307
+l10hash = 10836024  
+
+l1hash2, l4hash2, l10hash2 :: Int
+l1hash2 = 2524
+l4hash2 = -1302210307
+l10hash2 = 10836024  
+
+o1hash, o2hash, o3hash :: Int
+o1hash = 2623
+o2hash = 2620
+o3hash = 2621
+
+p1hash, p2hash, p3hash :: Int
+p1hash = 2624
+p2hash = 2627
+p3hash = 2626
+
+s1hash, s2hash, s3hash :: Int
+s1hash = 2723
+s2hash = 2720
+s3hash = 2721
+
+lmap5 = tstLabelMap 2 
+        [
+          (b4,(1,bhash)),
+          (b3,(1,bhash)),
+          (l10,(1,l10hash)),
+          (l4,(1,l4hash)),
+          (l1,(1,l1hash)),
+          (o3,(1,o3hash)),
+          (o2,(1,o2hash)),
+          (o1,(1,o1hash)),
+          (p3,(1,p3hash)),
+          (p2,(1,p2hash)),
+          (p1,(1,p1hash)),
+          (s3,(1,s3hash)),
+          (s2,(1,s2hash)),
+          (s1,(1,s1hash))
+        ]
+
 testAssignLabelMap05 :: Test        
 testAssignLabelMap05 = testeq "AssignLabels05" lmap5
                         (newGenerationMap $ assignLabelMap ls5 emptyMap)
 
 lmap6 :: LabelMap LabelMem
-lmap6 = tstLabelMap 2 [(s1,(1,142577)),(s2,(1,142578)),(s3,(1,142579)),
-                       (p1,(1,142385)),(p2,(1,142386)),(p3,(1,142387)),
-                       (o1,(1,142321)),(o2,(1,142322)),(o3,(1,142323)),
-                       (l1,(1,142129)),(l4,(1,1709580)),(l10,(1,3766582)),
-                       (b1,(2,262143)),(b2,(2,262143)),(b3,(1,262143)),(b4,(1,262143))]
-
+lmap6 = tstLabelMap 2
+        [
+          (b2,(2,bhash)),
+          (b1,(2,bhash)),
+          (b4,(1,bhash)),
+          (b3,(1,bhash)),
+          (l10,(1,l10hash)),
+          (l4,(1,l4hash)),
+          (l1,(1,l1hash)),
+          (o3,(1,o3hash)),
+          (o2,(1,o2hash)),
+          (o1,(1,o1hash)),
+          (p3,(1,p3hash)),
+          (p2,(1,p2hash)),
+          (p1,(1,p1hash)),
+          (s3,(1,s3hash)),
+          (s2,(1,s2hash)),
+          (s1,(1,s1hash))
+        ]
+        
 testAssignLabelMap06 :: Test
 testAssignLabelMap06 = testeq "AssignLabels06" lmap6 (assignLabelMap ls6 lmap5)
 
@@ -804,19 +854,42 @@ eq1lmap     = newGenerationMap $
               assignLabelMap (graphLabels as61) emptyMap
 
 eq1ltst :: LabelMap (ScopedLabel LabelMem)
-eq1ltst     = tstLabelMap 2 [
-                             (s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
-                             (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
-                             (o1_1,(1,142321)),(o2_1,(1,142322)),(o3_1,(1,142323)),
-                             (l1_1,(1,142129)),(l4_1,(1,1709580)),(l10_1,(1,3766582)),
-                             (b1_1,(1,262143)),(b2_1,(1,262143)),(b3_1,(1,262143)),(b4_1,(1,262143)),
-                             (s1_2,(1,142577)),(s2_2,(1,142578)),(s3_2,(1,142579)),
-                             (p1_2,(1,142385)),(p2_2,(1,142386)),(p3_2,(1,142387)),
-                             (o1_2,(1,142321)),(o2_2,(1,142322)),(o3_2,(1,142323)),
-                             (l1_2,(1,142129)),(l4_2,(1,1709580)),(l10_2,(1,3766582)),
-                             (b1_2,(1,262143)),(b2_2,(1,262143)),(b3_2,(1,262143)),(b4_2,(1,262143))
-                            ]
-              
+eq1ltst = tstLabelMap 2 
+          [
+            (b4_2,(1,bhash)),
+            (b3_2,(1,bhash)),
+            (p3_2,(1,p3hash)),
+            (b2_2,(1,bhash)),
+            (p2_2,(1,p2hash)),
+            (b1_2,(1,bhash)),
+            (l10_2,(1,l10hash)),
+            (l4_2,(1,l4hash)),
+            (l1_2,(1,l1hash)),
+            (o3_2,(1,o3hash)),
+            (s3_2,(1,s3hash)),
+            (o2_2,(1,o2hash)),
+            (s2_2,(1,s2hash)),
+            (o1_2,(1,o1hash)),
+            (p1_2,(1,p1hash)),
+            (s1_2,(1,s1hash)),
+            (b4_1,(1,bhash)),
+            (b3_1,(1,bhash)),
+            (p3_1,(1,p3hash)),
+            (b2_1,(1,bhash)),
+            (p2_1,(1,p2hash)),
+            (b1_1,(1,bhash)),
+            (l10_1,(1,l10hash)),
+            (l4_1,(1,l4hash)),
+            (l1_1,(1,l1hash)),
+            (o3_1,(1,o3hash)),
+            (s3_1,(1,s3hash)),
+            (o2_1,(1,o2hash)),
+            (s2_1,(1,s2hash)),
+            (o1_1,(1,o1hash)),
+            (p1_1,(1,p1hash)),
+            (s1_1,(1,s1hash))
+            ]
+          
 testEqAssignMap01 :: Test              
 testEqAssignMap01 = testeq "EqAssignMap01" eq1ltst eq1lmap
 
@@ -882,17 +955,38 @@ eq2lmap     = newGenerationMap $
               assignLabelMap (graphLabels as41) emptyMap
               
 eq2ltst :: LabelMap (ScopedLabel LabelMem)
-eq2ltst     = tstLabelMap 2 [(s1_1,(1,142577)),(s2_1,(1,142578)),(s3_1,(1,142579)),
-                             (p1_1,(1,142385)),(p2_1,(1,142386)),(p3_1,(1,142387)),
-                             (o1_1,(1,142321)),(o2_1,(1,142322)),(o3_1,(1,142323)),
-                             (l1_1,(1,142129)),(l4_1,(1,1709580)),(l10_1,(1,3766582)),
-                             (b1_1,(1,262143)),(b2_1,(1,262143)),
-                             (s1_2,(1,142577)),(s2_2,(1,142578)),(s3_2,(1,142579)),
-                             (p1_2,(1,142385)),(p2_2,(1,142386)),(p3_2,(1,142387)),
-                             (o1_2,(1,142321)),(o2_2,(1,142322)),(o3_2,(1,142323)),
-                             (l1_2,(1,142129)),(l4_2,(1,1709580)),(l10_2,(1,3766582)),
-                             (b1_2,(1,262143)),(b2_2,(1,262143))]
-              
+eq2ltst = tstLabelMap 2
+          [
+            (p3_2,(1,p3hash)),
+            (b2_2,(1,bhash)),
+            (b1_2,(1,bhash)),
+            (p2_2,(1,p2hash)),
+            (l10_2,(1,l10hash)),
+            (l4_2,(1,l4hash)),
+            (l1_2,(1,l1hash)),
+            (o3_2,(1,o3hash)),
+            (s3_2,(1,s3hash)),
+            (o2_2,(1,o2hash)),
+            (s2_2,(1,s2hash)),
+            (o1_2,(1,o1hash)),
+            (p1_2,(1,p1hash)),
+            (s1_2,(1,s1hash)),
+            (p3_1,(1,p3hash)),
+            (b2_1,(1,bhash)),
+            (p2_1,(1,p2hash)),
+            (b1_1,(1,bhash)),
+            (l10_1,(1,l10hash)),
+            (l4_1,(1,l4hash)),
+            (l1_1,(1,l1hash)),
+            (o3_1,(1,o3hash)),
+            (s3_1,(1,s3hash)),
+            (o2_1,(1,o2hash)),
+            (s2_1,(1,s2hash)),
+            (o1_1,(1,o1hash)),
+            (p1_1,(1,p1hash)),
+            (s1_1,(1,s1hash))
+          ]
+
 testEqAssignMap21 :: Test
 testEqAssignMap21 = testeq "EqAssignMap21" eq2ltst eq2lmap
 
@@ -960,16 +1054,23 @@ eq3lmap     = newGenerationMap $
               assignLabelMap (graphLabels as22) emptyMap
               
 eq3ltst :: LabelMap (ScopedLabel LabelMem)
-eq3ltst     = tstLabelMap 2
-    [ (s1_1,(1,142577))
-    , (p1_1,(1,142385))
-    , (o1_1,(1,142321))
-    , (s1_2,(1,142577)), (s2_2,(1,142578)), (s3_2,(1,142579))
-    , (p1_2,(1,142385))
-    , (o1_2,(1,142321)), (o2_2,(1,142322)), (o3_2,(1,142323))
-    , (l1_2,(1,142129)), (l4_2,(1,1709580)), (l10_2,(1,3766582))
+eq3ltst = tstLabelMap 2
+    [ 
+      (o1_1,(1,o1hash))
+    , (p1_1,(1,p1hash))
+    , (s1_1,(1,s1hash))
+    , (l10_2,(1,l10hash))
+    , (l4_2,(1,l4hash))
+    , (l1_2,(1,l1hash))
+    , (o3_2,(1,o3hash))
+    , (s3_2,(1,s3hash))
+    , (o2_2,(1,o2hash))
+    , (s2_2,(1,s2hash))
+    , (o1_2,(1,o1hash))
+    , (p1_2,(1,p1hash))
+    , (s1_2,(1,s1hash)) 
     ]
-    
+
 testEqAssignMap32 :: Test    
 testEqAssignMap32 = testeq "EqAssignMap32" eq3ltst eq3lmap
 
@@ -981,9 +1082,9 @@ ec31     = equivalenceClasses eq3lmap (graphLabels as11)
 
 ec31test :: [EquivArgs]
 ec31test =
-    [ ((1,142321),[o1_1])
-    , ((1,142385),[p1_1])
-    , ((1,142577),[s1_1])
+    [ ((1,2623),[o1_1])
+    , ((1,2624),[p1_1])
+    , ((1,2723),[s1_1])
     ]
 
 ec32 :: [EquivClass]
@@ -991,18 +1092,19 @@ ec32 = equivalenceClasses eq3lmap (graphLabels as22)
 
 ec32test :: [EquivArgs]
 ec32test =
-    [ ((1,142129),[l1_2])
-    , ((1,142321),[o1_2])
-    , ((1,142322),[o2_2])
-    , ((1,142323),[o3_2])
-    , ((1,142385),[p1_2])
-    , ((1,142577),[s1_2])
-    , ((1,142578),[s2_2])
-    , ((1,142579),[s3_2])
-    , ((1,1709580),[l4_2])
-    , ((1,3766582),[l10_2])
+    [ 
+      ((1,-1302210307),[l4_2])
+    , ((1,2524),[l1_2])
+    , ((1,2620),[o2_2])
+    , ((1,2621),[o3_2])
+    , ((1,2623),[o1_2])
+    , ((1,2624),[p1_2])
+    , ((1,2720),[s2_2])
+    , ((1,2721),[s3_2])
+    , ((1,2723),[s1_2])
+    , ((1,10836024),[l10_2])
     ]
-
+  
 testEquivClass33_1, testEquivClass33_2 :: Test
 testEquivClass33_1 = testeq "EquivClass33_1" ec31test ec31
 testEquivClass33_2 = testeq "EquivClass33_2" ec32test ec32
@@ -1013,6 +1115,8 @@ testEquivClass33_2 = testeq "EquivClass33_2" ec32test ec32
 ec3pairs :: [(EquivClass, EquivClass)]
 ec3pairs = zip (pairSort ec31) (pairSort ec32)
 
+{-  This is a pointless test in this case
+
 ec3test :: [(EquivClass, EquivClass)]
 ec3test  =
     [ ( ((1,142321),[o1_1]), ((1,142321),[o1_2]) )
@@ -1020,7 +1124,6 @@ ec3test  =
     , ( ((1,142577),[s1_1]), ((1,142577),[s1_2]) )
     ]
 
-{-  This is a pointless test in this case
 testEquivClass33_3 = testeq "EquivClass33_3" ec3test ec3pairs
 -}
 
@@ -1731,7 +1834,6 @@ allTests :: Test
 allTests = TestList
   [ testSelectSuite
   , testSubsetSuite
-  , testHashSuite
   , testLabSuite
   , testGraphSuite
   , testLabelEqSuite

@@ -69,11 +69,13 @@ data QName = QName !InternedURI URI T.Text
 instance IsString QName where
   fromString = qnameFromString
                
+-- | Equality is determined by a case sensitive comparison of the               
+-- URI.
 instance Eq QName where
   -- see qnEq comments below
   (QName u1 _ _) == (QName u2 _ _) = u1 == u2
 
--- ugly, use show instance
+-- ugly, use show instance OR switch to the ordering of InternedURI
     
 instance Ord QName where
   {-
@@ -104,7 +106,7 @@ instance Ord QName where
         (up2,ur2) = splitAt n u2
   -}
   
--- The format of show QName may well change to remove the <>
+-- | The format used to display the URI is @<uri>@.
 instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
 
