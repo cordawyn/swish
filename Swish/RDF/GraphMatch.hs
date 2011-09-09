@@ -38,6 +38,7 @@ import Control.Arrow (second)
 
 import Data.Ord (comparing)
 import Data.List (foldl', nub, sortBy, partition)
+import Data.Hashable (combine)
 import qualified Data.List as L
 
 import Swish.RDF.GraphClass (Arc(..), Label(..),
@@ -47,7 +48,6 @@ import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),
                               makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                               mapAddIfNew, mapReplaceMap, mapMerge)
 import Swish.Utils.ListHelpers (select, equiv, pairSort, pairGroup, pairUngroup)
-import Swish.Utils.MiscHelpers (hash, hashModulus)
 
 --------------------------
 --  Label index value type
@@ -160,7 +160,7 @@ instance (Label lb) => Label (ScopedLabel lb) where
     makeLabel locnam = error $ "makeLabel for ScopedLabel: "++locnam
     labelIsVar (ScopedLabel _ lab)   = labelIsVar lab
     labelHash seed (ScopedLabel scope lab)
-        | labelIsVar lab    = hash seed $ show scope ++ "???"
+        | labelIsVar lab    = seed `combine` scope -- MH.hash seed $ show scope ++ "???"
         | otherwise         = labelHash seed lab
 
 instance (Label lb) => Eq (ScopedLabel lb) where
@@ -362,6 +362,13 @@ graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
         assert (ev1==ev2) -- "GraphMatch2: Equivalence class value mismatch" $
         $ try glp
 
+-- this was in Swish.Utils.MiscHelpers along with a simple hash-based function
+-- based on Sedgewick, Algorithms in C, p233. As we have now moved to using
+-- Data.Hashable it is not clear whether this is still necessary or sensible.
+--
+hashModulus :: Int
+hashModulus = 16000001
+
 -- | Returns a string representation  of a LabelMap value
 --
 showLabelMap :: (Label lb) => LabelMap lb -> String
@@ -436,7 +443,8 @@ initVal = hashVal 0
 
 hashVal :: (Label lb) => Int -> lb -> Int
 hashVal seed lab =
-    if labelIsVar lab then hash seed "???" else labelHash seed lab
+  if labelIsVar lab then seed `combine` 23 else labelHash seed lab
+  -- if labelIsVar lab then hash seed "???" else labelHash seed lab
 
 equivalenceClasses :: 
   (Label lb) 
@@ -535,7 +543,8 @@ remapLabels gs lmap@(LabelMap gen _) ls =
         newIndex l
             | labelIsVar l  = mapAdjacent l     -- adjacency classifies variable labels
             | otherwise     = hashVal gen l     -- otherwise rehash (to disentangle collisions)
-        mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
+        -- mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
+        mapAdjacent l       = sum (sigsOver l) `combine` hashModulus -- is this a sensible replacement for `rem` MH.hashModulus        
         sigsOver l          = select (hasLabel l) gs (arcSignatures lmap gs)
 
 -- | Return list of distinct labels used in a graph
@@ -558,7 +567,10 @@ arcSignatures lmap gs =
         sigCalc (s,p,o)  =
             ( labelVal2 s +
               labelVal2 p * 3 +
-              labelVal2 o * 5 ) `rem` hashModulus
+              labelVal2 o * 5 )
+            `combine` hashModulus
+            -- `rem` hashModulus
+          
         labelVal         = mapLabelIndex lmap
         labelVal2        = uncurry (*) . labelVal
 

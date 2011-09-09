@@ -683,7 +683,7 @@ lmap5 = tstLabelMap 2 [(s1,(1,142577)),(s2,(1,142578)),(s3,(1,142579)),
 -}
 
 bhash :: Int
-bhash = 262143
+bhash = 23
 
 l1hash, l4hash, l10hash :: Int
 l1hash = 2524
