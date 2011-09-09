@@ -13,12 +13,14 @@
 --  This module defines a random set of helper functions
 --  used by the graph handling code.
 --
+--  This module is *deprecated* and will be removed at the next possible
+--  release.
+--
 --------------------------------------------------------------------------------
 
 module Swish.Utils.MiscHelpers
-      ( hash -- RDFGraph, GraphMem, GraphMatch
-      , hashModulus -- GraphMatch
-      
+      ( hash
+      , hashModulus
       )
 where
 

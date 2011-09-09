@@ -46,6 +46,9 @@ Description:
   .
   Changes:
   .
+  [Version 0.6.0.1] Moved to using hashing routine using the Data.Hashable
+  interface rather than Swish.Utils.MiscHelpers which is deprecated.
+  .
   [Version 0.6.0.0] Add Data.Interned.URI and use it to speed up the QName
   equality check.
   .

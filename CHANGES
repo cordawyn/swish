@@ -1,3 +1,8 @@
+0.6.0.1:
+
+  - use the hashing interface provided by Data.Hashable rather than
+    Swish.Utils.MiscHelpers.
+
 0.6.0.0:
 
   - use the intern package to create Data.Interned.URI and use
