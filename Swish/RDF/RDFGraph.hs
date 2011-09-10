@@ -89,7 +89,7 @@ import Swish.RDF.Vocabulary
 
 import Swish.RDF.GraphClass
     ( LDGraph(..), Label (..)
-    , Arc(..), arc, arcSubj, arcPred, arcObj
+    , Arc(..), arc, arcSubj, arcPred, arcObj, arcLabels
     , Selector )
 
 import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
@@ -119,6 +119,7 @@ import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 import Network.URI (URI)
 
 import Data.Monoid (Monoid(..))
+import Data.Maybe (mapMaybe)
 import Data.Char (ord, isDigit)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
@@ -663,11 +664,11 @@ isDatatyped _  _                = False
 --  first character of local name is '_' and
 --  remaining characters of local name are all digits
 isMemberProp :: RDFLabel -> Bool
-isMemberProp (Res sn) = getScopeNamespace sn == namespaceRDF &&
-                        T.head loc   == '_' &&
-                        T.all isDigit (T.tail loc)
-                        where
-                            loc = getScopeLocal sn
+isMemberProp (Res sn) =
+  getScopeNamespace sn == namespaceRDF &&
+  case T.uncons (getScopeLocal sn) of
+    Just ('_', t) -> T.all isDigit t
+    _ -> False
 isMemberProp _        = False
 
 -- |Test if supplied labal is a blank node
@@ -1084,12 +1085,16 @@ type RDFGraph = NSGraph RDFLabel
 toRDFGraph :: [RDFTriple] -> RDFGraph
 -- toRDFGraph arcs = emptyRDFGraph { statements = arcs }
 toRDFGraph arcs = 
-  let lbls = concatMap (\(Arc s p o) -> [s,p,o]) arcs
-      ns1  = map (getScopeNamespace . getScopedName) (filter isUri lbls)
-      ns2  = map (getScopeNamespace . getDataType) (filter isTypedLiteral lbls)
-      getDataType (Lit _ (Just dt)) = dt
-      getDataType _ = nullScopedName -- should not happen
-      nsmap = foldl' mapAddIfNew emptyNamespaceMap (ns1++ns2)
+  let lbls = concatMap arcLabels arcs
+      
+      getNS (Res s) = Just s
+      getNS (Lit _ (Just tn)) | not (isLang tn) = Just tn
+                              | otherwise = Nothing
+      getNS _ = Nothing
+
+      ns = mapMaybe (fmap getScopeNamespace . getNS) lbls
+      nsmap = foldl' mapAddIfNew emptyNamespaceMap ns
+  
   in mempty { namespaces = nsmap, statements = arcs }
 
 -- |Create a new, empty RDF graph.

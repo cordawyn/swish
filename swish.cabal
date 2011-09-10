@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.0.1
+Version:            0.6.0.2
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,8 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.0.2] Minor internal changes.
   .
   [Version 0.6.0.1] Moved to using hashing routine using the Data.Hashable
   interface rather than Swish.Utils.MiscHelpers which is deprecated.
