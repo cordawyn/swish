@@ -1,6 +1,9 @@
 
 Some things I want to/should do (not in order)
 
+- RDFQuery: use Data.Set rather than a list in mapNode and related
+  routines.
+
 - Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?
 
