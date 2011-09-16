@@ -767,7 +767,7 @@ numbers.
 
 _decimal :: TurtleParser L.Text
 _decimal = 
-  let dpart = fromMaybe ".0" <$> (char '.' *> optional _integer)
+  let dpart = L.cons <$> char '.' <*> (fromMaybe "0" <$> (optional _integer))
   in 
    (L.append <$> _integer <*> dpart)
    <|>
