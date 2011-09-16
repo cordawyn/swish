@@ -89,6 +89,7 @@ usageText =
     , "-v        display Swish version and quit."
     , "-q        do not display Swish version on start up."
     , "-nt       use Ntriples format for subsequent input and output."
+    , "-ttl      use Turtle format for subsequent input and output."
     , "-n3       use Notation3 format for subsequent input and output (default)"
     , "-i[=file] read file in selected format into the graph workspace,"
     , "          replacing any existing graph."
@@ -179,6 +180,7 @@ validateCommand cmd =
       
       wrap f = Right $ SA $ f marg
   in case nam of
+    "-ttl"  -> wrap $ swishFormat Turtle
     "-nt"   -> wrap $ swishFormat NT
     "-n3"   -> wrap $ swishFormat N3
     "-i"    -> wrap swishInput

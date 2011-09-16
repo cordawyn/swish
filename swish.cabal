@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.0.2
+Version:            0.6.1.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -28,7 +28,8 @@ Description:
   Swish is a work-in-progress, and currently incorporates:
   .
   * Notation3 and NTriples input and output. The N3 support is
-    incomplete (no handling of @\@forAll@).
+    incomplete (no handling of @\@forAll@). Turtle format for
+    input.
   .
   * RDF graph isomorphism testing and merging.
   .
@@ -45,6 +46,9 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.1.0] Support for Turtle format (added Swish.RDF.TurtleParser)
+  as input.
   .
   [Version 0.6.0.2] Minor internal changes.
   .
@@ -219,6 +223,7 @@ Library
       Swish.RDF.SwishMain
       Swish.RDF.SwishMonad
       Swish.RDF.SwishScript
+      Swish.RDF.TurtleParser
       Swish.RDF.VarBinding
       Swish.RDF.Vocabulary
       Swish.Utils.ListHelpers

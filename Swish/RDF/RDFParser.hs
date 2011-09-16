@@ -30,6 +30,7 @@ module Swish.RDF.RDFParser
     , string
     , stringT
     , symbol
+    , isymbol
     , lexeme
     , notFollowedBy
     , whiteSpace
@@ -206,6 +207,9 @@ notFollowedBy p = do
 
 symbol :: String -> Parser s String
 symbol = lexeme . string
+
+isymbol :: String -> Parser s ()
+isymbol = ignore . symbol
 
 lexeme :: Parser s a -> Parser s a
 lexeme p = p <* whiteSpace

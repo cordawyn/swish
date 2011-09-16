@@ -449,10 +449,11 @@ isaz c = c >= 'a' && c <= 'z'
 is09 c = c >= '0' && c <= '9'
 isaz09 c = isaz c || is09 c
 
+match :: (Ord a) => a -> [(a,a)] -> Bool
+match v = any (\(l,h) -> v >= l && v <= h)
+
 startChar :: Char -> Bool
 startChar c = let i = ord c
-                  match :: (Ord a) => a -> [(a,a)] -> Bool
-                  match v = any (\(l,h) -> v >= l && v <= h)
               in c == '_' || 
                  match c [('A', 'Z'), ('a', 'z')] ||
                  match i [(0x00c0, 0x00d6), (0x00d8, 0x00f6), (0x00f8, 0x02ff), 
@@ -464,8 +465,6 @@ startChar c = let i = ord c
   
 inBody :: Char -> Bool
 inBody c = let i = ord c
-               match :: (Ord a) => a -> [(a,a)] -> Bool
-               match v = any (\(l,h) -> v >= l && v <= h)
            in c `elem` "-_" || i == 0x007 ||
               match c [('0', '9'), ('A', 'Z'), ('a', 'z')] ||
               match i [(0x00c0, 0x00d6), (0x00d8, 0x00f6), (0x00f8, 0x037d), 
@@ -735,8 +734,7 @@ TODO:
 
 qname :: N3Parser ScopedName
 qname =
-  -- (char ':' *> toSN getDefaultPrefix)
-  (char ':' >> g >>= return . uncurry makeNSScopedName)
+  fmap (uncurry makeNSScopedName) (char ':' >> g)
   <|> (n3Name >>= fullOrLocalQName)
     where
       g = (,) <$> getDefaultPrefix <*> (n3Name <|> return "")

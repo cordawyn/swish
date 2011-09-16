@@ -53,6 +53,7 @@ import Swish.RDF.RDFGraph
 import qualified Swish.RDF.N3Formatter as N3F
 import qualified Swish.RDF.NTFormatter as NTF
 
+import Swish.RDF.TurtleParser (parseTurtle)
 import Swish.RDF.N3Parser (parseN3)
 import Swish.RDF.NTParser (parseNT)
 import Swish.RDF.RDFParser (appendURIs)
@@ -273,6 +274,7 @@ swishOutputGraph _ hnd = do
   case fmt of
     N3 -> writeOut N3F.formatGraphAsLazyText
     NT -> writeOut NTF.formatGraphAsLazyText
+    Turtle -> swishError "Currently unsupported writing out as Turtle" SwishArgumentError
     -- _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError
 
 ------------------------------------------------------------
@@ -348,6 +350,7 @@ swishParse mfpath inp = do
         Right res -> return $ Just res
              
   case fmt of
+    Turtle -> readIn (`parseTurtle` Just (getQNameURI buri))
     N3 -> readIn (`parseN3` Just buri)
     NT -> readIn parseNT
     {-
