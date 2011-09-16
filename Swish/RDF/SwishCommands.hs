@@ -50,6 +50,7 @@ import Swish.RDF.GraphPartition
 import Swish.RDF.RDFGraph
     ( RDFGraph, merge )
 
+import qualified Swish.RDF.TurtleFormatter as TTLF
 import qualified Swish.RDF.N3Formatter as N3F
 import qualified Swish.RDF.NTFormatter as NTF
 
@@ -274,7 +275,7 @@ swishOutputGraph _ hnd = do
   case fmt of
     N3 -> writeOut N3F.formatGraphAsLazyText
     NT -> writeOut NTF.formatGraphAsLazyText
-    Turtle -> swishError "Currently unsupported writing out as Turtle" SwishArgumentError
+    Turtle -> writeOut TTLF.formatGraphAsLazyText
     -- _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError
 
 ------------------------------------------------------------

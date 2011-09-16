@@ -1,7 +1,7 @@
 0.6.1.0:
 
-  - add support for reading Turtle format and the Swish.RDF.TurtleParser
-    module.
+  - add support for reading and writing Turtle format and the
+    Swish.RDF.TurtleFormatter and Swish.RDF.TurtleParser modules.
 
 0.6.0.1:
 

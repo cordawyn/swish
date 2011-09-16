@@ -25,8 +25,6 @@
 --
 --  * Add RDF/XML input and output
 --
---  * Add Turtle and related formats for input and output
---
 
 module Swish.RDF.SwishMain (
   SwishStatus(..), SwishAction,
