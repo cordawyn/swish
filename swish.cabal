@@ -46,8 +46,8 @@ Description:
   .
   Changes:
   .
-  [Version 0.6.1.0] Support for Turtle format (added the Swish.RDF.TurtleFormatter
-  and Swish.RDF.TurtleParser modules).
+  [Version 0.6.1.0] Added support for Turtle format (added the
+  Swish.RDF.TurtleFormatter and Swish.RDF.TurtleParser modules).
   .
   [Version 0.6.0.2] Minor internal changes.
   .

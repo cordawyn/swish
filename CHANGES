@@ -2,6 +2,10 @@
 
   - add support for reading and writing Turtle format and the
     Swish.RDF.TurtleFormatter and Swish.RDF.TurtleParser modules.
+    No tests are provided at this time, although the parser handles
+    most of the W3C test files; the issues include Network.URI
+    not recognizing some IRI's and issues with equating XSD decimal
+    and double values due to canonicalization.
 
 0.6.0.1:
 
