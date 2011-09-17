@@ -43,12 +43,14 @@ module Swish.RDF.TurtleFormatter
 where
 
 import Swish.RDF.RDFGraph (
-  RDFGraph, RDFLabel(..),
-  NamespaceMap, RevNamespaceMap,
-  emptyNamespaceMap,
+  RDFGraph, RDFLabel(..)
+  , NamespaceMap, RevNamespaceMap
+  -- emptyNamespaceMap,
   -- FormulaMap, emptyFormulaMap,
-  getArcs, labels,
-  setNamespaces, getNamespaces,
+  , getArcs
+  , labels
+  -- , setNamespaces
+  , getNamespaces,
   -- getFormulae,
   emptyRDFGraph
   , quote
