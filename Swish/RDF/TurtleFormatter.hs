@@ -512,13 +512,13 @@ Add a blank node inline.
 
 insertBnode :: LabelContext -> RDFLabel -> Formatter B.Builder
 insertBnode SubjContext lbl = do
+  -- a safety check
   flag <- moreProperties
-  txt <- if flag
-         then (`mappend` "\n") `liftM` formatProperties lbl ""
-         else return ""
-
-  -- TODO: handle indentation?
-  return $ mconcat ["[", txt, "]"]
+  if flag
+    then do
+      txt <- (`mappend` "\n") `liftM` formatProperties lbl ""
+      return $ mconcat ["[] ", txt]
+    else error $ "Internal error: expected properties with label: " ++ show lbl
 
 insertBnode _ lbl = do
   ost <- get
@@ -684,8 +684,9 @@ formatLabel lctxt lab@(Blank (_:_)) = do
     Nothing -> do
       -- NOTE: unlike N3 we do not properly handle "formula"/named graphs
       -- also we only expand out bnodes into [...] format when it's a object.
+      -- although we need to handle [] for the subject.
       nb1 <- getBnodesCheck
-      if lctxt == ObjContext && lab `notElem` nb1
+      if lctxt /= PredContext && lab `notElem` nb1
         then insertBnode lctxt lab
         else formatNodeId lab
 
