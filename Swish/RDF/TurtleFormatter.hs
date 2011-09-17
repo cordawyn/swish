@@ -668,20 +668,11 @@ nextLine str = do
 -- This is being updated to produce inline formula, lists and     
 -- blank nodes. The code is not efficient.
 --
-
-specialTable :: [(ScopedName, String)]
-specialTable = 
-  [ (rdfType, "a")
-  , (rdfNil, "()")
-  ]
+--
+-- Note: There is a lot less customisation possible in Turtle than N3.
+--      
 
 formatLabel :: LabelContext -> RDFLabel -> Formatter B.Builder
-{-
-formatLabel lab@(Blank (_:_)) = do
-  name <- formatNodeId lab
-  queueFormula lab
-  return name
--}
 
 {-
 The "[..]" conversion is done last, after "()" and "{}" checks.
@@ -692,34 +683,28 @@ formatLabel lctxt lab@(Blank (_:_)) = do
     Just lst -> insertList lst
     Nothing -> do
       -- NOTE: unlike N3 we do not properly handle "formula"/named graphs
+      -- also we only expand out bnodes into [...] format when it's a object.
       nb1 <- getBnodesCheck
-      if lctxt /= PredContext && lab `notElem` nb1
+      if lctxt == ObjContext && lab `notElem` nb1
         then insertBnode lctxt lab
         else formatNodeId lab
 
 -- formatLabel _ lab@(Res sn) = 
-formatLabel _ (Res sn) = 
-  case lookup sn specialTable of
-    Just txt -> return $ quoteB True txt -- TODO: do we need to quote?
-    Nothing -> do
-      pr <- getPrefixes
-      let nsuri  = getScopeURI sn
-          local  = getScopeLocal sn
-          premap = reverseLookupMap pr :: RevNamespaceMap
-          prefix = mapFindMaybe nsuri premap
+formatLabel ctxt (Res sn)
+  | ctxt == PredContext && sn == rdfType = return "a"
+  | ctxt == ObjContext  && sn == rdfNil  = return "()"
+  | otherwise = do
+  pr <- getPrefixes
+  let nsuri  = getScopeURI sn
+      local  = getScopeLocal sn
+      premap = reverseLookupMap pr :: RevNamespaceMap
+      prefix = mapFindMaybe nsuri premap
           
-          name   = case prefix of
-                     Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
+      name   = case prefix of
+        Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
+        _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
       
-      {-
-          name   = case prefix of
-                     Just p -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
-      -}
-          
-      -- queueFormula lab; removed in turtle
-      return name
+  return name
 
 -- The canonical notation for xsd:double in XSD, with an upper-case E,
 -- does not match the syntax used in N3, so we need to convert here.     
