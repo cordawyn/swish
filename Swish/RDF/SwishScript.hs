@@ -890,7 +890,7 @@ getResourceData muri =
             ; return $ Right dat
             }
     fromUri = fromFile
-    fromFile uri | uriScheme uri == "file:" = Right `fmap` (lift $ LIO.readFile $ uriPath uri)
+    fromFile uri | uriScheme uri == "file:" = Right `fmap` lift (LIO.readFile $ uriPath uri)
                  | otherwise = error $ "Unsupported file name for read: " ++ show uri
                                
 --  Temporary implementation:  just write local file

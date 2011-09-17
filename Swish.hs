@@ -28,9 +28,9 @@
 --  "Swish.RDF.SwishScript".
 --
 --  Users wishing to process RDF data directly may prefer to look at
---  the following modules; "Swish.RDF", "Swish.RDF.N3Parser",
---  "Swish.RDF.N3Formatter", "Swish.RDF.NTParser" and
---  "Swish.RDF.NTFormatter".
+--  the following modules; "Swish.RDF", "Swish.RDF.TurtleParser",
+--  "Swish.RDF.N3Parser", "Swish.RDF.N3Formatter", "Swish.RDF.NTParser"
+--  and "Swish.RDF.NTFormatter".
 --
 --  (1) Semantic web: <http://www.w3.org/2001/sw/>
 --
@@ -40,7 +40,9 @@
 --
 --  (4) Notation 3:   <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
 --
---  (5) RDF:          <http://www.w3.org/RDF/>
+--  (5) Turtle:       <http://www.w3.org/TR/turtle/>
+--
+--  (6) RDF:          <http://www.w3.org/RDF/>
 --
 --------------------------------------------------------------------------------
 

@@ -80,13 +80,15 @@ import System.IO (hPutStrLn, stderr)
 The supported input and output formats.
 -}
 data SwishFormat = 
-  N3  -- ^ N3 format
-  | NT -- ^ NTriples format
+  Turtle  -- ^ Turtle format
+  | N3    -- ^ N3 format
+  | NT    -- ^ NTriples format
     deriving Eq
 
 instance Show SwishFormat where
   show N3  = "N3"
   show NT  = "Ntriples"
+  show Turtle = "Turtle"
   -- show RDF = "RDF/XML"
 
 -- | The State for a Swish \"program\".

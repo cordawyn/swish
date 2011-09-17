@@ -50,9 +50,11 @@ import Swish.RDF.GraphPartition
 import Swish.RDF.RDFGraph
     ( RDFGraph, merge )
 
+import qualified Swish.RDF.TurtleFormatter as TTLF
 import qualified Swish.RDF.N3Formatter as N3F
 import qualified Swish.RDF.NTFormatter as NTF
 
+import Swish.RDF.TurtleParser (parseTurtle)
 import Swish.RDF.N3Parser (parseN3)
 import Swish.RDF.NTParser (parseNT)
 import Swish.RDF.RDFParser (appendURIs)
@@ -273,6 +275,7 @@ swishOutputGraph _ hnd = do
   case fmt of
     N3 -> writeOut N3F.formatGraphAsLazyText
     NT -> writeOut NTF.formatGraphAsLazyText
+    Turtle -> writeOut TTLF.formatGraphAsLazyText
     -- _  -> swishError ("Unsupported file format: "++show fmt) SwishArgumentError
 
 ------------------------------------------------------------
@@ -348,6 +351,7 @@ swishParse mfpath inp = do
         Right res -> return $ Just res
              
   case fmt of
+    Turtle -> readIn (`parseTurtle` Just (getQNameURI buri))
     N3 -> readIn (`parseN3` Just buri)
     NT -> readIn parseNT
     {-

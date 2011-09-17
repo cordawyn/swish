@@ -1,6 +1,8 @@
 
 Some things I want to/should do (not in order)
 
+- add RDF/XML parser and formatter.
+
 - RDFQuery: use Data.Set rather than a list in mapNode and related
   routines.
 
@@ -19,12 +21,9 @@ Some things I want to/should do (not in order)
 - move a lot of parser/formatter tests out to ntriples files (ie the
   test data in external files).
 
-- turtle parser, then RDF/XML.
-
 - look at using fgl rather than existing graph code (may or may not be
-  worth it), especially given that it's not really a graph
-
-- look at using something like a TextBuilder for processing output
+  worth it), especially given that it's not really a graph as fgl
+  expects it.
 
 - profile (have added the -fdeveloper cabal flag which can be combined
   with the --enable-library-profiling and --enable-executable-profiling
