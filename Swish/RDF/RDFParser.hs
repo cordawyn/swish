@@ -23,6 +23,7 @@ module Swish.RDF.RDFParser
     , prefixTable, specialTable
 
     -- parser
+    , runParserWithError
     , ParseResult
     , ignore
     , char
@@ -141,7 +142,32 @@ specialTable mbase =
     ("base",      fromMaybe defaultBase mbase ) 
   ]
 
--- Parser routines, heavily based on Parsec
+-- Parser routines, heavily based on Parsec combinators
+
+-- | Run the parser and return the successful parse or an error
+-- message which consists of the standard Polyparse error plus
+-- a fragment of the unparsed input to provide context.
+--
+runParserWithError :: 
+  Parser a b -- ^ parser (carrying state) to apply
+  -> a       -- ^ starting state for the parser
+  -> L.Text       -- ^ input to be parsed
+  -> Either String b
+runParserWithError parser state0 input = 
+  let (result, _, unparsed) = runParser parser state0 input
+     
+      -- TODO: work out how best to report error context; for now just take the
+      -- next 40 characters and assume there is enough context.
+      econtext = if L.null unparsed
+                 then "\n(at end of the text)\n"
+                 else "\nRemaining input:\n" ++ 
+                      case L.compareLength unparsed 40 of
+                        GT -> L.unpack (L.take 40 unparsed) ++ "..."
+                        _ -> L.unpack unparsed
+
+  in case result of
+    Left emsg -> Left $ emsg ++ econtext
+    _ -> result
 
 type ParseResult = Either String RDFGraph
 

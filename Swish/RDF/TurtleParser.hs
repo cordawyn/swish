@@ -89,12 +89,8 @@ import Swish.RDF.Vocabulary
 
 import Swish.RDF.RDFParser
     ( ParseResult
-    -- , prefixTable
+    , runParserWithError
     , ignore
-    -- , notFollowedBy
-    -- , endBy
-    -- , sepEndBy
-    -- , manyTill
     , noneOf
     , char
     , ichar
@@ -214,18 +210,12 @@ emptyState mbase =
   
 -- | Function to supply initial context and parse supplied term.
 --
-parseAnyfromText :: TurtleParser a  -- ^ parser to apply
-                    -> Maybe URI    -- ^ base URI of the input, or @Nothing@ to use default base value
-                    -> L.Text       -- ^ input to be parsed
-                    -> Either String a
-parseAnyfromText parser mbase input =
-  let (result, _, unparsed) = runParser parser (emptyState mbase) input
-     
-      -- TODO: work out how best to report error context.
-      
-  in case result of
-    Left emsg -> Left $ concat [emsg, "\nRemaining input:\n", L.unpack unparsed]
-    _ -> result
+parseAnyfromText :: 
+  TurtleParser a  -- ^ parser to apply
+  -> Maybe URI    -- ^ base URI of the input, or @Nothing@ to use default base value
+  -> L.Text       -- ^ input to be parsed
+  -> Either String a
+parseAnyfromText parser mbase = runParserWithError parser (emptyState mbase)
 
 newBlankNode :: TurtleParser RDFLabel
 newBlankNode = do

@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.1.0
+Version:            0.6.1.1
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,11 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.1.1] Minor improvement to the error message produced by the
+  Turtle, Ntriples, and N3 parsers: a fragment of the remaining text is
+  included to provide some context (still lacking compared to the information
+  provided in version 0.3.2.1).
   .
   [Version 0.6.1.0] Added support for Turtle format (added the
   Swish.RDF.TurtleFormatter and Swish.RDF.TurtleParser modules).

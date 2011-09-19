@@ -54,6 +54,7 @@ import Swish.Utils.Namespace (ScopedName, makeURIScopedName)
 import Swish.RDF.Vocabulary (langName)
 
 import Swish.RDF.RDFParser ( ParseResult
+    , runParserWithError
     , ignore
     , skipMany
     , noneOf
@@ -94,6 +95,9 @@ data NTState = NTState
         { graphState :: RDFGraph            -- Graph under construction
         }
 
+emptyState :: NTState
+emptyState = NTState { graphState = emptyRDFGraph }
+           
 --  Return function to update graph in NT parser state,
 --  using the supplied function of a graph. This is for use
 --  with stUpdate.
@@ -136,13 +140,8 @@ parsefromText ::
     NTParser a      -- ^ parser to apply
     -> L.Text       -- ^ input to be parsed
     -> Either String a
-parsefromText parser input =
-        let istate = NTState
-                    { graphState = emptyRDFGraph
-                    }
-            (result, _, _) = runParser parser istate input
-        in result 
-           
+parsefromText parser = runParserWithError parser emptyState
+
 -- helper routines
 
 {-

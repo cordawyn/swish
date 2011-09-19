@@ -65,6 +65,7 @@ import Network.URI (URI, nullURI, parseURIReference)
 
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromMaybe)
+import Data.List (intercalate)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -1163,7 +1164,7 @@ emsg16 = intercalate "\n" [
   "expecting declaration, \"@\", pathitem or end of input"
   ]
 -}
-emsg16 = "Expected end of input (EOF)"
+emsg16 = "Expected end of input (EOF)\nRemaining input:\n**** "
 
 simpleTestSuite :: Test
 simpleTestSuite = TestList
@@ -1469,7 +1470,11 @@ fail1 = intercalate "\n" [
          "unexpected Prefix 'unknown3:' not bound."
         ]
 -}
-fail1 = "When looking for a non-empty sequence with separators:\n\tPrefix 'unknown3:' not bound."
+fail1 = intercalate "\n" 
+        ["When looking for a non-empty sequence with separators:"
+        , "\tPrefix 'unknown3:' not bound."
+        , "Remaining input:"
+        , "o3 . "]
 
 failTestSuite :: Test
 failTestSuite = TestList

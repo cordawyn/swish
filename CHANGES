@@ -1,3 +1,11 @@
+0.6.1.1:
+
+  - minor improvements to error message when parsing Turtle,
+    N3 or Ntriples format; a fragment of the remaining text to be
+    parsed is included to provide some context for the user (it
+    is still not as useful as the error message provided when
+    parsec was being used).
+
 0.6.1.0:
 
   - add support for reading and writing Turtle format and the

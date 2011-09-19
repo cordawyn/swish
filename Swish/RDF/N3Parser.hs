@@ -111,6 +111,7 @@ import Swish.RDF.Vocabulary
 import Swish.RDF.RDFParser
     ( SpecialMap
     , ParseResult
+    , runParserWithError
     -- , mapPrefix
     , prefixTable
     , specialTable
@@ -241,6 +242,24 @@ test = either error id . parseAnyfromString document Nothing
 hashURI :: URI
 hashURI = fromJust $ parseURIReference "#"
 
+emptyState :: 
+  Maybe QName  -- ^ starting base for the graph
+  -> N3State
+emptyState mbase = 
+  let pmap   = LookupMap [makeNamespace Nothing hashURI]
+      muri   = fmap (makeQNameScopedName Nothing) mbase
+      smap   = LookupMap $ specialTable muri
+  in N3State
+     { graphState = emptyRDFGraph
+     , thisNode   = NoNode
+     , prefixUris = pmap
+     , syntaxUris = smap
+     , nodeGen    = 0
+     , keywordsList = ["a", "is", "of", "true", "false"] -- not 100% sure about true/false here
+     , allowLocalNames = False
+     }
+
+
 -- TODO: change from QName to URI for the base?
 
 -- | Function to supply initial context and parse supplied term.
@@ -249,23 +268,7 @@ parseAnyfromText :: N3Parser a      -- ^ parser to apply
                     -> Maybe QName  -- ^ base URI of the input, or @Nothing@ to use default base value
                     -> L.Text       -- ^ input to be parsed
                     -> Either String a
-parseAnyfromText parser mbase input =
-  let pmap   = LookupMap [makeNamespace Nothing hashURI]
-      muri   = fmap (makeQNameScopedName Nothing) mbase
-      smap   = LookupMap $ specialTable muri
-      pstate = N3State
-              { graphState = emptyRDFGraph
-              , thisNode   = NoNode
-              , prefixUris = pmap
-              , syntaxUris = smap
-              , nodeGen    = 0
-              , keywordsList = ["a", "is", "of", "true", "false"] -- not 100% sure about true/false here
-              , allowLocalNames = False
-              }
-  
-      (result, _, _) = runParser parser pstate input
-     
-  in result
+parseAnyfromText parser mbase = runParserWithError parser (emptyState mbase)
 
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do
