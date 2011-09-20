@@ -199,8 +199,8 @@ fwdApplyRestriction ::
     ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int] -> [RDFGraph]
     -> [RDFGraph]
 fwdApplyRestriction restriction cls props cs antgrs =
-    if isJust newgrs then concat $ fromJust newgrs else [falseGraph]
-    where
+    maybe [falseGraph] $ concat newgrs
+      where
         -- Instances of the named class in the graph:
         ris = nub $ rdfFindValSubj resRdfType cls antgr
         --  Merge antecedent graphs into one (with bnode renaming):
