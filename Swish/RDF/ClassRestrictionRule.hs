@@ -67,7 +67,7 @@ import Swish.Utils.ListHelpers (powerSet)
 import Control.Monad (liftM)
 
 import Data.Monoid (Monoid (..))
-import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
+import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.List (delete, nub, (\\))
 
 import qualified Data.Text.Lazy.Builder as B
@@ -199,7 +199,7 @@ fwdApplyRestriction ::
     ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int] -> [RDFGraph]
     -> [RDFGraph]
 fwdApplyRestriction restriction cls props cs antgrs =
-    maybe [falseGraph] $ concat newgrs
+    maybe [falseGraph] concat newgrs
       where
         -- Instances of the named class in the graph:
         ris = nub $ rdfFindValSubj resRdfType cls antgr
