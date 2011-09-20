@@ -16,4 +16,4 @@ syntax: regexp
 ^dist/
 ^.hpc/
 ^prof/
-
+^cabal-dev/
