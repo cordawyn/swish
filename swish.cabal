@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.1.2
+Version:            0.6.1.3
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,8 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.1.3] No change as yet.
   .
   [Version 0.6.1.2] Corrected minimum mtl constraint from 1 to 2 and updated
   the maximum time version to 1.4 from 1.3.
