@@ -50,13 +50,88 @@ module Swish.RDF.RDFGraph
     , LDGraph(..), Label (..), Arc(..)
     , arc, arcSubj, arcPred, arcObj, Selector
       
-      -- * Export selected RDFLabel values
-    , resRdfType, resRdfFirst, resRdfRest, resRdfNil
+    -- * Selected RDFLabel values
+    --                                
+    -- | The 'ToRDFLabel' instance of 'ScopedName' can also be used                                     
+    -- to easily construct 'RDFLabel' versions of the terms defined
+    -- in `Swish.RDF.Vocabulary`.
+    
+    -- ** RDF terms                                          
+    --                                          
+    -- | These terms are described in <http://www.w3.org/TR/rdf-syntax-grammar/>;                                          
+    -- the version used is \"W3C Recommendation 10 February 2004\", <http://www.w3.org/TR/2004/REC-rdf-syntax-grammar-20040210/>.
+    --                                          
+    -- Some terms are listed within the RDF Schema terms below since their definition                                            
+    -- is given within the RDF Schema document.                                          
+    --                                          
+    , resRdfRDF                                          
+    , resRdfDescription      
+    , resRdfID
+    , resRdfAbout
+    , resRdfParseType
+    , resRdfResource
+    , resRdfLi
+    , resRdfNodeID
+    , resRdfDatatype
+    , resRdf1, resRdf2, resRdfn
+    -- ** RDF Schema terms
+    --                                 
+    -- | These are defined by <http://www.w3.org/TR/rdf-schema/>; the version
+    -- used is \"W3C Recommendation 10 February 2004\", <http://www.w3.org/TR/2004/REC-rdf-schema-20040210/>.
+                        
+    -- *** Classes
+    --                                 
+    -- | See the \"Classes\" section at <http://www.w3.org/TR/rdf-schema/#ch_classes> for more information.
+    , resRdfsResource
+    , resRdfsClass
+    , resRdfsLiteral
+    , resRdfsDatatype
+    , resRdfXMLLiteral
+    , resRdfProperty
+    -- *** Properties
+    --                                 
+    -- | See the \"Properties\" section at <http://www.w3.org/TR/rdf-schema/#ch_classes> for more information.
+    , resRdfsRange
+    , resRdfsDomain
+    , resRdfType
+    , resRdfsSubClassOf
+    , resRdfsSubPropertyOf
+    , resRdfsLabel
+    , resRdfsComment
+    -- *** Containers
+    --
+    -- | See the \"Container Classes and Properties\" section at <http://www.w3.org/TR/rdf-schema/#ch_containervocab>.
+    , resRdfsContainer
+    , resRdfBag
+    , resRdfSeq                                 
+    , resRdfAlt  
+    , resRdfsContainerMembershipProperty
     , resRdfsMember
+    -- *** Collections
+    --
+    -- | See the \"Collections\" section at <http://www.w3.org/TR/rdf-schema/#ch_collectionvocab>.
+    , resRdfList    
+    , resRdfFirst
+    , resRdfRest 
+    , resRdfNil 
+    -- *** Reification Vocabulary 
+    --  
+    -- | See the \"Reification Vocabulary\" section at <http://www.w3.org/TR/rdf-schema/#ch_reificationvocab>.
+    , resRdfStatement  
+    , resRdfSubject  
+    , resRdfPredicate  
+    , resRdfObject  
+    -- *** Utility Properties 
+    --  
+    -- | See the \"Utility Properties\" section at <http://www.w3.org/TR/rdf-schema/#ch_utilvocab>.
+    , resRdfsSeeAlso
+    , resRdfsIsDefinedBy
+    , resRdfValue  
+    -- ** Miscellaneous     
     , resRdfdGeneralRestriction
     , resRdfdOnProperties, resRdfdConstraint, resRdfdMaxCardinality
     , resOwlSameAs, resLogImplies
-      
+                    
       -- * Exported for testing
     , grMatchMap, grEq
     , mapnode, maplist
@@ -75,6 +150,7 @@ import Swish.Utils.Namespace
     )
 
 import Swish.RDF.Vocabulary
+{-    
     ( namespaceRDF
     , langTag, isLang
     , rdfType
@@ -86,6 +162,7 @@ import Swish.RDF.Vocabulary
     , xsdBoolean, xsdDecimal, xsdFloat, xsdDouble, xsdInteger
     , xsdDateTime, xsdDate                                                
     )
+-}
 
 import Swish.RDF.GraphClass
     ( LDGraph(..), Label (..)
@@ -606,23 +683,191 @@ quote1Str t = '"' : quote False (T.unpack t) ++ ['"']
 --  Selected RDFLabel values
 ---------------------------------------------------------
 
-resRdfType, resRdfFirst, resRdfRest, resRdfNil,
-  resRdfsMember, resRdfdGeneralRestriction,
-  resRdfdOnProperties, resRdfdConstraint,
-  resRdfdMaxCardinality, resOwlSameAs, resLogImplies
-  :: RDFLabel
+-- | @rdf:type@ from <http://www.w3.org/TR/rdf-schema/#ch_type>.
+resRdfType :: RDFLabel
+resRdfType = Res rdfType 
 
-resRdfType               = Res rdfType 
-resRdfFirst               = Res rdfFirst 
-resRdfRest                = Res rdfRest
-resRdfNil                 = Res rdfNil
-resRdfsMember             = Res rdfsMember
+-- | @rdf:List@ from <http://www.w3.org/TR/rdf-schema/#ch_list>.
+resRdfList :: RDFLabel
+resRdfList = Res rdfList
+
+-- | @rdf:first@ from <http://www.w3.org/TR/rdf-schema/#ch_first>.
+resRdfFirst :: RDFLabel
+resRdfFirst = Res rdfFirst 
+
+-- | @rdf:rest@ from <http://www.w3.org/TR/rdf-schema/#ch_rest>.
+resRdfRest :: RDFLabel
+resRdfRest = Res rdfRest
+
+-- | @rdf:nil@ from <http://www.w3.org/TR/rdf-schema/#ch_nil>.
+resRdfNil :: RDFLabel
+resRdfNil = Res rdfNil
+
+-- | @rdfs:member@ from <http://www.w3.org/TR/rdf-schema/#ch_member>.
+resRdfsMember :: RDFLabel
+resRdfsMember = Res rdfsMember
+
+resRdfdGeneralRestriction :: RDFLabel
+resRdfdOnProperties :: RDFLabel
+resRdfdConstraint :: RDFLabel
+resRdfdMaxCardinality :: RDFLabel
+
 resRdfdGeneralRestriction = Res rdfdGeneralRestriction
 resRdfdOnProperties       = Res rdfdOnProperties
 resRdfdConstraint         = Res rdfdConstraint
 resRdfdMaxCardinality     = Res rdfdMaxCardinality
-resOwlSameAs              = Res owlSameAs
-resLogImplies             = Res logImplies
+
+-- | @rdfs:seeAlso@ from <http://www.w3.org/TR/rdf-schema/#ch_seealso>.
+resRdfsSeeAlso :: RDFLabel
+resRdfsSeeAlso = Res rdfsSeeAlso
+
+-- | @rdf:value@ from <http://www.w3.org/TR/rdf-schema/#ch_value>.
+resRdfValue :: RDFLabel
+resRdfValue = Res rdfValue
+
+-- | @owl:sameAs@
+resOwlSameAs :: RDFLabel
+resOwlSameAs = Res owlSameAs
+
+-- | @log:implies@
+resLogImplies :: RDFLabel
+resLogImplies = Res logImplies
+
+-- | @rdfs:label@ from <http://www.w3.org/TR/rdf-schema/#ch_label>.
+resRdfsLabel :: RDFLabel
+resRdfsLabel = Res rdfsLabel
+
+-- | @rdfs:comment@ from <http://www.w3.org/TR/rdf-schema/#ch_comment>.
+resRdfsComment :: RDFLabel
+resRdfsComment = Res rdfsComment
+
+-- | @rdf:Property@ from <http://www.w3.org/TR/rdf-schema/#ch_property>.
+resRdfProperty :: RDFLabel
+resRdfProperty = Res rdfProperty
+
+-- | @rdfs:subPropertyOf@ from <http://www.w3.org/TR/rdf-schema/#ch_subpropertyof>.
+resRdfsSubPropertyOf :: RDFLabel
+resRdfsSubPropertyOf = Res rdfsSubPropertyOf
+
+-- | @rdfs:subClassOf@ from <http://www.w3.org/TR/rdf-schema/#ch_subclassof>.
+resRdfsSubClassOf :: RDFLabel
+resRdfsSubClassOf = Res rdfsSubClassOf
+
+-- | @rdfs:Class@ from <http://www.w3.org/TR/rdf-schema/#ch_class>.
+resRdfsClass :: RDFLabel
+resRdfsClass = Res rdfsClass
+
+-- | @rdfs:Literal@ from <http://www.w3.org/TR/rdf-schema/#ch_literal>.
+resRdfsLiteral :: RDFLabel
+resRdfsLiteral = Res rdfsLiteral
+
+-- | @rdfs:Datatype@ from <http://www.w3.org/TR/rdf-schema/#ch_datatype>.
+resRdfsDatatype :: RDFLabel
+resRdfsDatatype = Res rdfsDatatype
+
+-- | @rdf:XMLLiteral@ from <http://www.w3.org/TR/rdf-schema/#ch_xmlliteral>.
+resRdfXMLLiteral :: RDFLabel
+resRdfXMLLiteral = Res rdfXMLLiteral
+
+-- | @rdfs:range@ from <http://www.w3.org/TR/rdf-schema/#ch_range>.
+resRdfsRange :: RDFLabel
+resRdfsRange = Res rdfsRange
+
+-- | @rdfs:domain@ from <http://www.w3.org/TR/rdf-schema/#ch_domain>.
+resRdfsDomain :: RDFLabel
+resRdfsDomain = Res rdfsDomain
+
+-- | @rdfs:Container@ from <http://www.w3.org/TR/rdf-schema/#ch_container>.
+resRdfsContainer :: RDFLabel
+resRdfsContainer = Res rdfsContainer
+
+-- | @rdf:Bag@ from <http://www.w3.org/TR/rdf-schema/#ch_bag>.
+resRdfBag :: RDFLabel
+resRdfBag = Res rdfBag
+
+-- | @rdf:Seq@ from <http://www.w3.org/TR/rdf-schema/#ch_seq>.
+resRdfSeq :: RDFLabel
+resRdfSeq = Res rdfSeq
+
+-- | @rdf:Alt@ from <http://www.w3.org/TR/rdf-schema/#ch_alt>.
+resRdfAlt :: RDFLabel
+resRdfAlt = Res rdfAlt
+
+-- | @rdfs:ContainerMembershipProperty@ from <http://www.w3.org/TR/rdf-schema/#ch_containermembershipproperty>.
+resRdfsContainerMembershipProperty :: RDFLabel
+resRdfsContainerMembershipProperty = Res rdfsContainerMembershipProperty
+
+-- | @rdfs:isDefinedBy@ from <http://www.w3.org/TR/rdf-schema/#ch_isdefinedby>.
+resRdfsIsDefinedBy :: RDFLabel
+resRdfsIsDefinedBy = Res rdfsIsDefinedBy
+
+-- | @rdfs:Resource@ from <http://www.w3.org/TR/rdf-schema/#ch_resource>.
+resRdfsResource :: RDFLabel
+resRdfsResource = Res rdfsResource
+
+-- | @rdf:Statement@ from <http://www.w3.org/TR/rdf-schema/#ch_statement>.
+resRdfStatement :: RDFLabel
+resRdfStatement = Res rdfStatement
+
+-- | @rdf:subject@ from <http://www.w3.org/TR/rdf-schema/#ch_subject>.
+resRdfSubject :: RDFLabel
+resRdfSubject = Res rdfSubject
+
+-- | @rdf:predicate@ from <http://www.w3.org/TR/rdf-schema/#ch_predicate>.
+resRdfPredicate :: RDFLabel
+resRdfPredicate = Res rdfPredicate
+
+-- | @rdf:object@ from <http://www.w3.org/TR/rdf-schema/#ch_object>.
+resRdfObject :: RDFLabel
+resRdfObject = Res rdfObject
+
+-- | @rdf:RDF@
+resRdfRDF :: RDFLabel
+resRdfRDF = Res rdfRDF
+
+-- | @rdf:Description@
+resRdfDescription :: RDFLabel
+resRdfDescription = Res rdfDescription
+
+-- | @rdf:ID@
+resRdfID :: RDFLabel
+resRdfID = Res rdfID
+
+-- | @rdf:about@
+resRdfAbout :: RDFLabel
+resRdfAbout = Res rdfAbout
+
+-- | @rdf:parseType@
+resRdfParseType :: RDFLabel
+resRdfParseType = Res rdfParseType
+
+-- | @rdf:resource@
+resRdfResource :: RDFLabel
+resRdfResource = Res rdfResource
+
+-- | @rdf:li@
+resRdfLi :: RDFLabel
+resRdfLi = Res rdfLi
+
+-- | @rdf:nodeID@
+resRdfNodeID :: RDFLabel
+resRdfNodeID = Res rdfNodeID
+
+-- | @rdf:datatype@
+resRdfDatatype :: RDFLabel
+resRdfDatatype = Res rdfDatatype
+
+-- | @rdf:_1@
+resRdf1 :: RDFLabel
+resRdf1 = Res rdf1
+
+-- | @rdf:_2@
+resRdf2 :: RDFLabel
+resRdf2 = Res rdf2
+
+-- | Create a @rdf:_n@ entity.
+resRdfn :: Int -> RDFLabel
+resRdfn = Res . rdfn
 
 ---------------------------------------------------------
 --  Additional functions on RDFLabel values
