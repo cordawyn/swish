@@ -12,14 +12,40 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This module defines vocabulary terms from the OWL document.
+--  This module defines vocabulary terms from the OWL vocabulary. Note that there
+--  is an unfortunate mixture of styles for property names - e.g. 'owlSameAs'
+--  and 'owlequivalentClass'. At present there is no systematic attempt to
+--  include terms from the vocabulary.
 --
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Vocabulary.OWL
     ( 
       namespaceOWL
+      
+    , owlOntology
+    , owlimports
+    , owlversionInfo
+    , owldeprecated
+    , owlpriorVersion
+    , owlbackwardCompatibleWith
+    , owlincompatibleWith
+        
+    , owlClass
+    , owlThing
+    , owlNothing
+    , owlNamedIndividual
+      
     , owlSameAs
+    , owlequivalentClass
+    , owlequivalentProperty
+      
+    , owlObjectProperty
+    , owlDatatypeProperty
+    , owlAnnotationProperty
+      
+    , owlrational
+    , owlreal
     )
 where
 
@@ -28,7 +54,7 @@ import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScoped
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
 
--- import qualified Data.Text as T
+import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -45,9 +71,84 @@ namespaceOWL = makeNamespace (Just "owl") owlURI
 --  Terms
 ------------------------------------------------------------
 
+toO :: T.Text -> ScopedName
+toO = makeNSScopedName namespaceOWL
+
 -- | @owl:sameAs@.
 owlSameAs   :: ScopedName
-owlSameAs = makeNSScopedName namespaceOWL "sameAs"
+owlSameAs = toO "sameAs"
+
+-- | @owl:equivalentClass@.
+owlequivalentClass :: ScopedName
+owlequivalentClass = toO "equivalentClass"
+
+-- | @owl:equivalentProperty@.
+owlequivalentProperty :: ScopedName
+owlequivalentProperty = toO "equivalentPropery"
+
+-- | @owl:Ontology@.
+owlOntology :: ScopedName
+owlOntology = toO "Ontology"
+
+-- | @owl:imports@.
+owlimports :: ScopedName
+owlimports = toO "imports"
+
+-- | @owl:versionInfo@.
+owlversionInfo :: ScopedName
+owlversionInfo = toO "versionInfo"
+
+-- | @owl:deprecated@.
+owldeprecated :: ScopedName
+owldeprecated = toO "deprecated"
+
+-- | @owl:priorVersion@.
+owlpriorVersion :: ScopedName
+owlpriorVersion = toO "priorVersion"
+
+-- | @owl:backwartCompatibleWith@.
+owlbackwardCompatibleWith :: ScopedName
+owlbackwardCompatibleWith = toO "backwardCompatibleWith"
+
+-- | @owl:incompatibleWith@.
+owlincompatibleWith :: ScopedName
+owlincompatibleWith = toO "incompatibleWith"
+
+-- | @owl:Class@.
+owlClass :: ScopedName
+owlClass = toO "Class"
+
+-- | @owl:ObjectProperty@.
+owlObjectProperty :: ScopedName
+owlObjectProperty = toO "ObjectProperty"
+
+-- | @owl:DatatypeProperty@.
+owlDatatypeProperty :: ScopedName
+owlDatatypeProperty = toO "DatatypeProperty"
+
+-- | @owl:AnnotationProperty@.
+owlAnnotationProperty :: ScopedName
+owlAnnotationProperty = toO "AnnotationProperty"
+
+-- | @owl:NamedIndividual@.
+owlNamedIndividual :: ScopedName
+owlNamedIndividual = toO "NamedIndividual"
+
+-- | @owl:Thing@.
+owlThing :: ScopedName
+owlThing = toO "Thing"
+
+-- | @owl:Thing@.
+owlNothing :: ScopedName
+owlNothing = toO "Nothing"
+
+-- | @owl:rational@.
+owlrational :: ScopedName
+owlrational = toO "rational"
+
+-- | @owl:real@.
+owlreal :: ScopedName
+owlreal = toO "real"
 
 --------------------------------------------------------------------------------
 --
