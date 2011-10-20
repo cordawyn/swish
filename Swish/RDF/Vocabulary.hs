@@ -18,7 +18,10 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Vocabulary
-    ( namespaceRDF
+    ( 
+      -- * Namespaces
+      
+      namespaceRDF
     , namespaceRDFS
     , namespaceRDFD
     , namespaceOWL
@@ -29,11 +32,17 @@ module Swish.RDF.Vocabulary
     , namespaceDAML
     , namespaceDefault
     , namespaceSwish 
-    , swishName
-    , namespaceLang,  langName, langTag, isLang
+    , namespaceLang
+    -- ** RDF rules                                     
+    -- | The namespaces refer to RDF rules and axioms.                                     
     , scopeRDF
     , scopeRDFS
     , scopeRDFD
+    
+    -- * Miscellaneous routines
+    , langName, langTag, isLang
+    , swishName
+      
     -- * RDF terms                                          
     --                                          
     -- | These terms are described in <http://www.w3.org/TR/rdf-syntax-grammar/>;                                          
@@ -106,15 +115,54 @@ module Swish.RDF.Vocabulary
     , rdfsSeeAlso
     , rdfsIsDefinedBy
     , rdfValue  
+      
+    -- * XSD data types
+    --  
+    -- | See the XSD Schema Part 2 documentation at <http://www.w3.org/TR/xmlschema-2/>;
+    -- the version used is \"W3C Recommendation 28 October 2004\",  
+    -- <http://www.w3.org/TR/2004/REC-xmlschema-2-20041028/>.  
+    , xsdType 
+    
+    -- ** Primitive datatypes  
+    --  
+    -- | See the section \"Primitive datatypes\" at  
+    -- <http://www.w3.org/TR/xmlschema-2/#built-in-primitive-datatypes>.  
+    , xsdString
+    , xsdBoolean
+    , xsdDecimal
+    , xsdFloat
+    , xsdDouble
+    , xsdDateTime
+    , xsdTime
+    , xsdDate
+    , xsdAnyURI  
+      
+    -- ** Derived datatypes  
+    --  
+    -- | See the section \"Derived datatypes\" at  
+    -- <http://www.w3.org/TR/xmlschema-2/#built-in-derived>.  
+    , xsdInteger
+    , xsdNonPosInteger
+    , xsdNegInteger
+    , xsdLong
+    , xsdInt
+    , xsdShort
+    , xsdByte
+    , xsdNonNegInteger
+    , xsdUnsignedLong
+    , xsdUnsignedInt
+    , xsdUnsignedShort
+    , xsdUnsignedByte
+    , xsdPosInteger
+
+    -- * OWL items
+    
+    , owlSameAs
+
     -- * Miscellaneous     
     , rdfdGeneralRestriction
     , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
-    , owlSameAs, logImplies
-    , xsdType, xsdString, xsdBoolean
-    , xsdDecimal, xsdInteger
-    , xsdNonNegInteger, xsdNonPosInteger, xsdPosInteger, xsdNegInteger
-    , xsdFloat, xsdDouble
-    , xsdDate, xsdDateTime
+    , logImplies
     , defaultBase
     )
 where
@@ -141,33 +189,59 @@ toNS p utxt =
 toNSU :: T.Text -> URI -> Namespace
 toNSU p = makeNamespace (Just p)
 
-namespaceXsdType :: T.Text -> Namespace
+-- | Create a namespace for the datatype family schema used by Swish.
+namespaceXsdType ::
+  T.Text  -- ^ lbl
+  -> Namespace 
+  -- ^ Namespace has prefix @xsd_lbl@ and
+  -- URI of @http:\/\/id.ninebynine.org\/2003\/XMLSchema\/lbl#@.
 namespaceXsdType dtn = toNS ("xsd_" `mappend` dtn)
                        (mconcat ["http://id.ninebynine.org/2003/XMLSchema/", dtn, "#"])
 
+-- | Maps @rdf@ to <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
 namespaceRDF :: Namespace
-namespaceRDFS :: Namespace
-namespaceRDFD :: Namespace
-namespaceOWL :: Namespace
-namespaceXSD :: Namespace
-namespaceMATH :: Namespace
-namespaceLOG :: Namespace
-namespaceDAML :: Namespace
-namespaceSwish :: Namespace
-namespaceDefault :: Namespace
-namespaceLang :: Namespace
-
 namespaceRDF     = toNSU "rdf"    namespaceRDFURI
+
+-- | Maps @rdfs@ to <http://www.w3.org/2000/01/rdf-schema#>.
+namespaceRDFS :: Namespace
 namespaceRDFS    = toNSU "rdfs"   namespaceRDFSURI
+
+-- | Maps @rdfd@ to @http:\/\/id.ninebynine.org\/2003\/rdfext\/rdfd#@.
+namespaceRDFD :: Namespace
 namespaceRDFD    = toNSU "rdfd"   namespaceRDFDURI
+
+-- | Maps @owl@ to <http://www.w3.org/2002/07/owl#>.
+namespaceOWL :: Namespace
 namespaceOWL     = toNSU "owl"    namespaceOWLURI
+
+-- | Maps @xsd@ to <http://www.w3.org/2001/XMLSchema#>.
+namespaceXSD :: Namespace
 namespaceXSD     = toNSU "xsd"    namespaceXSDURI
+
+-- | Maps @math@ to <http://www.w3.org/2000/10/swap/math#>.
+namespaceMATH :: Namespace
 namespaceMATH    = toNS "math"    "http://www.w3.org/2000/10/swap/math#"
+
+-- | Maps @log@ to <http://www.w3.org/2000/10/swap/log#>.
+namespaceLOG :: Namespace
 namespaceLOG     = toNSU "log"    namespaceLOGURI
+
+-- | Maps @daml@ to <http://www.daml.org/2000/10/daml-ont#>.
+namespaceDAML :: Namespace
 namespaceDAML    = toNS "daml"    "http://www.daml.org/2000/10/daml-ont#"
+
+-- | Maps @swish@ to @http:\/\/id.ninebynine.org\/2003\/Swish\/@.
+namespaceSwish :: Namespace
 namespaceSwish   = toNSU "swish"  namespaceSwishURI
-namespaceLang    = toNSU "lang"   namespaceLangURI
+
+-- | Maps @default@ to @http:\/\/id.ninebynine.org\/default\/@.
+namespaceDefault :: Namespace
 namespaceDefault = toNSU "default" namespaceDefaultURI
+
+-- | Maps @lang@ to @http:\/\/id.ninebynine.org\/2003\/Swish\/Lang\/@.
+namespaceLang :: Namespace
+namespaceLang    = toNSU "lang"   namespaceLangURI
+
 
 tU :: String -> URI
 tU = fromMaybe (error "Internal error processing namespace URI") . parseURI
@@ -186,6 +260,7 @@ namespaceSwishURI = tU "http://id.ninebynine.org/2003/Swish/"
 namespaceLangURI  = tU "http://id.ninebynine.org/2003/Swish/Lang/" -- To be replaced by urn:ietf:params:lang?  
 namespaceDefaultURI = tU "http://id.ninebynine.org/default/"
 
+-- | Convert a local name to a scoped name in the @swish@ namespace (`namespaceSwish`).
 swishName :: T.Text -> ScopedName
 -- swishName = ScopedName namespaceSwish
 swishName = makeScopedName (Just "swish") namespaceSwishURI
@@ -200,13 +275,20 @@ swishName = makeScopedName (Just "swish") namespaceSwishURI
 --  Fortunately, they do not currently need to appear in Notation3 as
 --  distinct labels (but future developments may change that).
 
-langName :: T.Text -> ScopedName
+-- | Convert the label to a scoped name in the @lang@ namespace (`namespaceLang`).
+langName :: 
+  T.Text  -- ^ The lower-case version of this label is used.
+  -> ScopedName
 -- langName = ScopedName namespaceLang . T.toLower
 langName = makeScopedName (Just "lang") namespaceLangURI . T.toLower
 
+-- | Get the name of the language tag (note that the result is
+-- only guaranteed to be semantically valid if 'isLang' returns @True@
+-- but that there is no enforcement of this requirement).
 langTag :: ScopedName -> T.Text
 langTag = getScopeLocal
 
+-- | Is the scoped name in the `namespaceLang` namespace?
 isLang :: ScopedName -> Bool
 isLang sname = getScopeNamespace sname == namespaceLang
 
@@ -214,10 +296,16 @@ isLang sname = getScopeNamespace sname == namespaceLang
 --  Define namespaces for RDF rules, axioms, etc
 ------------------------------------------------------------
 
-scopeRDF, scopeRDFS, scopeRDFD :: Namespace
-
+-- | Maps @rs_rdf@ to @http:\/\/id.ninebynine.org\/2003\/Ruleset\/rdf#@.
+scopeRDF :: Namespace
 scopeRDF  = toNS "rs_rdf"   "http://id.ninebynine.org/2003/Ruleset/rdf#"
+
+-- | Maps @rs_rdfs@ to @http:\/\/id.ninebynine.org\/2003\/Ruleset\/rdfs#@.
+scopeRDFS :: Namespace
 scopeRDFS = toNS "rs_rdfs"  "http://id.ninebynine.org/2003/Ruleset/rdfs#"
+
+-- | Maps @rs_rdfd@ to @http:\/\/id.ninebynine.org\/2003\/Ruleset\/rdfd#@.
+scopeRDFD :: Namespace
 scopeRDFD = toNS "rs_rdfd"  "http://id.ninebynine.org/2003/Ruleset/rdfd#"
 
 ------------------------------------------------------------
@@ -229,39 +317,39 @@ toRDF  = makeScopedName (Just "rdf")  namespaceRDFURI
 toRDFS = makeScopedName (Just "rdfs") namespaceRDFSURI
 toRDFD = makeScopedName (Just "rdfd") namespaceRDFDURI
 
--- | @rdf:RDF@
+-- | @rdf:RDF@.
 rdfRDF :: ScopedName
 rdfRDF = toRDF "RDF"
 
--- | @rdf:Description@
+-- | @rdf:Description@.
 rdfDescription :: ScopedName
 rdfDescription = toRDF "Description"
   
--- | @rdf:datatype@
+-- | @rdf:datatype@.
 rdfDatatype   :: ScopedName
 rdfDatatype   = toRDF "datatype"
 
--- | @rdf:resource@
+-- | @rdf:resource@.
 rdfResource   :: ScopedName
 rdfResource   = toRDF "resource"
 
--- | @rdf:about@
+-- | @rdf:about@.
 rdfAbout      :: ScopedName
 rdfAbout      = toRDF "about"
 
--- | @rdf:ID@
+-- | @rdf:ID@.
 rdfID         :: ScopedName
 rdfID         = toRDF "ID"
 
--- | @rdf:parseType@
+-- | @rdf:parseType@.
 rdfParseType :: ScopedName
 rdfParseType = toRDF "parseType"
 
--- | @rdf:li@
+-- | @rdf:li@.
 rdfLi :: ScopedName
 rdfLi = toRDF "li"
 
--- | @rdf:nodeID@
+-- | @rdf:nodeID@.
 rdfNodeID :: ScopedName
 rdfNodeID = toRDF "nodeID"
 
@@ -269,11 +357,11 @@ rdfNodeID = toRDF "nodeID"
 rdfn :: Int -> ScopedName
 rdfn = toRDF . T.pack . ("_" ++) . show
 
--- | @rdf:_1@
+-- | @rdf:_1@.
 rdf1 :: ScopedName
 rdf1 = toRDF "_1"
 
--- | @rdf:_2@
+-- | @rdf:_2@.
 rdf2 :: ScopedName
 rdf2 = toRDF "_2"
 
@@ -397,59 +485,123 @@ rdfsIsDefinedBy = toRDFS "isDefinedBy"
 rdfValue :: ScopedName
 rdfValue = toRDF "value"
 
+-- | @rdfd:GeneralRestriction@.
 rdfdGeneralRestriction :: ScopedName
-rdfdOnProperties       :: ScopedName
-rdfdConstraint         :: ScopedName
-rdfdMaxCardinality     :: ScopedName
-
 rdfdGeneralRestriction = toRDFD "GeneralRestriction"
-rdfdOnProperties       = toRDFD "onProperties"
-rdfdConstraint         = toRDFD "constraint"
-rdfdMaxCardinality     = toRDFD "maxCardinality"
 
-xsdType             :: T.Text -> ScopedName
-xsdType             = makeScopedName (Just "xsd") namespaceXSDURI
+-- | @rdfd:onProperties@.
+rdfdOnProperties :: ScopedName
+rdfdOnProperties = toRDFD "onProperties"
 
+-- | @rdfd:constraint@.
+rdfdConstraint :: ScopedName
+rdfdConstraint = toRDFD "constraint"
+
+-- | @rdfd:maxCardinality@.
+rdfdMaxCardinality :: ScopedName
+rdfdMaxCardinality = toRDFD "maxCardinality"
+
+-- | Create a scoped name for an XSD datatype with the given name.
+xsdType :: T.Text -> ScopedName
+xsdType = makeScopedName (Just "xsd") namespaceXSDURI
+
+-- | @xsd:string@ from <http://www.w3.org/TR/xmlschema-2/#string>.
 xsdString           :: ScopedName
 xsdString           = xsdType "string"
 
+-- | @xsd:boolean@ from <http://www.w3.org/TR/xmlschema-2/#boolean>.
 xsdBoolean          :: ScopedName
 xsdBoolean          = xsdType "boolean"
 
+-- | @xsd:decimal@ from <http://www.w3.org/TR/xmlschema-2/#decimal>.
 xsdDecimal          :: ScopedName
 xsdDecimal          = xsdType "decimal"
 
+-- | @xsd:integer@ from <http://www.w3.org/TR/xmlschema-2/#integer>.
 xsdInteger          :: ScopedName
 xsdInteger          = xsdType "integer"
 
+-- | @xsd:nonNegativeInteger@ from <http://www.w3.org/TR/xmlschema-2/#nonNegativeInteger>.
 xsdNonNegInteger   :: ScopedName
 xsdNonNegInteger   = xsdType "nonNegativeInteger"
 
+-- | @xsd:nonPositiveInteger@ from <http://www.w3.org/TR/xmlschema-2/#nonPositiveInteger>.
 xsdNonPosInteger   :: ScopedName
 xsdNonPosInteger   = xsdType "nonPositiveInteger"
 
+-- | @xsd:positiveInteger@ from <http://www.w3.org/TR/xmlschema-2/#positiveInteger>.
 xsdPosInteger      :: ScopedName
 xsdPosInteger      = xsdType "positiveInteger"
 
+-- | @xsd:negativeInteger@ from <http://www.w3.org/TR/xmlschema-2/#negativeInteger>.
 xsdNegInteger      :: ScopedName
 xsdNegInteger      = xsdType "negativeInteger"
 
+-- | @xsd:float@ from <http://www.w3.org/TR/xmlschema-2/#float>.
 xsdFloat            :: ScopedName
 xsdFloat            = xsdType "float"
 
+-- | @xsd:double@ from <http://www.w3.org/TR/xmlschema-2/#double>.
 xsdDouble           :: ScopedName
 xsdDouble           = xsdType "double"
 
-xsdDate, xsdDateTime :: ScopedName
+-- | @xsd:long@ from <http://www.w3.org/TR/xmlschema-2/#long>.
+xsdLong :: ScopedName
+xsdLong = xsdType "long"
+
+-- | @xsd:int@ from <http://www.w3.org/TR/xmlschema-2/#int>.
+xsdInt :: ScopedName
+xsdInt = xsdType "int"
+
+-- | @xsd:short@ from <http://www.w3.org/TR/xmlschema-2/#short>.
+xsdShort :: ScopedName
+xsdShort = xsdType "short"
+
+-- | @xsd:byte@ from <http://www.w3.org/TR/xmlschema-2/#byte>.
+xsdByte :: ScopedName
+xsdByte = xsdType "byte"
+
+-- | @xsd:unsignedLong@ from <http://www.w3.org/TR/xmlschema-2/#unsignedLong>.
+xsdUnsignedLong :: ScopedName
+xsdUnsignedLong = xsdType "unsignedLong"
+
+-- | @xsd:unsignedInt@ from <http://www.w3.org/TR/xmlschema-2/#unsignedInt>.
+xsdUnsignedInt :: ScopedName
+xsdUnsignedInt = xsdType "unsignedInt"
+
+-- | @xsd:unsignedShort@ from <http://www.w3.org/TR/xmlschema-2/#unsignedShort>.
+xsdUnsignedShort :: ScopedName
+xsdUnsignedShort = xsdType "unsignedShort"
+
+-- | @xsd:unsignedByte@ from <http://www.w3.org/TR/xmlschema-2/#unsignedByte>.
+xsdUnsignedByte :: ScopedName
+xsdUnsignedByte = xsdType "unsignedByte"
+
+-- | @xsd:date@ from <http://www.w3.org/TR/xmlschema-2/#date>.
+xsdDate :: ScopedName
 xsdDate = xsdType "date"
+
+-- | @xsd:dateTime@ from <http://www.w3.org/TR/xmlschema-2/#dateTime>.
+xsdDateTime :: ScopedName
 xsdDateTime = xsdType "dateTime"
 
+-- | @xsd:time@ from <http://www.w3.org/TR/xmlschema-2/#time>.
+xsdTime :: ScopedName
+xsdTime = xsdType "time"
+
+-- | @xsd:anyURI@ from <http://www.w3.org/TR/xmlschema-2/#anyURI>.
+xsdAnyURI :: ScopedName
+xsdAnyURI = xsdType "anyURI"
+
+-- | @owl:sameAs@.
 owlSameAs   :: ScopedName
 owlSameAs   = makeScopedName (Just "owl") namespaceOWLURI "sameAs"
 
+-- | @log:implies@.
 logImplies  :: ScopedName
 logImplies  = makeScopedName (Just "log") namespaceLOGURI "implies"
 
+-- | @default:base@.
 defaultBase :: ScopedName
 defaultBase = makeScopedName (Just "default") namespaceDefaultURI "base"
 

@@ -127,12 +127,16 @@ module Swish.RDF.RDFGraph
     , resRdfsSeeAlso
     , resRdfsIsDefinedBy
     , resRdfValue  
+    
+    -- ** OWL     
+    , resOwlSameAs
+                    
     -- ** Miscellaneous     
     , resRdfdGeneralRestriction
     , resRdfdOnProperties, resRdfdConstraint, resRdfdMaxCardinality
-    , resOwlSameAs, resLogImplies
-                    
-      -- * Exported for testing
+    , resLogImplies
+      
+    -- * Exported for testing
     , grMatchMap, grEq
     , mapnode, maplist
     )
@@ -353,11 +357,11 @@ class FromRDFLabel a where
 
 -- instances for type conversion to/from RDFLabel
   
--- | This is just `id`.
+-- | This is just @id@.
 instance ToRDFLabel RDFLabel where
   toRDFLabel = id
   
--- | This is just `Just . id`.  
+-- | This is just @Just . id@.  
 instance FromRDFLabel RDFLabel where
   fromRDFLabel = Just . id
   
@@ -707,14 +711,20 @@ resRdfNil = Res rdfNil
 resRdfsMember :: RDFLabel
 resRdfsMember = Res rdfsMember
 
+-- | @rdfd:GeneralRestriction@.
 resRdfdGeneralRestriction :: RDFLabel
-resRdfdOnProperties :: RDFLabel
-resRdfdConstraint :: RDFLabel
-resRdfdMaxCardinality :: RDFLabel
-
 resRdfdGeneralRestriction = Res rdfdGeneralRestriction
+
+-- | @rdfd:onProperties@.
+resRdfdOnProperties :: RDFLabel
 resRdfdOnProperties       = Res rdfdOnProperties
+
+-- | @rdfd:constraint@.
+resRdfdConstraint :: RDFLabel
 resRdfdConstraint         = Res rdfdConstraint
+
+-- | @rdfd:maxCardinality@.
+resRdfdMaxCardinality :: RDFLabel
 resRdfdMaxCardinality     = Res rdfdMaxCardinality
 
 -- | @rdfs:seeAlso@ from <http://www.w3.org/TR/rdf-schema/#ch_seealso>.
@@ -725,11 +735,11 @@ resRdfsSeeAlso = Res rdfsSeeAlso
 resRdfValue :: RDFLabel
 resRdfValue = Res rdfValue
 
--- | @owl:sameAs@
+-- | @owl:sameAs@.
 resOwlSameAs :: RDFLabel
 resOwlSameAs = Res owlSameAs
 
--- | @log:implies@
+-- | @log:implies@.
 resLogImplies :: RDFLabel
 resLogImplies = Res logImplies
 
@@ -821,47 +831,47 @@ resRdfPredicate = Res rdfPredicate
 resRdfObject :: RDFLabel
 resRdfObject = Res rdfObject
 
--- | @rdf:RDF@
+-- | @rdf:RDF@.
 resRdfRDF :: RDFLabel
 resRdfRDF = Res rdfRDF
 
--- | @rdf:Description@
+-- | @rdf:Description@.
 resRdfDescription :: RDFLabel
 resRdfDescription = Res rdfDescription
 
--- | @rdf:ID@
+-- | @rdf:ID@.
 resRdfID :: RDFLabel
 resRdfID = Res rdfID
 
--- | @rdf:about@
+-- | @rdf:about@.
 resRdfAbout :: RDFLabel
 resRdfAbout = Res rdfAbout
 
--- | @rdf:parseType@
+-- | @rdf:parseType@.
 resRdfParseType :: RDFLabel
 resRdfParseType = Res rdfParseType
 
--- | @rdf:resource@
+-- | @rdf:resource@.
 resRdfResource :: RDFLabel
 resRdfResource = Res rdfResource
 
--- | @rdf:li@
+-- | @rdf:li@.
 resRdfLi :: RDFLabel
 resRdfLi = Res rdfLi
 
--- | @rdf:nodeID@
+-- | @rdf:nodeID@.
 resRdfNodeID :: RDFLabel
 resRdfNodeID = Res rdfNodeID
 
--- | @rdf:datatype@
+-- | @rdf:datatype@.
 resRdfDatatype :: RDFLabel
 resRdfDatatype = Res rdfDatatype
 
--- | @rdf:_1@
+-- | @rdf:_1@.
 resRdf1 :: RDFLabel
 resRdf1 = Res rdf1
 
--- | @rdf:_2@
+-- | @rdf:_2@.
 resRdf2 :: RDFLabel
 resRdf2 = Res rdf2
 
