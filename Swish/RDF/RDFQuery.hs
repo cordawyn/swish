@@ -78,13 +78,7 @@ import Data.Maybe (mapMaybe, isJust, fromJust)
 --  Primitive RDF graph queries
 ------------------------------------------------------------
 
--- |Basic graph-query function.
---
---  A very basic form of graph query, a query graph and
---  a target graph, and returns a list of 'RDFVarBinding'
---  values, each of which corresponds to a set of variable
---  bindings that make the query graph a subgraph of the
---  target graph, or @[]@ if the query cannot be matched.
+-- | Basic graph-query function.
 --
 --  The triples of the query graph are matched sequentially
 --  against the target graph, each taking account of any
@@ -92,7 +86,12 @@ import Data.Maybe (mapMaybe, isJust, fromJust)
 --  and adding new variable bindings as triples containing
 --  query variables are matched against the graph.
 --
-rdfQueryFind :: RDFGraph -> RDFGraph -> [RDFVarBinding]
+rdfQueryFind :: 
+  RDFGraph -- ^ The query graph.
+  -> RDFGraph -- ^ The target graph.
+  -> [RDFVarBinding]
+  -- ^ Each element represents a set of variable bindings that make the query graph a
+  -- subgraph of the target graph. The list can be empty.
 rdfQueryFind =
     rdfQueryPrim1 matchQueryVariable nullRDFVarBinding . getArcs
 
@@ -424,26 +423,26 @@ addVar var vars = if var `elem` vars then vars else var:vars
 --
 --  [[[TODO:  modify above code to use these for all graph queries]]]
 
--- |rdfFindArcs is the main function here:  it takes a predicate on an
+-- |Take a predicate on an
 --  RDF statement and a graph, and returns all statements in the graph
 --  satisfying that predicate.
 --
 --  Use combinations of these as follows:
 --
 --  * find all statements with given subject:
---          @rdfQuerySimple (rdfSubjEq s)@
+--          @rdfFindArcs (rdfSubjEq s)@
 --
 --  * find all statements with given property:
---          @rdfQuerySimple (rdfPredEq p)@
+--          @rdfFindArcs (rdfPredEq p)@
 --
 --  * find all statements with given object:
---          @rdfQuerySimple (rdfObjEq  o)@
+--          @rdfFindArcs (rdfObjEq  o)@
 --
 --  * find all statements matching conjunction of these conditions:
---          @rdfQuerySimple ('allp' [...])@
+--          @rdfFindArcs ('allp' [...])@
 --
 --  * find all statements matching disjunction of these conditions:
---          @rdfQuerySimple ('anyp' [...])@
+--          @rdfFindArcs ('anyp' [...])@
 --
 --  Custom predicates can also be used.
 --
@@ -497,7 +496,7 @@ rdfFindValSubj p o = map arcSubj . rdfFindArcs (allp [rdfPredEq p,rdfObjEq o])
 
 -- |Return a list of nodes that comprise an rdf:collection value,
 --  given the head element of the collection.  If the list is
---  ill-formed then some arbitrary value is returned.
+--  ill-formed then an arbitrary value is returned.
 --
 rdfFindList :: RDFGraph -> RDFLabel -> [RDFLabel]
 rdfFindList gr hd = findhead $ rdfFindList gr findrest
