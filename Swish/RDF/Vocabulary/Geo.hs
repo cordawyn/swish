@@ -13,15 +13,25 @@
 --  Portability :  OverloadedStrings
 --
 --  This module defines some commonly used vocabulary terms from the Geo
---  vocabulary (<http://www.w3.org/2003/01/geo/wgs84_pos#>).
+--  vocabulary (<http://www.w3.org/2003/01/geo/>, WGS84 Geo Positioning: an RDF vocabulary).
+--
+--  Note that unlike some of the existing vocabularies in Swish, the Geo
+--  one matches the case and spelling of the RDF terms; so we
+--  use 'geolat' rather than @geoLat@.
 --
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Vocabulary.Geo
     ( 
       namespaceGEO
-      , geoLat
-      , geoLong
+      -- * Classes
+      , geoSpatialThing
+      , geoPoint
+      -- * Properties
+      , geolocation
+      , geolat
+      , geolong
+      , geolat_long
     )
 where
 
@@ -50,13 +60,29 @@ namespaceGEO = makeNamespace (Just "geo") geoURI
 toG :: T.Text -> ScopedName
 toG  = makeNSScopedName namespaceGEO
 
+-- | @geo:location@.
+geolocation :: ScopedName
+geolocation = toG "location"
+
 -- | @geo:lat@.
-geoLat :: ScopedName
-geoLat = toG "lat"
+geolat :: ScopedName
+geolat = toG "lat"
 
 -- | @geo:long@.
-geoLong :: ScopedName
-geoLong = toG "long"
+geolong :: ScopedName
+geolong = toG "long"
+
+-- | @geo:lat_long@ (it is suggested that this not be used when generating RDF statements).
+geolat_long :: ScopedName
+geolat_long = toG "lat_long"
+
+-- | @geo:SpatialThing@.
+geoSpatialThing :: ScopedName
+geoSpatialThing = toG "SpatialThing"
+
+-- | @geo:Point@.
+geoPoint :: ScopedName
+geoPoint = toG "Point"
 
 --------------------------------------------------------------------------------
 --
