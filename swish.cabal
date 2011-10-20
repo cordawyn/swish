@@ -46,8 +46,12 @@ Description:
   .
   Changes:
   .
-  [Version 0.6.2.0] Updated 'Swish.RDF.Vocabulary' and 'Swish.RDF.RDFGraph' to
-  include more common RDF terms.
+  [Version 0.6.2.0] Updated @Swish.RDF.Vocabulary@ and @Swish.RDF.RDFGraph@ to
+  include more common RDF terms. Added @Swish.RDF.Vocabulary.DublinCore@,
+  @Swish.RDF.Vocabulary.FOAF@, and @Swish.RDF.Vocabulary.Geo@ modules,
+  @Swish.RDF.Vocabulary.OWL@, @Swish.RDF.Vocabulary.RDF@, and 
+  @Swish.RDF.Vocabulary.XSD@ modules (re-exported from @Swish.RDF.Vocabulary@
+  as necessary).
   .
   [Version 0.6.1.2] Corrected minimum mtl constraint from 1 to 2 and updated
   the maximum time version to 1.4 from 1.3.
@@ -237,6 +241,12 @@ Library
       Swish.RDF.TurtleParser
       Swish.RDF.VarBinding
       Swish.RDF.Vocabulary
+      Swish.RDF.Vocabulary.DublinCore
+      Swish.RDF.Vocabulary.FOAF
+      Swish.RDF.Vocabulary.Geo
+      Swish.RDF.Vocabulary.OWL
+      Swish.RDF.Vocabulary.RDF
+      Swish.RDF.Vocabulary.XSD
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
       Swish.Utils.MiscHelpers
