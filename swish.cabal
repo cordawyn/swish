@@ -10,7 +10,7 @@ Category:           Semantic Web
 Synopsis:           A semantic web toolkit. 
 
 Tested-With:        GHC==6.12.3
-Cabal-Version:      >= 1.6
+Cabal-Version:      >= 1.8
 Homepage:           https://bitbucket.org/doug_burke/swish/wiki/Home
 Bug-reports:        https://bitbucket.org/doug_burke/swish/issues
 
@@ -285,6 +285,18 @@ Executable         BuiltInMapTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      text == 0.11.*,
+      old-locale == 1.0.*, 
+      network >= 2.2 && < 2.4,
+      hashable == 1.1.*,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      mtl >= 2 && < 3,
+      polyparse >= 1.6 && < 1.8,
+      time >= 1.1 && < 1.5
+
 Executable         GraphPartitionTest
    Main-Is:        tests/GraphPartitionTest.hs
 
@@ -305,6 +317,11 @@ Executable         GraphPartitionTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3
+
 Executable         GraphTest
    Main-Is:        tests/GraphTest.hs
    if !flag(tests)
@@ -323,6 +340,11 @@ Executable         GraphTest
 
    ghc-options:
       -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3
 
 Executable         NTTest
    Main-Is:        tests/NTTest.hs
@@ -343,6 +365,18 @@ Executable         NTTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      time >= 1.1 && < 1.5,
+      polyparse >= 1.6 && < 1.8
+
 Executable         N3ParserTest
    Main-Is:        tests/N3ParserTest.hs
    if !flag(tests)
@@ -361,6 +395,18 @@ Executable         N3ParserTest
 
    ghc-options:
       -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      time >= 1.1 && < 1.5,
+      polyparse >= 1.6 && < 1.8
 
 Executable         N3FormatterTest
    Main-Is:        tests/N3FormatterTest.hs
@@ -381,6 +427,18 @@ Executable         N3FormatterTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      time >= 1.1 && < 1.5,
+      polyparse >= 1.6 && < 1.8
+
 Executable         RDFDatatypeXsdIntegerTest
    Main-Is:        tests/RDFDatatypeXsdIntegerTest.hs
    if !flag(tests)
@@ -399,6 +457,18 @@ Executable         RDFDatatypeXsdIntegerTest
 
    ghc-options:
       -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      time >= 1.1 && < 1.5,
+      polyparse >= 1.6 && < 1.8
 
 Executable         RDFGraphTest
    Main-Is:        tests/RDFGraphTest.hs
@@ -419,6 +489,17 @@ Executable         RDFGraphTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      time >= 1.1 && < 1.5,
+      old-locale == 1.0.*,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2
+
 Executable         RDFProofContextTest
    Main-Is:        tests/RDFProofContextTest.hs
    if !flag(tests)
@@ -437,6 +518,18 @@ Executable         RDFProofContextTest
 
    ghc-options:
       -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      time >= 1.1 && < 1.5,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      polyparse >= 1.6 && < 1.8
 
 Executable         RDFProofTest
    Main-Is:        tests/RDFProofTest.hs
@@ -457,6 +550,18 @@ Executable         RDFProofTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      time >= 1.1 && < 1.5,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      polyparse >= 1.6 && < 1.8
+
 Executable         RDFQueryTest
    Main-Is:        tests/RDFQueryTest.hs
    if !flag(tests)
@@ -475,6 +580,18 @@ Executable         RDFQueryTest
 
    ghc-options:
       -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      time >= 1.1 && < 1.5,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      polyparse >= 1.6 && < 1.8
 
 Executable         RDFRulesetTest
    Main-Is:        tests/RDFRulesetTest.hs
@@ -495,6 +612,18 @@ Executable         RDFRulesetTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      hashable == 1.1.*,
+      mtl >= 2 && < 3,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      time >= 1.1 && < 1.5,
+      intern == 0.8.*,
+      directory >= 1.0 && < 1.2,
+      old-locale == 1.0.*,
+      polyparse >= 1.6 && < 1.8
+
 Executable         VarBindingTest
    Main-Is:        tests/VarBindingTest.hs
    if !flag(tests)
@@ -513,6 +642,14 @@ Executable         VarBindingTest
 
    ghc-options:
       -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base >=3 && < 5,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      intern == 0.8.*,
+      hashable == 1.1.*,
+      directory >= 1.0 && < 1.2
 
 Executable         LookupMapTest
    Main-Is:        tests/LookupMapTest.hs
@@ -533,6 +670,9 @@ Executable         LookupMapTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5
+
 Executable         QNameTest
    Main-Is:        tests/QNameTest.hs
    if !flag(tests)
@@ -552,6 +692,14 @@ Executable         QNameTest
    ghc-options:
       -Wall -fno-warn-orphans
 
+   Build-Depends:
+      base >=3 && < 5,
+      text == 0.11.*,
+      network >= 2.2 && < 2.4,
+      intern == 0.8.*,
+      hashable == 1.1.*,
+      directory >= 1.0 && < 1.2
+
  -- we do not have the data files to run this test
  Executable         SwishTest
    Main-Is:        tests/SwishTest.hs
@@ -566,4 +714,20 @@ Executable         Swish
    if flag(developer)
       ghc-options: -Werror
       ghc-prof-options: -auto-all
+
+   Build-Depends:
+      base >=3 && < 5,
+      text == 0.11.*,
+      binary == 0.5.*,
+      containers >= 0.3 && < 0.5,
+      array == 0.3.*,
+      polyparse >= 1.6 && < 1.8,
+      old-locale == 1.0.*, 
+      time >= 1.1 && < 1.5,
+      mtl >= 2 && < 3,
+      network >= 2.2 && < 2.4,
+      directory >= 1.0 && < 1.2,
+      filepath >= 1.1 && < 1.3,
+      hashable == 1.1.*,
+      intern == 0.8.*
 
