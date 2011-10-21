@@ -672,7 +672,7 @@ Test-Suite test-qname
    Main-Is:        tests/SwishTest.hs
 
 Executable         Swish
-   Main-Is:        src/Swish.hs
+   Main-Is:        exesrc/Swish.hs
    Other-Modules:  Paths_swish
 
    ghc-options:

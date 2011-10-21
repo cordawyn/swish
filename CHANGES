@@ -12,6 +12,10 @@
     Cabal; this means that the tests flag has been replaced by
     the --enable-tests option.
 
+  - Moved src/ to exesrc/, which is a terrible name.
+
+TODO: can we "fix" the variable-naming issues in RDFProof?
+
 0.6.1.2:
 
   - corrected mtl constraint from >= 1 to >= 2 as the code does
