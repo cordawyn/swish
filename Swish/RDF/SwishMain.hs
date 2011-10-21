@@ -17,7 +17,29 @@
 --  for performing any particular application processing (though
 --  development as a tool with some broader utility is not ruled out).
 --
---  This module is likely to be moved to the Swish module.
+--  With the following in ghci:
+--
+-- >>> :m + Swish
+-- >>> :set prompt "swish> "
+--
+-- then we can run a Swish script (format described in "Swish.RDF.SwishScript")
+-- by saying:
+--
+-- >>> runSwish "-s=script.ss"
+-- ExitSuccess
+--
+-- or convert a file from Turtle to NTriples format with:
+--
+-- >>> runSwish "-ttl -i=foo.ttl -nt -o=foo.nt"
+-- ExitSuccess
+--
+-- You can also use `validateCommands` by giving it the individual commands,
+-- such as
+--
+-- >>> let Right cs = validateCommands ["-ttl", "-i=file1.ttl", "-c=file2.ttl"]
+-- >>> st <- runSwishActions cs
+-- >>> st
+-- The graphs do not compare as equal.
 --
 --------------------------------------------------------------------------------
 
@@ -154,7 +176,8 @@ splitArgument "-v" = Left "-v"
 splitArgument "-q" = Left "-q"
 splitArgument x    = Right x
 
--- | Represent a Swish action.
+-- | Represent a Swish action. At present there is no way to create these
+-- actions other than 'validateCommands'.
 -- 
 newtype SwishAction = SA (SwishStateIO ())
 
