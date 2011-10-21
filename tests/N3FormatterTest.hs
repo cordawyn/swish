@@ -61,19 +61,15 @@ import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual )
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite, testCompareEq)
 
-------------------------------------------------------------
---  Common test wrappers
-------------------------------------------------------------
+-- Specialized equality comparisons
 
 testLabelEq :: String -> Bool -> RDFLabel -> RDFLabel -> Test
-testLabelEq lab eq n1 n2 =
-    TestCase ( assertEqual ("testLabelEq:"++lab) eq (n1==n2) )
+testLabelEq = testCompareEq "testLabelEq:"
 
 testGraphEq :: String -> Bool -> RDFGraph -> RDFGraph -> Test
-testGraphEq lab eq gg1 gg2 =
-    TestCase ( assertEqual ("testGraphEq:"++lab) eq (gg1==gg2) )
+testGraphEq = testCompareEq "testGraphEq:"
 
 ------------------------------------------------------------
 --  Define some common values

@@ -56,11 +56,8 @@ import Swish.RDF.VarBinding
 import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.RDF.Vocabulary (namespaceRDF, langName, swishName, rdfType, rdfXMLLiteral)
 import Swish.RDF.N3Parser (parseN3)
-import Swish.Utils.ListHelpers (equiv)
 
-import Test.HUnit
-    ( Test(TestCase,TestList)
-    , assertBool, assertEqual )
+import Test.HUnit ( Test(TestList) )
 
 import qualified Data.Text.Lazy.Builder as B
 
@@ -69,29 +66,22 @@ import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust)
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite
+                   , test
+                   , testEq
+                   , testElem
+                   , testEqv
+                   )
 
 ------------------------------------------------------------
 --  misc helpers
 ------------------------------------------------------------
 
-newtype Set a = Set [a] deriving Show
-
-instance (Eq a) => Eq (Set a) where
-    Set v1 == Set v2 = v1 `equiv` v2
-
-test :: String -> Bool -> Test
-test lab tst = TestCase $ assertBool lab tst
-
-testEq :: (Eq a, Show a) => String -> a -> a -> Test
-testEq lab e a = TestCase $ assertEqual lab e a
-
 testLs :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testLs lab e a = TestCase $ assertEqual lab (Set e) (Set a)
+testLs = testEqv
 
 testGr :: String -> B.Builder -> [RDFGraph] -> Test
-testGr lab e a = TestCase $ assertBool lab (eg `elem` a)
-    where eg = graphFromBuilder mempty e
+testGr lab e = testElem lab (graphFromBuilder mempty e)
 
 graphFromBuilder :: B.Builder -> B.Builder -> RDFGraph
 graphFromBuilder prefix body = 
@@ -100,20 +90,6 @@ graphFromBuilder prefix body =
     Right gr -> gr
     Left msg -> error msg
     
--- Compare lists for set equivalence:
-
-data ListTest a = ListTest [a]
-
-instance (Eq a) => Eq (ListTest a) where
-    (ListTest a1) == (ListTest a2) = a1 `equiv` a2
-
-instance (Show a) => Show (ListTest a) where
-    show (ListTest a) = show a
-
-testEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testEqv lab a1 a2 =
-    TestCase ( assertEqual ("testEqv:"++lab) (ListTest a1) (ListTest a2) )
-
 ------------------------------------------------------------
 --  test1:  simple query qith URI, literal and blank nodes.
 ------------------------------------------------------------

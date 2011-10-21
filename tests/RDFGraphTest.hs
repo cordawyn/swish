@@ -75,22 +75,10 @@ import Test.HUnit
     , Assertion
     , assertBool, assertEqual )
 
-import TestHelpers (runTestSuite)
-
-------------------------------------------------------------
---  Common definitions
-------------------------------------------------------------
-
-testCompare :: (Eq a, Show a) => String -> String -> a -> a -> Test
-testCompare typ lab a1 a2 =
-    TestCase ( assertEqual (typ++lab) a1 a2 )
-
-testCompareEq :: (Eq a, Show a) => String -> String -> Bool -> a -> a -> Test
-testCompareEq typ lab eq a1 a2 =
-    TestCase ( assertEqual (typ++lab) eq (a1==a2) )
-
-testEq :: (Eq a, Show a) => String -> a -> a -> Test
-testEq = testCompare "testEq"
+import TestHelpers ( runTestSuite
+                     , testEq
+                     , testCompare
+                     , testCompareEq)
 
 ------------------------------------------------------------
 --  Test language tag comparisons

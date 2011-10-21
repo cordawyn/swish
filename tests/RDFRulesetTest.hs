@@ -59,7 +59,7 @@ import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNa
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , assertBool, assertEqual
+    , assertBool
     )
 
 import Network.URI (URI, parseURI)
@@ -71,46 +71,69 @@ import Data.Maybe (isJust, fromJust)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite
+                   , test
+                   , testLe
+                   , testCompare
+                   , testCompareEq
+                   , testMaker
+                   )
+import qualified TestHelpers as T
 
 ------------------------------------------------------------
 --  Test case helpers
 ------------------------------------------------------------
 
-test :: String -> Bool -> Test
-test lab bv =
-    TestCase ( assertBool ("test:"++lab) bv )
-
 testVal :: (Eq a, Show a) => String -> a -> a -> Test
+testVal = testCompare "testVal:"
+{-
 testVal lab a1 a2 =
     TestCase ( assertEqual ("testVal:"++lab) a1 a2 )
+-}
 
 testEq :: (Eq a, Show a) => String -> Bool -> a -> a -> Test
+testEq = testCompareEq "testIsEq:"
+{-
 testEq lab eq a1 a2 =
     TestCase ( assertEqual ("testEq:"++lab) eq (a1==a2) )
+-}
 
 testEqual :: (Eq a, Show a) => String -> a -> a -> Test
+testEqual = T.testEq
+{-
 testEqual lab a1 a2 =
     TestCase ( assertEqual ("testEq:"++lab) a1 a2 )
+-}
 
+{-
 testLe :: (Ord a, Show a) => String -> Bool -> a -> a -> Test
 testLe lab eq a1 a2 =
     TestCase ( assertEqual ("testLe:"++lab) eq (a1<=a2) )
+-}
 
 testStringEq :: String -> String -> String -> Test
+testStringEq = testCompare "testStringEq:"
+{-
 testStringEq lab s1 s2 =
     TestCase ( assertEqual ("testStringEq:"++lab) s1 s2 )
+-}
 
 testSameNamespace :: String -> Namespace -> Namespace -> Test
+testSameNamespace = testMaker getNamespaceTuple "testSameNamespace:"
+{-
 testSameNamespace lab n1 n2 =
     TestCase ( assertBool ("testSameNamespace:"++lab) ((p1==p2)&&(u1==u2)) )
     where
       (p1, u1) = getNamespaceTuple n1
       (p2, u2) = getNamespaceTuple n2
+-}
 
 testScopedNameEq :: String -> Bool -> ScopedName -> ScopedName -> Test
+testScopedNameEq = testCompareEq "testScopedNameEq:"
+{-
 testScopedNameEq lab eq n1 n2 =
     TestCase ( assertEqual ("testScopedNameEq:"++lab) eq (n1==n2) )
+-}
 
 {-
 testQNameEq :: String -> Bool -> QName -> QName -> Test

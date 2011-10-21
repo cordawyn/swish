@@ -52,46 +52,26 @@ import Swish.RDF.VarBinding
 import Swish.RDF.Rule (Rule(..))
 import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
-import Test.HUnit
-    ( Test(TestCase,TestList)
-    , assertBool, assertEqual )
+import Test.HUnit ( Test(TestList) )
 
 import Network.URI (URI, parseURI)
 
 import Data.Monoid (Monoid(..))
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (fromJust)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
-import TestHelpers (runTestSuite)
+import TestHelpers ( runTestSuite
+                     , test
+                     , testEq, testElem
+                     , testNo
+                   )
 
 --  misc helpers
 
-test :: String -> Bool -> Test
-test lab tst = TestCase $ assertBool lab tst
-
-testEq :: (Eq a, Show a) => String -> a -> a -> Test
-testEq lab e a = TestCase $ assertEqual lab e a
-
-testJe :: (Eq a, Show a) => String -> a -> Maybe a -> Test
-testJe lab e a = TestList
-    [ TestCase $ assertBool  lab (isJust a)
-    , TestCase $ assertEqual lab e (fromJust a)
-    ]
-
-testJl :: (Eq a, Show a) => String -> Int -> Maybe [a] -> Test
-testJl lab e a = TestList
-    [ TestCase $ assertBool  lab   (isJust a)
-    , TestCase $ assertEqual lab e (length (fromJust a))
-    ]
-
-testNo :: (Eq a, Show a) => String -> [[a]] -> Test
-testNo lab a =
-    TestCase $ assertBool  lab   (null a)
-
 testIn :: (Eq a, Show a) => String -> a -> [a] -> Test
-testIn lab eg a = TestCase $ assertBool lab (eg `elem` a)
+testIn = testElem -- lab eg a = TestCase $ assertBool lab (eg `elem` a)
 
 mkGr :: B.Builder -> [B.Builder] -> RDFGraph
 mkGr pr bdy = makeRDFGraphFromN3Builder $ mconcat (pr : bdy)

@@ -31,12 +31,15 @@ import Swish.Utils.ListHelpers (equiv)
 import Test.HUnit (Test(TestCase, TestList),
                    assertEqual, assertBool)
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite
+                    , testEq, testNe
+                    )
 
 ------------------------------------------------------------
 --  Test case helpers
 ------------------------------------------------------------
 
+{-
 testEq :: (Eq a, Show a) => String -> a -> a -> Test
 testEq lab a1 a2 =
     TestCase ( assertEqual ("testEq:"++lab) a1 a2 )
@@ -44,6 +47,7 @@ testEq lab a1 a2 =
 testNe :: (Eq a, Show a) => String -> a -> a -> Test
 testNe lab a1 a2 =
     TestCase ( assertBool ("testNe:"++lab) (a1 /= a2) )
+-}
 
 -- Compare lists and lists of lists and Maybe lists for set equivalence:
 

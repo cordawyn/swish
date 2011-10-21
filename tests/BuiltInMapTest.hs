@@ -45,27 +45,22 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import Swish.Utils.LookupMap
-    ( mapFindMaybe )
-
-import Swish.Utils.ListHelpers
-    ( equiv )
+import Swish.Utils.LookupMap (mapFindMaybe)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , Assertion
-    , assertBool, assertEqual, assertFailure
+    , assertEqual
     )
 
-import Control.Monad (unless)
-import Data.Maybe (isJust, isNothing)
-
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite
+                   , testJust
+                   , testEqv2)
 
 ------------------------------------------------------------
 --  Test case helpers
 ------------------------------------------------------------
 
+{-
 assertMember :: (Eq a, Show a) => String -> a -> [a] -> Assertion
 assertMember preface expected actual =
   unless (expected `elem` actual ) (assertFailure msg)
@@ -125,9 +120,13 @@ testMaker conv l1 l2 x y =
 testEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
 testEqv = testMaker ListTest "Eqv"
 
-testEqvEqv :: (Eq a, Show a) => String -> [[a]] -> [[a]] -> Test
-testEqvEqv = testMaker (ListTest . map ListTest) "EqvEqv"
+-}
 
+testEqvEqv :: (Eq a, Show a) => String -> [[a]] -> [[a]] -> Test
+testEqvEqv = testEqv2
+-- testEqvEqv = testMaker (ListTest . map ListTest) "EqvEqv"
+
+{-
 testHasEqv :: (Eq a, Show a) => String -> [a] -> [[a]] -> Test
 testHasEqv lab a1 a2 =
     TestCase ( assertMember ("testHasEqv:"++lab) ma1 ma2 )
@@ -137,6 +136,7 @@ testHasEqv lab a1 a2 =
 
 testMaybeEqv :: (Eq a, Show a) => String -> Maybe [a] -> Maybe [a] -> Test
 testMaybeEqv = testMaker MaybeListTest "MaybeEqv"
+-}
 
 ------------------------------------------------------------
 --  Test finding built-in variable binding modifiers

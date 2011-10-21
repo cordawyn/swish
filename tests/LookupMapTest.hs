@@ -32,17 +32,15 @@ import Swish.Utils.LookupMap
     , mapTranslateEntries, mapTranslateEntriesM
     )
 
-import Swish.Utils.ListHelpers
-    ( equiv )
-
 import Data.List ( sort )
 
-import Test.HUnit
-    ( Test(TestCase,TestList)
-    , assertEqual )
+import Test.HUnit ( Test(TestList) )
 
-import TestHelpers (runTestSuite)
-
+import TestHelpers (runTestSuite
+                    , testEq
+                    , testEqv
+                    )
+  
 ------------------------------------------------------------
 --  Declare lookup entry for testing
 ------------------------------------------------------------
@@ -72,12 +70,18 @@ type StrTestMap = LookupMap (GenMapEntry String String)
 ------------------------------------------------------------
 
 testeq :: (Show a, Eq a) => String -> a -> a -> Test
+testeq = testEq
+{-
 testeq lab req got =
     TestCase ( assertEqual ("test"++lab) req got )
+-}
 
 testeqv :: (Show a, Eq a) => String -> [a] -> [a] -> Test
+testeqv = testEqv
+{-
 testeqv lab req got =
     TestCase ( assertEqual ("test"++lab) True (req `equiv` got) )
+-}
 
 ------------------------------------------------------------
 --  LookupMap functions
@@ -329,11 +333,11 @@ testMapEq lab eq m1 m2 =
 
 testMapEqSuite :: Test
 testMapEqSuite = TestList
-  [ testMapEq (testLab l1 l2) (testEq l1 l2) m1 m2
+  [ testMapEq (testLab l1 l2) (nodeTest l1 l2) m1 m2
       | (l1,m1) <- maplist , (l2,m2) <- maplist ]
     where
     testLab l1 l2 = l1 ++ "-" ++ l2
-    testEq  l1 l2 = (l1 == l2)       ||
+    nodeTest  l1 l2 = (l1 == l2)       ||
             (l1,l2) `elem` mapeqlist ||
             (l2,l1) `elem` mapeqlist
 

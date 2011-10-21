@@ -49,7 +49,7 @@ import Swish.RDF.GraphMatch
       )
 import Swish.Utils.LookupMap (LookupEntryClass(..), makeLookupMap)
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite, testEq, testEqv)
 
 default ( Int )
 
@@ -83,12 +83,18 @@ getArcsT g = map arcToTriple $ getArcs g
 ------------------------------------------------------------
 
 testeq :: (Show a, Eq a) => String -> a -> a -> Test
+testeq = testEq
+{-
 testeq lab req got =
     TestCase ( assertEqual ("test"++lab) req got )
+-}
 
 testeqv :: (Show a, Eq a) => String -> [a] -> [a] -> Test
+testeqv = testEqv
+{-
 testeqv lab req got =
     TestCase ( assertEqual ("test"++lab) True (req `equiv` got) )
+-}
 
 ------------------------------------------------------------
 --  Label map and entry creation helpers
@@ -380,11 +386,11 @@ nodeeqlist =
 
 testLabelEqSuite :: Test
 testLabelEqSuite = TestList
-  [ testLabelEq (testLab a b) (testEq  a b) n1 n2
+  [ testLabelEq (testLab a b) (nodeTest a b) n1 n2
       | (a,n1) <- nodelist , (b,n2) <- nodelist ]
     where
     testLab a b = a ++ "-" ++ b
-    testEq  a b = (a == b)        ||
+    nodeTest  a b = (a == b)        ||
             (a,b) `elem` nodeeqlist ||
             (b,a) `elem` nodeeqlist
 
@@ -419,11 +425,11 @@ testLabelOrdSuite = TestList
     where
     testLab a b = a ++ "-" ++ b
     testOrd a b
-      | testEq a b = EQ
+      | nodeTest a b = EQ
       | otherwise  = comparing fromJust
                      (elemIndex a nodeorder)
                      (elemIndex b nodeorder)
-    testEq  a b = (a == b)        ||
+    nodeTest a b = (a == b)        ||
             (a,b) `elem` nodeeqlist ||
             (b,a) `elem` nodeeqlist
 
@@ -485,11 +491,11 @@ stmteqlist =
 
 testStmtEqSuite :: Test
 testStmtEqSuite = TestList
-  [ testStmtEq (testLab a b) (testEq  a b) t1 t2
+  [ testStmtEq (testLab a b) (nodeTest  a b) t1 t2
       | (a,t1) <- tlist , (b,t2) <- tlist ]
     where
     testLab a b = a ++ "-" ++ b
-    testEq  a b = (a == b)        ||
+    nodeTest  a b = (a == b)        ||
             (a,b) `elem` stmteqlist ||
             (b,a) `elem` stmteqlist
 
@@ -1231,11 +1237,11 @@ testGraphEqSuitePart = TestLabel "testGraphEqSuitePart" $ TestList
 
 testGraphEqSuite :: Test
 testGraphEqSuite = TestLabel "testGraphEqSuite" $ TestList
-  [ testGraphEq (testLab ll1 ll2) (testEq ll1 ll2) gg1 gg2
+  [ testGraphEq (testLab ll1 ll2) (nodeTest ll1 ll2) gg1 gg2
       | (ll1,gg1) <- glist , (ll2,gg2) <- glist ]
     where
     testLab ll1 ll2 = ll1 ++ "-" ++ ll2
-    testEq  ll1 ll2 = (ll1 == ll2)        ||
+    nodeTest  ll1 ll2 = (ll1 == ll2)        ||
             (ll1,ll2) `elem` grapheqlist ||
             (ll2,ll1) `elem` grapheqlist
 

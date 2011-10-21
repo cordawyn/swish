@@ -54,106 +54,23 @@ import Swish.RDF.VarBinding (makeVarBinding)
 import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName)
 import Swish.RDF.Vocabulary (namespaceDefault)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
-import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , Assertion
-    , assertBool, assertEqual, assertFailure
+      , assertFailure
     )
 
 import Network.URI (URI, parseURI)
 
-import Control.Monad (unless)
 import Data.Monoid (Monoid(..))
-import Data.Maybe (isJust, isNothing, fromMaybe, fromJust)
+import Data.Maybe (fromMaybe, fromJust)
 import Data.List (intersperse)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
-import TestHelpers (runTestSuite)
-
-------------------------------------------------------------
---  Test case helpers
-------------------------------------------------------------
-
-assertMember :: (Eq a, Show a) => String -> a -> [a] -> Assertion
-assertMember preface expected actual =
-  unless (expected `elem` actual ) (assertFailure msg)
-  where msg = (if null preface then "" else preface ++ "\n") ++
-             "expected: " ++ show expected ++ "\nbut got: " ++ show actual
-
-test :: String -> Bool -> Test
-test lab bv =
-    TestCase ( assertBool ("test:"++lab) bv )
-
-testEq :: (Eq a, Show a) => String -> a -> a -> Test
-testEq lab a1 a2 =
-    TestCase ( assertEqual ("testEq:"++lab) a1 a2 )
-
-testElem :: (Eq a, Show a) => String -> a -> [a] -> Test
-testElem lab a1 as =
-    TestCase ( assertMember ("testElem:"++lab) a1 as )
-
-testLe :: (Ord a, Show a) => String -> Bool -> a -> a -> Test
-testLe lab eq a1 a2 =
-    TestCase ( assertEqual ("testLe:"++lab) eq (a1<=a2) )
-
--- Test for Just x or Nothing
-
-testJust :: String -> Maybe a -> Test
-testJust lab av =
-    TestCase ( assertBool ("testJust:"++lab) (isJust av) )
-
-testNothing :: String -> Maybe a -> Test
-testNothing lab av =
-    TestCase ( assertBool ("testJust:"++lab) (isNothing av) )
-
--- Compare lists and lists of lists and Maybe lists for set equivalence:
-
-data ListTest a = ListTest [a]
-
-instance (Eq a) => Eq (ListTest a) where
-    (ListTest a1) == (ListTest a2) = a1 `equiv` a2
-
-instance (Show a) => Show (ListTest a) where
-    show (ListTest a) = show a
-
-data MaybeListTest a = MaybeListTest (Maybe [a])
-
-instance (Eq a) => Eq (MaybeListTest a) where
-    MaybeListTest (Just a1) == MaybeListTest (Just a2) = a1 `equiv` a2
-    MaybeListTest Nothing   == MaybeListTest Nothing   = True
-    _                       == _                       = False
-
-instance (Show a) => Show (MaybeListTest a) where
-    show (MaybeListTest a) = show a
-
-testEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testEqv lab a1 a2 =
-    TestCase ( assertEqual ("testEqv:"++lab) (ListTest a1) (ListTest a2) )
-
-testEqvEqv :: (Eq a, Show a) => String -> [[a]] -> [[a]] -> Test
-testEqvEqv lab a1 a2 =
-    TestCase ( assertEqual ("testEqvEqv:"++lab) ma1 ma2 )
-    where
-        ma1 = ListTest $ map ListTest a1
-        ma2 = ListTest $ map ListTest a2
-
-testHasEqv :: (Eq a, Show a) => String -> [a] -> [[a]] -> Test
-testHasEqv lab a1 a2 =
-    TestCase ( assertMember ("testHasEqv:"++lab) ma1 ma2 )
-    where
-        ma1 = ListTest a1
-        ma2 = map ListTest a2
-
-testMaybeEqv :: (Eq a, Show a) => String -> Maybe [a] -> Maybe [a] -> Test
-testMaybeEqv lab a1 a2 =
-    TestCase ( assertEqual ("testMaybeEqv:"++lab) ma1 ma2 )
-    where
-        ma1 = MaybeListTest a1
-        ma2 = MaybeListTest a2
+import TestHelpers (runTestSuite
+                   , testEq, testElem, testEqv, testEqv2)
 
 ------------------------------------------------------------
 --  Misc values
@@ -849,7 +766,7 @@ testRuleBwd lab (Just rule) antstr prestrss =
         antgr   = mkGraph antstr
         pregrss = map (map mkGraph) prestrss
     in
-        testEqvEqv lab pregrss $ bwdApply rule antgr
+        testEqv2 lab pregrss $ bwdApply rule antgr
 testRuleBwd lab Nothing _ _ = TestCase $
     assertFailure $ "testRuleBwd:"++lab++", null rule supplied"
 

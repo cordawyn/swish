@@ -71,7 +71,15 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite, testCompareEq)
+
+-- Specialized equality comparisons
+
+testLabelEq :: String -> Bool -> RDFLabel -> RDFLabel -> Test
+testLabelEq = testCompareEq "testLabelEq:"
+
+testGraphEq :: String -> Bool -> RDFGraph -> RDFGraph -> Test
+testGraphEq = testCompareEq "testGraphEq:"
 
 toURI :: String -> URI
 toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURIReference s)
@@ -102,14 +110,6 @@ errorText = "*"
 ------------------------------------------------------------
 --  Common test wrappers
 ------------------------------------------------------------
-
-testLabelEq :: String -> Bool -> RDFLabel -> RDFLabel -> Test
-testLabelEq lab eq n1 n2 =
-    TestCase ( assertEqual ("testLabelEq:"++lab) eq (n1==n2) )
-
-testGraphEq :: String -> Bool -> RDFGraph -> RDFGraph -> Test
-testGraphEq lab eq gg1 gg2 =
-    TestCase ( assertEqual ("testGraphEq:"++lab) eq (gg1==gg2) )
 
 parseTestBase :: String -> Maybe QName -> String -> B.Builder -> RDFGraph -> String -> Test
 parseTestBase lbl1 mbase lbl2 inp gr er =

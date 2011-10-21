@@ -55,39 +55,22 @@ import Test.HUnit
 import Network.URI (URI, parseURI)
 
 import Data.Monoid (Monoid(..))
-import Data.Maybe (isJust, isNothing, fromJust, fromMaybe)
+import Data.Maybe (isNothing, fromJust, fromMaybe)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
-import TestHelpers (runTestSuite)
+import TestHelpers ( runTestSuite
+                     , test
+                     , testEq
+                     , testElem
+                     )
 
 --  misc helpers
 
-test :: String -> Bool -> Test
-test lab tst = TestCase $ assertBool lab tst
-
-testEq :: (Eq a, Show a) => String -> a -> a -> Test
-testEq lab e a = TestCase $ assertEqual lab e a
-
-testJe :: (Eq a, Show a) => String -> a -> Maybe a -> Test
-testJe lab e a = TestList
-    [ TestCase $ assertBool  lab (isJust a)
-    , TestCase $ assertEqual lab e (fromJust a)
-    ]
-
-testJl :: (Eq a, Show a) => String -> Int -> Maybe [a] -> Test
-testJl lab e a = TestList
-    [ TestCase $ assertBool  lab   (isJust a)
-    , TestCase $ assertEqual lab e (length (fromJust a))
-    ]
-
-testNo :: (Eq a, Show a) => String -> [[a]] -> Test
-testNo lab a =
-    TestCase $ assertBool  lab   (null a)
-
 testGr :: String -> RDFGraph -> [RDFGraph] -> Test
-testGr lab eg a = TestCase $ assertBool lab (eg `elem` a)
+testGr = testElem
+-- testGr lab eg a = TestCase $ assertBool lab (eg `elem` a)
 
 -- testProof "rdfProof01" True rdfProof01
 testProof :: String -> Bool -> RDFProof -> Test

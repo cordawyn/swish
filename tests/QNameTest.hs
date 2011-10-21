@@ -29,14 +29,17 @@ import Swish.Utils.QName
     )
 
 import Swish.Utils.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
-import Test.HUnit (Test(TestCase,TestList), assertEqual)
+import Test.HUnit (Test(TestList))
 
 import Network.URI (URI, parseURIReference)
 import Data.Maybe (fromJust)
 
 import qualified Data.Text as T
 
-import TestHelpers (runTestSuite)
+import TestHelpers (runTestSuite
+                    , testCompare
+                    , testCompareEq
+                   )
 
 ------------------------------------------------------------
 --  Define some common values
@@ -71,15 +74,13 @@ qb1st1 = newQName base1 "st1"
 qb2st2 = newQName base2 "st2"
 qb3st3 = newQName base3 "st3"
 
-testIsEq :: (Show a, Eq a) => String -> String -> a -> a -> Test
-testIsEq lbl1 lbl2 a b = TestCase (assertEqual (lbl1++":"++lbl2) a b)
-
 ------------------------------------------------------------
 --  QName equality tests
 ------------------------------------------------------------
 
 testQNameEq :: String -> Bool -> QName -> QName -> Test
-testQNameEq lbl eq n1 n2 = testIsEq "QNameEq" lbl eq (n1==n2)
+testQNameEq = testCompareEq "QNameEq"
+-- testQNameEq lbl eq n1 n2 = testIsEq "QNameEq" lbl eq (n1==n2)
 
 qnlist :: [(String, QName)]
 qnlist =
@@ -147,13 +148,13 @@ testMakeQNameSuite =
 ------------------------------------------------------------
 
 testStringEq :: String -> String -> String -> Test
-testStringEq = testIsEq "StringEq"
+testStringEq = testCompare "StringEq"
 
 testTextEq :: String -> T.Text -> T.Text -> Test
-testTextEq = testIsEq "TextEq"
+testTextEq = testCompare "TextEq"
 
 testURIEq :: String -> String -> URI -> Test
-testURIEq lbl uri = testIsEq "URIEq" lbl (toURI uri)
+testURIEq lbl uri = testCompare "URIEq" lbl (toURI uri)
 
 testPartQNameSuite :: Test
 testPartQNameSuite = 
@@ -197,7 +198,7 @@ testPartQNameSuite =
 ------------------------------------------------------------
 
 testMaybeQNameEq :: String -> Bool -> Maybe QName -> Maybe QName -> Test
-testMaybeQNameEq lbl eq n1 n2 = testIsEq "MaybeQName" lbl eq (n1==n2)
+testMaybeQNameEq lbl eq n1 n2 = testCompareEq "MaybeQName" lbl eq n1 n2
 
 testMaybeQNameEqSuite :: Test
 testMaybeQNameEqSuite = 
@@ -219,7 +220,7 @@ testMaybeQNameEqSuite =
 ------------------------------------------------------------
 
 testQNameLe :: String -> Bool -> QName -> QName -> Test
-testQNameLe lbl le n1 n2 = testIsEq "QNameLE" lbl le (n1 <= n2)
+testQNameLe lbl le n1 n2 = testCompare "QNameLE" lbl le (n1 <= n2)
 
 testQNameLeSuite :: Test
 testQNameLeSuite = 
@@ -281,8 +282,8 @@ testSplitURI lbl input (a,b) =
   let qn = newQName (toURI a) b
   in 
    TestList
-   [ testIsEq lbl ":split" qn ((qnameFromURI . toURI) input)
-   , testIsEq lbl ":show"  input (show (getQNameURI qn))
+   [ testCompare lbl ":split" qn ((qnameFromURI . toURI) input)
+   , testCompare lbl ":show"  input (show (getQNameURI qn))
    ]
 
 testSplitURISuite :: Test
@@ -336,8 +337,8 @@ testSQRoundTrip lbl uri =
       qn = qnameFromURI u
       sn = makeQNameScopedName Nothing qn
   in TestList
-     [ testIsEq "SQ:URI"   lbl u  (getScopedNameURI sn)
-     , testIsEq "SQ:Qname" lbl qn (getQName sn)
+     [ testCompare "SQ:URI"   lbl u  (getScopedNameURI sn)
+     , testCompare "SQ:Qname" lbl qn (getQName sn)
      ]
 
 testSNameTTSuite :: Test
