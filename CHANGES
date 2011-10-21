@@ -1,3 +1,17 @@
+0.6.2.0:
+
+  - Split out vocabularies into Swish.RDF.Vocabulary.DublinCore,
+    Swish.RDF.Vocabulary.FOAF, Swish.RDF.Vocabulary.Geo,
+    Swish.RDF.Vocabulary.OWL, Swish.RDF.Vocabulary.RDF, and
+    Swish.RDF.Vocabulary.XSD (some of these are new and additional
+    terms added to the pre-existing vocabularies). A few have also
+    been added to Swish.RDF.RDFGraph.
+
+  - Minimum Cabal version has been updated to 1.9.2 as the tests
+    have been converted to take advantage of the support now in
+    Cabal; this means that the tests flag has been replaced by
+    the --enable-tests option.
+
 0.6.1.2:
 
   - corrected mtl constraint from >= 1 to >= 2 as the code does
