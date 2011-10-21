@@ -27,8 +27,7 @@ import qualified Data.Foldable as F
 
 import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
-        assertEqual, assertBool,
-        runTestTT )
+        assertEqual, assertBool )
 
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust)
@@ -49,6 +48,8 @@ import Swish.RDF.GraphMatch
         graphMatch1, equivalenceClasses
       )
 import Swish.Utils.LookupMap (LookupEntryClass(..), makeLookupMap)
+
+import TestHelpers (runTestSuite)
 
 default ( Int )
 
@@ -1851,7 +1852,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

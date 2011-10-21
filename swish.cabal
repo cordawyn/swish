@@ -267,8 +267,11 @@ Library
       ghc-prof-options: -auto-all
 
 Executable         BuiltInMapTest
-   Main-Is:        tests/BuiltInMapTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:    BuiltInMapTest.hs
+
    if !flag(tests)
+      Other-Modules:  TestHelpers
       buildable: False
 
    if flag(tests)
@@ -298,9 +301,11 @@ Executable         BuiltInMapTest
       time >= 1.1 && < 1.5
 
 Executable         GraphPartitionTest
-   Main-Is:        tests/GraphPartitionTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        GraphPartitionTest.hs
 
    if !flag(tests)
+      Other-Modules:  TestHelpers
       buildable: False
 
    if flag(tests)
@@ -323,11 +328,15 @@ Executable         GraphPartitionTest
       mtl >= 2 && < 3
 
 Executable         GraphTest
-   Main-Is:        tests/GraphTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        GraphTest.hs
+
    if !flag(tests)
+      Other-Modules:  TestHelpers
       buildable: False
 
    if flag(tests)
+      Other-Modules:  TestHelpers
       Build-Depends: 
           HUnit == 1.2.*
 
@@ -347,8 +356,11 @@ Executable         GraphTest
       mtl >= 2 && < 3
 
 Executable         NTTest
-   Main-Is:        tests/NTTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        NTTest.hs
+
    if !flag(tests)
+      Other-Modules:  TestHelpers
       buildable: False
 
    if flag(tests)
@@ -378,8 +390,11 @@ Executable         NTTest
       polyparse >= 1.6 && < 1.8
 
 Executable         N3ParserTest
-   Main-Is:        tests/N3ParserTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        N3ParserTest.hs
+
    if !flag(tests)
+      Other-Modules:  TestHelpers
       buildable: False
 
    if flag(tests)
@@ -409,9 +424,12 @@ Executable         N3ParserTest
       polyparse >= 1.6 && < 1.8
 
 Executable         N3FormatterTest
-   Main-Is:        tests/N3FormatterTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        N3FormatterTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -440,9 +458,12 @@ Executable         N3FormatterTest
       polyparse >= 1.6 && < 1.8
 
 Executable         RDFDatatypeXsdIntegerTest
-   Main-Is:        tests/RDFDatatypeXsdIntegerTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        RDFDatatypeXsdIntegerTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -471,9 +492,12 @@ Executable         RDFDatatypeXsdIntegerTest
       polyparse >= 1.6 && < 1.8
 
 Executable         RDFGraphTest
-   Main-Is:        tests/RDFGraphTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        RDFGraphTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -501,9 +525,12 @@ Executable         RDFGraphTest
       directory >= 1.0 && < 1.2
 
 Executable         RDFProofContextTest
-   Main-Is:        tests/RDFProofContextTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        RDFProofContextTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
                     
    if flag(tests)
       Build-Depends: 
@@ -532,9 +559,12 @@ Executable         RDFProofContextTest
       polyparse >= 1.6 && < 1.8
 
 Executable         RDFProofTest
-   Main-Is:        tests/RDFProofTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        RDFProofTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
                      
    if flag(tests)
       Build-Depends: 
@@ -563,9 +593,12 @@ Executable         RDFProofTest
       polyparse >= 1.6 && < 1.8
 
 Executable         RDFQueryTest
-   Main-Is:        tests/RDFQueryTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        RDFQueryTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -594,9 +627,12 @@ Executable         RDFQueryTest
       polyparse >= 1.6 && < 1.8
 
 Executable         RDFRulesetTest
-   Main-Is:        tests/RDFRulesetTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        RDFRulesetTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -625,9 +661,12 @@ Executable         RDFRulesetTest
       polyparse >= 1.6 && < 1.8
 
 Executable         VarBindingTest
-   Main-Is:        tests/VarBindingTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        VarBindingTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -652,9 +691,12 @@ Executable         VarBindingTest
       directory >= 1.0 && < 1.2
 
 Executable         LookupMapTest
-   Main-Is:        tests/LookupMapTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        LookupMapTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 
@@ -674,9 +716,12 @@ Executable         LookupMapTest
       base >=3 && < 5
 
 Executable         QNameTest
-   Main-Is:        tests/QNameTest.hs
+   Hs-Source-Dirs: tests/ ./
+   Main-Is:        QNameTest.hs
+
    if !flag(tests)
       buildable: False
+      Other-Modules:  TestHelpers
 
    if flag(tests)
       Build-Depends: 

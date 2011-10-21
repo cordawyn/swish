@@ -43,7 +43,6 @@ import Test.HUnit
     ( Test(TestCase,TestList)
     , Assertion
     , assertBool, assertEqual, assertFailure
-    , runTestTT
     )
 
 import Control.Monad (unless)
@@ -51,6 +50,8 @@ import Data.List (union, intersect)
 import Data.Maybe (isJust, isNothing, fromJust)
 
 -- import qualified Data.Text as T
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -870,7 +871,7 @@ allTests = TestList
     ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

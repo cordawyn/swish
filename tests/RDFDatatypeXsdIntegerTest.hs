@@ -60,7 +60,6 @@ import Test.HUnit
     ( Test(TestCase,TestList)
     , Assertion
     , assertBool, assertEqual, assertFailure
-    , runTestTT
     )
 
 import Network.URI (URI, parseURI)
@@ -72,6 +71,8 @@ import Data.List (intersperse)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -1419,7 +1420,7 @@ allTests = TestList
     ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 trules = runTestTT testDatatypeRuleSuite

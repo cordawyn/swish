@@ -36,9 +36,11 @@ import Swish.RDF.GraphClass (arc)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , assertEqual, runTestTT )
+    , assertEqual )
 
 import qualified Data.Text.Lazy as T
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Parser tests
@@ -256,7 +258,7 @@ allTests =
   ]
   
 main :: IO ()  
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 --------------------------------------------------------------------------------
 --

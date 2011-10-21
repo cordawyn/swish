@@ -73,8 +73,9 @@ import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
     , Assertion
-    , assertBool, assertEqual
-    , runTestTT )
+    , assertBool, assertEqual )
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Common definitions
@@ -1581,7 +1582,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

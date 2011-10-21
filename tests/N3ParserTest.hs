@@ -59,7 +59,7 @@ import Swish.RDF.GraphClass (Arc, arc)
 import Swish.Utils.QName (QName, qnameFromURI)
 import Swish.Utils.LookupMap (LookupMap(..))
 
-import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
+import Test.HUnit (Test(TestCase,TestList), assertEqual)
 
 import Network.URI (URI, nullURI, parseURIReference)
 
@@ -70,6 +70,8 @@ import Data.List (intercalate)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
+
+import TestHelpers (runTestSuite)
 
 toURI :: String -> URI
 toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURIReference s)
@@ -1500,7 +1502,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 --------------------------------------------------------------------------------
 --

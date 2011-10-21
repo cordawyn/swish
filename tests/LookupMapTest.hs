@@ -39,7 +39,9 @@ import Data.List ( sort )
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , assertEqual, runTestTT )
+    , assertEqual )
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Declare lookup entry for testing
@@ -455,7 +457,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

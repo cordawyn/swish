@@ -60,8 +60,7 @@ import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , assertBool, assertEqual
-    , runTestTT )
+    , assertBool, assertEqual )
 
 import qualified Data.Text.Lazy.Builder as B
 
@@ -69,6 +68,8 @@ import Network.URI (URI, parseURI)
 
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust)
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  misc helpers
@@ -1674,7 +1675,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

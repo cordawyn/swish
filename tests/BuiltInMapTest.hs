@@ -55,11 +55,12 @@ import Test.HUnit
     ( Test(TestCase,TestList)
     , Assertion
     , assertBool, assertEqual, assertFailure
-    , runTestTT
     )
 
 import Control.Monad (unless)
 import Data.Maybe (isJust, isNothing)
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -245,7 +246,7 @@ allTests = TestList
     ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile :: Test -> IO ()

@@ -50,8 +50,7 @@ import Swish.RDF.Vocabulary
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , assertBool, assertEqual
-    , runTestTT )
+    , assertBool, assertEqual )
 
 import Network.URI (URI, parseURI)
 
@@ -60,6 +59,8 @@ import Data.Maybe (isJust, isNothing, fromJust, fromMaybe)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
+
+import TestHelpers (runTestSuite)
 
 --  misc helpers
 
@@ -675,7 +676,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

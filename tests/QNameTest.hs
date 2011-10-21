@@ -29,12 +29,14 @@ import Swish.Utils.QName
     )
 
 import Swish.Utils.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
-import Test.HUnit (Test(TestCase,TestList), assertEqual, runTestTT)
+import Test.HUnit (Test(TestCase,TestList), assertEqual)
 
 import Network.URI (URI, parseURIReference)
 import Data.Maybe (fromJust)
 
 import qualified Data.Text as T
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Define some common values
@@ -377,7 +379,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

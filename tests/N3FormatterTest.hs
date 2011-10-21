@@ -59,7 +59,9 @@ import qualified Data.Text.Lazy.Builder as B
 
 import Test.HUnit
     ( Test(TestCase,TestList)
-    , assertEqual, runTestTT )
+    , assertEqual )
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Common test wrappers
@@ -1482,7 +1484,7 @@ allTests = TestList
   ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do

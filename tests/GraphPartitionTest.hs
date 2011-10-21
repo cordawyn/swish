@@ -29,8 +29,9 @@ import Swish.RDF.GraphMem (LabelMem(..))
 import Swish.Utils.ListHelpers (equiv)
 
 import Test.HUnit (Test(TestCase, TestList),
-                   assertEqual, assertBool,
-                   runTestTT)
+                   assertEqual, assertBool)
+
+import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -538,7 +539,7 @@ allTests = TestList
     ]
 
 main :: IO ()
-main = runTestTT allTests >> return ()
+main = runTestSuite allTests
 
 {-
 runTestFile t = do
