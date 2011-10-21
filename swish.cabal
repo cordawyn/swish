@@ -10,7 +10,7 @@ Category:           Semantic Web
 Synopsis:           A semantic web toolkit. 
 
 Tested-With:        GHC==6.12.3
-Cabal-Version:      >= 1.8
+Cabal-Version:      >= 1.9.2
 Homepage:           https://bitbucket.org/doug_burke/swish/wiki/Home
 Bug-reports:        https://bitbucket.org/doug_burke/swish/issues
 
@@ -51,7 +51,9 @@ Description:
   @Swish.RDF.Vocabulary.FOAF@, and @Swish.RDF.Vocabulary.Geo@ modules,
   @Swish.RDF.Vocabulary.OWL@, @Swish.RDF.Vocabulary.RDF@, and 
   @Swish.RDF.Vocabulary.XSD@ modules (re-exported from @Swish.RDF.Vocabulary@
-  as necessary).
+  as necessary). The test suite has been updated to take advantage of the
+  support in recent Cabal versions which means that the @tests@ flag has been
+  removed and the minimum Cabal version increased to @1.9.2@.
   .
   [Version 0.6.1.2] Corrected minimum mtl constraint from 1 to 2 and updated
   the maximum time version to 1.4 from 1.3.
@@ -175,10 +177,6 @@ Flag  developer
   Description: Turn on developer flags
   Default:     False
 
-Flag  tests
-  Description: Build the test programs.
-  Default:     False
-
 Flag  hpc
   Description: Use Hpc for the tests
   Default:     False
@@ -266,17 +264,11 @@ Library
       ghc-options: -Werror
       ghc-prof-options: -auto-all
 
-Executable         BuiltInMapTest
+Test-Suite test-builtinmap
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:    BuiltInMapTest.hs
-
-   if !flag(tests)
-      Other-Modules:  TestHelpers
-      buildable: False
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -289,6 +281,7 @@ Executable         BuiltInMapTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       text == 0.11.*,
       old-locale == 1.0.*, 
@@ -300,17 +293,11 @@ Executable         BuiltInMapTest
       polyparse >= 1.6 && < 1.8,
       time >= 1.1 && < 1.5
 
-Executable         GraphPartitionTest
+Test-Suite test-graphpartition
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        GraphPartitionTest.hs
-
-   if !flag(tests)
-      Other-Modules:  TestHelpers
-      buildable: False
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -323,22 +310,16 @@ Executable         GraphPartitionTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3
 
-Executable         GraphTest
+Test-Suite test-graph
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        GraphTest.hs
-
-   if !flag(tests)
-      Other-Modules:  TestHelpers
-      buildable: False
-
-   if flag(tests)
-      Other-Modules:  TestHelpers
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -351,21 +332,16 @@ Executable         GraphTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3
 
-Executable         NTTest
+Test-Suite test-nt
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        NTTest.hs
-
-   if !flag(tests)
-      Other-Modules:  TestHelpers
-      buildable: False
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -378,6 +354,7 @@ Executable         NTTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -389,17 +366,11 @@ Executable         NTTest
       time >= 1.1 && < 1.5,
       polyparse >= 1.6 && < 1.8
 
-Executable         N3ParserTest
+Test-Suite test-n3parser
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        N3ParserTest.hs
-
-   if !flag(tests)
-      Other-Modules:  TestHelpers
-      buildable: False
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -412,6 +383,7 @@ Executable         N3ParserTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -423,17 +395,11 @@ Executable         N3ParserTest
       time >= 1.1 && < 1.5,
       polyparse >= 1.6 && < 1.8
 
-Executable         N3FormatterTest
+Test-Suite test-n3formatter
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        N3FormatterTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -446,6 +412,7 @@ Executable         N3FormatterTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -457,17 +424,11 @@ Executable         N3FormatterTest
       time >= 1.1 && < 1.5,
       polyparse >= 1.6 && < 1.8
 
-Executable         RDFDatatypeXsdIntegerTest
+Test-Suite test-rdfdatatypexsdinteger
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        RDFDatatypeXsdIntegerTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -480,6 +441,7 @@ Executable         RDFDatatypeXsdIntegerTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -491,17 +453,11 @@ Executable         RDFDatatypeXsdIntegerTest
       time >= 1.1 && < 1.5,
       polyparse >= 1.6 && < 1.8
 
-Executable         RDFGraphTest
+Test-Suite test-rdfgraph
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        RDFGraphTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -514,6 +470,7 @@ Executable         RDFGraphTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -524,17 +481,11 @@ Executable         RDFGraphTest
       intern == 0.8.*,
       directory >= 1.0 && < 1.2
 
-Executable         RDFProofContextTest
+Test-Suite test-rdfproofcontext
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        RDFProofContextTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-                    
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -547,6 +498,7 @@ Executable         RDFProofContextTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -558,17 +510,11 @@ Executable         RDFProofContextTest
       old-locale == 1.0.*,
       polyparse >= 1.6 && < 1.8
 
-Executable         RDFProofTest
+Test-Suite test-rdfproof
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        RDFProofTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-                     
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -581,6 +527,7 @@ Executable         RDFProofTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -592,17 +539,11 @@ Executable         RDFProofTest
       old-locale == 1.0.*,
       polyparse >= 1.6 && < 1.8
 
-Executable         RDFQueryTest
+Test-Suite test-rdfquery
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        RDFQueryTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -615,6 +556,7 @@ Executable         RDFQueryTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -626,17 +568,11 @@ Executable         RDFQueryTest
       old-locale == 1.0.*,
       polyparse >= 1.6 && < 1.8
 
-Executable         RDFRulesetTest
+Test-Suite test-rdfruleset
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        RDFRulesetTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -649,6 +585,7 @@ Executable         RDFRulesetTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
@@ -660,17 +597,11 @@ Executable         RDFRulesetTest
       old-locale == 1.0.*,
       polyparse >= 1.6 && < 1.8
 
-Executable         VarBindingTest
+Test-Suite test-varbinding
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        VarBindingTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -683,6 +614,7 @@ Executable         VarBindingTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       text == 0.11.*,
       network >= 2.2 && < 2.4,
@@ -690,17 +622,11 @@ Executable         VarBindingTest
       hashable == 1.1.*,
       directory >= 1.0 && < 1.2
 
-Executable         LookupMapTest
+Test-Suite test-lookupmap
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        LookupMapTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -713,19 +639,14 @@ Executable         LookupMapTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5
 
-Executable         QNameTest
+Test-Suite test-qname
+   Type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ ./
    Main-Is:        QNameTest.hs
-
-   if !flag(tests)
-      buildable: False
-      Other-Modules:  TestHelpers
-
-   if flag(tests)
-      Build-Depends: 
-          HUnit == 1.2.*
+   Other-Modules:  TestHelpers
 
    if flag(hpc)
       ghc-options: -fhpc
@@ -738,6 +659,7 @@ Executable         QNameTest
       -Wall -fno-warn-orphans
 
    Build-Depends:
+      HUnit == 1.2.*,
       base >=3 && < 5,
       text == 0.11.*,
       network >= 2.2 && < 2.4,
