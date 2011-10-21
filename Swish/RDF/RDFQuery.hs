@@ -16,6 +16,22 @@
 --
 --  It also defines a few primitive graph access functions.
 --
+--  A minimal example is shown below, where we query a very simple
+--  graph:
+--
+-- >>> :m + Swish.RDF Swish.RDF.N3Parser Swish.RDF.RDFQuery
+-- >>> :set -XOverloadedStrings
+-- >>> let qparse = either error id . parseN3fromText
+-- >>> let igr = qparse "@prefix a: <http://example.com/>. a:a a a:A ; a:foo a:bar. a:b a a:B ; a:foo a:bar."
+-- >>> let qgr = qparse "?node a ?type."
+-- >>> rdfQueryFind qgr igr
+-- [[(?type,a:B),(?node,a:b)],[(?type,a:A),(?node,a:a)]]
+-- >>> let bn = (toRDFLabel . Data.Maybe.fromJust . Network.URI.parseURI) "http://example.com/B"
+-- >>> rdfFindArcs (rdfObjEq bn) igr
+-- [(a:b,rdf:type,a:B)]
+-- >>> Data.Maybe.mapMaybe (flip Swish.RDF.VarBinding.vbMap (Var "type")) $ rdfQueryFind qgr igr
+-- [a:B,a:A]
+-- 
 --------------------------------------------------------------------------------
 
 module Swish.RDF.RDFQuery
@@ -472,11 +488,18 @@ rdfFindPred p = rdfFindArcs (rdfPredEq p)
 -}
 
 -- |Find values of given predicate for a given subject
-rdfFindPredVal :: RDFLabel -> RDFLabel -> RDFGraph -> [RDFLabel]
+rdfFindPredVal :: 
+  RDFLabel    -- ^ subject
+  -> RDFLabel -- ^ predicate
+  -> RDFGraph 
+  -> [RDFLabel]
 rdfFindPredVal s p = map arcObj . rdfFindArcs (allp [rdfSubjEq s,rdfPredEq p])
 
 -- |Find integer values of a given predicate for a given subject
-rdfFindPredInt :: RDFLabel -> RDFLabel -> RDFGraph -> [Integer]
+rdfFindPredInt :: 
+  RDFLabel     -- ^ subject
+  -> RDFLabel  -- ^ predicate
+  -> RDFGraph -> [Integer]
 rdfFindPredInt s p = mapMaybe getint . filter isint . pvs
     where
         pvs = rdfFindPredVal s p
@@ -486,8 +509,12 @@ rdfFindPredInt s p = mapMaybe getint . filter isint . pvs
             ]
         getint = mapL2V mapXsdInteger . getLiteralText
 
--- |Find all subjects that have a of given value for for a given predicate
-rdfFindValSubj :: RDFLabel -> RDFLabel -> RDFGraph -> [RDFLabel]
+-- |Find all subjects that match (subject, predicate, object) in the graph.
+rdfFindValSubj :: 
+  RDFLabel     -- ^ predicate
+  -> RDFLabel  -- ^ object
+  -> RDFGraph 
+  -> [RDFLabel]
 rdfFindValSubj p o = map arcSubj . rdfFindArcs (allp [rdfPredEq p,rdfObjEq o])
 
 ------------------------------------------------------------
