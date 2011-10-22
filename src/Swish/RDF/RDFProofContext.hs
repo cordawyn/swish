@@ -344,7 +344,7 @@ rulesRDF =
     , rdfcp1,     rdfcp2,     rdfcp3
     ]
 
---  Define ruleset for RDF inference
+-- | Ruleset for RDF inference.
 
 rulesetRDF :: RDFRuleset
 rulesetRDF = makeRuleset scopeRDF axiomsRDF rulesRDF
@@ -688,55 +688,55 @@ rdfsrext9 = makeN3ClosureSimpleRule scopeRDFS "rext9"
 --  custom inference rule.)
 --
 rdfscp11 :: RDFRule
-rdfscp11 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp11 = makeN3ClosureRule scopeRDFS "cp11"
             "?x  ?c ?y . "
             "?c rdf:type rdfs:ContainerMembershipProperty ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp12 :: RDFRule
-rdfscp12 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp12 = makeN3ClosureRule scopeRDFS "cp12"
             "?c  ?p ?y . "
             "?c rdf:type rdfs:ContainerMembershipProperty ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp13 :: RDFRule
-rdfscp13 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp13 = makeN3ClosureRule scopeRDFS "cp13"
             "?x  ?p ?c . "
             "?c rdf:type rdfs:ContainerMembershipProperty ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp21 :: RDFRule
-rdfscp21 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp21 = makeN3ClosureRule scopeRDFS "cp21"
             "?x  ?c ?y . "
             "?c rdfs:domain rdfs:Resource ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp22 :: RDFRule
-rdfscp22 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp22 = makeN3ClosureRule scopeRDFS "cp22"
             "?c  ?p ?y . "
             "?c rdfs:domain rdfs:Resource ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp23 :: RDFRule
-rdfscp23 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp23 = makeN3ClosureRule scopeRDFS "cp23"
             "?x  ?p ?c . "
             "?c rdfs:domain rdfs:Resource ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp31 :: RDFRule
-rdfscp31 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp31 = makeN3ClosureRule scopeRDFS "cp31"
             "?x  ?c ?y . "
             "?c rdfs:range rdfs:Resource ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp32 :: RDFRule
-rdfscp32 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp32 = makeN3ClosureRule scopeRDFS "cp32"
             "?c  ?p ?y . "
             "?c rdfs:range rdfs:Resource ."
             (makeVarFilterModify $ isMemberPropV "c")
 
 rdfscp33 :: RDFRule
-rdfscp33 = makeN3ClosureRule scopeRDFS "cp1"
+rdfscp33 = makeN3ClosureRule scopeRDFS "cp33"
             "?x  ?p ?c . "
             "?c rdfs:range rdfs:Resource ."
             (makeVarFilterModify $ isMemberPropV "c")
@@ -753,7 +753,7 @@ rulesRDFS =
     , rdfscp31,   rdfscp32,   rdfscp33
     ]
 
---  Define ruleset for RDFS inference
+-- | Ruleset for RDFS inference.
 
 rulesetRDFS :: RDFRuleset
 rulesetRDFS = makeRuleset scopeRDFS axiomsRDFS rulesRDFS
@@ -818,7 +818,7 @@ rulesRDFD =
     [ rdfdr1, rdfdr2, rdfdr3
     ]
 
---  Define ruleset for RDFD inference
+-- | Ruleset for RDFD (datatyping) inference.
 --
 rulesetRDFD :: RDFRuleset
 rulesetRDFD = makeRuleset scopeRDFD axiomsRDFD rulesRDFD

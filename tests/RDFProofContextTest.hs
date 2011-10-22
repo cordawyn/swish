@@ -483,7 +483,7 @@ rdfBase08  = makeFormula scopeex "rdfBase08"
                 "ex:s1 rdf:_123 ex:o ."
                 
 rdfStep08a :: RDFProofStep                
-rdfStep08a = makeRDFProofStep (getRule "rs_rdfs:cp1") [rdfBase08]  rdfCons08a
+rdfStep08a = makeRDFProofStep (getRule "rs_rdfs:cp11") [rdfBase08]  rdfCons08a
 
 rdfCons08a :: RDFFormula
 rdfCons08a = makeFormula scopeex "rdfCons08a" 
