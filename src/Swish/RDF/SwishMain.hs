@@ -179,7 +179,10 @@ splitArgument x    = Right x
 -- | Represent a Swish action. At present there is no way to create these
 -- actions other than 'validateCommands'.
 -- 
-newtype SwishAction = SA (SwishStateIO ())
+newtype SwishAction = SA (String, SwishStateIO ())
+
+instance Show SwishAction where
+  show (SA (lbl,_)) = "SwishAction: " ++ lbl
 
 -- | Given a list of command-line arguments create the list of actions
 -- to perform or a string and status value indicating an input error.
@@ -199,7 +202,7 @@ validateCommand cmd =
       arg        = drop 1 more
       marg       = if null arg then Nothing else Just arg
       
-      wrap f = Right $ SA $ f marg
+      wrap f = Right $ SA (cmd, f marg)
   in case nam of
     "-ttl"  -> wrap $ swishFormat Turtle
     "-nt"   -> wrap $ swishFormat NT
@@ -209,7 +212,7 @@ validateCommand cmd =
     "-c"    -> wrap swishCompare
     "-d"    -> wrap swishGraphDiff
     "-o"    -> wrap swishOutput
-    "-b"    -> validateBase marg
+    "-b"    -> validateBase cmd marg
     "-s"    -> wrap swishScript
     _       -> Left ("Invalid command line argument: "++cmd, SwishArgumentError)
 
@@ -219,13 +222,13 @@ swishCommands = mapM_ swishCommand
 
 -- | Execute an action.
 swishCommand :: SwishAction -> SwishStateIO ()
-swishCommand (SA act) = act
+swishCommand (SA (_,act)) = act
 
-validateBase :: Maybe String -> Either (String, SwishStatus) SwishAction
-validateBase Nothing  = Right $ SA $ swishBase Nothing Nothing
-validateBase (Just b) =
+validateBase :: String -> Maybe String -> Either (String, SwishStatus) SwishAction
+validateBase arg Nothing  = Right $ SA (arg, swishBase Nothing Nothing)
+validateBase arg (Just b) =
   case fmap qnameFromURI (parseURI b) of
-    j@(Just _) -> Right $ SA $ swishBase j Nothing
+    j@(Just _) -> Right $ SA (arg, swishBase j Nothing)
     _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
   
 ------------------------------------------------------------
