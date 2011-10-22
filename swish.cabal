@@ -9,7 +9,7 @@ Maintainer:         dburke@cfa.harvard.edu
 Category:           Semantic Web
 Synopsis:           A semantic web toolkit. 
 
-Tested-With:        GHC==6.12.3
+Tested-With:        GHC==7.0.4
 Cabal-Version:      >= 1.9.2
 Homepage:           https://bitbucket.org/doug_burke/swish/wiki/Home
 Bug-reports:        https://bitbucket.org/doug_burke/swish/issues
@@ -269,7 +269,7 @@ Library
       ghc-prof-options: -auto-all
 
 Test-Suite test-builtinmap
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:    BuiltInMapTest.hs
    Other-Modules:  TestHelpers
@@ -298,7 +298,7 @@ Test-Suite test-builtinmap
       time >= 1.1 && < 1.5
 
 Test-Suite test-graphpartition
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        GraphPartitionTest.hs
    Other-Modules:  TestHelpers
@@ -320,7 +320,7 @@ Test-Suite test-graphpartition
       mtl >= 2 && < 3
 
 Test-Suite test-graph
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        GraphTest.hs
    Other-Modules:  TestHelpers
@@ -342,7 +342,7 @@ Test-Suite test-graph
       mtl >= 2 && < 3
 
 Test-Suite test-nt
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        NTTest.hs
    Other-Modules:  TestHelpers
@@ -371,7 +371,7 @@ Test-Suite test-nt
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-n3parser
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        N3ParserTest.hs
    Other-Modules:  TestHelpers
@@ -400,7 +400,7 @@ Test-Suite test-n3parser
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-n3formatter
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        N3FormatterTest.hs
    Other-Modules:  TestHelpers
@@ -429,7 +429,7 @@ Test-Suite test-n3formatter
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-rdfdatatypexsdinteger
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFDatatypeXsdIntegerTest.hs
    Other-Modules:  TestHelpers
@@ -458,7 +458,7 @@ Test-Suite test-rdfdatatypexsdinteger
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-rdfgraph
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFGraphTest.hs
    Other-Modules:  TestHelpers
@@ -486,7 +486,7 @@ Test-Suite test-rdfgraph
       directory >= 1.0 && < 1.2
 
 Test-Suite test-rdfproofcontext
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFProofContextTest.hs
    Other-Modules:  TestHelpers
@@ -515,7 +515,7 @@ Test-Suite test-rdfproofcontext
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-rdfproof
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFProofTest.hs
    Other-Modules:  TestHelpers
@@ -544,7 +544,7 @@ Test-Suite test-rdfproof
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-rdfquery
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFQueryTest.hs
    Other-Modules:  TestHelpers
@@ -573,7 +573,7 @@ Test-Suite test-rdfquery
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-rdfruleset
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFRulesetTest.hs
    Other-Modules:  TestHelpers
@@ -602,7 +602,7 @@ Test-Suite test-rdfruleset
       polyparse >= 1.6 && < 1.8
 
 Test-Suite test-varbinding
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        VarBindingTest.hs
    Other-Modules:  TestHelpers
@@ -627,7 +627,7 @@ Test-Suite test-varbinding
       directory >= 1.0 && < 1.2
 
 Test-Suite test-lookupmap
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        LookupMapTest.hs
    Other-Modules:  TestHelpers
@@ -647,7 +647,7 @@ Test-Suite test-lookupmap
       base >=3 && < 5
 
 Test-Suite test-qname
-   Type:       exitcode-stdio-1.0
+   type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/ src/
    Main-Is:        QNameTest.hs
    Other-Modules:  TestHelpers
