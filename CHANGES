@@ -12,10 +12,11 @@
     means that the tests flag has been replaced by the --enable-tests
     option.
 
+  - Change to the internal labelling of the RDFS container-property
+    axioms in Swish.RDF.RDFProofContext.
+
   - Moved src/ to app/, and took advantage of the emptiness to move
     the library code into src/.
-
-TODO: can we "fix" the variable-naming issues in RDFProof?
 
 0.6.1.2:
 
