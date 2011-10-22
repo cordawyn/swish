@@ -200,6 +200,8 @@ Library
       hashable == 1.1.*,
       intern == 0.8.*
 
+   Hs-Source-Dirs: src/
+
    Exposed-Modules:
       Swish
       Swish.RDF
@@ -266,7 +268,7 @@ Library
 
 Test-Suite test-builtinmap
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:    BuiltInMapTest.hs
    Other-Modules:  TestHelpers
 
@@ -295,7 +297,7 @@ Test-Suite test-builtinmap
 
 Test-Suite test-graphpartition
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        GraphPartitionTest.hs
    Other-Modules:  TestHelpers
 
@@ -317,7 +319,7 @@ Test-Suite test-graphpartition
 
 Test-Suite test-graph
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        GraphTest.hs
    Other-Modules:  TestHelpers
 
@@ -339,7 +341,7 @@ Test-Suite test-graph
 
 Test-Suite test-nt
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        NTTest.hs
    Other-Modules:  TestHelpers
 
@@ -368,7 +370,7 @@ Test-Suite test-nt
 
 Test-Suite test-n3parser
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        N3ParserTest.hs
    Other-Modules:  TestHelpers
 
@@ -397,7 +399,7 @@ Test-Suite test-n3parser
 
 Test-Suite test-n3formatter
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        N3FormatterTest.hs
    Other-Modules:  TestHelpers
 
@@ -426,7 +428,7 @@ Test-Suite test-n3formatter
 
 Test-Suite test-rdfdatatypexsdinteger
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFDatatypeXsdIntegerTest.hs
    Other-Modules:  TestHelpers
 
@@ -455,7 +457,7 @@ Test-Suite test-rdfdatatypexsdinteger
 
 Test-Suite test-rdfgraph
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFGraphTest.hs
    Other-Modules:  TestHelpers
 
@@ -483,7 +485,7 @@ Test-Suite test-rdfgraph
 
 Test-Suite test-rdfproofcontext
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFProofContextTest.hs
    Other-Modules:  TestHelpers
 
@@ -512,7 +514,7 @@ Test-Suite test-rdfproofcontext
 
 Test-Suite test-rdfproof
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFProofTest.hs
    Other-Modules:  TestHelpers
 
@@ -541,7 +543,7 @@ Test-Suite test-rdfproof
 
 Test-Suite test-rdfquery
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFQueryTest.hs
    Other-Modules:  TestHelpers
 
@@ -570,7 +572,7 @@ Test-Suite test-rdfquery
 
 Test-Suite test-rdfruleset
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        RDFRulesetTest.hs
    Other-Modules:  TestHelpers
 
@@ -599,7 +601,7 @@ Test-Suite test-rdfruleset
 
 Test-Suite test-varbinding
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        VarBindingTest.hs
    Other-Modules:  TestHelpers
 
@@ -624,7 +626,7 @@ Test-Suite test-varbinding
 
 Test-Suite test-lookupmap
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        LookupMapTest.hs
    Other-Modules:  TestHelpers
 
@@ -644,7 +646,7 @@ Test-Suite test-lookupmap
 
 Test-Suite test-qname
    Type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/ ./
+   Hs-Source-Dirs: tests/ src/
    Main-Is:        QNameTest.hs
    Other-Modules:  TestHelpers
 
@@ -672,7 +674,8 @@ Test-Suite test-qname
    Main-Is:        tests/SwishTest.hs
 
 Executable         Swish
-   Main-Is:        exesrc/Swish.hs
+   Main-Is:        SwishApp.hs
+   Hs-Source-Dirs: app/ src/
    Other-Modules:  Paths_swish
 
    ghc-options:

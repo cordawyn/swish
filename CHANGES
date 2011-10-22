@@ -7,37 +7,36 @@
     terms added to the pre-existing vocabularies). A few have also
     been added to Swish.RDF.RDFGraph.
 
-  - Minimum Cabal version has been updated to 1.9.2 as the tests
-    have been converted to take advantage of the support now in
-    Cabal; this means that the tests flag has been replaced by
-    the --enable-tests option.
+  - Minimum Cabal version has been updated to 1.9.2 as the tests have
+    been converted to take advantage of the support now in Cabal; this
+    means that the tests flag has been replaced by the --enable-tests
+    option.
 
-  - Moved src/ to exesrc/, which is a terrible name.
+  - Moved src/ to app/, and took advantage of the emptiness to move
+    the library code into src/.
 
 TODO: can we "fix" the variable-naming issues in RDFProof?
 
 0.6.1.2:
 
-  - corrected mtl constraint from >= 1 to >= 2 as the code does
-    not build with mtl=1 and increased the upper limit on time
-    to 1.4.
+  - corrected mtl constraint from >= 1 to >= 2 as the code does not
+    build with mtl=1 and increased the upper limit on time to 1.4.
 
 0.6.1.1:
 
-  - minor improvements to error message when parsing Turtle,
-    N3 or Ntriples format; a fragment of the remaining text to be
-    parsed is included to provide some context for the user (it
-    is still not as useful as the error message provided when
-    parsec was being used).
+  - minor improvements to error message when parsing Turtle, N3 or
+    Ntriples format; a fragment of the remaining text to be parsed is
+    included to provide some context for the user (it is still not as
+    useful as the error message provided when parsec was being used).
 
 0.6.1.0:
 
   - add support for reading and writing Turtle format and the
-    Swish.RDF.TurtleFormatter and Swish.RDF.TurtleParser modules.
-    No tests are provided at this time, although the parser handles
-    most of the W3C test files; the issues include Network.URI
-    not recognizing some IRI's and issues with equating XSD decimal
-    and double values due to canonicalization.
+    Swish.RDF.TurtleFormatter and Swish.RDF.TurtleParser modules.  No
+    tests are provided at this time, although the parser handles most
+    of the W3C test files; the issues include Network.URI not
+    recognizing some IRI's and issues with equating XSD decimal and
+    double values due to canonicalization.
 
 0.6.0.1:
 
