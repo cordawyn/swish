@@ -15,7 +15,7 @@
 --  about a ruleset that may contribute torwards inferences in RDF;
 --  e.g. RDF and RDFS are rulesets.
 --
---  A ruleset consists of a namespace, a collection of axioms and
+--  A ruleset consists of a namespace, a collection of axioms, and
 --  a collection of rules.
 --
 --------------------------------------------------------------------------------
@@ -48,12 +48,12 @@ import Data.List (intercalate)
 
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 
--- | Ruleset, having namespace, axioms and rules
+-- | A Rule set.
 
 data Ruleset ex = Ruleset
-    { rsNamespace :: Namespace
-    , rsAxioms    :: [Formula ex]
-    , rsRules     :: [Rule ex]
+    { rsNamespace :: Namespace    -- ^ Namespace.
+    , rsAxioms    :: [Formula ex] -- ^ Axioms.
+    , rsRules     :: [Rule ex]    -- ^ Rules.
     }
 
 {-
@@ -69,6 +69,7 @@ instance (ShowM ex) => Show (Ruleset ex) where
        (intercalate "\n" ("Rules:" : map show rls))) ""
 -}
 
+-- | Ruleset comparisons are based only on their namespace components.
 instance Eq (Ruleset ex) where
     r1 == r2 = rsNamespace r1 == rsNamespace r2
 
@@ -79,6 +80,7 @@ instance LookupEntryClass (Ruleset ex) Namespace (Ruleset ex)
 
 type RulesetMap ex = LookupMap (Ruleset ex)
 
+-- | Create a ruleset.
 makeRuleset :: Namespace -> [Formula ex] -> [Rule ex] -> Ruleset ex
 makeRuleset nsp fms rls = Ruleset
     { rsNamespace = nsp
@@ -86,12 +88,15 @@ makeRuleset nsp fms rls = Ruleset
     , rsRules     = rls
     }
 
+-- | Extract the namespace of a ruleset.
 getRulesetNamespace :: Ruleset ex -> Namespace
 getRulesetNamespace = rsNamespace
 
+-- | Extract the axioms from a ruleset.
 getRulesetAxioms :: Ruleset ex -> [Formula ex]
 getRulesetAxioms = rsAxioms
 
+-- | Extract the rules from a ruleset.
 getRulesetRules :: Ruleset ex -> [Rule ex]
 getRulesetRules = rsRules
 
@@ -107,24 +112,41 @@ getRulesetRule nam rset =
     mapFindMaybe nam (LookupMap (getRulesetRules rset))
     -- listToMaybe $ filter ( (matchName nam) . ruleName ) $ getRulesetRules rset
 
--- | Find a named axiom or rule in a proof context.
-getContextAxiom :: ScopedName -> Formula ex -> [Ruleset ex] -> Formula ex
+-- | Find a named axiom in a proof context.
+getContextAxiom :: 
+  ScopedName -- ^ Name of axiom.
+  -> Formula ex -- ^ Default axiom (used if named component does not exist).
+  -> [Ruleset ex] -- ^ Rulesets to search.
+  -> Formula ex
 getContextAxiom nam def rsets = fromMaybe def (getMaybeContextAxiom nam rsets)
     {-
     foldr (flip fromMaybe) def $ map (getRulesetAxiom nam) rsets
     -}
 
-getMaybeContextAxiom :: ScopedName -> [Ruleset ex] -> Maybe (Formula ex)
+-- | Find a named axiom in a proof context.
+getMaybeContextAxiom ::
+  ScopedName -- ^ Name of axiom.
+  -> [Ruleset ex] -- ^ Rulesets to search.
+  -> Maybe (Formula ex)
 getMaybeContextAxiom nam rsets =
     listToMaybe $ mapMaybe (getRulesetAxiom nam) rsets
 
-getContextRule :: ScopedName -> Rule ex -> [Ruleset ex] -> Rule ex
+-- | Find a named rule in a proof context.
+getContextRule :: 
+  ScopedName -- ^ Name of rule.
+  -> Rule ex -- ^ Default rule (used if named component does not exist).
+  -> [Ruleset ex] -- ^ Rulesets to search.
+  -> Rule ex
 getContextRule nam def rsets = fromMaybe def (getMaybeContextRule nam rsets)
     {-
     foldr (flip fromMaybe) def $ map (getRulesetRule nam) rsets
     -}
 
-getMaybeContextRule :: ScopedName -> [Ruleset ex] -> Maybe (Rule ex)
+-- | Find a named rule in a proof context.
+getMaybeContextRule :: 
+  ScopedName -- ^ Name of rule.
+  -> [Ruleset ex] -- ^ Rulesets to search.
+  -> Maybe (Rule ex)
 getMaybeContextRule nam rsets =
     listToMaybe $ mapMaybe (getRulesetRule nam) rsets
 

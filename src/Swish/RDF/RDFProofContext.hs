@@ -13,7 +13,7 @@
 --  Portability :  OverloadedStrings
 --
 --  This module contains proof-context declarations based on
---  the RDF, RDFS and RDF datatyping semantics specifications.
+--  the RDF, RDFS, and RDF datatyping semantics specifications.
 --  These definitions consist of namespaces (for identification
 --  in proofs), axioms and inference rules.
 --

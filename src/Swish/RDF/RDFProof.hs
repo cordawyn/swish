@@ -12,7 +12,7 @@
 --  Portability :  FlexibleInstances, UndecidableInstances
 --
 --  This module instantiates the 'Proof' framework for
---  constructing proofs over RDFGraph expressions.
+--  constructing proofs over 'RDFGraph' expressions.
 --  The intent is that this can be used to test some
 --  correspondences between the RDF Model theory and
 --  corresponding proof theory based on closure rules
@@ -86,7 +86,7 @@ import Swish.Utils.ListHelpers
 --  The empty RDF graph is always @True@ (other enduring
 --  truths are asserted as axioms).
 instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
-    isValid gr = null $ getArcs gr
+    isValid = null . getArcs 
 
 ------------------------------------------------------------
 --  Define RDF-specific types for proof framework
@@ -100,7 +100,7 @@ type RDFProofStep = Step RDFGraph
 --  Helper functions for constructing proofs on RDF graphs
 ------------------------------------------------------------
 
--- |Make an RDF graph proof step
+-- |Make an RDF graph proof step.
 --
 makeRDFProofStep ::
     RDFRule  -- ^ rule to use for this step
@@ -113,7 +113,7 @@ makeRDFProofStep rul ants con = Step
     , stepCon  = con
     }
 
--- |Make an RDF proof
+-- |Make an RDF proof.
 --
 makeRDFProof ::
     [RDFRuleset]      -- ^ RDF rulesets that constitute a proof context for this proof

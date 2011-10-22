@@ -27,7 +27,7 @@ module Swish.RDF.Rule
        )
        where
 
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeScopedName, makeNSScopedName)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
 
@@ -70,12 +70,15 @@ instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
     newEntry (_,form) = form
     keyVal form = (formName form, form)
 
--- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@
+-- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@ with the prefix @null:@.
 nullScope :: Namespace
 nullScope = makeNamespace (Just "null") nullScopeURI
 
-nullSN :: T.Text -> ScopedName
-nullSN = makeScopedName (Just "null") nullScopeURI
+-- | Create a scoped name with the null namespace.
+nullSN :: 
+  T.Text -- ^ local name.
+  -> ScopedName
+nullSN = makeNSScopedName nullScope
 
 tU :: String -> URI
 tU = fromJust . parseURI
@@ -159,11 +162,11 @@ data Rule ex = Rule
       checkInference :: [ex] -> ex -> Bool 
     }
 
--- |Define equality of rules as equality of rule names
+-- |Define equality of rules as equality of the rule names.
 instance Eq (Rule ex) where
     r1 == r2 = ruleName r1 == ruleName r2
 
--- |Define ordering of rules based on rule names
+-- |Define ordering of rules based on the rule names.
 instance Ord (Rule ex) where
     r1 <= r2 = ruleName r1 <= ruleName r2
 
