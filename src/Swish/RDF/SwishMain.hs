@@ -37,6 +37,8 @@
 -- such as
 --
 -- >>> let Right cs = validateCommands ["-ttl", "-i=file1.ttl", "-c=file2.ttl"]
+-- >>> cs
+-- [SwishAction: -ttl,SwishAction: -i=file1.ttl,SwishAction: -c=file2.ttl]
 -- >>> st <- runSwishActions cs
 -- >>> st
 -- The graphs do not compare as equal.
