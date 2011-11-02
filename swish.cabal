@@ -46,7 +46,9 @@ Description:
   .
   Changes:
   .
-  [Version 0.6.2.1] Hackage did not want to upload @0.6.2.0@, so re-try.
+  [Version 0.6.2.1] Hackage did not want to upload @0.6.2.0@, so re-try by 
+  disabling the @hpc@ and @developer@ flags for the tests to 
+  work around what appears to be <http://hackage.haskell.org/trac/hackage/ticket/811>.
   .
   [Version 0.6.2.0] Updated "Swish.RDF.Vocabulary" and "Swish.RDF.RDFGraph" to
   include more common RDF terms. Added "Swish.RDF.Vocabulary.DublinCore",
@@ -181,9 +183,9 @@ Flag  developer
   Description: Turn on developer flags
   Default:     False
 
-Flag  hpc
-  Description: Use Hpc for the tests
-  Default:     False
+-- Flag  hpc
+--   Description: Use Hpc for the tests
+--   Default:     False
 
 Library
    Build-Depends:
@@ -276,12 +278,12 @@ Test-Suite test-builtinmap
    Main-Is:    BuiltInMapTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -305,12 +307,12 @@ Test-Suite test-graphpartition
    Main-Is:        GraphPartitionTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -327,12 +329,12 @@ Test-Suite test-graph
    Main-Is:        GraphTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -349,12 +351,12 @@ Test-Suite test-nt
    Main-Is:        NTTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -378,12 +380,12 @@ Test-Suite test-n3parser
    Main-Is:        N3ParserTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -407,12 +409,12 @@ Test-Suite test-n3formatter
    Main-Is:        N3FormatterTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -436,12 +438,12 @@ Test-Suite test-rdfdatatypexsdinteger
    Main-Is:        RDFDatatypeXsdIntegerTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -465,12 +467,12 @@ Test-Suite test-rdfgraph
    Main-Is:        RDFGraphTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -493,12 +495,12 @@ Test-Suite test-rdfproofcontext
    Main-Is:        RDFProofContextTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -522,12 +524,12 @@ Test-Suite test-rdfproof
    Main-Is:        RDFProofTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -551,12 +553,12 @@ Test-Suite test-rdfquery
    Main-Is:        RDFQueryTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -580,12 +582,12 @@ Test-Suite test-rdfruleset
    Main-Is:        RDFRulesetTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -609,12 +611,12 @@ Test-Suite test-varbinding
    Main-Is:        VarBindingTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -634,12 +636,12 @@ Test-Suite test-lookupmap
    Main-Is:        LookupMapTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
@@ -654,12 +656,12 @@ Test-Suite test-qname
    Main-Is:        QNameTest.hs
    Other-Modules:  TestHelpers
 
-   if flag(hpc)
-      ghc-options: -fhpc
-
-   if flag(developer)
-      ghc-options: -Werror
-      ghc-prof-options: -auto-all
+   -- if flag(hpc)
+   --    ghc-options: -fhpc
+   -- 
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
 
    ghc-options:
       -Wall -fno-warn-orphans
