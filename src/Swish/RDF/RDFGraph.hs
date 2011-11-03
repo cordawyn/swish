@@ -998,7 +998,7 @@ instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
 
 type RevNamespaceMap = LookupMap RevNamespace
 
--- | Create an emoty namespace map.
+-- | Create an empty namespace map.
 emptyNamespaceMap :: NamespaceMap
 emptyNamespaceMap = LookupMap []
 
