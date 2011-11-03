@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.2.1
+Version:            0.6.3.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,8 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.3.0] Added "Swish.RDF.Vocabulary.SIOC".
   .
   [Version 0.6.2.1] Hackage did not want to upload @0.6.2.0@, so re-try by 
   disabling the @hpc@ and @developer@ flags for the tests to 
@@ -252,6 +254,7 @@ Library
       Swish.RDF.Vocabulary.Geo
       Swish.RDF.Vocabulary.OWL
       Swish.RDF.Vocabulary.RDF
+      Swish.RDF.Vocabulary.SIOC
       Swish.RDF.Vocabulary.XSD
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
