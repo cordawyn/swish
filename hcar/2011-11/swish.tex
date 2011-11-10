@@ -1,0 +1,66 @@
+% Swish-DS.tex
+\begin{hcarentry}[new]{Swish}
+\report{Douglas Burke}%11/11
+\status{experimental}
+\participants{Graham Klyne, Vasili I Galchin}
+\makeheader
+
+Swish is a framework for performing deductions in RDF data using a
+variety of techniques. Swish is conceived as a toolkit for
+experimenting with RDF inference, and for implementing stand-alone RDF
+file processors (usable in similar style to CWM, but with a view to
+being extensible in declarative style through added Haskell function
+and data value declarations). It explores Haskell as ``a scripting
+language for the Semantic Web'', is a work-in-progress, and currently
+incorporates:
+
+\begin{compactitem}
+\item
+Support for Turtle, Notation3, and NTriples formats.
+
+\item
+RDF graph isomorphism testing and merging.
+
+\item
+Display of differences between RDF graphs.
+
+\item
+Inference operations in forward chaining, backward chaining and proof-checking modes.
+
+\item
+Simple Horn-style rule implementations, extendable through variable binding modifiers and filters.
+
+\item
+Class restriction rule implementation, primarily for datatype inferences.
+
+\item
+RDF formal semantics entailment rule implementation.
+
+\item
+Complete, ready-to-run, command-line and script-driven programs.
+\end{compactitem}
+
+\subsubsection*{Current Work}
+
+A number of incremental changes have been made to the code base,
+including support for version 7.2 of GHC and some minor
+optimisations. A parser and formatter for the Turtle format were
+added, the API changed to use the Text datatype where appropriate, and
+the vocabulary module was extended to include terms from the Dublin
+Core, FOAF, Geo and SIOC vocabularies.
+
+\FuturePlans
+
+Continue the clean up and replacement of code with packages from
+Hacakge. Look for commonalities with the other existing RDF Haskell package,
+{\tt rdf4h}.
+Community input --- whether it be patches, new code or just feature
+requests --- are more than welcome.
+ 
+\FurtherReading
+\begin{compactitem}
+\item \url{https://bitbucket.org/doug_burke/swish/}
+\item \url{http://www.ninebynine.org/RDFNotes/Swish/Intro.html}
+\item \url{http://protempore.net/rdf4h/}
+\end{compactitem}
+\end{hcarentry}
