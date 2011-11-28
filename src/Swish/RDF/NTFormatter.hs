@@ -211,7 +211,7 @@ quoteT c    =
 -- we assume c > 0, n >= 0 and that the input value fits
 -- into the requested number of digits
 numToHex :: Int -> Int -> String
-numToHex c v = go [] v
+numToHex c = go []
   where
     go s 0 = replicate (c - length s) '0' ++ s
     go s n = 

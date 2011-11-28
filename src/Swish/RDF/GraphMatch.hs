@@ -561,8 +561,8 @@ arcSignatures ::
   => LabelMap lb -- ^ the current label index values
   -> [Arc lb] -- ^ calculate signatures for these arcs
   -> [Int] -- ^ the signatures of the arcs
-arcSignatures lmap gs =
-    map (sigCalc . arcToTriple) gs
+arcSignatures lmap =
+    map (sigCalc . arcToTriple) 
     where
         sigCalc (s,p,o)  =
             ( labelVal2 s +

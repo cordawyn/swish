@@ -516,8 +516,8 @@ deleteMaybe (Just a) as = delete a as
 ------------------------------------------------------------
 
 makeRDFDatatypeRestrictionRules :: RDFDatatypeVal vt -> RDFGraph -> [RDFRule]
-makeRDFDatatypeRestrictionRules dtval gr =
-    makeRDFClassRestrictionRules dcrs gr
+makeRDFDatatypeRestrictionRules dtval =
+    makeRDFClassRestrictionRules dcrs 
     where
         dcrs = map (makeDatatypeRestriction dtval) (tvalRel dtval)
 

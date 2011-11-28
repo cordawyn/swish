@@ -60,7 +60,7 @@ type PartCompare a = a -> a -> Maybe Ordering
 --  for which there is no larger element in the list.
 --
 maxima :: PartCompare a -> [a] -> [a]
-maxima cmp as = foldl' add [] as
+maxima cmp = foldl' add [] 
     where
         add []     e = [e]
         add ms@(m:mr) e = case cmp m e of
