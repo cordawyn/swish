@@ -1,59 +1,55 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  BuiltInDatatypes
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Module      :  MapXsdDecimal
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                     2011 Douglas Burke, 2011 William Waites
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  OverloadedStrings
 --
---  This module collects references and provides access to all of the
---  datatypes built in to Swish.
+--  This module defines the datatytpe mapping and relation values
+--  used for RDF dataype xsd:decimal
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.BuiltInDatatypes
-       ( allDatatypes, findRDFDatatype )
-    where
+module Swish.RDF.MapXsdDecimal (mapXsdDecimal) where
 
-import Swish.RDF.RDFDatatype (RDFDatatype)
+import Swish.RDF.Datatype (DatatypeMap(..))
 
-import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
-import Swish.Utils.Namespace (ScopedName)
-import Swish.RDF.RDFDatatypeXsdString (rdfDatatypeXsdString)
-import Swish.RDF.RDFDatatypeXsdInteger (rdfDatatypeXsdInteger)
-import Swish.RDF.RDFDatatypeXsdDecimal (rdfDatatypeXsdDecimal)
+import qualified Data.Text as T
+import qualified Data.Text.Read as T
 
 ------------------------------------------------------------
---  Declare datatype map
+--  Implementation of DatatypeMap for xsd:decimal
 ------------------------------------------------------------
 
-allDatatypes :: [RDFDatatype]
-allDatatypes =
-    [ rdfDatatypeXsdString
-    , rdfDatatypeXsdInteger
-    , rdfDatatypeXsdDecimal
-    ]
-
-findRDFDatatype :: ScopedName -> Maybe RDFDatatype
-findRDFDatatype nam = mapFindMaybe nam (LookupMap allDatatypes)
-
-------------------------------------------------------------
---  Declare datatype subtypes map
-------------------------------------------------------------
-
-{-
-allDatatypeSubtypes :: [xxx]
-allDatatypeSubtypes = []
---  [[[details TBD]]]
--}
+-- |mapXsdDecimal contains functions that perform lexical-to-value
+--  and value-to-canonical-lexical mappings for xsd:decimal values
+--
+mapXsdDecimal :: DatatypeMap Double
+mapXsdDecimal = DatatypeMap
+    { -- mapL2V :: T.Text -> Maybe Double
+      mapL2V = \txt -> case T.double txt of
+      	 Right (val, "") -> Just val
+         _ -> Nothing
+         
+      -- mapV2L :: Double -> Maybe T.Text
+      -- TODO: for now convert via String as issues with text-format
+      --       (inability to use with ghci)   
+    , mapV2L = Just . T.pack . show
+    }
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                2011 Douglas Burke, 2011 William Waites
+--
 --  All rights reserved.
 --
 --  This file is part of Swish.

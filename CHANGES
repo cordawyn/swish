@@ -1,3 +1,7 @@
+0.6.3.1:
+
+  - Added support for xsd:decimal datatype
+
 0.6.3.0:
 
   - Added Swish.RDF.Vocabulary.SIOC.
