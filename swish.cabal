@@ -48,6 +48,7 @@ Description:
   .
   [Version 0.6.4.0] Added support for xsd:decimal with "Swish.RDF.RDFDatatypeXsdDecimal"
   and "Swish.RDF.MapXsdDecimal" thanks to William Waites <https://bitbucket.org/ww>.
+  Added "Swish.RDF.Vocabulary.Provenance".
   .
   [Version 0.6.3.0] Added "Swish.RDF.Vocabulary.SIOC".
   .
@@ -258,6 +259,7 @@ Library
       Swish.RDF.Vocabulary.FOAF
       Swish.RDF.Vocabulary.Geo
       Swish.RDF.Vocabulary.OWL
+      Swish.RDF.Vocabulary.Provenance
       Swish.RDF.Vocabulary.RDF
       Swish.RDF.Vocabulary.SIOC
       Swish.RDF.Vocabulary.XSD
