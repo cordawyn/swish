@@ -1,10 +1,10 @@
 Name:               swish
-Version:            0.6.3.1
+Version:            0.6.4.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
 Author:             Graham Klyne - GK@ninebynine.org
-Copyright:          (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011 Doug Burke; All rights reserved.
+Copyright:          (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011, 2012 Doug Burke; All rights reserved.
 Maintainer:         dburke@cfa.harvard.edu
 Category:           Semantic Web
 Synopsis:           A semantic web toolkit. 
@@ -46,7 +46,8 @@ Description:
   .
   Changes:
   .
-  [Version 0.6.3.1] Added support for xsd:decimal.
+  [Version 0.6.4.0] Added support for xsd:decimal with "Swish.RDF.RDFDatatypeXsdDecimal"
+  and "Swish.RDF.MapXsdDecimal" thanks to William Waites <https://bitbucket.org/ww>.
   .
   [Version 0.6.3.0] Added "Swish.RDF.Vocabulary.SIOC".
   .
@@ -224,6 +225,7 @@ Library
       Swish.RDF.GraphMatch
       Swish.RDF.GraphMem
       Swish.RDF.GraphPartition
+      Swish.RDF.MapXsdDecimal
       Swish.RDF.MapXsdInteger
       Swish.RDF.NTFormatter
       Swish.RDF.NTParser
@@ -231,6 +233,7 @@ Library
       Swish.RDF.N3Parser
       Swish.RDF.Proof
       Swish.RDF.RDFDatatype
+      Swish.RDF.RDFDatatypeXsdDecimal
       Swish.RDF.RDFDatatypeXsdInteger
       Swish.RDF.RDFDatatypeXsdString
       Swish.RDF.RDFGraph

@@ -1,6 +1,8 @@
-0.6.3.1:
+0.6.4.0:
 
-  - Added support for xsd:decimal datatype
+  - Added support for xsd:decimal with Swish.RDF.RDFDatatypeXsdDecimal
+    and Swish.RDF.MapXsdDecimal thanks to William Waites
+    (<https://bitbucket.org/ww>).
 
 0.6.3.0:
 
