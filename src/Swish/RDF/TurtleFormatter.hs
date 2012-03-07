@@ -12,14 +12,11 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a Turtle formatter (see [1])
---  for an RDFGraph value.
---
--- REFERENCES:
---
--- 1 <http://www.w3.org/TR/turtle/>
---     Turtle, Terse RDF Triple Language
---     W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
+--  This Module implements a Turtle formatter 
+--  for an RDFGraph value. See
+--  <http://www.w3.org/TR/turtle/>
+--  \"Turtle, Terse RDF Triple Language\",
+--  W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
 --
 --------------------------------------------------------------------------------
 
@@ -39,6 +36,9 @@ module Swish.RDF.TurtleFormatter
     , formatGraphAsBuilder
     , formatGraphIndent  
     , formatGraphDiag
+      
+      -- * Auxillary routines
+    , quoteText
     )
 where
 
@@ -727,18 +727,12 @@ formatAnnotation :: ScopedName -> B.Builder
 formatAnnotation a  | isLang a  = "@" `mappend` B.fromText (langTag a)
                     | otherwise = "^^" `mappend` showScopedName a
 
-{-
-We have to decide whether to use " or """ to quote
-the string.
-
-There is also no need to restrict the string to the
-ASCII character set; this could be an option but we
-can also leave Unicode as is (or at least convert to UTF-8).
-
-If we use """ to surround the string then we protect the
-last character if it is a " (assuming it isn't protected).
+{-|
+Convert text into a format for display in Turtle. The idea
+is to use one double quote unless three are needed, and to
+handle adding necessary @\\@ characters, or conversion
+for Unicode characters.
 -}
-
 quoteText :: T.Text -> B.Builder
 quoteText txt = 
   let st = T.unpack txt -- TODO: fix

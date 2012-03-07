@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.5.0
+Version:            0.6.5.1
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -46,7 +46,9 @@ Description:
   .
   Changes:
   .
-  [Version 0.6.5.0] 
+  [Version 0.6.5.1] Haddock fixes for @0.6.5.0@.
+  .
+  [Version 0.6.5.0] Export "Swish.RDF.TurtleFormatter.parseText".
   Updated @filepath@ dependency and removed unused @array@ one.
   .
   [Version 0.6.4.0] Added support for xsd:decimal with "Swish.RDF.RDFDatatypeXsdDecimal"
