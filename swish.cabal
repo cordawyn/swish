@@ -47,7 +47,7 @@ Description:
   Changes:
   .
   [Version 0.6.5.2] Update cabal to allow @polyparse@ version @1.8@
-  and hopefully build with ghc 7.4. The tests and application now
+  and hopefully to build with ghc 7.4. The tests and application now
   build against the library rather than re-compiling (internal
   change only, thanks to a hint seen on haskell-cafe a while back).
   .
@@ -211,13 +211,18 @@ Library
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
-      intern == 0.8,
+      -- intern == 0.8,
       mtl >= 2 && < 3,
       network >= 2.2 && < 2.4,
       old-locale == 1.0.*, 
       polyparse >= 1.6 && < 1.9,
       text == 0.11.*,
       time >= 1.1 && < 1.5
+
+   if impl(ghc < 7.4.0)
+      Build-Depends:   intern == 0.8
+   if impl(ghc >= 7.4.0)
+      Build-Depends:   intern == 0.8.*
 
    Hs-Source-Dirs: src/
 
