@@ -50,7 +50,7 @@ instance Interned InternedURI where
   data Description InternedURI = DU !URI deriving (Eq) -- DU {-# UNPACK #-} !URI deriving (Eq) 
   describe = DU
   identify = InternedURI
-  identity (InternedURI i _) = i
+  identity (InternedURI i _) = i -- this is not needed in version 0.9 of identify
   cache = iuCache
 
 instance Uninternable InternedURI where
