@@ -139,7 +139,7 @@ import Control.Monad (forM_, foldM)
 
 import Network.URI (URI(..), parseURIReference)
 
-import Data.Char (isSpace, isDigit, ord) 
+import Data.Char (isSpace, isDigit, ord, isAsciiLower) 
 import Data.Maybe (fromMaybe, fromJust)
 
 import qualified Data.Text as T
@@ -448,8 +448,8 @@ we encode this as the n3Name production
 -}
 
 isaz, is09, isaz09 :: Char -> Bool
-isaz c = c >= 'a' && c <= 'z'
-is09 c = c >= '0' && c <= '9'
+isaz = isAsciiLower
+is09 = isDigit
 isaz09 c = isaz c || is09 c
 
 match :: (Ord a) => a -> [(a,a)] -> Bool

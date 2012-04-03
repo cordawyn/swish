@@ -138,7 +138,7 @@ import qualified Data.Text.Lazy.Builder as B
 import qualified Data.Text.Lazy.IO as LIO
 import Text.ParserCombinators.Poly.StateText
 
-import Control.Monad (unless, when, liftM)
+import Control.Monad (unless, when, liftM, void)
 import Control.Monad.State (modify, gets, lift)
 
 import Network.URI (URI(..))
@@ -194,7 +194,7 @@ script = do
   return scs
 
 isymbol :: String -> N3Parser ()
-isymbol s = symbol s >> return ()
+isymbol = void . symbol
 
 command :: N3Parser (SwishStateIO ())
 command =

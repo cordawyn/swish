@@ -111,7 +111,7 @@ import Control.Monad (foldM)
 
 import Network.URI (URI(..), parseURIReference)
 
-import Data.Char (ord) 
+import Data.Char (ord, isAsciiLower, isAsciiUpper, isDigit) 
 import Data.Maybe (fromMaybe, fromJust)
 
 import qualified Data.Text as T
@@ -278,10 +278,10 @@ addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsdBoolean, xsdInteger, 
 addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 
 isaz, isAZ, isaZ, is09, isaZ09 :: Char -> Bool
-isaz c = c >= 'a' && c <= 'z'
-isAZ c = c >= 'A' && c <= 'Z'
+isaz = isAsciiLower
+isAZ = isAsciiUpper
 isaZ c = isaz c || isAZ c
-is09 c = c >= '0' && c <= '9'
+is09 = isDigit
 isaZ09 c = isaZ c || is09 c
 
 {-
@@ -964,7 +964,7 @@ _pnChars =
   _pnCharsU 
   <|> 
   satisfy (\c -> let i = ord c 
-                 in c == '-' || (c >= '0' && c <= '9') || i == 0xb7 ||
+                 in c == '-' || isDigit c || i == 0xb7 ||
                     match i [(0x0300, 0x036f), (0x203f, 0x2040)])
 
 {-

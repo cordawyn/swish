@@ -232,7 +232,7 @@ rdfInstanceEntailCheckInference ante cons =
     in
         --  Return True if any back-substitution matches the original
         --  merged antecendent graph.
-        any (mante ==) bsubs
+        elem mante bsubs
 
 --  Instance entailment notes.
 --

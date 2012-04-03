@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.5.2
+Version:            0.6.5.3
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -45,6 +45,8 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.6.5.3] Minor Hlint changes.
   .
   [Version 0.6.5.2] Update cabal to allow @polyparse@ version @1.8@
   and hopefully to build with ghc 7.4. The tests and application now

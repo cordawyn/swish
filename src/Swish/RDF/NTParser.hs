@@ -81,7 +81,7 @@ import Network.URI (parseURI)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
-import Data.Char (ord) 
+import Data.Char (isAsciiLower, isAsciiUpper, isDigit, ord) 
 import Data.Maybe (fromMaybe)
 
 import Text.ParserCombinators.Poly.StateText
@@ -232,9 +232,9 @@ name	::=	[A-Za-z][A-Za-z0-9]*
 -}
 
 isaz, isAZ, is09 :: Char -> Bool
-isaz c = c >= 'a' && c <= 'z'
-isAZ c = c >= 'A' && c <= 'Z'
-is09 c = c >= '0' && c <= '9'
+isaz = isAsciiLower
+isAZ = isAsciiUpper
+is09 = isDigit
 
 isHeadChar, isBodyChar :: Char -> Bool
 isHeadChar c = isaz c || isAZ c

@@ -97,7 +97,7 @@ import Data.Char (isDigit)
 import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
 
 import Data.Monoid (Monoid(..))
-import Control.Monad (liftM, when)
+import Control.Monad (liftM, when, void)
 import Control.Monad.State (State, modify, get, put, runState)
 
 -- it strikes me that using Lazy Text here is likely to be
@@ -243,7 +243,7 @@ queueFormula fn = do
                     }
   case mapFindMaybe fn fa of
     Nothing -> return ()
-    Just v -> put (newState v) >> return ()
+    Just v -> void $ put $ newState v
 
 {-
 Return the graph associated with the label and delete it
