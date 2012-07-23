@@ -40,9 +40,6 @@ Some things I want to/should do (not in order)
   An EDSL for the command language or for the base components
   such as RDFTriple/Graph?
 
-- remove the containedIn function of the LDGraph type class,
-  or implement it. It is currently unused in the code base.
-
 - would it make sense to add some form of XSDType type class which
   would contain to/from and show canonical String methods and some
   form of equality test; these could then be used to create the

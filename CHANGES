@@ -1,5 +1,8 @@
 0.7.0.0:
 
+  - Removed the containedIn element of the LDGraph type class as it
+    was unused.
+
   - Support version 0.9 of intern using conditional compilation in
     Data.Interned.URI (for ghc 7.4)
 

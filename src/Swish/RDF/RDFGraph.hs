@@ -1124,7 +1124,6 @@ instance (Label lb) => Monoid (NSGraph lb) where
 instance (Label lb) => LDGraph NSGraph lb where
     getArcs      = statements 
     setArcs as g = g { statements=as }
-    containedIn = error "containedIn for LDGraph NSGraph lb is undefined!" -- TODO: should there be one defined?
 
 {-|
 Add an arc to the graph. It does not relabel any blank nodes in the input arc,

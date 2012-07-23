@@ -46,8 +46,8 @@ Description:
   .
   Changes:
   .
-  [Version 0.7.0.0] Attempt to support using versions 0.8 or 0.9 of the
-  @intern@ package.
+  [Version 0.7.0.0] Removed un-used @containedIn@ element of the @LDGraph@ type class.
+  Attempt to support using versions 0.8 or 0.9 of the @intern@ package.
   .
   [Version 0.6.5.3] Minor Hlint changes.
   .

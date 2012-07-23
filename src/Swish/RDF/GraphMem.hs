@@ -49,7 +49,6 @@ instance (Label lb) => LDGraph GraphMem lb where
     getArcs      = arcs
     setArcs as g = g { arcs=as }
     -- gmap f g = g { arcs = (map $ fmap f) (arcs g) }
-    containedIn = error "containedIn for LDGraph GraphMem lb is undefined!" -- TODO: should there be one defined?
 
 instance (Label lb) => Eq (GraphMem lb) where
     (==) = graphEq

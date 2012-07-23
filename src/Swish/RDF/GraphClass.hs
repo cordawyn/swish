@@ -46,8 +46,7 @@ import Data.List (foldl', union, (\\))
 {-|
 Labelled Directed Graph class
 
-Minimum required implementation:  `setArcs`, `getArcs` and `containedIn`
-(although @containedIn@ may be removed as it is currently unused).
+Minimum required implementation:  `setArcs` and `getArcs`.
 -}
 class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     where
@@ -87,11 +86,6 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     -- or object position of an `Arc`.
     nodes       :: lg lb -> [lb]
     nodes g     = foldl' union [] (map arcNodes (getArcs g))
-    
-    -- | Test for graph containment in another.
-    --
-    -- At present this is unused and may be removed in a future release.
-    containedIn :: lg lb -> lg lb -> Bool 
     
     -- | Update the arcs in a graph using a supplied function.
     update      :: ( [Arc lb] -> [Arc lb] ) -> lg lb -> lg lb
