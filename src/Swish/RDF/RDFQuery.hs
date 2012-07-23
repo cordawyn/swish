@@ -84,9 +84,12 @@ import Swish.Utils.ListHelpers (listProduct, allp, anyp)
 
 import qualified Data.Traversable as Traversable
 
+import Control.Monad (when)
 import Control.Monad.State (State, runState, modify)
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
+
+import qualified Data.Set as S
 
 -- import qualified Data.Text as T
 
@@ -408,30 +411,20 @@ rdfQueryBackSubsBlank varss gr = [ rdfQuerySubsBlank v gr | v <- varss ]
 --
 --  Adding an empty graph forces elimination of duplicate arcs.
 rdfQuerySubs2 :: RDFVarBinding -> RDFGraph -> (RDFGraph,[RDFLabel])
-rdfQuerySubs2 varb gr = (add emptyRDFGraph g,vs)
+rdfQuerySubs2 varb gr = (add emptyRDFGraph g, S.toList vs)
     where
-        (g,vs) = runState ( Traversable.traverse (mapNode varb) gr ) []
+        (g,vs) = runState ( Traversable.traverse (mapNode varb) gr ) S.empty
 
 --  Auxiliary monad function for rdfQuerySubs2.
 --  This returns a state transformer Monad which in turn returns the
 --  substituted node value based on the supplied query variable bindings.
---  The monad state is a list of labels which accumulates all those
+--  The monad state is a set of labels which accumulates all those
 --  variables seen for which no substitution was available.
-mapNode :: RDFVarBinding -> RDFLabel -> State [RDFLabel] RDFLabel
+mapNode :: RDFVarBinding -> RDFLabel -> State (S.Set RDFLabel) RDFLabel
 mapNode varb lab =
     case vbMap varb lab of
         Just v  -> return v
-        Nothing ->
-            if isQueryVar lab then
-                do  { modify (addVar lab)
-                    ; return lab
-                    }
-            else
-                return lab
-
---  Add variable to list of variables, if not already there
-addVar :: RDFLabel -> [RDFLabel] -> [RDFLabel]
-addVar var vars = if var `elem` vars then vars else var:vars
+        Nothing -> when (isQueryVar lab) (modify (S.insert lab)) >> return lab
 
 ------------------------------------------------------------
 --  Simple lightweight query primitives
