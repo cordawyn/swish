@@ -1,4 +1,6 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
@@ -50,7 +52,10 @@ instance Interned InternedURI where
   data Description InternedURI = DU !URI deriving (Eq) -- DU {-# UNPACK #-} !URI deriving (Eq) 
   describe = DU
   identify = InternedURI
+#if MIN_VERSION_intern(0,9,0)
+#else
   identity (InternedURI i _) = i -- this is not needed in version 0.9 of identify
+#endif
   cache = iuCache
 
 instance Uninternable InternedURI where

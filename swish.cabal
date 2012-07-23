@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.6.5.3
+Version:            0.7.0.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -9,7 +9,7 @@ Maintainer:         dburke@cfa.harvard.edu
 Category:           Semantic Web
 Synopsis:           A semantic web toolkit. 
 
-Tested-With:        GHC==7.0.4
+Tested-With:        GHC==7.4.2
 Cabal-Version:      >= 1.9.2
 Homepage:           https://bitbucket.org/doug_burke/swish/wiki/Home
 Bug-reports:        https://bitbucket.org/doug_burke/swish/issues
@@ -45,6 +45,9 @@ Description:
   * Complete, ready-to-run, command-line and script-driven programs.
   .
   Changes:
+  .
+  [Version 0.7.0.0] Attempt to support using versions 0.8 or 0.9 of the
+  @intern@ package.
   .
   [Version 0.6.5.3] Minor Hlint changes.
   .
@@ -213,7 +216,6 @@ Library
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
-      -- intern == 0.8,
       mtl >= 2 && < 3,
       network >= 2.2 && < 2.4,
       old-locale == 1.0.*, 
@@ -224,7 +226,7 @@ Library
    if impl(ghc < 7.4.0)
       Build-Depends:   intern == 0.8
    if impl(ghc >= 7.4.0)
-      Build-Depends:   intern == 0.8.*
+      Build-Depends:   intern >= 0.8 && < 1.0
 
    Hs-Source-Dirs: src/
 
