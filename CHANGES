@@ -1,3 +1,30 @@
+0.7.0.0:
+
+  - Support version 0.9 of intern using conditional compilation in
+    Data.Interned.URI (for ghc 7.4)
+
+  - Switch to Control.Exception.try from System.IO.Error.try to avoid
+    complaints from ghc 7.4.2
+
+0.6.5.3:
+
+  - Updated cabal file so that tests depend on the library rather
+    than individual modules.
+
+  - fix intern to 0.8 for ghc < 7.4 and 0.8.* for greater
+
+0.6.5.2:
+
+  - Upgrade polyparse upper limit to include version 1.8.
+
+0.6.5.1:
+
+  - Haddock fixes.
+
+0.6.5.0:
+
+  - Dependency updates (updated filepath and removed array).
+
 0.6.4.0:
 
   - Added support for xsd:decimal with Swish.RDF.RDFDatatypeXsdDecimal
