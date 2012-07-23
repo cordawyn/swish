@@ -81,9 +81,10 @@ import Control.Monad (liftM, when)
 
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as IO
-import System.IO.Error
 
 import Data.Maybe (isJust, fromMaybe)
+
+import Control.Exception as CE
 
 ------------------------------------------------------------
 --  Set file format to supplied value
@@ -303,15 +304,21 @@ swishReadFile conv errVal fnam =
   
   in swishOpenFile fnam >>= maybe (return errVal) reader
 
+-- open a file in the SwishStateIO monad, catching
+-- any errors
+--
+sOpen :: FilePath -> IOMode -> SwishStateIO (Either IOError Handle)
+sOpen fp fm = lift . CE.try $ openFile fp fm
+
 -- | Open and read file, returning its handle and content, or Nothing
 -- WARNING:  the handle must not be closed until input is fully evaluated
 --
 swishOpenFile :: Maybe String -> SwishStateIO (Maybe (Handle, Bool, T.Text))
 swishOpenFile Nothing     = readFromHandle stdin Nothing
 swishOpenFile (Just fnam) = do
-  o <- lift $ try $ openFile fnam ReadMode
+  o <- sOpen fnam ReadMode
   case o of
-    Left  _ -> do
+    Left _    -> do
       swishError ("Cannot open file: "++fnam) SwishDataAccessError
       return Nothing
       
@@ -382,7 +389,7 @@ swishCreateWriteableFile Nothing = do
       return Nothing
   
 swishCreateWriteableFile (Just fnam) = do
-  o <- lift $ try $ openFile fnam WriteMode
+  o <- sOpen fnam WriteMode
   case o of
     Left _ -> do
       swishError ("Cannot open file for writing: " ++ fnam) SwishDataAccessError

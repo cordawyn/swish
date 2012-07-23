@@ -146,6 +146,7 @@ import Network.URI (URI(..))
 import Data.Monoid (Monoid(..))
 
 import qualified System.IO.Error as IO
+import qualified Control.Exception as CE
 
 ------------------------------------------------------------
 --
@@ -897,21 +898,18 @@ getResourceData muri =
 --  (Need to add logic to separate filenames from URIs, and
 --  attempt HTTP PUT, or similar.)
 putResourceData :: Maybe URI -> B.Builder -> SwishStateIO ()
-putResourceData muri gsh =
-    do  { ios <- lift $ IO.try $
-            case muri of
-                Nothing  -> toStdout
-                Just uri -> toUri uri
-        ; case ios of
-            Left  ioe -> modify $ setError
-                            ("Error writing graph: "++
-                             IO.ioeGetErrorString ioe)
-            Right a   -> return a
-        }
+putResourceData muri gsh = do
+    ios <- lift . CE.try $ maybe toStdout toUri muri
+    case ios of
+      Left ioe -> modify $ setError
+                    ("Error writing graph: "++
+                    IO.ioeGetErrorString ioe)
+      Right _   -> return ()
+
     where
         toStdout  = LIO.putStrLn gstr
         toUri uri | uriScheme uri == "file:" = LIO.writeFile (uriPath uri) gstr
-                  | otherwise                = error $ "Unsupported file name for write: " ++ show uri
+                  | otherwise                = error $ "Unsupported scheme for write: " ++ show uri
         gstr = B.toLazyText gsh
 
 {- $syntax
