@@ -44,17 +44,18 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
-  Changes:
+  Changes in version @0.7.0.0@:
   .
-  [Version 0.7.0.0] 
-  Removed @asubj@, @apred@ and @aobj@ from @Swish.RDF.GraphClass@ and
-  @Swish.RDF.RDFGraph@; use
-  @arcSubj@, @arcPred@ or @arcObj@ instead.
-  Removed un-used @containedIn@ element of the @LDGraph@ type class.
-  Attempt to support using versions 0.8 or 0.9 of the @intern@ package. Switch to
-  @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
+  * Removed @asubj@, @apred@ and @aobj@ from @Swish.RDF.GraphClass@ and
+  @Swish.RDF.RDFGraph@; use @arcSubj@, @arcPred@ or @arcObj@ instead.
   .
-  Previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
+  * Removed un-used @containedIn@ element of the @LDGraph@ type class.
+  .
+  * Support using versions 0.8 or 0.9 of the @intern@ package.
+  .
+  * Switch to @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
+  .
+  Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
   .
   References:
   .
