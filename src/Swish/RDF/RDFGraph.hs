@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -13,7 +14,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings
+--  Portability :  CPP, FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings
 --
 --  This module defines a memory-based RDF graph instance.
 --
@@ -211,14 +212,18 @@ import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
--- import Data.Tuple (swap) not in 6.12.3
+
 import Data.String (IsString(..))
 import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
 import System.Locale (defaultTimeLocale)  
 import Text.Printf
 
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
+import Data.Tuple (swap)
+#else
 swap :: (a,b) -> (b,a)
 swap (a,b) = (b,a)
+#endif
 
 -- | RDF graph node values
 --

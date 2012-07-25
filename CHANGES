@@ -17,6 +17,8 @@
 
   - Removed the Swish.Utils.MiscHelpers module.
 
+  - Do not define swap if using GHC >= 7.0.1.
+
 0.6.5.3:
 
   - Updated cabal file so that tests depend on the library rather
