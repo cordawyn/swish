@@ -1,17 +1,19 @@
-{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Namespace
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances, OverloadedStrings
+--  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances
 --
 --  This module defines algebraic datatypes for namespaces and scoped names.
 --
@@ -68,13 +70,16 @@ data Namespace = Namespace (Maybe T.Text) URI
                  , nsURI :: URI
                  }
 -}
-                 
+
+-- | Returns the prefix stored in the name space.                 
 getNamespacePrefix :: Namespace -> Maybe T.Text
 getNamespacePrefix (Namespace p _) = p
 
+-- | Returns the URI stored in the name space.
 getNamespaceURI :: Namespace -> URI
 getNamespaceURI (Namespace _ u) = u
 
+-- | Convert the name space to a (prefix, URI) tuple.
 getNamespaceTuple :: Namespace -> (Maybe T.Text, URI)
 getNamespaceTuple (Namespace p u) = (p, u)
 
@@ -92,10 +97,19 @@ instance LookupEntryClass Namespace (Maybe T.Text) URI where
     keyVal   (Namespace pre uri) = (pre,uri)
     newEntry (pre,uri)           = Namespace pre uri
 
-makeNamespace :: Maybe T.Text -> URI -> Namespace
+-- | Create a name space from a URI and an optional prefix label.
+makeNamespace :: 
+    Maybe T.Text  -- ^ optional prefix.
+    -> URI        -- ^ URI.
+    -> Namespace
 makeNamespace = Namespace
 
-makeNamespaceQName :: Namespace -> T.Text -> QName
+-- | Create a qualified name by combining the URI from
+-- the name space with a local component.
+makeNamespaceQName :: 
+    Namespace   -- ^ The name space URI is used in the qualified name
+    -> T.Text   -- ^ local component of the qualified name (can be \"\")
+    -> QName
 makeNamespaceQName (Namespace _ uri) = newQName uri
 
 {-
@@ -199,7 +213,8 @@ nullScopedName = makeURIScopedName nullURI
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
