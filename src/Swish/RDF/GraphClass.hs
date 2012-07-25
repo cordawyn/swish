@@ -1,12 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphClass
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -25,7 +27,7 @@
 module Swish.RDF.GraphClass
     ( LDGraph(..), replaceArcs
     , Label(..)
-    , Arc(..), arcSubj, arcPred, arcObj, arc, arcToTriple, arcFromTriple
+    , Arc(..), arc, arcToTriple, arcFromTriple
     , Selector
     , hasLabel, arcLabels -- , arcNodes
     )
@@ -142,30 +144,21 @@ class (Eq lb, Show lb, Ord lb) => Label lb where
   -- compare     :: lb -> lb -> Ordering
   -- compare l1 l2 = compare (show l1) (show l2)
 
--- | Arc type
-
+-- | Arc type.
+--
+-- Prior to @0.7.0.0@ you could also use @asubj@, @apred@ and @aobj@
+-- to access the elements of the arc.
+--
 data Arc lb = Arc 
-              { asubj :: lb  -- ^ The subject of the arc.
-              , apred :: lb  -- ^ The predicate (property) of the arc.
-              , aobj :: lb   -- ^ The object of the arc.
+              { arcSubj :: lb  -- ^ The subject of the arc.
+              , arcPred :: lb  -- ^ The predicate (property) of the arc.
+              , arcObj :: lb   -- ^ The object of the arc.
               }
             deriving (Eq, Functor, F.Foldable, T.Traversable)
 
 instance (Hashable lb) => Hashable (Arc lb) where
   hash (Arc s p o) = hash s `hashWithSalt` p `hashWithSalt` o
   hashWithSalt salt (Arc s p o) = salt `hashWithSalt` s `hashWithSalt` p `hashWithSalt` o
-
--- | Return the subject of the arc.
-arcSubj :: Arc lb -> lb
-arcSubj = asubj
-
--- | Return the predicate (property) of the arc.
-arcPred :: Arc lb -> lb
-arcPred = apred
-
--- | Return the object of the arc.
-arcObj :: Arc lb -> lb
-arcObj = aobj
 
 -- | Create an arc.
 arc :: lb      -- ^ The subject of the arc.
@@ -219,7 +212,8 @@ arcNodes (Arc lb1 _ lb3) = [lb1,lb3]
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

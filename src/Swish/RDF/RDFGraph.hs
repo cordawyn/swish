@@ -1,4 +1,6 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -6,7 +8,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFGraph
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -47,8 +49,13 @@ module Swish.RDF.RDFGraph
     , setFormulae, getFormulae, setFormula, getFormula
       
     -- * Re-export from GraphClass
+    --
+    -- | Note that @asubj@, @apred@ and @aobj@ have been
+    -- removed in version @0.7.0.0@; use 'arcSubj', 'arcPred'
+    -- or 'arcObj' instead.
+    --
     , LDGraph(..), Label (..), Arc(..)
-    , arc, arcSubj, arcPred, arcObj, Selector
+    , arc, Selector
       
     -- * Selected RDFLabel values
     --                                
@@ -170,7 +177,7 @@ import Swish.RDF.Vocabulary
 
 import Swish.RDF.GraphClass
     ( LDGraph(..), Label (..)
-    , Arc(..), arc, arcSubj, arcPred, arcObj, arcLabels
+    , Arc(..), arc, arcLabels
     , Selector )
 
 import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
@@ -512,7 +519,7 @@ instance ToRDFLabel Int where
 
 {-
 Since decimal will just over/under-flow when converting to Int
-we go via Integer and explicitlu check for overflow.
+we go via Integer and explicitly check for overflow.
 -}
 
 textToInt :: T.Text -> Maybe Int
@@ -1372,7 +1379,8 @@ updateRDFGraph gr as = gr { statements=as }
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

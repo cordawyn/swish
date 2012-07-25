@@ -46,7 +46,11 @@ Description:
   .
   Changes:
   .
-  [Version 0.7.0.0] Removed un-used @containedIn@ element of the @LDGraph@ type class.
+  [Version 0.7.0.0] 
+  Removed @asubj@, @apred@ and @aobj@ from @Swish.RDF.GraphClass@ and
+  @Swish.RDF.RDFGraph@; use
+  @arcSubj@, @arcPred@ or @arcObj@ instead.
+  Removed un-used @containedIn@ element of the @LDGraph@ type class.
   Attempt to support using versions 0.8 or 0.9 of the @intern@ package. Switch to
   @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
   .

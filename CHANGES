@@ -1,5 +1,8 @@
 0.7.0.0:
 
+  - Removed asubj, apred and aobj from Swish.RDF.GraphClass and
+    Swish.RDF.RDFGraph; use arcSubj, arcPred or arcObj instead.
+    
   - Removed the containedIn element of the LDGraph type class as it
     was unused.
 
