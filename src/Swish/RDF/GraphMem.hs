@@ -1,17 +1,20 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphMem
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  DeriveFunctor, DeriveFoldable, DeriveTraversable, FlexibleInstances, MultiParamTypeClasses
+--  Portability :  DeriveFoldable, DeriveFunctor, DeriveTraversable, FlexibleInstances, MultiParamTypeClasses
 --
 --  This module defines a simple memory-based graph instance.
 --
@@ -32,7 +35,6 @@ module Swish.RDF.GraphMem
 
 import Swish.RDF.GraphClass
 import Swish.RDF.GraphMatch
--- import Swish.Utils.MiscHelpers (hash)
 
 import Data.Hashable (Hashable(..), combine)
 import Data.Ord (comparing)
@@ -125,7 +127,6 @@ instance Label LabelMem where
     getLocal   (LV loc) = loc
     getLocal   lab      = error "getLocal of non-variable label: " ++ show lab
     makeLabel           = LV 
-    -- labelHash  seed lb  = hash seed (show lb)
     labelHash = hashWithSalt
 
 instance Eq LabelMem where
@@ -142,7 +143,8 @@ instance Ord LabelMem where
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

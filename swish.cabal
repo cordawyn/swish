@@ -56,6 +56,8 @@ Description:
   .
   * Switch to @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
   .
+  * Removed the @Swish.Utils.MiscHelpers@ module.
+  .
   Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
   .
   References:
@@ -156,7 +158,6 @@ Library
       Swish.RDF.Vocabulary.XSD
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
-      Swish.Utils.MiscHelpers
       Swish.Utils.Namespace
       Swish.Utils.PartOrderedCollection
       Swish.Utils.QName

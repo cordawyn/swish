@@ -4,7 +4,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3Formatter
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -13,7 +13,6 @@
 --
 --  This Module implements a NTriples formatter (see [1])
 --  for an RDFGraph value.
---
 --
 -- REFERENCES:
 --
@@ -178,11 +177,6 @@ showScopedName (ScopedName n l) =
 -- showScopedName s = mconcat ["<", B.fromText (quote (T.pack (show (getQName s)))), ">"]
 showScopedName s = B.fromText (quote (T.pack (show (getQName s)))) -- looks like qname already adds the <> around this
 
-{-
-Swish.Utils.MiscHelpers contains a quote routine
-which we expand upon here to match the NT syntax.
--}
-
 quoteText :: T.Text -> B.Builder
 quoteText  st = mconcat [squote, B.fromText (quote st), squote]
 
@@ -224,7 +218,8 @@ numToHex c = go []
       
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

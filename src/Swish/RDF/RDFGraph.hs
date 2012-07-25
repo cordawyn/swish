@@ -183,7 +183,6 @@ import Swish.RDF.GraphClass
 import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
 
 import Swish.Utils.QName (QName)
-import Swish.Utils.MiscHelpers (hash)
 import Swish.Utils.ListHelpers (addSetElem)
 
 import Swish.Utils.LookupMap
@@ -209,6 +208,7 @@ import Network.URI (URI)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (mapMaybe)
 import Data.Char (ord, isDigit)
+import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
 -- import Data.Tuple (swap) not in 6.12.3
@@ -307,7 +307,7 @@ instance Label RDFLabel where
     getLocal   _            = "Lit_"
     makeLabel  ('?':loc)    = Var loc
     makeLabel  loc          = Blank loc
-    labelHash seed lb       = hash seed (showCanon lb)
+    labelHash seed lb       = hashWithSalt seed (showCanon lb)
 
 instance IsString RDFLabel where
   fromString = flip Lit Nothing . T.pack
