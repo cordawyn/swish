@@ -51,7 +51,8 @@ Description:
   .
   * Removed un-used @containedIn@ element of the @LDGraph@ type class.
   .
-  * Support using versions 0.8 or 0.9 of the @intern@ package.
+  * Support using versions 0.8 or 0.9 of the @intern@ package and version 0.5 of
+  @containers@.
   .
   * Switch to @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
   .
@@ -86,7 +87,7 @@ Library
    Build-Depends:
       base >=3 && < 5,
       binary == 0.5.*,
-      containers >= 0.3 && < 0.5,
+      containers >= 0.3 && < 0.6,
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
