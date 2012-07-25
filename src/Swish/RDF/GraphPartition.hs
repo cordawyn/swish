@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphPartition
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -34,7 +34,7 @@ import Data.List (foldl', partition)
 import Control.Monad.State
     ( MonadState(..), State, evalState )
 
-import Data.Maybe (isJust, fromJust, mapMaybe)
+import Data.Maybe (mapMaybe)
 
 
 ------------------------------------------------------------
@@ -55,40 +55,47 @@ import Data.Maybe (isJust, fromJust, mapMaybe)
 data PartitionedGraph lb = PartitionedGraph [GraphPartition lb]
     deriving (Eq,Show)
 
+-- | Returns all the arcs in the partitioned graph.
 getArcs :: PartitionedGraph lb -> [Arc lb]
 getArcs (PartitionedGraph ps) = concatMap toArcs ps
 
+-- | Returns a list of partitions.
 getPartitions :: PartitionedGraph lb -> [GraphPartition lb]
 getPartitions (PartitionedGraph ps) = ps
 
 -- QUS: is the list always guaranteed to be non-empty in PartSub?
+
+-- | Represent a partition of a graph by a node and (optional) contents.
 data GraphPartition lb
     = PartObj lb
     | PartSub lb [(lb,GraphPartition lb)]
 
+-- | Returns the node for the partition.
 node :: GraphPartition lb -> lb
 node (PartObj ob)   = ob
 node (PartSub sb _) = sb
 
+-- | Creates a list of arcs from the partition. The empty
+-- list is returned for `PartObj`.
 toArcs :: GraphPartition lb -> [Arc lb]
 toArcs (PartObj _)      = []
 toArcs (PartSub sb prs) = concatMap toArcs1 prs
     where
         toArcs1 (pr,ob) = Arc sb pr (node ob) : toArcs ob
 
+-- | Equality is based on total structural equivalence
+-- rather than graph equality.
 instance (Label lb) => Eq (GraphPartition lb) where
-    (==) = partitionEq
+    (PartObj o1)    == (PartObj o2)    = o1 == o2
+    (PartSub s1 p1) == (PartSub s2 p2) = s1 == s2 && p1 == p2
+    _               == _               = False
 
 instance (Label lb) => Show (GraphPartition lb) where
     show = partitionShow
 
---  Equality is based on total structural equivalence.
---  This is not the same as graph equality.
-partitionEq :: (Label lb) => GraphPartition lb -> GraphPartition lb -> Bool
-partitionEq (PartObj o1)    (PartObj o2)    = o1 == o2
-partitionEq (PartSub s1 p1) (PartSub s2 p2) = s1 == s2 && p1 == p2
-partitionEq  _               _              = False
-
+-- can we just say 
+--  partitionShow = partitionShowP ""
+-- ?
 partitionShow :: (Label lb) => GraphPartition lb -> String
 partitionShow (PartObj ob)          = show ob
 partitionShow (PartSub sb [])       = "(" ++ show sb ++ ")" -- just to make -Wall happy, is this sensible?
@@ -96,8 +103,15 @@ partitionShow (PartSub sb (pr:prs)) =
     "("++ show sb ++ " " ++ showpr pr ++ concatMap ((" ; "++).showpr) prs ++ ")"
     where
         showpr (a,b) = show a ++ " " ++ show b
-  
-partitionShowP :: (Label lb) => String -> GraphPartition lb -> String
+
+-- only used in Swish.RDF.SwishCommands  
+
+-- | Convert a partition into a string with a leading separator string.
+partitionShowP :: 
+    (Label lb) => 
+    String 
+    -> GraphPartition lb 
+    -> String
 partitionShowP _    (PartObj ob)          = show ob
 partitionShowP pref (PartSub sb [])       = pref ++ "(" ++ show sb ++ ")" -- just to make -Wall happy, is this sensible?
 partitionShowP pref (PartSub sb (pr:prs)) =
@@ -166,120 +180,118 @@ partitionGraph arcs =
         stripObj (k,(s,_)) = (k,s)
 
 -- Local state type for partitioning function
-type MakePartitionState lb = ([(lb,[Arc lb])],[(lb,[Arc lb])],[(lb,[Arc lb])])
+type LabelledArcs lb = (lb, [Arc lb])
+type LabelledPartition lb = (lb, GraphPartition lb)
+type MakePartitionState lb = ([LabelledArcs lb], [LabelledArcs lb], [LabelledArcs lb])
+type PState lb = State (MakePartitionState lb)
 
-makePartitions :: (Eq lb) =>
-    [(lb,[Arc lb])] -> [(lb,[Arc lb])] -> [(lb,[Arc lb])] -> PartitionedGraph lb
+makePartitions :: 
+    (Eq lb) =>
+    [LabelledArcs lb]
+    -> [LabelledArcs lb]
+    -> [LabelledArcs lb]
+    -> PartitionedGraph lb
 makePartitions fixs topv intv =
     PartitionedGraph $ evalState (makePartitions1 []) (fixs,topv,intv)
 
 -- Use a state monad to keep track of arcs that have been incorporated into
 -- the resulting list of graph partitions.  The collections of arcs used to
--- generate the list of partitions are supplied as theinitial state of the
+-- generate the list of partitions are supplied as the initial state of the
 -- monad (see call of evalState above).
 --
-makePartitions1 :: (Eq lb) =>
-    [(lb,[Arc lb])] -> State (MakePartitionState lb) [GraphPartition lb]
-makePartitions1 [] =
-    do  { s <- pickNextSubject
-        ; if null s then return [] else makePartitions1 s
-        }
-makePartitions1 (sub:subs) =
-    do  { ph <- makePartitions2 sub
-        ; pt <- makePartitions1 subs
-        ; return $ ph++pt
-        }
+makePartitions1 :: 
+    (Eq lb) =>
+    [LabelledArcs lb] 
+    -> PState lb [GraphPartition lb]
+makePartitions1 [] = do
+    s <- pickNextSubject
+    if null s then return [] else makePartitions1 s
+makePartitions1 (sub:subs) = do
+    ph <- makePartitions2 sub
+    pt <- makePartitions1 subs
+    return $ ph++pt
 
-makePartitions2 :: (Eq lb) =>
-    (lb,[Arc lb]) -> State (MakePartitionState lb) [GraphPartition lb]
-makePartitions2 subs =
-    do  { (part,moresubs) <- makeStatements subs
-        ; moreparts <- if not (null moresubs) then
-            makePartitions1 moresubs
-          else
-            return []
-        ; return $ part:moreparts
-        }
+makePartitions2 :: 
+    (Eq lb) =>
+    LabelledArcs lb
+    -> PState lb [GraphPartition lb]
+makePartitions2 subs = do
+    (part,moresubs) <- makeStatements subs
+    moreparts <- if null moresubs
+                 then return []
+                 else makePartitions1 moresubs
+    return $ part:moreparts
 
-makeStatements :: (Eq lb) =>
-    (lb,[Arc lb])
-    -> State (MakePartitionState lb) (GraphPartition lb,[(lb,[Arc lb])])
-makeStatements (sub,stmts) =
-    do  { propmore <- mapM makeStatement stmts
-        ; let (props,moresubs) = unzip propmore
-        ; return (PartSub sub props,concat moresubs)
-        }
+makeStatements :: 
+    (Eq lb) =>
+    LabelledArcs lb
+    -> PState lb (GraphPartition lb, [LabelledArcs lb])
+makeStatements (sub,stmts) = do
+    propmore <- mapM makeStatement stmts
+    let (props,moresubs) = unzip propmore
+    return (PartSub sub props, concat moresubs)
 
-makeStatement :: (Eq lb) =>
+makeStatement :: 
+    (Eq lb) =>
     Arc lb
-    -> State (MakePartitionState lb) ((lb,GraphPartition lb),[(lb,[Arc lb])])
-makeStatement (Arc _ prop obj) =
-    do  { intobj <- pickIntSubject obj
-        ; (gpobj,moresubs) <- if null intobj
-          then
-            do  { ms <- pickVarSubject obj
-                ; return (PartObj obj,ms)
-                }
-          else
-            makeStatements (head intobj)
-        ; return ((prop,gpobj),moresubs)
-        }
+    -> PState lb ((LabelledPartition lb), [LabelledArcs lb])
+makeStatement (Arc _ prop obj) = do
+    intobj <- pickIntSubject obj
+    (gpobj, moresubs) <- if null intobj
+                         then do
+                             ms <- pickVarSubject obj
+                             return (PartObj obj,ms)
+                         else makeStatements (head intobj)
+    return ((prop,gpobj), moresubs)
 
-pickNextSubject :: State (MakePartitionState lb) [(lb,[Arc lb])]
-pickNextSubject =
-    do  { (a1,a2,a3) <- get
-        ; let (s,st) = case (a1,a2,a3) of
-                (s1h:s1t,s2,s3) -> ([s1h],(s1t,s2,s3))
-                ([],s2h:s2t,s3) -> ([s2h],([],s2t,s3))
-                ([],[],s3h:s3t) -> ([s3h],([],[],s3t))
-                ([],[],[])      -> ([]   ,([],[],[] ))
-        ; put st
-        ; return s
-        }
+pickNextSubject :: PState lb [LabelledArcs lb]
+pickNextSubject = do
+    (a1,a2,a3) <- get
+    let (s,st) = case (a1,a2,a3) of
+                   (s1h:s1t,s2,s3) -> ([s1h],(s1t,s2,s3))
+                   ([],s2h:s2t,s3) -> ([s2h],([],s2t,s3))
+                   ([],[],s3h:s3t) -> ([s3h],([],[],s3t))
+                   ([],[],[])      -> ([]   ,([],[],[] ))
+    put st
+    return s
 
 pickIntSubject :: (Eq lb) =>
-    lb -> State (MakePartitionState lb) [(lb,[Arc lb])]
-pickIntSubject sub =
-    do  { (s1,s2,s3) <- get
-        ; let varsub = removeBy (\x->(x==).fst) sub s3
-        ; if isJust varsub then
-            do  { let (vs,s3new) = fromJust varsub
-                ; put (s1,s2,s3new)
-                ; return [vs]
-                }
-          else
-            return []
-        }
+    lb 
+    -> PState lb [LabelledArcs lb]
+pickIntSubject sub = do
+    (s1,s2,s3) <- get
+    let varsub = removeBy (\x->(x==).fst) sub s3
+    case varsub of
+        Just (vs, s3new) -> put (s1,s2,s3new) >> return [vs]
+        Nothing          -> return []
 
-pickVarSubject :: (Eq lb) =>
-    lb -> State (MakePartitionState lb) [(lb,[Arc lb])]
-pickVarSubject sub =
-    do  { (s1,s2,s3) <- get
-        ; let varsub = removeBy (\x->(x==).fst) sub s2
-        ; if isJust varsub then
-            do  { let (vs,s2new) = fromJust varsub
-                ; put (s1,s2new,s3)
-                ; return [vs]
-                }
-          else
-            return []
-        }
+pickVarSubject :: 
+    (Eq lb) =>
+    lb -> 
+    PState lb [LabelledArcs lb]
+pickVarSubject sub = do
+    (s1,s2,s3) <- get
+    let varsub = removeBy (\x->(x==).fst) sub s2
+    case varsub of
+        Just (vs, s2new) -> put (s1,s2new,s3) >> return [vs]
+        _                -> return []
 
 ------------------------------------------------------------
 --  Other useful functions
 ------------------------------------------------------------
---
---  Create a list of pairs of corresponding Partitions that
---  are unequal
 
+-- | Create a list of pairs of corresponding Partitions that
+--  are unequal.
 comparePartitions :: (Label lb) =>
-    PartitionedGraph lb -> PartitionedGraph lb
-    -> [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
+    PartitionedGraph lb 
+    -> PartitionedGraph lb
+    -> [(Maybe (GraphPartition lb), Maybe (GraphPartition lb))]
 comparePartitions (PartitionedGraph gp1) (PartitionedGraph gp2) =
     comparePartitions1 (reverse gp1) (reverse gp2)
 
 comparePartitions1 :: (Label lb) =>
-    [GraphPartition lb] -> [GraphPartition lb]
+    [GraphPartition lb] 
+    -> [GraphPartition lb]
     -> [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
 comparePartitions1 pg1 pg2 =
         ds ++ [ (Just r1p,Nothing) | r1p<-r1 ]
@@ -299,8 +311,9 @@ comparePartitions1 pg1 pg2 =
 --  different labels
 --
 comparePartitions2 :: (Label lb) =>
-    GraphPartition lb -> GraphPartition lb
-    -> Maybe [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
+    GraphPartition lb 
+    -> GraphPartition lb
+    -> Maybe [(Maybe (GraphPartition lb), Maybe (GraphPartition lb))]
 comparePartitions2 (PartObj l1) (PartObj l2) =
     if matchNodes l1 l2 then Just [] else Nothing
 comparePartitions2 pg1@(PartSub l1 p1s) pg2@(PartSub l2 p2s) =
@@ -322,7 +335,10 @@ comparePartitions2 pg1 pg2 =
         l2 = node pg2
 
 comparePartitions3 :: (Label lb) =>
-    lb -> lb -> [(lb,GraphPartition lb)] -> [(lb,GraphPartition lb)]
+    lb 
+    -> lb 
+    -> [LabelledPartition lb] 
+    -> [LabelledPartition lb] 
     -> Maybe [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
 comparePartitions3 l1 l2 s1s s2s = Just $
         ds ++ [ (Just (PartSub l1 [r1p]),Nothing) | r1p<-r1 ]
@@ -331,7 +347,10 @@ comparePartitions3 l1 l2 s1s s2s = Just $
         (ds,r1,r2) = listDifferences (comparePartitions4 l1 l2) s1s s2s
 
 comparePartitions4 :: (Label lb) =>
-    lb -> lb -> (lb,GraphPartition lb) -> (lb,GraphPartition lb)
+    lb 
+    -> lb 
+    -> LabelledPartition lb 
+    -> LabelledPartition lb
     -> Maybe [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
 comparePartitions4 _ _ (p1,o1) (p2,o2) =
     if matchNodes p1 p2 then comp1 else Nothing
@@ -400,7 +419,7 @@ testCollect2 = testCollect1
 --  augmented with a further list of values from the supplied list,
 --  each of which are related to the existing collection in some way.
 --
---  NOTE: the basic pattern of 'collect' and 'collectMore' is similar,
+--  NOTE: the basic pattern of @collect@ and @collectMore@ is similar,
 --  and might be generalized into a common set of core functions.
 --
 collectMore :: (Eq b) => (a->b) -> [a] -> [(b,c)] -> [(b,(c,[a]))]
@@ -547,7 +566,8 @@ testdiff2 = testdiff1 == ([((12,15),(13,15)),((5,8),(6,9))],[(1,2)],[(0,1)])
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
