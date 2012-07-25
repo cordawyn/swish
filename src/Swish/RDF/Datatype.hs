@@ -1,11 +1,13 @@
-{-# LANGUAGE ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Datatype
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -252,11 +254,13 @@ instance ShowM ex => Show (DatatypeVal ex vt lb vn) where
 
 --  Other accessor functions
 
+-- | Return the named datatype relation, if it exists.
 getDTRel ::
     ScopedName -> DatatypeVal ex vt lb vn -> Maybe (DatatypeRel vt)
 getDTRel nam dtv =
     mapFindMaybe nam (LookupMap (tvalRel dtv))
 
+-- | Return the named datatype value modifier, if it exists.
 getDTMod ::
     ScopedName -> DatatypeVal ex vt lb vn -> Maybe (DatatypeMod vt lb vn)
 getDTMod nam dtv =
@@ -1041,7 +1045,8 @@ data DatatypeSub ex lb vn supvt subvt = DatatypeSub
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

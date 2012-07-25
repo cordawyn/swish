@@ -4,7 +4,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Ruleset
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -78,6 +78,7 @@ instance LookupEntryClass (Ruleset ex) Namespace (Ruleset ex)
         keyVal   r@(Ruleset k _ _) = (k,r)
         newEntry (_,r)             = r
 
+-- | A 'LookupMap' for a 'Ruleset'.
 type RulesetMap ex = LookupMap (Ruleset ex)
 
 -- | Create a ruleset.
@@ -152,7 +153,8 @@ getMaybeContextRule nam rsets =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

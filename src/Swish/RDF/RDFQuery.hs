@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFQuery
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -44,7 +44,7 @@ module Swish.RDF.RDFQuery
     , rdfFindArcs, rdfSubjEq, rdfPredEq, rdfObjEq
     , rdfFindPredVal, rdfFindPredInt, rdfFindValSubj
     , rdfFindList
-    -- debug
+    -- * Exported for testing
     , rdfQuerySubs2 )
 where
 
@@ -404,7 +404,7 @@ rdfQuerySubsBlank vars gr =
 rdfQueryBackSubsBlank :: [[RDFVarBinding]] -> RDFGraph -> [[RDFGraph]]
 rdfQueryBackSubsBlank varss gr = [ rdfQuerySubsBlank v gr | v <- varss ]
 
---  This function applies a substitution for a single set of variable
+-- |This function applies a substitution for a single set of variable
 --  bindings, returning the result and a list of unbound variables.
 --  It uses a state transformer monad to collect the list of
 --  unbound variables.
@@ -606,7 +606,8 @@ qb3 = rdfQueryBack2 matchQueryVariable [qa1,qa3] ta1
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke 
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke 
 --  All rights reserved.
 --
 --  This file is part of Swish.

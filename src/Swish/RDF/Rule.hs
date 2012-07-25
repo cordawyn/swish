@@ -1,11 +1,12 @@
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Rule
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -178,6 +179,7 @@ instance LookupEntryClass (Rule ex) ScopedName (Rule ex)
     newEntry (_,rule) = rule
     keyVal rule = (ruleName rule, rule)
 
+-- | A 'LookupMap' for a 'Rule'.
 type RuleMap ex = LookupMap (Rule ex)
 
 -- | Checks that consequence is a result of
@@ -191,6 +193,8 @@ fwdCheckInference ::
 fwdCheckInference rule ante cons =
     cons `elem` fwdApply rule ante
 
+-- | Checks that the antecedants are all required
+-- to create the consequence using the given rule.
 bwdCheckInference ::
   (Eq ex) 
   => Rule ex   -- ^ rule
@@ -224,7 +228,8 @@ showsWidth wid str more = str++replicate pad ' '++more
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

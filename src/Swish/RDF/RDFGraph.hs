@@ -1000,15 +1000,18 @@ fromRDFTriple (Arc s p o) =
   
 -- | Namespace prefix list entry
 
+-- | A 'LookupMap' for name spaces.
 type NamespaceMap = LookupMap Namespace
 
+-- | A 'LookupMap' for 'reversed' name spaces.
+type RevNamespaceMap = LookupMap RevNamespace
+
+-- | Support for 'reversed' name spaces in a 'LookupMap'.
 data RevNamespace = RevNamespace Namespace
 
 instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
     keyVal   (RevNamespace ns) = swap $ getNamespaceTuple ns
     newEntry (uri,pre) = RevNamespace (makeNamespace pre uri)
-
-type RevNamespaceMap = LookupMap RevNamespace
 
 -- | Create an empty namespace map.
 emptyNamespaceMap :: NamespaceMap
@@ -1035,8 +1038,10 @@ instance (Label lb) => Show (LookupFormula lb (NSGraph lb))
     where
         show (Formula l g) = show l ++ " :- { " ++ showArcs "    " g ++ " }"
 
+-- | A named formula.
 type Formula lb = LookupFormula lb (NSGraph lb)
 
+-- | A 'LookupMap' for named formulae.
 type FormulaMap lb = LookupMap (LookupFormula lb (NSGraph lb))
 
 -- | Create an empty formula map.
@@ -1185,9 +1190,13 @@ showArcs p g = foldr ((++) . (pp ++) . show) "" (getArcs g)
     where
         pp = "\n    " ++ p
 
+-- | Graph equality.
 grEq :: (Label lb) => NSGraph lb -> NSGraph lb -> Bool
 grEq g1 = fst . grMatchMap g1
 
+-- | Match graphs, returning `True` if they are equivalent,
+-- with a map of labels to equivalence class identifiers
+-- (see 'graphMatch' for further details).
 grMatchMap :: (Label lb) =>
     NSGraph lb -> NSGraph lb -> (Bool, LabelMap (ScopedLabel lb))
 grMatchMap g1 g2 =

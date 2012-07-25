@@ -17,9 +17,7 @@
 --  This module contains graph-matching logic.
 --
 --  The algorithm used is derived from a paper on RDF graph matching
---  by Jeremy Carroll [1].
---
---  [1] <http://www.hpl.hp.com/techreports/2001/HPL-2001-293.html>
+--  by Jeremy Carroll <http://www.hpl.hp.com/techreports/2001/HPL-2001-293.html>.
 --
 --------------------------------------------------------------------------------
 
@@ -64,6 +62,7 @@ import Swish.Utils.ListHelpers (select, equiv, pairSort, pairGroup, pairUngroup)
 
 type LabelIndex = (Int,Int)
 
+-- | The null, or empty, index value.
 nullLabelVal :: LabelIndex
 nullLabelVal = (0,0)
 
@@ -71,8 +70,11 @@ nullLabelVal = (0,0)
 --  Label mapping types
 -----------------------
 
+-- | A Mapping between a label and a value (e.g. an index
+-- value).
 data (Label lb) => GenLabelEntry lb lv = LabelEntry lb lv
 
+-- | A label associated with a 'LabelIndex'
 type LabelEntry lb = GenLabelEntry lb LabelIndex
 
 instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
@@ -92,6 +94,7 @@ instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
 data (Label lb, Eq lv, Show lv) => GenLabelMap lb lv =
     LabelMap Int (LookupMap (GenLabelEntry lb lv))
 
+-- | A label lookup table specialized to 'LabelIndex' indices.
 type LabelMap lb = GenLabelMap lb LabelIndex
 
 instance (Label lb) => Show (LabelMap lb) where
@@ -104,6 +107,7 @@ instance (Label lb) => Eq (LabelMap lb) where
             es1 = listLookupMap lmap1
             es2 = listLookupMap lmap2
 
+-- | The empty label map table.
 emptyMap :: (Label lb) => LabelMap lb
 emptyMap = LabelMap 1 $ makeLookupMap []
 
@@ -114,7 +118,7 @@ emptyMap = LabelMap 1 $ makeLookupMap []
 
 -- | Type for equivalence class description
 --  (An equivalence class is a collection of labels with
---  the same LabelIndex value.)
+--  the same 'LabelIndex' value.)
 
 type EquivalenceClass lb = (LabelIndex, [lb])
 
@@ -151,9 +155,11 @@ ecRemoveLabel xs l = second (L.delete l) xs
 
 data (Label lb) => ScopedLabel lb = ScopedLabel Int lb
 
+-- | Create a scoped label given an identifier and label.
 makeScopedLabel :: (Label lb) => Int -> lb -> ScopedLabel lb
 makeScopedLabel = ScopedLabel 
 
+-- | Create an arc containining a scoped label with the given identifier.
 makeScopedArc :: (Label lb) => Int -> Arc lb -> Arc (ScopedLabel lb)
 makeScopedArc scope = fmap (ScopedLabel scope)
 
@@ -449,13 +455,13 @@ hashVal seed lab =
   if labelIsVar lab then seed `combine` 23 else labelHash seed lab
   -- if labelIsVar lab then hash seed "???" else labelHash seed lab
 
+-- | Return the equivalence classes of the supplied nodes 
+-- using the label map.
 equivalenceClasses :: 
   (Label lb) 
   => LabelMap lb -- ^ label map
   -> [lb]        -- ^ list of nodes to be reclassified
   -> [EquivalenceClass lb]
-  -- ^ the equivalence classes of the supplied labels under the
-  --   supplied label map
 equivalenceClasses lmap ls =
     pairGroup $ map labelPair ls
     where

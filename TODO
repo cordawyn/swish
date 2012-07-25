@@ -15,6 +15,13 @@ Some things I want to/should do (not in order)
   An alternative change would be to make it 'Lit RDFLiteral' with
   RDFLiteral having the Untyped/Typed/Language options.
 
+- can items be moved out of Swidh.RDF.RDFGraph (e.g. the RDFlabel
+  re-exports)?
+
+- do we need to export rdfQuerySubs2 from Swish.RDF.RDFQuery (since this
+  is used by rdfQuerySubsAll/rdfQuerySubsBlank do we need to explicitly
+  test it)?
+
 - move a lot of parser/formatter tests out to ntriples files (ie the
   test data in external files).
 
