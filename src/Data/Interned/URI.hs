@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  URI
---  Copyright   :  (c) 2011 Douglas Burke
+--  Copyright   :  (c) 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  TypeFamilies, FlexibleInstances
+--  Portability :  CPP, TypeFamilies, FlexibleInstances
 --
 --  Support interning URIs.
 --
@@ -73,7 +73,8 @@ iuCache = mkCache
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
