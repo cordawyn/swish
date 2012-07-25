@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  QName
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -53,7 +53,31 @@ import qualified Data.Text as T
 {-| 
 
 A qualified name, consisting of a namespace URI
-and the local part of the identifier.
+and the local part of the identifier, which can be empty.
+
+> Prelude> :set prompt "swish> "
+> swish> :set -XOverloadedStrings
+> swish> :m + Swish.Utils.QName
+> swish> let qn1 = "http://example.com/" :: QName
+> swish> let qn2 = "http://example.com/bob" :: QName
+> swish> let qn3 = "http://example.com/bob/fred" :: QName
+> swish> let qn4 = "http://example.com/bob/fred#x" :: QName
+> swish> getLocalName qn1
+> ""
+> swish> getLocalName qn2
+> "bob"
+> swish> getLocalName qn3
+> "fred"
+> swish> getLocalName qn4
+> "x"
+> swish> getNamespace qn1
+> http://example.com
+> swish> getNamespace qn2
+> http://example.com
+> swish> getNamespace qn3
+> http://example.com/bob/
+> swish> getNamespace qn4
+> http://example.com/bob/fred#
 
 -}
 
@@ -67,8 +91,10 @@ data QName = QName !InternedURI URI T.Text
 
 -- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString QName where
-  fromString = qnameFromString
-               
+  fromString s = 
+      maybe (error ("Unable to convert '" ++ s ++ "' into a QName"))
+      qnameFromURI (parseURIReference s)
+
 -- | Equality is determined by a case sensitive comparison of the               
 -- URI.
 instance Eq QName where
@@ -76,7 +102,9 @@ instance Eq QName where
   (QName u1 _ _) == (QName u2 _ _) = u1 == u2
 
 -- ugly, use show instance OR switch to the ordering of InternedURI
-    
+
+-- | At present the ordering is based on a comparison of the @Show@
+-- instance of the URI.
 instance Ord QName where
   {-
     (QName u1 l1) <= (QName u2 l2) =
@@ -106,7 +134,7 @@ instance Ord QName where
         (up2,ur2) = splitAt n u2
   -}
   
--- | The format used to display the URI is @<uri>@.
+-- | The format used to display the URI is @\<uri\>@.
 instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
 
@@ -117,7 +145,12 @@ contain /, say?
 We could also me more clever, and safer, when constructing
 the overall uri.
 -}
-newQName :: URI -> T.Text -> QName
+
+-- | Create a new qualified name with an explicit local component.
+newQName ::
+    URI        -- ^ Namespace
+    -> T.Text  -- ^ Local component
+    -> QName
 newQName ns local = 
   let l   = T.unpack local
       uristr = show ns ++ l
@@ -147,7 +180,10 @@ with the first option.
 
 -}
 
-qnameFromURI :: URI -> QName
+-- | Create a new qualified name.
+qnameFromURI :: 
+    URI      -- ^ The URI will be deconstructed to find if it contains a local component.
+    -> QName
 qnameFromURI uri =
   let uf = uriFragment uri
       up = uriPath uri
@@ -162,11 +198,6 @@ qnameFromURI uri =
       (rlname,rpath) -> QName iuri (uri {uriPath = reverse rpath}) (T.pack (reverse rlname))
       
     e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
-
-qnameFromString :: String -> QName
-qnameFromString s =   
-  maybe (error ("Unable to convert '" ++ s ++ "' into a QName"))
-  qnameFromURI (parseURIReference s)
 
 -- | Return the URI of the namespace stored in the QName.
 -- This does not contain the local component.
@@ -204,7 +235,7 @@ qnEq (QName _ n1 l1) (QName _ n2 l2) = qnEq1 n1 n2 l1 l2
 
 {-|
 Convert a filepath to a file: URI stored in a QName. If the
-input file path is relative then the working directory is used
+input file path is relative then the current working directory is used
 to convert it into an absolute path.
 
 If the input represents a directory then it *must* end in 
@@ -216,7 +247,7 @@ This has not been tested on Windows.
 -}
 
 {-
-NOTE: not sure what I say directories should end in the path
+NOTE: not sure why I say directories should end in the path
 seperator since
 
 ghci> System.Directory.canonicalizePath "/Users/dburke/haskell/swish-text"
@@ -254,7 +285,8 @@ filePathToURI fname = do
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

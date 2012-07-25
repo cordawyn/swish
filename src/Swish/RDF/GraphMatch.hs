@@ -1,11 +1,13 @@
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphMatch
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -114,7 +116,7 @@ emptyMap = LabelMap 1 $ makeLookupMap []
 --  (An equivalence class is a collection of labels with
 --  the same LabelIndex value.)
 
-type EquivalenceClass lb = (LabelIndex,[lb])
+type EquivalenceClass lb = (LabelIndex, [lb])
 
 {-
 ecIndex :: EquivalenceClass lb -> LabelIndex
@@ -214,22 +216,23 @@ graphMatch matchable gs1 gs2 =
     in
         if length ec1 /= length ec2 then (False,emptyMap) else match
 
--- | Recursive graph matching function
---
---  This function assumes that no variable label appears in both graphs.
---  (Function `graphMatch`, which calls this, ensures that all variable
---  labels are distinct.)
---
 --  TODO:
 --
 --    * replace Equivalence class pair by @(index,[lb],[lb])@ ?
 --
---    * possible optimization:  the `graphMapEq` test should be
+--    * possible optimization:  the @graphMapEq@ test should be
 --      needed only if `graphMatch2` has been used to guess a
 --      mapping;  either: 
 --          a) supply flag saying guess has been used, or
 --          b) move test to `graphMatch2` and use different
 --             test to prevent rechecking for each guess used.
+--
+
+-- | Recursive graph matching function
+--
+--  This function assumes that no variable label appears in both graphs.
+--  (Function `graphMatch`, which calls this, ensures that all variable
+--  labels are distinct.)
 --
 
 graphMatch1 :: 
@@ -599,7 +602,8 @@ graphMapEq lmap gs1 gs2 = graphMap lmap gs1 `equiv` graphMap lmap gs2
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

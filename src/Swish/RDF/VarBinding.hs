@@ -1,17 +1,19 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances #-} -- needed for ghc 7.12
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  VarBinding
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings, FlexibleInstances
+--  Portability :  MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, OverloadedStrings
 --
 --  This module defines functions for representing and manipulating query
 --  binding variable sets.  This is the key data that mediates between
@@ -330,7 +332,7 @@ vbmCompose
 --  The only way in which two variable binding modifiers can be incompatible
 --  with each other is when they both attempt to create a new binding for
 --  the same variable.  (Note that this does not mean the composition will
---  be compatible with all inputs:  see 'vbmCompatibleVars'.)
+--  be compatible with all inputs:  see @vbmCompatibleVars@.)
 --
 --  NOTE:  if there are different ways to achieve the same usage, that
 --  usage is currently repeated in the result returned.
@@ -517,7 +519,8 @@ varFilterConjunction vbfs = VarBindingFilter
 
 --------------------------------------------------------------------------------
 --
---  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

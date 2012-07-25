@@ -199,6 +199,7 @@ instance (Show lb) => Show (Arc lb) where
 -- | Identify arcs.
 type Selector lb = Arc lb -> Bool
 
+-- | Does the arc contain the label in any position (subject, predicate, or object)?
 hasLabel :: (Eq lb) => lb -> Arc lb -> Bool
 hasLabel lbv lb = lbv `elem` arcLabels lb
 
