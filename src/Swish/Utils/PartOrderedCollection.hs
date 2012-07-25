@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  PartOrderedCollection
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -31,12 +31,6 @@ module Swish.Utils.PartOrderedCollection
     , partComparePair
     , partCompareListMaybe
     , partCompareListSubset
-    , partCompareListPartOrd
-    , partCompareMaybe
-        
-      -- the following are currently unused
-    , partCompareOrd
-    , partCompareListOrd 
     )
     where
 
@@ -46,6 +40,7 @@ import Data.List (foldl')
 --  Type of partial compare function
 ------------------------------------------------------------
 
+-- | Partial comparison function.
 type PartCompare a = a -> a -> Maybe Ordering
 
 ------------------------------------------------------------
@@ -84,17 +79,16 @@ minima cmp = maxima (flip cmp)
 ------------------------------------------------------------
 
 -- |Partial ordering for Eq values
-partCompareEq :: (Eq a) => a -> a -> Maybe Ordering
+partCompareEq :: (Eq a) => PartCompare a
 partCompareEq a1 a2 = if a1 == a2 then Just EQ else Nothing
-
--- |Partial ordering for Ord values
-partCompareOrd :: (Ord a) => a -> a -> Maybe Ordering
-partCompareOrd a1 a2 = Just $ compare a1 a2
 
 -- |Part-ordering comparison on pairs of values,
 --  where each has a part-ordering relationship
 partComparePair ::
-    (a->a->Maybe Ordering) -> (b->b->Maybe Ordering) -> (a,b) -> (a,b)
+    PartCompare a
+    -> PartCompare b
+    -> (a,b) 
+    -> (a,b)
     -> Maybe Ordering
 partComparePair cmpa cmpb (a1,b1) (a2,b2) = case (cmpa a1 a2,cmpb b1 b2) of
     (_,Nothing)       -> Nothing
@@ -131,22 +125,6 @@ partCompareListPartOrd cmp a1s b1s = pcomp a1s b1s EQ
         pcomp1 as bs ordn ordp =
             if ordn == ordp then pcomp as bs ordp else Nothing
                                                        
--- |Part-ordering comparison on lists of Ord values, where:
---
---  [@as==bs@]  if members of as are all equal to corresponding members of bs
---    
---  [@as<=bs@]  if members of as are all less than or equal to corresponding
---          members of bs
---    
---  [@as>=bs@]  if members of as are all greater than or equal to corresponding
---          members of bs
---    
---  [otherwise] as and bs are unrelated
---
-partCompareListOrd :: (Ord a) => [a] -> [a] -> Maybe Ordering
-partCompareListOrd = partCompareListPartOrd (Just `c2` compare)
-    where c2 = (.) . (.)
-
 -- |Part-ordering comparison for Maybe values.
 partCompareMaybe :: (Eq a) => Maybe a -> Maybe a -> Maybe Ordering
 partCompareMaybe Nothing  Nothing  = Just EQ
@@ -363,7 +341,8 @@ test = and
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

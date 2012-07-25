@@ -56,6 +56,10 @@ Description:
   .
   * Switch to @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
   .
+  * Removed un-used exports from @Swish.Utils.PartOrderedCollection@: 
+  @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and
+  @partCompareListPartOrd@.
+  .
   * Removed the @Swish.Utils.MiscHelpers@ module.
   .
   Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.

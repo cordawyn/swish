@@ -17,6 +17,9 @@
 
   - Removed the Swish.Utils.MiscHelpers module.
 
+  - Removed partCompareOrd, partCompareMaybe, partCompareListOrd and 
+    partCompareListPartOrd from Swish.Utils.PartOrderedCollection.
+
   - Do not define swap if using GHC >= 7.0.1.
 
 0.6.5.3:
