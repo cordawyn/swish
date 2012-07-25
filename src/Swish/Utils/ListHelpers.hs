@@ -3,23 +3,18 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ListHelpers
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module defines some generic list and related helper functions. 
+--  This module defines some generic list and related helper functions. The plan
+--  is to move to using functionality from other modules (e.g. containers) where
+--  possible.
 --
 --------------------------------------------------------------------------------
-
-{-
-TODO:
-
-The plan is to use modules such as Data.Set where appropriate.
-
--}
 
 module Swish.Utils.ListHelpers
        ( -- list of Swish.RDF.xxx modules the routine is used in
@@ -43,9 +38,10 @@ module Swish.Utils.ListHelpers
         
       )
 where
-  
-import Data.Ord (comparing)  
+
+import Data.Function (on)  
 import Data.List (sortBy, groupBy)
+import Data.Ord (comparing)  
 
 ------------------------------------------------------------
 --  Generic helpers
@@ -126,19 +122,24 @@ pairSelect :: ((a,b) -> Bool) -> ((a,b) -> c) -> [(a,b)] -> [c]
 pairSelect p f as = map f (filter p as)
 -}
 
-pairUngroup :: (a,[b]) -> [(a,b)]
+-- | Ungroup the pairs.
+pairUngroup :: 
+    (a,[b])    -- ^ Given (a,bs)
+    -> [(a,b)] -- ^ Returns (a,b) for all b in bs
 pairUngroup (a,bs) = [ (a,b) | b <- bs ]
 
+-- | Order the pairs based on the first argument.
 pairSort :: (Ord a) => [(a,b)] -> [(a,b)]
 pairSort = sortBy (comparing fst)
 
+-- | Group the pairs based on the first argument.
 pairGroup :: (Ord a) => [(a,b)] -> [(a,[b])]
 pairGroup = map (factor . unzip) . groupBy eqFirst . pairSort 
     where
       -- as is not [] by construction, but would be nice to have
       -- this enforced by the types
-      factor (as, bs) = (head as,bs)
-      eqFirst a b     = fst a == fst b
+      factor (as, bs) = (head as, bs)
+      eqFirst = (==) `on` fst
 
 ------------------------------------------------------------
 --  Separate list into sublists
@@ -207,8 +208,9 @@ testpower = powerSet "abc"        -- ["a","b","c","ab","ac","bc","abc"]
 --  Permutations of a list
 ------------------------------------------------------------
 
---  This algorithm is copied from an email by S.D.Mechveliani
---  http://www.dcs.gla.ac.uk/mail-www/haskell/msg01936.html
+-- | Returns the permutations of a list, based on code
+-- by S.D.Mechveliani, 
+-- <http://www.dcs.gla.ac.uk/mail-www/haskell/msg01936.html>.
 permutations :: [a] -> [[a]]
 permutations    []     = [[]]
 permutations    (j:js) = addOne $ permutations js
@@ -336,7 +338,8 @@ anyptest  = and [not anyptest0,anyptest1,anyptest2,anyptest3]
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
