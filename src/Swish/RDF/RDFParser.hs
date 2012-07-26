@@ -82,7 +82,6 @@ import Data.Maybe (fromMaybe, fromJust)
 -- | Append the two URIs. Should probably be moved
 --   out of RDFParser. It is also just a thin wrapper around
 --   `Network.URI.relativeTo`.
-
 appendURIs ::
   URI     -- ^ The base URI
   -> URI  -- ^ The URI to append (it can be an absolute URI).
@@ -95,7 +94,7 @@ appendURIs base uri =
     _  -> Right uri
   
 -- | Type for special name lookup table
-type SpecialMap = LookupMap (String,ScopedName)
+type SpecialMap = LookupMap (String, ScopedName)
 
 {-
 -- | Lookup prefix in table and return the matching URI.
@@ -126,11 +125,10 @@ prefixTable =   [ namespaceRDF
                 , makeNamespace Nothing $ fromJust (parseURIReference "#") -- is this correct?
                 ]
 
-{-|
-Define default special-URI table.
-The optional argument defines the initial base URI.
--}
-specialTable :: Maybe ScopedName -> [(String,ScopedName)]
+-- | Define default special-URI table.
+specialTable ::
+    Maybe ScopedName  -- ^ initial base URI, otherwise uses 'defaultBase'
+    -> [(String,ScopedName)]
 specialTable mbase =
   [ ("a",         rdfType    ),
     ("equals",    owlSameAs  ),
@@ -168,61 +166,93 @@ runParserWithError parser state0 input =
     Left emsg -> Left $ emsg ++ econtext
     _ -> result
 
+-- | The result of a parse, which is either an error message or a graph.
 type ParseResult = Either String RDFGraph
 
+
+-- | Run the parser and ignore the result.
 ignore :: (Applicative f) => f a -> f ()
 ignore f = f *> pure ()
 
+-- | Match the character.
 char :: Char -> Parser s Char
 char c = satisfy (==c)
 
+-- | Match the character, ignoring the result.
 ichar :: Char -> Parser s ()
 ichar = ignore . char
 
 -- TODO: is there a better way to do this?
+-- | Match the text.
 string :: String -> Parser s String
 string = mapM char
   
+-- | Match the text.
 stringT :: T.Text -> Parser s T.Text
 stringT s = string (T.unpack s) >> return s
 
+-- | Run the parser 'many' times and ignore the result.
 skipMany :: Parser s a -> Parser s ()
 skipMany = ignore . many
   
+-- | Run the parser 'many1' times and ignore the result.
 skipMany1 :: Parser s a -> Parser s ()
 skipMany1 = ignore . many1
-  
-endBy :: Parser s a -> Parser s b -> Parser s [a]
+
+-- | Match zero or more occurences of
+-- parser followed by separator.
+endBy :: 
+    Parser s a    -- ^ parser
+    -> Parser s b -- ^ separator
+    -> Parser s [a]
 endBy p sep = many (p <* sep)
 
-sepEndBy :: Parser s a -> Parser s b -> Parser s [a]
+-- | Match zero or more occurences of the parser followed
+-- by the separator.
+sepEndBy :: 
+    Parser s a    -- ^ parser
+    -> Parser s b -- ^ separator
+    -> Parser s [a]
 sepEndBy p sep = sepEndBy1 p sep <|> pure []
 
--- is the separator optional?
-sepEndBy1 :: Parser s a -> Parser s b -> Parser s [a]
+-- | Accept one or more occurences of the parser
+-- separated by the separator. Unlike 'endBy' the
+-- last separator is optional.
+sepEndBy1 :: 
+    Parser s a    -- ^ parser
+    -> Parser s b -- ^ separator
+    -> Parser s [a]
 sepEndBy1 p sep = do
   x <- p
   (sep *> ((x:) <$> sepEndBy p sep)) <|> return [x]
   
-manyTill :: Parser s a -> Parser s b -> Parser s [a]
+-- | Accept zero or more runs of the parser
+-- ending with the delimiter.
+manyTill :: 
+    Parser s a    -- ^ parser
+    -> Parser s b -- ^ delimiter
+    -> Parser s [a]
 manyTill p end = go
   where
     go = (end *> return [])
          <|>
          ((:) <$> p <*> go)
 
-
+-- | Accept any character that is not a member of the given string.
 noneOf :: String -> Parser s Char           
 noneOf istr = satisfy (`notElem` istr)
-           
+
+-- | Matches '.'.           
 fullStop :: Parser s ()
 fullStop = ichar '.'
 
+-- | Match the end-of-line sequence (@"\\n"@, @"\\r"@, or @"\\r\\n"@). 
 eoln :: Parser s ()
 -- eoln = ignore (newline <|> (lineFeed *> optional newline))
 -- eoln = ignore (try (string "\r\n") <|> string "\r" <|> string "\n")
 eoln = ignore (oneOf [string "\r\n", string "\r", string "\n"])
-       
+
+-- | Succeed if the next character does not match the given function.
 notFollowedBy :: (Char -> Bool) -> Parser s ()
 notFollowedBy p = do
   c <- next
@@ -230,21 +260,28 @@ notFollowedBy p = do
     then fail $ "Unexpected character: " ++ show [c]
     else reparse $ L.singleton c
 
+-- | Match the given string and any trailing 'whiteSpace'.
 symbol :: String -> Parser s String
 symbol = lexeme . string
 
+-- | As 'symbol' but ignoring the result.
 isymbol :: String -> Parser s ()
 isymbol = ignore . symbol
 
+-- | Convert a parser into one that also matches, and ignores,
+-- trailing 'whiteSpace'.
 lexeme :: Parser s a -> Parser s a
 lexeme p = p <* whiteSpace
 
+-- | Match white space: a space or a comment (@#@ character and anything following it
+-- up to to a new line).
 whiteSpace :: Parser s ()
 whiteSpace = skipMany (simpleSpace <|> oneLineComment)
 
 simpleSpace :: Parser s ()
 simpleSpace = ignore $ many1Satisfy isSpace
 
+-- TODO: this should use eoln rather than a check on \n
 oneLineComment :: Parser s ()
 oneLineComment = ichar '#' *> manySatisfy (/= '\n') *> pure ()
 
@@ -300,6 +337,7 @@ hexDigit :: Parser a Char
 -- hexDigit = satisfy (`elem` ['0'..'9'] ++ ['A'..'F'])
 hexDigit = satisfy isHexDigit
 
+-- | A four-digit hex value (e.g. @1a34@ or @03F1@).
 hex4 :: Parser a Char
 hex4 = do
   digs <- exactly 4 hexDigit
@@ -308,7 +346,8 @@ hex4 = do
     Left emsg     -> failBad $ "Internal error: unable to parse hex4: " ++ emsg
     Right (v, "") -> return $ chr v
     Right (_, vs) -> failBad $ "Internal error: hex4 remainder = " ++ T.unpack vs
-        
+
+-- | An eight-digit hex value that has a maximum of @0010FFFF@.
 hex8 :: Parser a Char
 hex8 = do
   digs <- exactly 8 hexDigit

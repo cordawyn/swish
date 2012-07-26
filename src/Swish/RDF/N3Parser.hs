@@ -214,6 +214,7 @@ updateGraph f s = s { graphState = f (graphState s) }
 --  accepts a string and returns a graph or error
 ----------------------------------------------------------------------
 
+-- | The N3 parser.
 type N3Parser a = Parser N3State a
 
 -- | Parse a string as N3 (with no real base URI).
@@ -272,6 +273,7 @@ parseAnyfromText :: N3Parser a      -- ^ parser to apply
                     -> Either String a
 parseAnyfromText parser mbase = runParserWithError parser (emptyState mbase)
 
+-- | Create a new blank node.
 newBlankNode :: N3Parser RDFLabel
 newBlankNode = do
   n <- stQuery (succ . nodeGen)
@@ -282,14 +284,17 @@ newBlankNode = do
 
 -- TODO: remove these
   
+-- | Used in testing.
 parseTextFromText :: String -> L.Text -> Either String String
 parseTextFromText s =
     parseAnyfromText (string s) Nothing
 
+-- | Used in testing.
 parseAltFromText :: String -> String -> L.Text -> Either String String
 parseAltFromText s1 s2 =
     parseAnyfromText (string s1 <|> string s2) Nothing
 
+-- | Used in testing.
 parseNameFromText :: L.Text -> Either String String
 parseNameFromText =
     parseAnyfromText n3NameStr Nothing
@@ -320,14 +325,17 @@ parsePrefixFromText =
             _ -> fail $ "Undefined prefix: '" ++ pref ++ "'"
 -}
 
+-- | Used in testing.
 parseAbsURIrefFromText :: L.Text -> Either String URI
 parseAbsURIrefFromText =
     parseAnyfromText explicitURI Nothing
 
+-- | Used in testing.
 parseLexURIrefFromText :: L.Text -> Either String URI
 parseLexURIrefFromText =
     parseAnyfromText lexUriRef Nothing
 
+-- | Used in testing.
 parseURIref2FromText :: L.Text -> Either String ScopedName
 parseURIref2FromText = 
     parseAnyfromText (addTestPrefixes *> n3symbol) Nothing
@@ -494,6 +502,7 @@ quickvariable ::=	\?[A-Z_a-z#x00c0-#x00d6#x00d8-#x00f6#x00f8-#x02ff#x0370-#x037d
 -}
 
 -- TODO: is mapping to Var correct?
+-- | Match @?<variable name>@.
 quickVariable :: N3Parser RDFLabel
 quickVariable = char '?' *> (Var <$> n3NameStr) 
 
@@ -600,6 +609,7 @@ updateKeywordsList = stUpdate . setKeywordsList
 document ::=		|	statements_optional EOF
 -}
 
+-- | Process a N3 document, returning a graph.
 document :: N3Parser RDFGraph
 document = mkGr <$> (whiteSpace *> statementsOptional *> eof *> stGet)
   where
@@ -654,7 +664,10 @@ declaration = oneOf [
   <|>
   (try (atWord "prefix") *> getPrefix)
   -}
-  
+
+-- | Process the remainder of an @\@prefix@ line (after this
+-- has been processed). The prefix value and URI are added to the parser
+-- state.
 getPrefix :: N3Parser ()  
 getPrefix = do
   p <- lexeme prefix
@@ -684,6 +697,7 @@ explicitURI = do
       either fail return $ appendURIs base uref
       
 -- production from the old parser; used in SwishScript
+-- | An explicitly given URI followed by white space.
 lexUriRef :: N3Parser URI
 lexUriRef = lexeme explicitURI
 
@@ -719,6 +733,8 @@ symbol_csl_tail ::=		|	 ","  symbol symbol_csl_tail
 
 -}
 
+-- | Match a N3 symbol (an explicit URI or a QName)
+-- and convert it to a 'ScopedName'.
 n3symbol :: N3Parser ScopedName
 n3symbol = 
   (makeURIScopedName <$> explicitURI)
@@ -915,7 +931,8 @@ formulaContent = do
   oldState <- restoreState pstate
   stUpdate $ updateGraph $ setFormula (Formula bNode (graphState oldState))
   return bNode
-  
+
+-- | Process a sub graph and assign it to the given label.  
 subgraph :: RDFLabel -> N3Parser RDFGraph
 subgraph this = do
   pstate <- stGet

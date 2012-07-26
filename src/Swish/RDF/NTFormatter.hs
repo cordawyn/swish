@@ -11,20 +11,15 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a NTriples formatter (see [1])
---  for an RDFGraph value.
---
--- REFERENCES:
---
--- 1 <http://www.w3.org/TR/rdf-testcases/#ntriples>
---     RDF Test Cases
---     W3C Recommendation 10 February 2004
+--  This Module implements a NTriples formatter
+--  (RDF Test Cases, W3C Recommendation 10 February 2004,
+--  <http://www.w3.org/TR/rdf-testcases/#ntriples>)
+--  for an 'RDFGraph'.
 --
 --------------------------------------------------------------------------------
 
 module Swish.RDF.NTFormatter
-    ( NodeGenLookupMap
-    , formatGraphAsText
+    ( formatGraphAsText
     , formatGraphAsLazyText
     , formatGraphAsBuilder
     )
