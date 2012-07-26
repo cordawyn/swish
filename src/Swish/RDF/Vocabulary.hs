@@ -71,7 +71,9 @@ import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScoped
 
 import Data.Char (isDigit)
 import Data.Monoid (mappend, mconcat)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
+import Data.String (IsString(..))
+
 import Network.URI (URI, parseURI)
 
 import qualified Data.Text as T
@@ -153,9 +155,27 @@ swishName = makeNSScopedName namespaceSwish
 -- RFC 3066 <http://www.ietf.org/rfc/rfc3066.txt>.
 --
 -- Use 'toLangTag' to create a tag and 'fromLangTag' to
--- convert back. The only guarantee is that
+-- convert back (although this is not guaranteed to preserve
+-- case).
 --
--- > (fromLangTag . toLangTag) lt == T.toLower lt
+-- As an example:
+--
+-- > Prelude> :set prompt "swish> "
+-- > swish> :set -XOverloadedStrings
+-- > swish> :m + Swish.RDF.Vocabulary
+-- > swish> let en = "en" :: LanguageTag
+-- > swish> let us = "en-us" :: LanguageTag
+-- > swish> let gb = "en-GB" :: LanguageTag
+-- > swish> en == us
+-- > False
+-- > swish> compareLangTags en us
+-- > True
+-- > swish> compareLangTags us en
+-- > False
+-- > swish> compareLangTags us gb
+-- > False
+-- > swish> gb
+-- > en-gb
 --
 data LanguageTag = 
     LanguageTag T.Text T.Text [T.Text]
@@ -163,6 +183,11 @@ data LanguageTag =
 
 instance Show LanguageTag where
     show = T.unpack . fromLangTag
+
+-- | The 'IsString' instance is not total since it will fail
+-- given a syntactically-invalid language tag.
+instance IsString LanguageTag where
+    fromString = fromJust . toLangTag . T.pack
 
 -- | The equality test matches on the full definition, so
 -- @en-GB@ does not match @en@. See also 'compareLangTags'.
