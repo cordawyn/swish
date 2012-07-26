@@ -6,9 +6,6 @@ Some things I want to/should do (not in order)
 - Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?
 
-- Change LangLit to have a language-code datatype rather than use
-  a ScopedName.
-
 - can items be moved out of Swidh.RDF.RDFGraph (e.g. the RDFlabel
   re-exports)?
 

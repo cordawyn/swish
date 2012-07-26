@@ -46,7 +46,8 @@ import Swish.RDF.RDFGraph
 
 import Swish.RDF.Vocabulary
   ( namespaceRDF
-  , langName 
+  , LanguageTag
+  , toLangTag 
   , rdfXMLLiteral
   , xsdBoolean
   , xsdInteger
@@ -84,19 +85,22 @@ import TestHelpers ( runTestSuite
 --  Test language tag comparisons
 ------------------------------------------------------------
 
-type Lang = Maybe ScopedName
+type Lang = Maybe LanguageTag
+
+toLT :: T.Text -> LanguageTag
+toLT = fromJust . toLangTag
 
 lt0, lt1, lt2, lt3, lt4, lt5, lt6,
   lt7, lt8 :: Lang
 lt0 = Nothing
-lt1 = Just (langName "en")
-lt2 = Just (langName "EN")
-lt3 = Just (langName "fr")
-lt4 = Just (langName "FR")
-lt5 = Just (langName "en-us")
-lt6 = Just (langName "en-US")
-lt7 = Just (langName "EN-us")
-lt8 = Just (langName "EN-US")
+lt1 = Just (toLT "en")
+lt2 = Just (toLT "EN")
+lt3 = Just (toLT "fr")
+lt4 = Just (toLT "FR")
+lt5 = Just (toLT "en-us")
+lt6 = Just (toLT "en-US")
+lt7 = Just (toLT "EN-us")
+lt8 = Just (toLT "EN-US")
 
 langlist :: [(String, Lang)]
 langlist =
@@ -242,9 +246,9 @@ qb1t2 = makeNSScopedName base1 "type2"
 l1, l2, l2gb, l3, l4, l5, l6, l7, l8,
   l9, l10, l11, l12 :: RDFLabel
 l1   = "l1" -- use IsString instance
-l2   = LangLit "l2"  (langName "en")
-l2gb = LangLit "l2"  (langName "en-gb")
-l3   = LangLit "l2"  (langName "fr")
+l2   = LangLit "l2"  (toLT "en")
+l2gb = LangLit "l2"  (toLT "en-gb")
+l3   = LangLit "l2"  (toLT "fr")
 l4   = TypedLit "l4"  qb1t1    
 l5   = TypedLit "l4"  qb1t1           
 l6   = TypedLit "l4"  qb1t1           

@@ -101,7 +101,8 @@ import Swish.Utils.Namespace
 import Swish.Utils.QName (QName)
 
 import Swish.RDF.Vocabulary
-    ( langName
+    ( LanguageTag
+    , toLangTag
     , rdfType
     , rdfFirst, rdfRest, rdfNil
     , owlSameAs, logImplies
@@ -955,16 +956,26 @@ literal = do
                Just (Right dtype) -> TypedLit lit dtype
                _                  -> Lit lit
   
-dtlang :: N3Parser (Either ScopedName ScopedName)
+dtlang :: N3Parser (Either LanguageTag ScopedName)
 dtlang = 
   (char '@' *> (Left <$> langcode))
   <|> string "^^" *> (Right <$> n3symbol)
 
-langcode :: N3Parser ScopedName
+-- Note that toLangTag may fail since it does some extra
+-- validation not done by the parser (mainly on the length of the
+-- primary and secondary tags).
+--
+-- NOTE: This parser does not accept multiple secondary tags which RFC3066
+-- does.
+--
+langcode :: N3Parser LanguageTag
 langcode = do
-  h <- many1Satisfy isaz
-  mt <- optional ( L.append <$> (char '-' *> pure (L.singleton '-')) <*> many1Satisfy isaz09)
-  return $ langName $ L.toStrict $ L.append h (fromMaybe L.empty mt)
+    h <- many1Satisfy isaz
+    mt <- optional (L.cons <$> char '-' <*> many1Satisfy isaz09)
+    let lbl = L.toStrict $ L.append h $ fromMaybe L.empty mt
+    case toLangTag lbl of
+        Just lt -> return lt
+        _ -> fail ("Invalid language tag: " ++ T.unpack lbl) -- should this be failBad?
     
 {-
 decimal ::=	[-+]?[0-9]+(\.[0-9]+)?

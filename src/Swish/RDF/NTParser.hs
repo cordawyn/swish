@@ -51,7 +51,7 @@ import Swish.RDF.GraphClass (arc)
 
 import Swish.Utils.Namespace (ScopedName, makeURIScopedName)
 
-import Swish.RDF.Vocabulary (langName)
+import Swish.RDF.Vocabulary (LanguageTag, toLangTag)
 
 import Swish.RDF.RDFParser ( ParseResult
     , runParserWithError
@@ -335,16 +335,26 @@ literal = do
 ntstring :: NTParser String
 ntstring = bracket (char '"') (char '"') (many character)
 
-dtlang :: NTParser (Either ScopedName ScopedName)
+dtlang :: NTParser (Either LanguageTag ScopedName)
 dtlang = 
     (char '@' *> (Left <$> language))
     <|> (string "^^" *> (Right <$> uriref))
 
-language :: NTParser ScopedName
+-- Note that toLangTag may fail since it does some extra
+-- validation not done by the parser (mainly on the length of the
+-- primary and secondary tags).
+--
+-- NOTE: This parser does not accept multiple secondary tags which RFC3066
+-- does.
+--
+language :: NTParser LanguageTag
 language = do
-  h <- many1Satisfy isaz
-  mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (\c -> isaz c || is09 c) )
-  return $ langName $ L.toStrict $ L.append h $ fromMaybe L.empty mt
+    h <- many1Satisfy isaz
+    mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (\c -> isaz c || is09 c) )
+    let lbl = L.toStrict $ L.append h $ fromMaybe L.empty mt
+    case toLangTag lbl of
+        Just lt -> return lt
+        _ -> fail ("Invalid language tag: " ++ T.unpack lbl) -- should this be failBad?
 
 {-
 String handling: 

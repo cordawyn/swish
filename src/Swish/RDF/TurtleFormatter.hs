@@ -58,12 +58,11 @@ import Swish.RDF.RDFGraph (
   , resRdfFirst, resRdfRest, resRdfNil
   )
 
-import Swish.RDF.Vocabulary (
-  langTag 
-  , rdfType
-  , rdfNil
-  , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
-  )
+import Swish.RDF.Vocabulary ( fromLangTag 
+                            , rdfType
+                            , rdfNil
+                            , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
+                            )
 
 import Swish.RDF.GraphClass (Arc(..))
 
@@ -714,7 +713,7 @@ formatLabel ctxt (Res sn)
 -- we just convert E to e for now.      
 --      
 formatLabel _ (Lit lit) = return $ quoteText lit
-formatLabel _ (LangLit lit lcode) = return $ quoteText lit `mappend` "@" `mappend` B.fromText (langTag lcode)
+formatLabel _ (LangLit lit lcode) = return $ quoteText lit `mappend` "@" `mappend` B.fromText (fromLangTag lcode)
 formatLabel _ (TypedLit lit dtype)
     | dtype == xsdDouble = return $ B.fromText $ T.toLower lit
     | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit

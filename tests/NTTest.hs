@@ -30,7 +30,7 @@ import Swish.RDF.RDFGraph
 
 -- import Swish.Utils.Namespace (makeURIScopedName)
 
-import Swish.RDF.Vocabulary (langName, rdfXMLLiteral)
+import Swish.RDF.Vocabulary (toLangTag, rdfXMLLiteral)
 
 import Swish.RDF.GraphClass (arc)
 
@@ -40,6 +40,7 @@ import Test.HUnit
 
 import qualified Data.Text.Lazy as T
 
+import Data.Maybe (fromJust)
 import TestHelpers (runTestSuite)
 
 ------------------------------------------------------------
@@ -121,8 +122,8 @@ l3 = Lit "l3--\r\"'\\--\x20&--\x17A&--"
 l4 = Lit "l4 \\"
 
 lfr, lgben, lxml1, lxml2 :: RDFLabel
-lfr    = LangLit "chat"           $ langName "fr"
-lgben  = LangLit "football"       $ langName "en-gb"
+lfr    = LangLit "chat"           $ fromJust $ toLangTag "fr"
+lgben  = LangLit "football"       $ fromJust $ toLangTag "en-gb"
 lxml1  = TypedLit "<br/>"         rdfXMLLiteral
 lxml2  = TypedLit "<em>chat</em>" rdfXMLLiteral
 

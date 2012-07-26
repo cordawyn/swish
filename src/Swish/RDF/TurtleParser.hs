@@ -80,7 +80,8 @@ import Swish.Utils.Namespace
     )
 
 import Swish.RDF.Vocabulary
-    ( langName
+    ( LanguageTag
+    , toLangTag
     , rdfType
     , rdfFirst, rdfRest, rdfNil
     , xsdBoolean, xsdInteger, xsdDecimal, xsdDouble
@@ -737,12 +738,22 @@ These are unused in the grammar.
 I am ignoring the BASE and PREFIX lines here as they don't make sense to me.
 -}
 
-_langTag :: TurtleParser ScopedName
+-- Note that toLangTag may fail since it does some extra
+-- validation not done by the parser (mainly on the length of the
+-- primary and secondary tags).
+--
+-- NOTE: This parser does not accept multiple secondary tags which RFC3066
+-- does.
+--
+_langTag :: TurtleParser LanguageTag
 _langTag = do
-  ichar '@'
-  h <- many1Satisfy isaZ
-  mt <- optional (L.cons <$> char '-' <*> many1Satisfy isaZ09)
-  return $ langName $ L.toStrict $ L.append h (fromMaybe L.empty mt)
+    ichar '@'
+    h <- many1Satisfy isaZ
+    mt <- optional (L.cons <$> char '-' <*> many1Satisfy isaZ09)
+    let lbl = L.toStrict $ L.append h $ fromMaybe L.empty mt
+    case toLangTag lbl of
+        Just lt -> return lt
+        _ -> fail ("Invalid language tag: " ++ T.unpack lbl) -- should this be failBad?
   
 {-
 [77s] <INTEGER> ::= [0-9]+ 

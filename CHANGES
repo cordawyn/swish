@@ -1,7 +1,9 @@
 0.7.0.0:
 
   - RDF literals are now stored using the Lit, LangLit, or TypedLit
-    constructors (from RDFLabel) rather than using just Lit.
+    constructors (from RDFLabel) rather than using just Lit. Language
+    codes are now represented by Swish.RDF.Vocabulary.LanguageTag
+    rather than as a ScopedName.
 
   - Removed mkTypedLit from Swish.RDF.RDFParser; use
     Swish.RDF.RDFDatatype.makeDataTypedLiteral instead.

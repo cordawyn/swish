@@ -246,21 +246,18 @@ swap (a,b) = (b,a)
 --      This might otherwise be handled by @Maybe (RDFLabel g)@.
 --
 -- Prior to version @0.7.0.0@, literals were represented by a
--- single constructor, @Lit@, with an optional argument.
+-- single constructor, @Lit@, with an optional argument. Language
+-- codes for literals was also stored as a 'ScopedName' rather than
+-- as a 'LanguageTag'.
 --
 data RDFLabel =
       Res ScopedName                    -- ^ resource
     | Lit T.Text                        -- ^ a plain literal
-    | LangLit T.Text ScopedName         -- ^ a literal with an associated language
+    | LangLit T.Text LanguageTag        -- ^ a literal with an associated language
     | TypedLit T.Text ScopedName        -- ^ a literal with an associated data type
     | Blank String                      -- ^ blank node
     | Var String                        -- ^ variable (not used in ordinary graphs)
     | NoNode                            -- ^ no node  (not used in ordinary graphs)
-
--- TODO: LangLit should use a language encoding type rather than a scoped name.
-
-langCompare :: ScopedName -> ScopedName -> Bool
-langCompare = (==) `on` (T.toLower . langTag)
 
 -- | Define equality of nodes possibly based on different graph types.
 --
@@ -274,7 +271,7 @@ instance Eq RDFLabel where
     Var v1   == Var v2   = v1 == v2
 
     Lit s1         == Lit s2         = s1 == s2
-    LangLit s1 t1  == LangLit s2 t2  = s1 == s2 && langCompare t1 t2
+    LangLit s1 l1  == LangLit s2 l2  = s1 == s2 && l1 == l2
     TypedLit s1 t1 == TypedLit s2 t2 = s1 == s2 && t1 == t2
 
     _  == _ = False
@@ -282,7 +279,7 @@ instance Eq RDFLabel where
 instance Show RDFLabel where
     show (Res sn)           = show sn
     show (Lit st)           = quote1Str st
-    show (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (langTag lang)
+    show (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (fromLangTag lang)
     show (TypedLit st dtype) 
         | dtype `elem` [xsdBoolean, xsdDouble, xsdDecimal, xsdInteger] = T.unpack st
         | otherwise  = quote1Str st ++ "^^" ++ show dtype
@@ -671,7 +668,7 @@ instance FromRDFLabel URI where
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++show (getScopedNameURI sn)++">"
 showCanon (Lit st)           = show st
-showCanon (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (langTag lang)
+showCanon (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (fromLangTag lang)
 showCanon (TypedLit st dt)   = quote1Str st ++ "^^" ++ show (getScopedNameURI dt)
 showCanon s                  = show s
 

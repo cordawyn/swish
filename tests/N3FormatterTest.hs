@@ -44,7 +44,7 @@ import Swish.Utils.LookupMap
 
 import Swish.RDF.GraphClass (Arc, arc)
 
-import Swish.RDF.Vocabulary (langName, namespaceRDF, namespaceXSD)
+import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 
 import Network.URI (URI, parseURI)
 
@@ -162,7 +162,7 @@ l13 = toL l13txt
 l14 = toL l14txt
 
 lfr, lfoobar :: RDFLabel
-lfr = LangLit "chat et chien" (langName "fr")
+lfr = LangLit "chat et chien" (fromJust $ toLangTag "fr")
 lfoobar = TypedLit "foo bar" (makeNSScopedName base1 "o1")
   
 f1, f2 :: RDFLabel

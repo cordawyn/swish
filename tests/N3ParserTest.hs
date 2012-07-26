@@ -46,7 +46,7 @@ import Swish.Utils.Namespace (
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF
-    , langName
+    , toLangTag
     , rdfXMLLiteral
     , xsdBoolean 
     , xsdInteger
@@ -64,7 +64,7 @@ import Test.HUnit (Test(TestCase,TestList), assertEqual)
 import Network.URI (URI, nullURI, parseURIReference)
 
 import Data.Monoid (Monoid(..))
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 import Data.List (intercalate)
 
 import qualified Data.Text as T
@@ -318,7 +318,7 @@ l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'"
 l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--"
 
 lfr, lxml, lfrxml :: RDFLabel
-lfr    = LangLit "chat"           $ langName "fr"
+lfr    = LangLit "chat"           $ fromJust $ toLangTag "fr"
 lxml   = TypedLit "<br/>"         rdfXMLLiteral
 lfrxml = TypedLit "<em>chat</em>" rdfXMLLiteral
 

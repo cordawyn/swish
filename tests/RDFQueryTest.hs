@@ -54,7 +54,7 @@ import Swish.RDF.VarBinding
     )
 
 import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName)
-import Swish.RDF.Vocabulary (namespaceRDF, langName, swishName, rdfType, rdfXMLLiteral)
+import Swish.RDF.Vocabulary (namespaceRDF, toLangTag, swishName, rdfType, rdfXMLLiteral)
 import Swish.RDF.N3Parser (parseN3)
 
 import Test.HUnit ( Test(TestList) )
@@ -1288,7 +1288,7 @@ u_dt  = Res q_dattyp
 
 l_1, l_2, l_3, l_4, l_5 :: RDFLabel
 l_1   = Lit "l1"
-l_2   = LangLit "l2" $ langName "fr"
+l_2   = LangLit "l2" $ fromJust $ toLangTag "fr"
 l_3   = TypedLit "l3" q_dattyp
 l_4   = TypedLit "l4" q_dattyp
 l_5   = TypedLit "l5" rdfXMLLiteral

@@ -30,18 +30,26 @@ module Swish.RDF.Vocabulary
     , namespaceDAML
     , namespaceDefault
     , namespaceSwish 
-    , namespaceLang
+
     -- ** RDF rules                                     
     -- | The namespaces refer to RDF rules and axioms.                                     
     , scopeRDF
     , scopeRDFS
     , scopeRDFD
+
+    -- * Language tags
+    --
+    -- | Support for language tags that follow RFC 3066.
+    -- 
+    -- This replaces the use of @ScopedName@ and @langName@, @langTag@,
+    -- and @isLang@ in versions prior to @0.7.0.0@.
+    --
+    , LanguageTag
+    , toLangTag
+    , fromLangTag
     
     -- * Miscellaneous routines
-    , langName, langTag, isLang
     , swishName
-      
-    -- * Miscellaneous     
     , rdfdGeneralRestriction
     , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
     , logImplies
@@ -58,8 +66,9 @@ import Swish.RDF.Vocabulary.RDF
 import Swish.RDF.Vocabulary.OWL
 import Swish.RDF.Vocabulary.XSD
 
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, getScopeLocal, getScopeNamespace, makeNSScopedName)
+import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
+import Data.Char (isDigit)
 import Data.Monoid (mappend, mconcat)
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
@@ -113,22 +122,16 @@ namespaceSwish   = toNSU "swish"  namespaceSwishURI
 namespaceDefault :: Namespace
 namespaceDefault = toNSU "default" namespaceDefaultURI
 
--- | Maps @lang@ to @http:\/\/id.ninebynine.org\/2003\/Swish\/Lang\/@.
-namespaceLang :: Namespace
-namespaceLang    = toNSU "lang"   namespaceLangURI
-
-
 tU :: String -> URI
 tU = fromMaybe (error "Internal error processing namespace URI") . parseURI
 
 namespaceRDFDURI, 
   namespaceLOGURI,
   namespaceSwishURI, 
-  namespaceLangURI, namespaceDefaultURI :: URI
+  namespaceDefaultURI :: URI
 namespaceRDFDURI  = tU "http://id.ninebynine.org/2003/rdfext/rdfd#"
 namespaceLOGURI   = tU "http://www.w3.org/2000/10/swap/log#"
 namespaceSwishURI = tU "http://id.ninebynine.org/2003/Swish/"
-namespaceLangURI  = tU "http://id.ninebynine.org/2003/Swish/Lang/" -- To be replaced by urn:ietf:params:lang?  
 namespaceDefaultURI = tU "http://id.ninebynine.org/default/"
 
 -- | Convert a local name to a scoped name in the @swish@ namespace (`namespaceSwish`).
@@ -145,21 +148,58 @@ swishName = makeNSScopedName namespaceSwish
 --  Fortunately, they do not currently need to appear in Notation3 as
 --  distinct labels (but future developments may change that).
 
--- | Convert the label to a scoped name in the @lang@ namespace (`namespaceLang`).
-langName :: 
-  T.Text  -- ^ The lower-case version of this label is used.
-  -> ScopedName
-langName = makeNSScopedName namespaceLang . T.toLower
+-- | Represent the language tag for a literal string, following
+-- RFC 3066 <http://www.ietf.org/rfc/rfc3066.txt>.
+--
+-- Use 'toLangTag' to create a tag and 'fromLangTag' to
+-- convert back. The only guarantee is that
+--
+-- > (fromLangTag . toLangTag) lt == T.toLower lt
+--
+data LanguageTag = 
+    LanguageTag 
+    T.Text       -- ^ full value
+    T.Text       -- ^ primary tag
+    [T.Text]     -- ^ sub tags
 
--- | Get the name of the language tag (note that the result is
--- only guaranteed to be semantically valid if 'isLang' returns @True@
--- but that there is no enforcement of this requirement).
-langTag :: ScopedName -> T.Text
-langTag = getScopeLocal
+instance Show LanguageTag where
+    show = T.unpack . fromLangTag
 
--- | Is the scoped name in the `namespaceLang` namespace?
-isLang :: ScopedName -> Bool
-isLang sname = getScopeNamespace sname == namespaceLang
+-- | The equality test matches on the full definition, so
+-- @en-GB@ does not match @en@.
+instance Eq LanguageTag where
+    LanguageTag f1 _ _ == LanguageTag f2 _ _ = f1 == f2
+
+-- | Create a 'LanguageTag' element from the label.
+-- 
+-- Valid tags follow the ABNF from RCF 3066, which is
+--
+--    Language-Tag = Primary-subtag *( "-" Subtag )
+--    Primary-subtag = 1*8ALPHA
+--    Subtag = 1*8(ALPHA / DIGIT)
+--
+-- There are no checks that the primary or secondary sub tag
+-- values are defined in any standard, such as ISO 639,
+-- or obey any other syntactical restriction than given above.
+-- 
+toLangTag :: T.Text -> Maybe LanguageTag
+toLangTag lbl = 
+    let tag = T.toLower lbl
+        toks = T.split (=='-') tag
+    in if all (\s -> let l = T.length s in l > 0 && l < 9) toks
+       then let primtag : subtags = toks
+                isVChar c = c >= 'a' && c <= 'z'
+            in if T.all isVChar primtag && all (T.all (\c -> isVChar c || isDigit c)) subtags
+               then Just $ LanguageTag tag primtag subtags
+               else Nothing
+       else Nothing
+
+-- | Convert a language tag back into text form.
+fromLangTag :: LanguageTag -> T.Text
+fromLangTag (LanguageTag f _ _) = f
+
+-- TODO: use Language Range (section 2.5 of RFC 3066) to support
+-- language comparison
 
 ------------------------------------------------------------
 --  Define namespaces for RDF rules, axioms, etc

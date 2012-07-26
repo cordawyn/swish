@@ -74,7 +74,7 @@ import Swish.RDF.RDFGraph (
   )
 
 import Swish.RDF.Vocabulary (
-  langTag, 
+  fromLangTag, 
   rdfType,
   rdfNil,
   owlSameAs, logImplies
@@ -759,7 +759,7 @@ formatLabel _ (TypedLit lit dtype)
     | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit
     | otherwise = return $ quoteText lit `mappend` "^^" `mappend` showScopedName dtype
 formatLabel _ (LangLit lit lcode) =
-    return $ quoteText lit `mappend` "@" `mappend` B.fromText (langTag lcode)
+    return $ quoteText lit `mappend` "@" `mappend` B.fromText (fromLangTag lcode)
 formatLabel _ (Lit lit) = return $ quoteText lit
 
 formatLabel _ lab = return $ B.fromString $ show lab
