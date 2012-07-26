@@ -47,6 +47,7 @@ module Swish.RDF.Vocabulary
     , LanguageTag
     , toLangTag
     , fromLangTag
+    , compareLangTags
     
     -- * Miscellaneous routines
     , swishName
@@ -157,16 +158,14 @@ swishName = makeNSScopedName namespaceSwish
 -- > (fromLangTag . toLangTag) lt == T.toLower lt
 --
 data LanguageTag = 
-    LanguageTag 
-    T.Text       -- ^ full value
-    T.Text       -- ^ primary tag
-    [T.Text]     -- ^ sub tags
+    LanguageTag T.Text T.Text [T.Text]
+    -- store full value, then primary tag, then sub tags
 
 instance Show LanguageTag where
     show = T.unpack . fromLangTag
 
 -- | The equality test matches on the full definition, so
--- @en-GB@ does not match @en@.
+-- @en-GB@ does not match @en@. See also 'compareLangTags'.
 instance Eq LanguageTag where
     LanguageTag f1 _ _ == LanguageTag f2 _ _ = f1 == f2
 
@@ -174,9 +173,9 @@ instance Eq LanguageTag where
 -- 
 -- Valid tags follow the ABNF from RCF 3066, which is
 --
---    Language-Tag = Primary-subtag *( "-" Subtag )
---    Primary-subtag = 1*8ALPHA
---    Subtag = 1*8(ALPHA / DIGIT)
+-- >   Language-Tag = Primary-subtag *( "-" Subtag )
+-- >   Primary-subtag = 1*8ALPHA
+-- >   Subtag = 1*8(ALPHA / DIGIT)
 --
 -- There are no checks that the primary or secondary sub tag
 -- values are defined in any standard, such as ISO 639,
@@ -198,8 +197,27 @@ toLangTag lbl =
 fromLangTag :: LanguageTag -> T.Text
 fromLangTag (LanguageTag f _ _) = f
 
--- TODO: use Language Range (section 2.5 of RFC 3066) to support
--- language comparison
+-- | Compare language tags using the Language-range specification
+-- in section 2.5 of RFC 3066.
+--
+-- 'True' is returned if the comparison tag is the same as, or
+-- matches a prefix of, the base tag (where the match must be
+-- over complete sub tags).
+--
+-- Note that 
+--
+-- > compareLangTag l1 l2 == compareLangTag l2 l1
+--
+-- only when
+--
+-- > l1 == l2
+--
+compareLangTags :: 
+    LanguageTag     -- ^ base language
+    -> LanguageTag  -- ^ comparison language
+    -> Bool
+compareLangTags (LanguageTag _ p1 s1) (LanguageTag _ p2 s2) =
+    p1 == p2 && length s2 >= length s1 && and (zipWith (==) s1 s2)
 
 ------------------------------------------------------------
 --  Define namespaces for RDF rules, axioms, etc
