@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3Parser
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -108,6 +108,8 @@ import Swish.RDF.Vocabulary
     , xsdBoolean, xsdInteger, xsdDecimal, xsdDouble
     )
 
+import Swish.RDF.RDFDatatype (makeDatatypedLiteral)
+
 import Swish.RDF.RDFParser
     ( SpecialMap
     , ParseResult
@@ -128,7 +130,6 @@ import Swish.RDF.RDFParser
     , symbol
     , lexeme
     , whiteSpace
-    , mkTypedLit
     , hex4  
     , hex8  
     , appendURIs
@@ -423,7 +424,7 @@ other formats (e.g RDF/XML once it is supported).
 type AddStatement = RDFLabel -> N3Parser ()
 
 addStatement :: RDFLabel -> RDFLabel -> AddStatement
-addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsdBoolean, xsdInteger, xsdDecimal, xsdDouble] = do 
+addStatement s p o@(TypedLit _ dtype) | dtype `elem` [xsdBoolean, xsdInteger, xsdDecimal, xsdDouble] = do 
   ost <- stGet
   let stmt = arc s p o
       oldp = prefixUris ost
@@ -931,7 +932,7 @@ boolean ::=		|	 "@false"
 -}
 
 boolean :: N3Parser RDFLabel
-boolean = mkTypedLit xsdBoolean <$> 
+boolean = makeDatatypedLiteral xsdBoolean <$> 
           (atWord "false" <|> atWord "true")
           -- (try (atWord "false") <|> atWord "true")
            
@@ -946,13 +947,18 @@ langcode ::=	[a-z]+(-[a-z0-9]+)*
 -}
 
 literal :: N3Parser RDFLabel
-literal = Lit <$> n3string <*> optional dtlang
+literal = do
+    lit <- n3string
+    opt <- optional dtlang
+    return $ case opt of
+               Just (Left lcode)  -> LangLit lit lcode
+               Just (Right dtype) -> TypedLit lit dtype
+               _                  -> Lit lit
   
-dtlang :: N3Parser ScopedName
+dtlang :: N3Parser (Either ScopedName ScopedName)
 dtlang = 
-  (char '@' *> langcode)
-  <|> string "^^" *> n3symbol
-  -- <|> (try (string "^^") *> n3symbol)
+  (char '@' *> (Left <$> langcode))
+  <|> string "^^" *> (Right <$> n3symbol)
 
 langcode :: N3Parser ScopedName
 langcode = do
@@ -983,12 +989,12 @@ goes with it.
 
 numericLiteral :: N3Parser RDFLabel
 numericLiteral =
-  -- -- try (mkTypedLit xsdDouble <$> n3double)
+  -- -- try (makeDatatypedLiteral xsdDouble <$> n3double)
   -- try (d2s <$> n3double)
-  -- <|> try (mkTypedLit xsdDecimal <$> n3decimal)
+  -- <|> try (makeDatatypedLiteral xsdDecimal <$> n3decimal)
   d2s <$> n3double
-  <|> mkTypedLit xsdDecimal . T.pack <$> n3decimal
-  <|> mkTypedLit xsdInteger . T.pack <$> n3integer
+  <|> makeDatatypedLiteral xsdDecimal . T.pack <$> n3decimal
+  <|> makeDatatypedLiteral xsdInteger . T.pack <$> n3integer
 
 n3sign :: N3Parser Char
 n3sign = char '+' <|> char '-'
@@ -1122,7 +1128,8 @@ universal =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

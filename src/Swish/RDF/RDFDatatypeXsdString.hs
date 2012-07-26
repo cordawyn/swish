@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatypeXsdString
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -293,24 +293,28 @@ stringPlainValue svar lvar = VarBindingModify
         }
     where
         app1 vbind = app2 (vbMap vbind svar) (vbMap vbind lvar) vbind
-        app2 (Just (Lit s (Just _)))
-             (Just (Lit l Nothing))
+
+        -- Going to assume can only get TypedLit here, and assume LangLit
+        -- can be ignored.
+        app2 (Just (TypedLit s _))
+             (Just (Lit l))
              vbind
              | s == l
              = [vbind]
-        app2 (Just (Lit s (Just _)))
+        app2 (Just (TypedLit s _))
              Nothing
              vbind
-             = [addVarBinding lvar (Lit s Nothing) vbind]
+             = [addVarBinding lvar (Lit s) vbind]
         app2 Nothing
-             (Just (Lit l Nothing))
+             (Just (Lit l))
              vbind
-             = [addVarBinding svar (Lit l (Just typeNameXsdString)) vbind]
+             = [addVarBinding svar (TypedLit l typeNameXsdString) vbind]
         app2 _ _ _ = []
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

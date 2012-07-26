@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3Formatter
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -74,7 +74,7 @@ import Swish.RDF.RDFGraph (
   )
 
 import Swish.RDF.Vocabulary (
-  isLang, langTag, 
+  langTag, 
   rdfType,
   rdfNil,
   owlSameAs, logImplies
@@ -753,19 +753,16 @@ formatLabel _ lab@(Res sn) =
 -- does not match the syntax used in N3, so we need to convert here.     
 -- Rather than converting back to a Double and then displaying that       
 -- we just convert E to e for now.      
---      
-formatLabel _ (Lit lit (Just dtype)) 
-  | dtype == xsdDouble = return $ B.fromText $ T.toLower lit
-  | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit
-  | otherwise = return $ quoteText lit `mappend` formatAnnotation dtype
-formatLabel _ (Lit lit Nothing) = return $ quoteText lit
+--
+formatLabel _ (TypedLit lit dtype)
+    | dtype == xsdDouble = return $ B.fromText $ T.toLower lit
+    | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit
+    | otherwise = return $ quoteText lit `mappend` "^^" `mappend` showScopedName dtype
+formatLabel _ (LangLit lit lcode) =
+    return $ quoteText lit `mappend` "@" `mappend` B.fromText (langTag lcode)
+formatLabel _ (Lit lit) = return $ quoteText lit
 
 formatLabel _ lab = return $ B.fromString $ show lab
-
--- the annotation for a literal (ie type or language)
-formatAnnotation :: ScopedName -> B.Builder
-formatAnnotation a  | isLang a  = "@" `mappend` B.fromText (langTag a)
-                    | otherwise = "^^" `mappend` showScopedName a
 
 {-
 We have to decide whether to use " or """ to quote
@@ -918,7 +915,8 @@ countBnodes (SA as) = snd (foldl' ctr ([],[]) as)
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

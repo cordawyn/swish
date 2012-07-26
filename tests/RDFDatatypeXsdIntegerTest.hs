@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatypeXsdIntegerTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -221,10 +221,10 @@ rdfVB :: (String, String) -> (RDFLabel, RDFLabel)
 rdfVB (v,b) = (Var v,Blank b)                   -- (Variable,Blank)
 
 rdfVL :: (String, String) -> (RDFLabel, RDFLabel)
-rdfVL (v,l) = (Var v,Lit (T.pack l) Nothing)             -- (Variable,Untyped literal)
+rdfVL (v,l) = (Var v, Lit (T.pack l))             -- (Variable,Untyped literal)
 
 rdfVI :: (String, String) -> (RDFLabel, RDFLabel)
-rdfVI (v,l) = (Var v,Lit (T.pack l) (Just typeNameXsdInteger))
+rdfVI (v,l) = (Var v, TypedLit (T.pack l) typeNameXsdInteger)
                                                 -- (Variable,Integer literal)
 
 makeBVR :: [(String,ScopedName)] -> RDFVarBinding
@@ -1352,7 +1352,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

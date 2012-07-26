@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  NTParser
---  Copyright   :  (c) 2011 Douglas Burke
+--  Copyright   :  (c) 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -324,15 +324,21 @@ string	::=	character* with escapes as defined in section Strings
 -}
 
 literal :: NTParser RDFLabel
-literal = Lit <$> (T.pack <$> ntstring) <*> optional dtlang
+literal = do
+    lit <- T.pack <$> ntstring
+    opt <- optional dtlang
+    return $ case opt of
+               Just (Left lcode)  -> LangLit lit lcode
+               Just (Right dtype) -> TypedLit lit dtype
+               _                  -> Lit lit
 
 ntstring :: NTParser String
 ntstring = bracket (char '"') (char '"') (many character)
 
-dtlang :: NTParser ScopedName
+dtlang :: NTParser (Either ScopedName ScopedName)
 dtlang = 
-    (char '@' *> language)
-    <|> (string "^^" *> uriref)
+    (char '@' *> (Left <$> language))
+    <|> (string "^^" *> (Right <$> uriref))
 
 language :: NTParser ScopedName
 language = do
@@ -404,7 +410,7 @@ character =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

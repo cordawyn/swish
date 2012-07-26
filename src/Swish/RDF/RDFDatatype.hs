@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatype
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -172,14 +172,18 @@ toRDFLabel dtv =
         dtnam = tvalName dtv
         dtmap = tvalMap dtv
 
--- | Create a typed literal from the given value.
-makeDatatypedLiteral :: ScopedName -> T.Text -> RDFLabel
-makeDatatypedLiteral dtnam txtval =
-    Lit txtval (Just dtnam)
+-- | Create a typed literal. No conversion is made to the
+-- string representation.
+makeDatatypedLiteral :: 
+    ScopedName   -- ^ data type
+    -> T.Text    -- ^ string form of the value
+    -> RDFLabel
+makeDatatypedLiteral = flip TypedLit
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

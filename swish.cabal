@@ -46,6 +46,12 @@ Description:
   .
   Changes in version @0.7.0.0@:
   .
+  * RDF literals are now stored using the @Lit@, @LangLit@, or @TypedLit@ constructors
+  (@RDFLabel@) rather than using just @Lit@.
+  .
+  * Removed @mkTypedLit@ from @Swish.RDF.RDFParser@; use
+  @Swish.RDF.RDFDatatype.makeDataTypedLiteral@ instead.
+  .
   * Removed @asubj@, @apred@ and @aobj@ from @Swish.RDF.GraphClass@ and
   @Swish.RDF.RDFGraph@; use @arcSubj@, @arcPred@ or @arcObj@ instead.
   .

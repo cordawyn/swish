@@ -209,6 +209,7 @@ import Network.URI (URI)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (mapMaybe)
 import Data.Char (ord, isDigit)
+import Data.Function (on)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, findIndices, foldl')
 import Data.Ord (comparing)
@@ -244,15 +245,22 @@ swap (a,b) = (b,a)
 --  (c) a \"NoNode\" option is defined.
 --      This might otherwise be handled by @Maybe (RDFLabel g)@.
 --
+-- Prior to version @0.7.0.0@, literals were represented by a
+-- single constructor, @Lit@, with an optional argument.
+--
 data RDFLabel =
       Res ScopedName                    -- ^ resource
-    | Lit T.Text (Maybe ScopedName)     -- ^ literal [type/language]
+    | Lit T.Text                        -- ^ a plain literal
+    | LangLit T.Text ScopedName         -- ^ a literal with an associated language
+    | TypedLit T.Text ScopedName        -- ^ a literal with an associated data type
     | Blank String                      -- ^ blank node
     | Var String                        -- ^ variable (not used in ordinary graphs)
     | NoNode                            -- ^ no node  (not used in ordinary graphs)
 
--- TODO: should Lit be split up so that can easily differentiate between
--- a type and a language tag?
+-- TODO: LangLit should use a language encoding type rather than a scoped name.
+
+langCompare :: ScopedName -> ScopedName -> Bool
+langCompare = (==) `on` (T.toLower . langTag)
 
 -- | Define equality of nodes possibly based on different graph types.
 --
@@ -265,20 +273,27 @@ instance Eq RDFLabel where
     Blank b1 == Blank b2 = b1 == b2
     Var v1   == Var v2   = v1 == v2
 
-    Lit s1 Nothing   == Lit s2 Nothing   = s1 == s2
-    Lit s1 (Just t1) == Lit s2 (Just t2) = s1 == s2 && (t1 == t2 ||
-                                                        (isLang t1 && isLang t2 &&
-                                                         (T.toLower . langTag) t1 == (T.toLower . langTag) t2))
-    
+    Lit s1         == Lit s2         = s1 == s2
+    LangLit s1 t1  == LangLit s2 t2  = s1 == s2 && langCompare t1 t2
+    TypedLit s1 t1 == TypedLit s2 t2 = s1 == s2 && t1 == t2
+
     _  == _ = False
 
 instance Show RDFLabel where
     show (Res sn)           = show sn
-    show (Lit st Nothing)   = quote1Str st
+    show (Lit st)           = quote1Str st
+    show (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (langTag lang)
+    show (TypedLit st dtype) 
+        | dtype `elem` [xsdBoolean, xsdDouble, xsdDecimal, xsdInteger] = T.unpack st
+        | otherwise  = quote1Str st ++ "^^" ++ show dtype
+
+    {-
     show (Lit st (Just nam))
         | isLang nam = quote1Str st ++ "@"  ++ T.unpack (langTag nam)
         | nam `elem` [xsdBoolean, xsdDouble, xsdDecimal, xsdInteger] = T.unpack st
         | otherwise  = quote1Str st ++ "^^" ++ show nam
+    -}
+
     show (Blank ln)         = "_:"++ln
     show (Var ln)           = '?' : ln
     show NoNode             = "<NoNode>"
@@ -289,6 +304,9 @@ instance Ord RDFLabel where
     compare (Blank ln1)    (Blank ln2)    = compare ln1 ln2
     compare (Res _)        (Blank _)      = LT
     compare (Blank _)      (Res _)        = GT
+
+    compare (Lit s1)       (Lit s2)       = compare s1 s2
+
     -- .. else use show string comparison
     compare l1 l2 = comparing show l1 l2
     
@@ -305,17 +323,20 @@ instance Label RDFLabel where
     labelIsVar (Blank _)    = True
     labelIsVar (Var _)      = True
     labelIsVar _            = False
+
     getLocal   (Blank loc)  = loc
     getLocal   (Var   loc)  = '?':loc
     getLocal   (Res   sn)   = "Res_" ++ T.unpack (getScopeLocal sn)
     getLocal   (NoNode)     = "None"
     getLocal   _            = "Lit_"
+
     makeLabel  ('?':loc)    = Var loc
     makeLabel  loc          = Blank loc
+
     labelHash seed lb       = hashWithSalt seed (showCanon lb)
 
 instance IsString RDFLabel where
-  fromString = flip Lit Nothing . T.pack
+  fromString = Lit . T.pack
 
 {-|
 A type that can be converted to a RDF Label.
@@ -390,31 +411,31 @@ maybeRead rdr inTxt =
     _ -> Nothing
     
 fLabel :: (T.Text -> Maybe a) -> ScopedName -> RDFLabel -> Maybe a
-fLabel conv dtype (Lit xs (Just dt)) | dt == dtype = conv xs
-                                     | otherwise   = Nothing
+fLabel conv dtype (TypedLit xs dt) | dt == dtype = conv xs
+                                   | otherwise   = Nothing
 fLabel _    _     _ = Nothing
   
 tLabel :: (Show a) => ScopedName -> (String -> T.Text) -> a -> RDFLabel                      
-tLabel dtype conv = flip Lit (Just dtype) . conv . show                      
+tLabel dtype conv = flip TypedLit dtype . conv . show                      
 
 -- | The character is converted to an untyped literal of length one.
 instance ToRDFLabel Char where
-  toRDFLabel = flip Lit Nothing . T.singleton
+  toRDFLabel = Lit . T.singleton
 
 -- | The label must be an untyped literal containing a single character.
 instance FromRDFLabel Char where
-  fromRDFLabel (Lit cs Nothing) | T.compareLength cs 1 == EQ = Just (T.head cs)
-                                | otherwise = Nothing
+  fromRDFLabel (Lit cs) | T.compareLength cs 1 == EQ = Just (T.head cs)
+                        | otherwise = Nothing
   fromRDFLabel _ = Nothing
 
 -- | Strings are converted to untyped literals.
 instance ToRDFLabel String where
-  toRDFLabel = flip Lit Nothing . T.pack
+  toRDFLabel = Lit . T.pack
 
 -- | Only untyped literals are converted to strings.
 instance FromRDFLabel String where
-  fromRDFLabel (Lit xs Nothing) = Just (T.unpack xs)
-  fromRDFLabel _ = Nothing
+  fromRDFLabel (Lit xs) = Just (T.unpack xs)
+  fromRDFLabel _        = Nothing
 
 textToBool :: T.Text -> Maybe Bool
 textToBool s | s `elem` ["1", "true"]  = Just True
@@ -423,7 +444,7 @@ textToBool s | s `elem` ["1", "true"]  = Just True
 
 -- | Converts to a literal with a @xsd:boolean@ datatype.
 instance ToRDFLabel Bool where
-  toRDFLabel b = Lit (if b then "true" else "false") (Just xsdBoolean)
+  toRDFLabel b = TypedLit (if b then "true" else "false") xsdBoolean
                                                  
 -- | Converts from a literal with a @xsd:boolean@ datatype. The
 -- literal can be any of the supported XSD forms - e.g. \"0\" or
@@ -447,7 +468,7 @@ fromRealFloat dtype f | isNaN f      = toL "NaN"
                       | otherwise    = toL $ T.pack $ printf "%E" f
                         
                         where
-                          toL = flip Lit (Just dtype)
+                          toL = flip TypedLit dtype
 
 -- textToRealFloat :: (RealFloat a) => (a -> Maybe a) -> T.Text -> Maybe a
 textToRealFloat :: (RealFloat a, Read a) => (a -> Maybe a) -> T.Text -> Maybe a
@@ -596,7 +617,7 @@ toDayFormat = toTimeFormat "%F" . T.unpack
     
 -- | Converts to a literal with a @xsd:datetime@ datatype.
 instance ToRDFLabel UTCTime where
-  toRDFLabel = flip Lit (Just xsdDateTime) . T.pack . fromUTCFormat
+  toRDFLabel = flip TypedLit xsdDateTime . T.pack . fromUTCFormat
   
 -- | Converts from a literal with a @xsd:datetime@ datatype.
 instance FromRDFLabel UTCTime where
@@ -604,7 +625,7 @@ instance FromRDFLabel UTCTime where
   
 -- | Converts to a literal with a @xsd:date@ datatype.
 instance ToRDFLabel Day where
-  toRDFLabel = flip Lit (Just xsdDate) . T.pack . fromDayFormat
+  toRDFLabel = flip TypedLit xsdDate . T.pack . fromDayFormat
 
 -- | Converts from a literal with a @xsd:date@ datatype.
 instance FromRDFLabel Day where
@@ -641,12 +662,17 @@ instance FromRDFLabel URI where
 --
 --  This is used for hashing, so that equivalent labels always return
 --  the same hash value.
---    
+--
+--  TODO: can remove the use of quote1Str as all we care about is
+--  a unique output, not that it is valid in any RDF format. Also
+--  rename to showForHash or something like that, since it is only used
+--  for this purpose.
+--
 showCanon :: RDFLabel -> String
 showCanon (Res sn)           = "<"++show (getScopedNameURI sn)++">"
-showCanon (Lit st (Just nam))
-        | isLang nam = quote1Str st ++ "@"  ++ T.unpack (langTag nam)
-        | otherwise  = quote1Str st ++ "^^" ++ show (getScopedNameURI nam)
+showCanon (Lit st)           = show st
+showCanon (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (langTag lang)
+showCanon (TypedLit st dt)   = quote1Str st ++ "^^" ++ show (getScopedNameURI dt)
 showCanon s                  = show s
 
 -- | See `quote`.
@@ -901,29 +927,33 @@ isUri (Res _) = True
 isUri  _      = False
 
 -- |Test if supplied labal is a literal node
+-- ('Lit', 'LangLit', or 'TypedLit').
 isLiteral :: RDFLabel -> Bool
-isLiteral (Lit _ _) = True
-isLiteral  _        = False
+isLiteral (Lit _)        = True
+isLiteral (LangLit _ _)  = True
+isLiteral (TypedLit _ _) = True
+isLiteral  _             = False
 
--- |Test if supplied labal is an untyped literal node
+-- |Test if supplied labal is an untyped literal node (either
+-- 'Lit' or 'LangLit').
 isUntypedLiteral :: RDFLabel -> Bool
-isUntypedLiteral (Lit _ Nothing  ) = True
-isUntypedLiteral (Lit _ (Just tn)) = isLang tn
-isUntypedLiteral  _                = False
+isUntypedLiteral (Lit _)       = True
+isUntypedLiteral (LangLit _ _) = True
+isUntypedLiteral  _            = False
 
--- |Test if supplied labal is an untyped literal node
+-- |Test if supplied labal is a typed literal node ('TypedLit').
 isTypedLiteral :: RDFLabel -> Bool
-isTypedLiteral (Lit _ (Just tn)) = not (isLang tn)
-isTypedLiteral  _                = False
+isTypedLiteral (TypedLit _ _) = True
+isTypedLiteral  _             = False
 
--- |Test if supplied labal is an XML literal node
+-- |Test if supplied labal is a XML literal node
 isXMLLiteral :: RDFLabel -> Bool
 isXMLLiteral = isDatatyped rdfXMLLiteral
 
--- |Test if supplied label is an typed literal node of a given datatype
+-- |Test if supplied label is a typed literal node of a given datatype
 isDatatyped :: ScopedName -> RDFLabel -> Bool
-isDatatyped d  (Lit _ (Just n)) = n == d
-isDatatyped _  _                = False
+isDatatyped d  (TypedLit _ dt) = d == dt
+isDatatyped _  _               = False
 
 -- |Test if supplied label is a container membership property
 --
@@ -948,12 +978,17 @@ isQueryVar :: RDFLabel -> Bool
 isQueryVar (Var _) = True
 isQueryVar  _      = False
 
--- |Extract text value from a literal node
+-- |Extract text value from a literal node (including the
+-- Language and Typed variants). The empty string is returned
+-- for other nodes.
 getLiteralText :: RDFLabel -> T.Text
-getLiteralText (Lit s _) = s
-getLiteralText  _        = ""
+getLiteralText (Lit s)        = s
+getLiteralText (LangLit s _)  = s
+getLiteralText (TypedLit s _) = s
+getLiteralText  _             = ""
 
--- |Extract ScopedName value from a resource node
+-- |Extract the ScopedName value from a resource node ('nullScopedName'
+-- is returned for non-resource nodes).
 getScopedName :: RDFLabel -> ScopedName
 getScopedName (Res sn) = sn
 getScopedName  _       = nullScopedName
@@ -1363,8 +1398,7 @@ toRDFGraph arcs =
   let lbls = concatMap arcLabels arcs
       
       getNS (Res s) = Just s
-      getNS (Lit _ (Just tn)) | not (isLang tn) = Just tn
-                              | otherwise = Nothing
+      getNS (TypedLit _ dt) = Just dt
       getNS _ = Nothing
 
       ns = mapMaybe (fmap getScopeNamespace . getNS) lbls

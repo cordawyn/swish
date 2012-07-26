@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFProofContext
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -49,10 +49,7 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.RDF.RDFGraph
-    ( RDFLabel(..)
-    , isUri, isDatatyped
-    , getLiteralText )
+import Swish.RDF.RDFGraph (RDFLabel(..), isUri)
 
 import Swish.RDF.VarBinding
     ( applyVarBinding
@@ -73,9 +70,7 @@ import Swish.RDF.Vocabulary
     , scopeRDFD
     )
 
-import Control.Monad (liftM)
 import Data.Monoid (Monoid(..))
-import Data.Maybe (isJust, fromJust)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
@@ -161,6 +156,7 @@ sameDatatypedValueApply val1 typ1 val2 typ2 vbind =
             else
                 []
 
+{-
 getCanonical :: RDFLabel -> RDFLabel -> RDFLabel -> Maybe RDFLabel
 getCanonical v1 t1 t2 =
     if isDatatyped dqn1 v1 && isJust mdt1 then
@@ -176,6 +172,20 @@ getCanonical v1 t1 t2 =
 
         getRes (Res dqnam) = dqnam
         getRes x = error $ "Expected a Resource, sent " ++ show x -- for -Wall
+-}
+
+getCanonical :: RDFLabel -> RDFLabel -> RDFLabel -> Maybe RDFLabel
+getCanonical (TypedLit v dt) (Res dqn1) (Res dqn2) =
+    if dt == dqn1
+    then case findRDFDatatype dqn1 of
+           Just dt1 -> flip TypedLit dqn2 `fmap` typeMkCanonicalForm dt1 v
+           _ -> Nothing
+
+    else Nothing
+
+getCanonical _                _          _  = Nothing
+
+
 
 {- -- Test data
 qnamint = ScopedName namespaceXSD "integer"
@@ -825,7 +835,8 @@ rulesetRDFD = makeRuleset scopeRDFD axiomsRDFD rulesRDFD
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

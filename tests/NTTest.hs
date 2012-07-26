@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  NTTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -114,17 +114,17 @@ o1 = Res $ makeURIScopedName "urn:b#o1"
 -}
 
 l0, l1, l2, l3, l4 :: RDFLabel
-l0 = Lit "" Nothing
-l1 = Lit "l1"  Nothing
-l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'" Nothing
-l3 = Lit "l3--\r\"'\\--\x20&--\x17A&--" Nothing
-l4 = Lit "l4 \\" Nothing
+l0 = Lit ""
+l1 = Lit "l1"
+l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'"
+l3 = Lit "l3--\r\"'\\--\x20&--\x17A&--"
+l4 = Lit "l4 \\"
 
 lfr, lgben, lxml1, lxml2 :: RDFLabel
-lfr    = Lit "chat"          (Just $ langName "fr")
-lgben  = Lit "football"      (Just $ langName "en-gb")
-lxml1  = Lit "<br/>"         (Just rdfXMLLiteral)
-lxml2  = Lit "<em>chat</em>" (Just rdfXMLLiteral)
+lfr    = LangLit "chat"           $ langName "fr"
+lgben  = LangLit "football"       $ langName "en-gb"
+lxml1  = TypedLit "<br/>"         rdfXMLLiteral
+lxml2  = TypedLit "<em>chat</em>" rdfXMLLiteral
 
 b1 , b2 :: RDFLabel
 b1 = Blank "x1"
@@ -262,7 +262,8 @@ main = runTestSuite allTests
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

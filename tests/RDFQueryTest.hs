@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFQueryTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -1287,11 +1287,11 @@ u_xt  = Res rdfXMLLiteral
 u_dt  = Res q_dattyp
 
 l_1, l_2, l_3, l_4, l_5 :: RDFLabel
-l_1   = Lit "l1" Nothing
-l_2   = Lit "l2" (Just $ langName "fr")
-l_3   = Lit "l3" (Just q_dattyp)
-l_4   = Lit "l4" (Just q_dattyp) -- was: (Lang "fr")
-l_5   = Lit "l5" (Just rdfXMLLiteral)
+l_1   = Lit "l1"
+l_2   = LangLit "l2" $ langName "fr"
+l_3   = TypedLit "l3" q_dattyp
+l_4   = TypedLit "l4" q_dattyp
+l_5   = TypedLit "l5" rdfXMLLiteral
 
 b_1, b_2, b_3, b_l1, b_l2 :: RDFLabel
 b_1   = Blank "1"
@@ -1666,7 +1666,8 @@ shres32 = TestCase $ assertString (show res32)
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

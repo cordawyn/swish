@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFGraphTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -242,30 +242,30 @@ qb1t2 = makeNSScopedName base1 "type2"
 l1, l2, l2gb, l3, l4, l5, l6, l7, l8,
   l9, l10, l11, l12 :: RDFLabel
 l1   = "l1" -- use IsString instance
-l2   = Lit "l2"  (Just (langName "en")) 
-l2gb = Lit "l2"  (Just (langName "en-gb")) 
-l3   = Lit "l2"  (Just (langName "fr")) 
-l4   = Lit "l4"  (Just qb1t1)           
-l5   = Lit "l4"  (Just qb1t1)           
-l6   = Lit "l4"  (Just qb1t1)           
-l7   = Lit "l4"  (Just qb1t2)           
-l8   = Lit "l4"  (Just qb1t2)           
-l9   = Lit "l4"  (Just qb1t2)           
-l10  = Lit "l10" (Just rdfXMLLiteral)  
--- l11  = Lit "l11" (Just rdfXMLLiteral)  
--- l12  = Lit "l12" (Just rdfXMLLiteral)  
-l11  = Lit "l10" (Just rdfXMLLiteral)   -- are these meant to both be l10?
-l12  = Lit "l10" (Just rdfXMLLiteral)   -- if you change them some tests fail
+l2   = LangLit "l2"  (langName "en")
+l2gb = LangLit "l2"  (langName "en-gb")
+l3   = LangLit "l2"  (langName "fr")
+l4   = TypedLit "l4"  qb1t1    
+l5   = TypedLit "l4"  qb1t1           
+l6   = TypedLit "l4"  qb1t1           
+l7   = TypedLit "l4"  qb1t2           
+l8   = TypedLit "l4"  qb1t2           
+l9   = TypedLit "l4"  qb1t2           
+l10  = TypedLit "l10" rdfXMLLiteral
+-- l11  = TypedLit "l11" (Just rdfXMLLiteral)  
+-- l12  = TypedLit "l12" (Just rdfXMLLiteral)  
+l11  = TypedLit "l10"  rdfXMLLiteral   -- are these meant to both be l10?
+l12  = TypedLit "l10"  rdfXMLLiteral   -- if you change them some tests fail
 
 nanF, infF, ninfF :: RDFLabel
-nanF  = Lit "NaN" (Just xsdFloat)
-infF  = Lit "INF" (Just xsdFloat)
-ninfF = Lit "-INF" (Just xsdFloat)
+nanF  = TypedLit "NaN"  xsdFloat
+infF  = TypedLit "INF"  xsdFloat
+ninfF = TypedLit "-INF" xsdFloat
 
 nanD, infD, ninfD :: RDFLabel
-nanD  = Lit "NaN" (Just xsdDouble)
-infD  = Lit "INF" (Just xsdDouble)
-ninfD = Lit "-INF" (Just xsdDouble)
+nanD  = TypedLit "NaN"  xsdDouble
+infD  = TypedLit "INF"  xsdDouble
+ninfD = TypedLit "-INF" xsdDouble
 
 v1, v2, v3, v4, vb3, vb4 :: RDFLabel
 v1  = Var "v1"  
@@ -333,20 +333,22 @@ testNodeEqSuite = TestList
 
 -- test ToRDFLabel/FromRDFlabel/IsString instances
 --
+
+toLbl :: T.Text -> Maybe ScopedName -> RDFLabel
+toLbl sVal (Just dtype) = TypedLit sVal dtype
+toLbl sVal _            = Lit sVal
     
 testToConv :: 
   (ToRDFLabel a, Eq a, Show a) 
   => String -> T.Text -> Maybe ScopedName -> a -> Test
 testToConv lbl sVal dtype hVal = 
-  let rdfVal = Lit sVal dtype
-  in testEq (":tconv:" ++ lbl) rdfVal (toRDFLabel hVal)
+    testEq (":tconv:" ++ lbl) (toLbl sVal dtype) $ toRDFLabel hVal
   
 testFrConv :: 
   (FromRDFLabel a, Eq a, Show a) 
   => String -> T.Text -> Maybe ScopedName -> a -> Test
 testFrConv lbl sVal dtype hVal = 
-  let rdfVal = Lit sVal dtype
-  in testEq (":fconv:" ++ lbl) (Just hVal)  (fromRDFLabel rdfVal)
+    testEq (":fconv:" ++ lbl) (Just hVal) $ fromRDFLabel (toLbl sVal dtype)
   
 testConv :: 
   (ToRDFLabel a, FromRDFLabel a, Eq a, Show a) 
@@ -367,24 +369,24 @@ testConversionSuite =
     -- failure case
     testEq "fconv:fail chr1"    (Nothing :: Maybe Char)   (fromRDFLabel l1)
   , testEq "fconv:fail chr2"    (Nothing :: Maybe Char)   (fromRDFLabel s1)
-  , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (Lit "1.23" (Just xsdFloat)))
+  , testEq "fconv:fail str1"    (Nothing :: Maybe String) (fromRDFLabel (TypedLit "1.23" xsdFloat))
   , testEq "fconv:fail bool1"   (Nothing :: Maybe Bool)  (fromRDFLabel l1)
-  , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "True" (Just xsdBoolean))) -- should we just let this be valid?
-  , testEq "fconv:fail bool3"   (Nothing :: Maybe Bool)  (fromRDFLabel (Lit "true" (Just xsdFloat)))
+  , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (TypedLit "True" xsdBoolean)) -- should we just let this be valid?
+  , testEq "fconv:fail bool3"   (Nothing :: Maybe Bool)  (fromRDFLabel (TypedLit "true" xsdFloat))
   , testEq "fconv:fail int1"    (Nothing :: Maybe Int)  (fromRDFLabel l1)
-  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (Lit "123456789012345" (Just xsdInteger))) 
+  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (TypedLit "123456789012345" xsdInteger)) 
   , testEq "fconv:fail float1"  (Nothing :: Maybe Float)  (fromRDFLabel l1)
-  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "1.234e101" (Just xsdFloat))) -- invalid input 
-  , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "-1.234e101" (Just xsdFloat))) -- invalid input 
-  , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (Lit "NaNs" (Just xsdFloat))) -- invalid input 
-  , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (Lit "1.23" (Just xsdFloat))) -- invalid input 
+  , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (TypedLit "1.234e101" xsdFloat)) -- invalid input 
+  , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (TypedLit "-1.234e101" xsdFloat)) -- invalid input 
+  , testEq "fconv:fail float4"  (Nothing :: Maybe Float)  (fromRDFLabel (TypedLit "NaNs" xsdFloat)) -- invalid input 
+  , testEq "fconv:fail dbl1"    (Nothing :: Maybe Double)  (fromRDFLabel (TypedLit "1.23" xsdFloat)) -- invalid input 
   , testEq "fconv:fail sn1"     (Nothing :: Maybe ScopedName) (fromRDFLabel l1)
   , testEq "fconv:fail qn1"     (Nothing :: Maybe QName)      (fromRDFLabel l1)
   , testEq "fconv:fail qu1"     (Nothing :: Maybe URI)        (fromRDFLabel l1)
   , testEq "fconv:fail triple"  (Nothing :: Maybe (ScopedName, ScopedName, Int)) (fromRDFTriple t01)
                                     
     -- basic string tests
-  , testEq     "tconv:emptystring1"  (Lit "" Nothing)    ""       -- want to try out IsString so do not use testToConv
+  , testEq     "tconv:emptystring1"  (Lit "")    ""       -- want to try out IsString so do not use testToConv
   , testConv   "emptystring2"        ""                  Nothing    (""::String)
   , testConv   "char"                "x"                 Nothing    'x'
   , testToConv "l1-1"                "l1"                Nothing    l1
@@ -1589,7 +1591,8 @@ gmm g1 g2 = grMatchMap g1 g2
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

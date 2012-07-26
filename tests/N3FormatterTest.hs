@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3FormatterTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -150,7 +150,7 @@ l13txt = "lx13"
 l14txt = "lx14"
 
 toL :: B.Builder -> RDFLabel
-toL = flip Lit Nothing . L.toStrict . B.toLazyText
+toL = Lit . L.toStrict . B.toLazyText
 
 l1, l2, l3, l11, l12, l13, l14 :: RDFLabel
 l1  = toL l1txt
@@ -162,8 +162,8 @@ l13 = toL l13txt
 l14 = toL l14txt
 
 lfr, lfoobar :: RDFLabel
-lfr = Lit "chat et chien" (Just (langName "fr"))
-lfoobar = Lit "foo bar" (Just (makeNSScopedName base1 "o1"))
+lfr = LangLit "chat et chien" (langName "fr")
+lfoobar = TypedLit "foo bar" (makeNSScopedName base1 "o1")
   
 f1, f2 :: RDFLabel
 f1 = Res $ makeNSScopedName base1 "f1"
@@ -694,7 +694,7 @@ graph_l3 =
   in toRDFGraph arcs
    
 graph_l4 = toGraph [ toRDFTriple s1 p1 ("A string with \"quotes\"" :: RDFLabel)
-                   , toRDFTriple s2 p2 (Lit "A typed string with \"quotes\"" (Just (fromString "urn:a#b")))
+                   , toRDFTriple s2 p2 (TypedLit "A typed string with \"quotes\"" (fromString "urn:a#b"))
                    ]                    
                     
 ------------------------------------------------------------
@@ -1493,7 +1493,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

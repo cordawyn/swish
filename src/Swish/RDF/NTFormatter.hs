@@ -39,7 +39,7 @@ import Swish.RDF.GraphClass
     ( Arc(..) )
 
 import Swish.Utils.Namespace (ScopedName, getQName)
-import Swish.RDF.Vocabulary (isLang, langTag)
+import Swish.RDF.Vocabulary (langTag)
 
 import Swish.Utils.LookupMap
     ( LookupMap, emptyLookupMap
@@ -141,9 +141,9 @@ carets = "^^"
 formatLabel :: RDFLabel -> Formatter B.Builder
 formatLabel lab@(Blank _) = mapBlankNode lab
 formatLabel (Res sn) = return $ showScopedName sn
-formatLabel (Lit lit Nothing) = return $ quoteText lit
-formatLabel (Lit lit (Just nam)) | isLang nam = return $ mconcat [quoteText lit, at, B.fromText (langTag nam)]
-                                 | otherwise  = return $ mconcat [quoteText lit, carets, showScopedName nam]
+formatLabel (Lit lit) = return $ quoteText lit
+formatLabel (LangLit lit lang) = return $ mconcat [quoteText lit, at, B.fromText (langTag lang)]
+formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, carets, showScopedName dt]
 
 -- do not expect to get the following, but include
 -- just in case rather than failing

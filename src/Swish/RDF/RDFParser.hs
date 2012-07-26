@@ -4,7 +4,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFParser
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -44,14 +44,13 @@ module Swish.RDF.RDFParser
     , noneOf
     , eoln
     , fullStop
-    , mkTypedLit
     , hex4
     , hex8
     , appendURIs
     )
     where
 
-import Swish.RDF.RDFGraph (RDFGraph, RDFLabel(..))
+import Swish.RDF.RDFGraph (RDFGraph)
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
@@ -291,13 +290,6 @@ annotateParsecError extraLines ls err =
 
 -}
 
--- | Create a typed literal.
-mkTypedLit ::
-  ScopedName -- ^ the type
-  -> T.Text  -- ^ the value
-  -> RDFLabel
-mkTypedLit u v = Lit v (Just u)
-
 {-
 Handle hex encoding; the spec for N3 and NTriples suggest that
 only upper-case A..F are valid but you can find lower-case values
@@ -330,7 +322,8 @@ hex8 = do
         
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

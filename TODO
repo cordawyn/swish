@@ -6,14 +6,8 @@ Some things I want to/should do (not in order)
 - Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?
 
-- the RDFLabel data type could be split up to add additional type
-  constraints, namely Lit could be split up into something like ULit
-  for an untyped literal, LLit for a language lit coupled with a
-  LString type that combines text and language tag), and DLit for a
-  literal with a datatype. This would require a minor version update
-
-  An alternative change would be to make it 'Lit RDFLiteral' with
-  RDFLiteral having the Untyped/Typed/Language options.
+- Change LangLit to have a language-code datatype rather than use
+  a ScopedName.
 
 - can items be moved out of Swidh.RDF.RDFGraph (e.g. the RDFlabel
   re-exports)?

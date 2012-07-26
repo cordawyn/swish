@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3ParserTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -313,18 +313,18 @@ o3 = Res $ makeNSScopedName base3 "o3"
 oa = Res $ makeNSScopedName basea "c"
 
 l1, l2, l3 :: RDFLabel
-l1 = Lit "l1"  Nothing
-l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'" Nothing
-l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--" Nothing
+l1 = Lit "l1"
+l2 = Lit "l2-'\"line1\"'\n\nl2-'\"\"line2\"\"'"
+l3 = Lit "l3--\r\"'\\--\x0020\&--\x00A0\&--"
 
 lfr, lxml, lfrxml :: RDFLabel
-lfr    = Lit "chat"          $ Just $ langName "fr"
-lxml   = Lit "<br/>"         $ Just rdfXMLLiteral
-lfrxml = Lit "<em>chat</em>" $ Just rdfXMLLiteral
+lfr    = LangLit "chat"           $ langName "fr"
+lxml   = TypedLit "<br/>"         rdfXMLLiteral
+lfrxml = TypedLit "<em>chat</em>" rdfXMLLiteral
 
 bTrue, bFalse :: RDFLabel
-bTrue  = Lit "true"  $ Just xsdBoolean
-bFalse = Lit "false" $ Just xsdBoolean
+bTrue  = TypedLit "true"  xsdBoolean
+bFalse = TypedLit "false" xsdBoolean
 
 f1, f2 :: RDFLabel
 f1 = Res $ makeNSScopedName base1 "f1"
@@ -1258,10 +1258,10 @@ lit_g2 :: RDFGraph
 lit_g2 = lit_g1 { namespaces = xnslist }
 
 bOne, b20, b221, b23e4 :: RDFLabel
-bOne  = Lit "1" $ Just xsdInteger
-b20   = Lit "2.0" $ Just xsdDecimal
-b221  = Lit "-2.21" $ Just xsdDecimal
-b23e4 = Lit "-2.3E-4" $ Just xsdDouble
+bOne  = TypedLit "1"       xsdInteger
+b20   = TypedLit "2.0"     xsdDecimal
+b221  = TypedLit "-2.21"   xsdDecimal
+b23e4 = TypedLit "-2.3E-4" xsdDouble
 
 lit_g4 :: RDFGraph
 lit_g4 = mempty {
@@ -1506,7 +1506,8 @@ main = runTestSuite allTests
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

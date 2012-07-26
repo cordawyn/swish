@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  TurtleParser
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -87,6 +87,8 @@ import Swish.RDF.Vocabulary
     , defaultBase
     )
 
+import Swish.RDF.RDFDatatype (makeDatatypedLiteral)
+
 import Swish.RDF.RDFParser
     ( ParseResult
     , runParserWithError
@@ -100,7 +102,6 @@ import Swish.RDF.RDFParser
     , isymbol
     , lexeme
     , whiteSpace
-    , mkTypedLit
     , hex4  
     , hex8  
     , appendURIs
@@ -268,7 +269,7 @@ namespace store.
 -}
 
 addStatement :: RDFLabel -> RDFLabel -> RDFLabel -> TurtleParser ()
-addStatement s p o@(Lit _ (Just dtype)) | dtype `elem` [xsdBoolean, xsdInteger, xsdDecimal, xsdDouble] = do 
+addStatement s p o@(TypedLit _ dtype) | dtype `elem` [xsdBoolean, xsdInteger, xsdDecimal, xsdDouble] = do 
   ost <- stGet
   let stmt = arc s p o
       oldp = prefixUris ost
@@ -569,9 +570,12 @@ _uchar' = (char 'u' *> hex4) <|> (char 'U' *> hex8)
 
 rdfLiteral :: TurtleParser RDFLabel
 rdfLiteral = do
-  lbl <- turtleString
-  opt <- optional (_langTag <|> (string "^^" *> iriref))
-  return $ Lit (L.toStrict lbl) opt
+  lbl <- L.toStrict <$> turtleString
+  opt <- optional ((Left <$> _langTag) <|> (string "^^" *> (Right <$> iriref)))
+  return $ case opt of
+             Just (Left lcode)  -> LangLit lbl lcode
+             Just (Right dtype) -> TypedLit lbl dtype
+             _                  -> Lit lbl
 
 {-
 [61s] NumericLiteral ::= NumericLiteralUnsigned 
@@ -592,9 +596,9 @@ numericLiteralUnsigned :: TurtleParser RDFLabel
 numericLiteralUnsigned = 
   d2s <$> _double
   <|> 
-  (mkTypedLit xsdDecimal . L.toStrict <$> _decimal)
+  (makeDatatypedLiteral xsdDecimal . L.toStrict <$> _decimal)
   <|> 
-  (mkTypedLit xsdInteger . L.toStrict <$> _integer)
+  (makeDatatypedLiteral xsdInteger . L.toStrict <$> _integer)
 
 {-
 [63s] NumericLiteralPositive ::= INTEGER_POSITIVE 
@@ -606,9 +610,9 @@ numericLiteralPositive :: TurtleParser RDFLabel
 numericLiteralPositive =
   d2s <$> _doublePositive
   <|> 
-  (mkTypedLit xsdDecimal . L.toStrict <$> _decimalPositive)
+  (makeDatatypedLiteral xsdDecimal . L.toStrict <$> _decimalPositive)
   <|> 
-  (mkTypedLit xsdInteger . L.toStrict <$> _integerPositive)
+  (makeDatatypedLiteral xsdInteger . L.toStrict <$> _integerPositive)
 
 {-
 [64s] NumericLiteralNegative ::= INTEGER_NEGATIVE 
@@ -620,9 +624,9 @@ numericLiteralNegative :: TurtleParser RDFLabel
 numericLiteralNegative = 
   d2s <$> _doubleNegative
   <|> 
-  (mkTypedLit xsdDecimal . L.toStrict <$> _decimalNegative)
+  (makeDatatypedLiteral xsdDecimal . L.toStrict <$> _decimalNegative)
   <|> 
-  (mkTypedLit xsdInteger . L.toStrict <$> _integerNegative)
+  (makeDatatypedLiteral xsdInteger . L.toStrict <$> _integerNegative)
    
 {-
 [65s] BooleanLiteral ::= "true" 
@@ -630,7 +634,7 @@ numericLiteralNegative =
 -}
 
 booleanLiteral :: TurtleParser RDFLabel
-booleanLiteral = mkTypedLit xsdBoolean . T.pack <$> (string "true" <|> string "false")
+booleanLiteral = makeDatatypedLiteral xsdBoolean . T.pack <$> (string "true" <|> string "false")
 
 {-
 [66s] String ::= STRING_LITERAL1 
@@ -1039,7 +1043,8 @@ Original from
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
