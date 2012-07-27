@@ -35,11 +35,10 @@ import Swish.GraphClass (replaceArcs)
 import Swish.Proof (Proof(..), Step(..))
 import Swish.Rule (Expression(..), Rule(..))
 
-import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
-import Swish.RDF.RDFQuery (rdfQueryInstance, rdfQuerySubs)
-
 import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
 import Swish.RDF.Graph (merge, allLabels, remapLabelList, emptyRDFGraph)
+import Swish.RDF.Query (rdfQueryInstance, rdfQuerySubs)
+import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
 import Swish.RDF.VarBinding (makeVarBinding)
 

@@ -34,7 +34,7 @@ import Swish.RDF.Ruleset
     , graphClosureFwdApply, graphClosureBwdApply
     )
 
-import Swish.RDF.RDFQuery (rdfQueryBack, rdfQueryBackModify)
+import Swish.RDF.Query (rdfQueryBack, rdfQueryBackModify)
 
 import Swish.RDF.RDFVarBinding
     ( RDFVarBinding

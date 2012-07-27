@@ -22,7 +22,7 @@
 
 module Main where
 
-import Swish.RDF.RDFQuery
+import Swish.RDF.Query
     ( rdfQueryFind, rdfQueryFilter
     , rdfQueryBack, rdfQueryBackFilter, rdfQueryBackModify
     , rdfQueryInstance

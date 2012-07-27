@@ -47,7 +47,7 @@ import Swish.Rule (fwdCheckInference, nullSN)
 import Swish.Ruleset (Ruleset(..), RulesetMap)
 import Swish.GraphClass (Label(..), Arc(..), LDGraph(..))
 
-import Swish.RDF.RDFQuery
+import Swish.RDF.Query
     ( rdfQueryFind
     , rdfQueryBack, rdfQueryBackModify
     , rdfQuerySubs

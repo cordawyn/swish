@@ -45,7 +45,7 @@ import Swish.RDF.Graph
 import Swish.RDF.Datatype (RDFDatatypeVal, fromRDFLabel, toRDFLabel)
 import Swish.RDF.Ruleset (RDFRule, makeRDFGraphFromN3Builder)
 
-import Swish.RDF.RDFQuery
+import Swish.RDF.Query
     ( rdfQueryFind
     , rdfFindValSubj, rdfFindPredVal, rdfFindPredInt
     , rdfFindList

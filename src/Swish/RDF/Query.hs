@@ -2,7 +2,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFQuery
+--  Module      :  Query
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -19,7 +19,7 @@
 --  A minimal example is shown below, where we query a very simple
 --  graph:
 --
--- >>> :m + Swish.RDF Swish.RDF.N3Parser Swish.RDF.RDFQuery
+-- >>> :m + Swish.RDF Swish.RDF.Parser.N3 Swish.RDF.Query
 -- >>> :set -XOverloadedStrings
 -- >>> let qparse = either error id . parseN3fromText
 -- >>> let igr = qparse "@prefix a: <http://example.com/>. a:a a a:A ; a:foo a:bar. a:b a a:B ; a:foo a:bar."
@@ -34,7 +34,7 @@
 -- 
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFQuery
+module Swish.RDF.Query
     ( rdfQueryFind, rdfQueryFilter
     , rdfQueryBack, rdfQueryBackFilter, rdfQueryBackModify
     , rdfQueryInstance

@@ -35,7 +35,7 @@ import Swish.RDF.Ruleset
     , makeNodeAllocTo
     )
 
-import Swish.RDF.RDFQuery (rdfQueryFind, rdfQuerySubs)
+import Swish.RDF.Query (rdfQueryFind, rdfQuerySubs)
 import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
 
 import Swish.RDF.Graph

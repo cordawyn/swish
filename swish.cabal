@@ -162,7 +162,7 @@ Library
       Swish.RDF.Parser.Utils
       Swish.RDF.Proof
       Swish.RDF.ProofContext
-      Swish.RDF.RDFQuery
+      Swish.RDF.Query
       Swish.RDF.RDFVarBinding
       Swish.RDF.Ruleset
       Swish.RDF.SwishCommands
