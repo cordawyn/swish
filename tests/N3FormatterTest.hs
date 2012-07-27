@@ -22,7 +22,7 @@ import Swish.RDF.N3Formatter
     ( formatGraphAsLazyText
     , formatGraphDiag )
 
-import Swish.RDF.N3Parser (parseN3)
+import Swish.RDF.Parser.N3 (parseN3)
 
 import Swish.RDF.RDFGraph
     ( RDFGraph, RDFTriple

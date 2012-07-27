@@ -3,7 +3,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFParser
+--  Module      :  Utils
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFParser
+module Swish.RDF.Parser.Utils
     ( SpecialMap
     -- , mapPrefix
               

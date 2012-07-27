@@ -50,6 +50,9 @@ Description:
   (@RDFLabel@) rather than using just @Lit@. Language codes are now represented
   by @Swish.RDF.Vocabulary.LanguageTag@ rather than as a @ScopedName@.
   .
+  * Parsing modules are now in the @Swish.RDF.Parser@ hierachy and
+  @Swish.RDF.RDFParser@ has been renamed to @Swish.RDF.Parser.Utils@.
+  .
   * Removed @mkTypedLit@ from @Swish.RDF.RDFParser@; use
   @Swish.RDF.RDFDatatype.makeDataTypedLiteral@ instead.
   .
@@ -58,6 +61,15 @@ Description:
   .
   * Removed un-used @containedIn@ element of the @LDGraph@ type class.
   .
+  * Removed un-used exports from @Swish.Utils.PartOrderedCollection@: 
+  @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and
+  @partCompareListPartOrd@.
+  .
+  * Removed the @Swish.Utils.MiscHelpers@ module.
+  .
+  * Removed various exported symbols from a range of modules as they were
+  unused.
+  .
   * Clarified that @Swish.RDF.RDFDatatypeXsdDecimal@ is for @xsd:decimal@ rather
   than @xsd:double@.
   .
@@ -65,12 +77,6 @@ Description:
   @containers@.
   .
   * Switch to @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
-  .
-  * Removed un-used exports from @Swish.Utils.PartOrderedCollection@: 
-  @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and
-  @partCompareListPartOrd@.
-  .
-  * Removed the @Swish.Utils.MiscHelpers@ module.
   .
   Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
   .
@@ -136,9 +142,11 @@ Library
       Swish.RDF.MapXsdDecimal
       Swish.RDF.MapXsdInteger
       Swish.RDF.NTFormatter
-      Swish.RDF.NTParser
       Swish.RDF.N3Formatter
-      Swish.RDF.N3Parser
+      Swish.RDF.Parser.NTriples
+      Swish.RDF.Parser.N3
+      Swish.RDF.Parser.Turtle
+      Swish.RDF.Parser.Utils
       Swish.RDF.Proof
       Swish.RDF.RDFDatatype
       Swish.RDF.RDFDatatypeXsdDecimal
@@ -146,7 +154,6 @@ Library
       Swish.RDF.RDFDatatypeXsdString
       Swish.RDF.RDFGraph
       Swish.RDF.RDFGraphShowM
-      Swish.RDF.RDFParser
       Swish.RDF.RDFProof
       Swish.RDF.RDFProofContext
       Swish.RDF.RDFQuery
@@ -159,7 +166,6 @@ Library
       Swish.RDF.SwishMonad
       Swish.RDF.SwishScript
       Swish.RDF.TurtleFormatter
-      Swish.RDF.TurtleParser
       Swish.RDF.VarBinding
       Swish.RDF.Vocabulary
       Swish.RDF.Vocabulary.DublinCore

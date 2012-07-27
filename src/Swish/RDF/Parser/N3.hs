@@ -1,10 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-} -- only used in 'fromMaybe "" mbase' line of parseN3
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  N3Parser
+--  Module      :  N3
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -47,7 +47,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.N3Parser
+module Swish.RDF.Parser.N3
     ( ParseResult
     , parseN3      
     , parseN3fromText      
@@ -111,7 +111,7 @@ import Swish.RDF.Vocabulary
 
 import Swish.RDF.RDFDatatype (makeDatatypedLiteral)
 
-import Swish.RDF.RDFParser
+import Swish.RDF.Parser.Utils
     ( SpecialMap
     , ParseResult
     , runParserWithError

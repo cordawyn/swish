@@ -55,7 +55,7 @@ import Swish.RDF.VarBinding
 
 import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.RDF.Vocabulary (namespaceRDF, toLangTag, swishName, rdfType, rdfXMLLiteral)
-import Swish.RDF.N3Parser (parseN3)
+import Swish.RDF.Parser.N3 (parseN3)
 
 import Test.HUnit ( Test(TestList) )
 

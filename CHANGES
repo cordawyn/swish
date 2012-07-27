@@ -5,6 +5,9 @@
     codes are now represented by Swish.RDF.Vocabulary.LanguageTag
     rather than as a ScopedName.
 
+  - Parsing modules are now in the Swish.RDF.Parser hiearchy and
+    Swish.RDF.RDFParser has been renamed to Seish.RDF.Parser.Utils.
+
   - Removed mkTypedLit from Swish.RDF.RDFParser; use
     Swish.RDF.RDFDatatype.makeDataTypedLiteral instead.
 
@@ -15,7 +18,10 @@
     rather than xsd:double.
 
   - Removed the containedIn element of the LDGraph type class as it
-    was unused.
+    was un-used.
+
+  - Removed various exported symbols from a range of modules as they were
+    un-used.
 
   - Bump the upper constraint on the containers package to include
     version 0.5.

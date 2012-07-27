@@ -12,14 +12,13 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedString
 --
---  This Module contains test cases for the NTriples modules: 
---  "NTParser" and "NTFormatter".
+--  This Module contains test cases for the NTriples parsing and formatting modules.
 --
 --------------------------------------------------------------------------------
 
 module Main where
 
-import Swish.RDF.NTParser (parseNT)
+import Swish.RDF.Parser.NTriples (parseNT)
 import Swish.RDF.NTFormatter (formatGraphAsLazyText)
 
 import Swish.RDF.RDFGraph

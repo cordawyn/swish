@@ -56,7 +56,7 @@ import Swish.RDF.RDFGraph
     , toRDFGraph, emptyRDFGraph )
 
 import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
-import Swish.RDF.N3Parser (parseN3)
+import Swish.RDF.Parser.N3 (parseN3)
 import Swish.RDF.Ruleset (Ruleset(..), RulesetMap)
 
 import Swish.RDF.Rule

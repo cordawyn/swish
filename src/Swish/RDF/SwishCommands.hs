@@ -54,10 +54,10 @@ import qualified Swish.RDF.TurtleFormatter as TTLF
 import qualified Swish.RDF.N3Formatter as N3F
 import qualified Swish.RDF.NTFormatter as NTF
 
-import Swish.RDF.TurtleParser (parseTurtle)
-import Swish.RDF.N3Parser (parseN3)
-import Swish.RDF.NTParser (parseNT)
-import Swish.RDF.RDFParser (appendURIs)
+import Swish.RDF.Parser.Turtle (parseTurtle)
+import Swish.RDF.Parser.N3 (parseN3)
+import Swish.RDF.Parser.NTriples (parseNT)
+import Swish.RDF.Parser.Utils (appendURIs)
 
 import Swish.RDF.GraphClass
     ( LDGraph(..)

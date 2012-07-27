@@ -107,9 +107,9 @@ import Swish.RDF.RDFGraph
     , merge, add
     )
 
-import Swish.RDF.RDFParser (whiteSpace, lexeme, symbol, eoln, manyTill)
+import Swish.RDF.Parser.Utils (whiteSpace, lexeme, symbol, eoln, manyTill)
 
-import Swish.RDF.N3Parser
+import Swish.RDF.Parser.N3
     ( parseAnyfromText
     , parseN3      
     , N3Parser, N3State(..)

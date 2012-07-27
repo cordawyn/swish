@@ -18,7 +18,7 @@
 
 module Main where
 
-import Swish.RDF.N3Parser
+import Swish.RDF.Parser.N3
     ( parseN3
     , parseTextFromText, parseAltFromText
     , parseNameFromText -- , parsePrefixFromText

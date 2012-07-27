@@ -1,8 +1,9 @@
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
+
 -- |
---  Module      :  NTParser
+--  Module      :  NTriples
 --  Copyright   :  (c) 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -22,30 +23,14 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.NTParser
+module Swish.RDF.Parser.NTriples
     ( ParseResult
     , parseNT      
     , parsefromString
-    
-      {-
-    -- * Exports for parsers that embed NTriples in a bigger syntax
-    , NTParser, NTState(..)
-    , ntripleDoc
-    , line, ws, comment, eoln
-    , character, name, triple
-    , subject, predicate, object
-    , uriref, urirefLbl
-    , nodeID, literal, language
-      -}
-      
     )
 where
 
-import Swish.RDF.RDFGraph
-    ( RDFGraph, RDFLabel(..)
-    , addArc 
-    , emptyRDFGraph
-    )
+import Swish.RDF.RDFGraph (RDFGraph, RDFLabel(..), addArc, emptyRDFGraph)
 
 import Swish.RDF.GraphClass (arc)
 
@@ -53,7 +38,7 @@ import Swish.Utils.Namespace (ScopedName, makeURIScopedName)
 
 import Swish.RDF.Vocabulary (LanguageTag, toLangTag)
 
-import Swish.RDF.RDFParser ( ParseResult
+import Swish.RDF.Parser.Utils (ParseResult
     , runParserWithError
     , ignore
     , skipMany

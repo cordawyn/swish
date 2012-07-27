@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  TurtleParser
+--  Module      :  Turtle
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -28,7 +28,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.TurtleParser
+module Swish.RDF.Parser.Turtle
     ( ParseResult
     , parseTurtle      
     , parseTurtlefromText      
@@ -90,7 +90,7 @@ import Swish.RDF.Vocabulary
 
 import Swish.RDF.RDFDatatype (makeDatatypedLiteral)
 
-import Swish.RDF.RDFParser
+import Swish.RDF.Parser.Utils
     ( ParseResult
     , runParserWithError
     , ignore
