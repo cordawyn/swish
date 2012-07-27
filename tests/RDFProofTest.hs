@@ -20,6 +20,8 @@
 module Main where
 
 import Swish.Rule (Rule(..))
+import Swish.VarBinding (VarBinding(..), VarBindingModify(..))
+import Swish.VarBinding (makeVarFilterModify, varBindingId, varFilterNE)
 
 import Swish.RDF.Proof
     ( makeRdfInstanceEntailmentRule
@@ -36,19 +38,11 @@ import Swish.RDF.Ruleset
     )
 
 import Swish.RDF.Query (rdfQueryFind, rdfQuerySubs)
-import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
+import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingModify)
 
 import Swish.RDF.Graph
     ( Label(..), RDFLabel(..), RDFGraph
     , add, allLabels, allNodes )
-
-import Swish.RDF.VarBinding
-    ( VarBinding(..) 
-    , VarBindingModify(..)
-    , makeVarFilterModify
-    , varBindingId -- , varFilterDisjunction, varFilterConjunction
-    , varFilterNE
-    )
 
 import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 

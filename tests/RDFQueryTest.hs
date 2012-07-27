@@ -22,6 +22,15 @@
 
 module Main where
 
+import Swish.VarBinding
+    ( VarBinding(..)
+    , makeVarBinding
+    , joinVarBindings
+    , VarBindingModify(..)
+    , makeVarFilterModify
+    , varBindingId
+    , varFilterNE
+    )
 import Swish.RDF.Query
     ( rdfQueryFind, rdfQueryFilter
     , rdfQueryBack, rdfQueryBackFilter, rdfQueryBackModify
@@ -29,10 +38,9 @@ import Swish.RDF.Query
     , rdfQuerySubs, rdfQueryBackSubs
     , rdfQuerySubsAll
     , rdfQuerySubsBlank, rdfQueryBackSubsBlank
-    -- debug
     )
 
-import Swish.RDF.RDFVarBinding
+import Swish.RDF.VarBinding
     ( RDFVarBinding
     , RDFVarBindingFilter
     , rdfVarBindingUriRef, rdfVarBindingBlank
@@ -43,15 +51,6 @@ import Swish.RDF.RDFVarBinding
     )
 
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..), merge)
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    , makeVarBinding
-    , joinVarBindings
-    , VarBindingModify(..)
-    , makeVarFilterModify
-    , varBindingId
-    , varFilterNE
-    )
 
 import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.RDF.Vocabulary (namespaceRDF, toLangTag, swishName, rdfType, rdfXMLLiteral)

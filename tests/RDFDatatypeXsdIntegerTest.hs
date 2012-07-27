@@ -30,6 +30,7 @@ import Swish.Datatype
     )
 import Swish.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.Ruleset (Ruleset(..), getRulesetRule)
+import Swish.VarBinding (makeVarBinding)
 
 import Swish.RDF.ClassRestrictionRule (falseGraphStr)
 import Swish.RDF.Datatype (RDFDatatypeMod, applyRDFDatatypeMod)
@@ -41,12 +42,11 @@ import Swish.RDF.Datatype.XSD.Integer
     , axiomsXsdInteger, rulesXsdInteger
     )
 
-import Swish.RDF.RDFVarBinding (RDFVarBinding)
+import Swish.RDF.VarBinding (RDFVarBinding)
 
 import Swish.RDF.Ruleset (RDFRule, makeRDFGraphFromN3Builder)
 import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
 
-import Swish.RDF.VarBinding (makeVarBinding)
 import Swish.RDF.Vocabulary (namespaceDefault, namespaceRDF, namespaceRDFD, namespaceXSD)
 
 import Swish.Utils.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)

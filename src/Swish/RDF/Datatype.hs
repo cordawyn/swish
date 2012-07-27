@@ -27,16 +27,6 @@ module Swish.RDF.Datatype
     )
 where
 
-import Swish.RDF.Graph
-    ( RDFLabel(..)
-    , isDatatyped
-    , getLiteralText
-    , RDFGraph
-    )
-
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding, RDFOpenVarBindingModify )
-
 import Swish.Datatype
     ( Datatype
     , DatatypeVal(..)
@@ -45,8 +35,17 @@ import Swish.Datatype
     , ApplyModifier
     , DatatypeSub(..)
     )
+import Swish.VarBinding (VarBindingModify(..))
 
-import Swish.RDF.VarBinding (VarBindingModify(..))
+import Swish.RDF.Graph
+    ( RDFLabel(..)
+    , isDatatyped
+    , getLiteralText
+    , RDFGraph
+    )
+
+import Swish.RDF.VarBinding (RDFVarBinding, RDFOpenVarBindingModify)
+
 import Swish.Utils.Namespace (ScopedName)
 
 import Control.Monad (liftM)

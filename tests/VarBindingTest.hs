@@ -19,7 +19,7 @@
 
 module Main where
 
-import Swish.RDF.VarBinding
+import Swish.VarBinding
     ( VarBinding(..)
     , subBinding, nullVarBinding, makeVarBinding
     , boundVars, subBinding, makeVarBinding

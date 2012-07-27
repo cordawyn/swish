@@ -43,7 +43,7 @@ import Swish.Rule(Formula(..))
 
 import Swish.RDF.Graph (RDFGraph, emptyRDFGraph)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleMap, RDFRuleset, RDFRulesetMap)
-import Swish.RDF.RDFVarBinding (RDFOpenVarBindingModify)
+import Swish.RDF.VarBinding (RDFOpenVarBindingModify)
 
 import Swish.RDF.BuiltInMap
     ( findRDFOpenVarBindingModifier

@@ -46,6 +46,8 @@ import Swish.Rule (Formula(..), Rule(..), RuleMap)
 import Swish.Rule (fwdCheckInference, nullSN)
 import Swish.Ruleset (Ruleset(..), RulesetMap)
 import Swish.GraphClass (Label(..), Arc(..), LDGraph(..))
+import Swish.VarBinding (VarBindingModify(..))
+import Swish.VarBinding (makeVarBinding, applyVarBinding, joinVarBindings, vbmCompose, varBindingId)
 
 import Swish.RDF.Query
     ( rdfQueryFind
@@ -60,16 +62,8 @@ import Swish.RDF.Graph
     , merge, allLabels
     , toRDFGraph, emptyRDFGraph )
 
-import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
+import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingModify)
 import Swish.RDF.Parser.N3 (parseN3)
-
-import Swish.RDF.VarBinding
-    ( makeVarBinding
-    , applyVarBinding, joinVarBindings
-    , VarBindingModify(..)
-    , vbmCompose
-    , varBindingId
-    )
 
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 import Swish.Utils.Namespace (Namespace, ScopedName)

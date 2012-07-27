@@ -58,25 +58,15 @@ where
 import Swish.Rule (Formula(..), Rule(..))
 import Swish.Ruleset (Ruleset(..))
 import Swish.Ruleset (getRulesetAxiom, getRulesetRule)
+import Swish.VarBinding (VarBinding(..), VarBindingModify(..), OpenVarBindingModify)
+import Swish.VarBinding (addVarBinding, nullVarBindingModify)
 
 import Swish.RDF.Vocabulary (swishName)
+
+import Swish.Utils.ListHelpers (flist, deleteIndex)
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
+import Swish.Utils.LookupMap (mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
-
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    , addVarBinding
-    , VarBindingModify(..), OpenVarBindingModify, nullVarBindingModify
-    )
-
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    , mapFindMaybe
-    )
-
-import Swish.Utils.ListHelpers
-    ( flist
-    , deleteIndex
-    )
 
 -- used to add Show instances for structures during debugging
 -- but backed out again.

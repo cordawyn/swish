@@ -25,6 +25,8 @@ module Swish.RDF.ProofContext ( rulesetRDF
 
 import Swish.Datatype (typeMkCanonicalForm)
 import Swish.Ruleset (makeRuleset)
+import Swish.VarBinding (VarBindingModify(..))
+import Swish.VarBinding (applyVarBinding, addVarBinding, makeVarFilterModify, varFilterDisjunction)
 
 import Swish.RDF.BuiltInDatatypes (findRDFDatatype)
 
@@ -40,7 +42,7 @@ import Swish.RDF.Ruleset
     , makeN3ClosureAllocatorRule
     , makeNodeAllocTo )
 
-import Swish.RDF.RDFVarBinding
+import Swish.RDF.VarBinding
     ( RDFVarBinding
     , RDFVarBindingModify
     , RDFVarBindingFilter
@@ -52,14 +54,6 @@ import Swish.RDF.RDFVarBinding
     )
 
 import Swish.RDF.Graph (RDFLabel(..), isUri)
-
-import Swish.RDF.VarBinding
-    ( applyVarBinding
-    , addVarBinding
-    , VarBindingModify(..)
-    , makeVarFilterModify
-    , varFilterDisjunction
-    )
 
 import Swish.Utils.Namespace (Namespace, makeNSScopedName)
 

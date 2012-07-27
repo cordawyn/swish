@@ -29,6 +29,7 @@ module Swish.RDF.ClassRestrictionRule
 
 import Swish.Datatype (DatatypeVal(..), DatatypeRel(..), DatatypeRelFn)
 import Swish.Rule (Rule(..), bwdCheckInference)
+import Swish.VarBinding (VarBinding(..))
 
 import Swish.RDF.Graph
     ( RDFLabel(..)
@@ -51,8 +52,7 @@ import Swish.RDF.Query
     , rdfFindList
     )
 
-import Swish.RDF.RDFVarBinding (RDFVarBinding)
-import Swish.RDF.VarBinding (VarBinding(..))
+import Swish.RDF.VarBinding (RDFVarBinding)
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
 import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder)

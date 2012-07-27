@@ -49,9 +49,8 @@ module Swish.RDF.Query
 where
 
 import Swish.Datatype (DatatypeMap(..))
-
-import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingFilter)
-import Swish.RDF.RDFVarBinding (nullRDFVarBinding)
+import Swish.VarBinding (VarBinding(..), VarBindingModify(..), VarBindingFilter(..))
+import Swish.VarBinding (makeVarBinding, applyVarBinding, joinVarBindings)
 
 import Swish.RDF.Graph
     ( Arc(..), LDGraph(..)
@@ -67,15 +66,10 @@ import Swish.RDF.Graph
     , resRdfNil
     )
 
-import Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger)
+import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingFilter)
+import Swish.RDF.VarBinding (nullRDFVarBinding)
 
-import Swish.RDF.VarBinding
-    ( VarBinding(..)
-    , makeVarBinding
-    , applyVarBinding, joinVarBindings
-    , VarBindingModify(..)
-    , VarBindingFilter(..)
-    )
+import Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger)
 
 import Swish.RDF.Vocabulary (xsdInteger, xsdNonNegInteger)
 

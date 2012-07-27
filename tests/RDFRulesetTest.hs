@@ -23,6 +23,7 @@ module Main where
 import Swish.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.Ruleset (makeRuleset, getRulesetNamespace, getRulesetAxioms)
 import Swish.Ruleset (getRulesetRules, getRulesetAxiom, getRulesetRule)
+import Swish.VarBinding (makeVarBinding, vbmCompose, makeVarFilterModify)
 
 import Swish.RDF.Ruleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
@@ -36,7 +37,7 @@ import Swish.RDF.Ruleset
 
 import Swish.RDF.Query (rdfQueryBack, rdfQueryBackModify)
 
-import Swish.RDF.RDFVarBinding
+import Swish.RDF.VarBinding
     ( RDFVarBinding
     , RDFVarBindingModify
     , RDFVarBindingFilter
@@ -51,7 +52,6 @@ import Swish.RDF.Graph
     , toRDFGraph
     )
     
-import Swish.RDF.VarBinding (makeVarBinding, vbmCompose, makeVarFilterModify)
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
 
 import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)

@@ -24,19 +24,13 @@ module Swish.RDF.BuiltInRules
 where
 
 import Swish.Datatype (typeRules, typeMkModifiers)
-
-import Swish.RDF.VarBinding
-    ( nullVarBindingModify
-    , makeVarFilterModify
-    , varFilterEQ, varFilterNE
-    )
+import Swish.VarBinding (nullVarBindingModify, makeVarFilterModify, varFilterEQ, varFilterNE)
 
 import Swish.RDF.BuiltInDatatypes (allDatatypes)
-
 import Swish.RDF.Ruleset (RDFRuleset, RDFRulesetMap)
 import Swish.RDF.ProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
 
-import Swish.RDF.RDFVarBinding
+import Swish.RDF.VarBinding
     ( RDFOpenVarBindingModify
     , rdfVarBindingUriRef, rdfVarBindingBlank
     , rdfVarBindingLiteral
