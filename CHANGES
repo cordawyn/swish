@@ -37,7 +37,8 @@
   - Switch to Control.Exception.try from System.IO.Error.try to avoid
     complaints from ghc 7.4.2
 
-  - Removed the Swish.Utils.MiscHelpers module.
+  - Removed the Swish.Utils.MiscHelpers module and moved single-use
+    functionality out of Swish.Utils.ListHelpers.
 
   - Removed partCompareOrd, partCompareMaybe, partCompareListOrd and 
     partCompareListPartOrd from Swish.Utils.PartOrderedCollection.

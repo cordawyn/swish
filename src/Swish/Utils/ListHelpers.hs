@@ -17,24 +17,22 @@
 --------------------------------------------------------------------------------
 
 module Swish.Utils.ListHelpers
-       ( -- list of Swish.RDF.xxx modules the routine is used in
+       ( -- list of Swish.xxx modules the routine is used in
          select  -- GraphMatch
        , deleteIndex -- Datatype
-       , subset -- Proof, RDFProof, VarBinding [also defined in Utils.PartOrderedCollection]
-       , equiv -- GraphMatch, RDFRuleset, SwishScript, VarBinding, Utils.LookupMap
-       , addSetElem -- RDFGraph
-       , headOrNothing -- VarBinding
+       , subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
+       , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
+       , addSetElem -- RDF.Graph
        , pairUngroup -- GraphMatch
        , pairSort -- GraphMatch
        , pairGroup -- GraphMatch
        , breakAll -- SwishMain
-       , powerSet -- ClassRestrictionRule, RDFProof
-       , permutations -- VarBinding
-       , listProduct -- RDFQuery
-       , powerSequencesLen -- RDFProof
-       , flist -- Datatype, RDFProof, RDFRuleset, SwishScript, VarBinding
-       , allp -- RDFQuery
-       , anyp -- RDFQuery
+       , powerSet -- ClassRestrictionRule, RDF.Proof
+       , listProduct -- RDF.Query
+       , powerSequencesLen -- RDF.Proof
+       , flist -- Datatype, RDF.Proof, RDF.Ruleset, SwishScript, VarBinding
+       , allp -- RDF.Query
+       , anyp -- RDF.Query
         
       )
 where
@@ -99,19 +97,6 @@ a `equiv` b     = a `subset` b && b `subset` a
 
 addSetElem :: (Eq a) => a -> [a] -> [a]
 addSetElem e es = if e `elem` es then es else e:es
-
-------------------------------------------------------------
---  Lists and Maybes
-------------------------------------------------------------
-
--- |Return head of a list of @Maybe@'s, or @Nothing@ if list is empty
---
---  Use with @filter isJust@ to select a non-Nothing value from a
---  list when such a value is present.
---
-headOrNothing :: [Maybe a] -> Maybe a
-headOrNothing []    = Nothing
-headOrNothing (a:_) = a
 
 ------------------------------------------------------------
 --  Filter, ungroup, sort and group pairs by first member
@@ -205,27 +190,6 @@ testpower = powerSet "abc"        -- ["a","b","c","ab","ac","bc","abc"]
 -}
 
 ------------------------------------------------------------
---  Permutations of a list
-------------------------------------------------------------
-
--- | Returns the permutations of a list, based on code
--- by S.D.Mechveliani, 
--- <http://www.dcs.gla.ac.uk/mail-www/haskell/msg01936.html>.
-permutations :: [a] -> [[a]]
-permutations    []     = [[]]
-permutations    (j:js) = addOne $ permutations js
-    where
-        addOne = foldr ((++) . ao) []
-
-        ao []           = [[j]]
-        ao (k:ks)       = (j:k:ks) : map (k:) (ao ks)
-
-{-
-testperm = permutations [1,2,3] ==
-    [[1,2,3],[2,1,3],[2,3,1],[1,3,2],[3,1,2],[3,2,1]]
--}
-
-------------------------------------------------------------
 --  List product
 ------------------------------------------------------------
 
@@ -238,7 +202,7 @@ testperm = permutations [1,2,3] ==
 --  > listProduct [[a1,a2],[b1],[c1,c2]] =
 --  >      [ [a1,b1,c1], [a1,b1,c2], [a2,b1,c1], [a2,b1,c2] ]
 --
---  Note:  The length of the resulting list is the prodicty of
+--  Note:  The length of the resulting list is the product of
 --  lengths of the components of the original list.  Thus, if
 --  any member of the original list is empty then so is the
 --  resulting list:

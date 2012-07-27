@@ -42,7 +42,7 @@ where
 
 import Swish.RDF.Vocabulary (swishName)
 
-import Swish.Utils.ListHelpers (equiv, subset, flist, headOrNothing, permutations)
+import Swish.Utils.ListHelpers (equiv, subset, flist)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
 import Swish.Utils.LookupMap (makeLookupMap, mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
@@ -144,9 +144,17 @@ joinVarBindings vb1 vb2
         , vbNull = False
         }
     where
-        -- flist fs a = map ($ a) fs;  see also monad function 'ap'
         mv12 = headOrNothing . filter isJust . flist [ vbMap vb1, vbMap vb2 ]
         bv12 = boundVars vb1 `union` boundVars vb2
+
+-- |Return head of a list of @Maybe@'s, or @Nothing@ if list is empty
+--
+--  Use with @filter isJust@ to select a non-Nothing value from a
+--  list when such a value is present.
+--
+headOrNothing :: [Maybe a] -> Maybe a
+headOrNothing []    = Nothing
+headOrNothing (a:_) = a
 
 -- |Add a single new value to a variable binding and return the resulting
 --  new variable binding.
@@ -351,6 +359,29 @@ findCompositions :: (Eq a) => [VarBindingModify a b] -> [a]
     -> [VarBindingModify a b]
 findCompositions vbms vars =
     mapMaybe (composeCheckSequence vars) (permutations vbms)
+
+------------------------------------------------------------
+--  Permutations of a list
+------------------------------------------------------------
+
+-- | Returns the permutations of a list, based on code
+-- by S.D.Mechveliani, 
+-- <http://www.dcs.gla.ac.uk/mail-www/haskell/msg01936.html>.
+--
+-- TODO: replace by Data.List.permutations?
+permutations :: [a] -> [[a]]
+permutations    []     = [[]]
+permutations    (j:js) = addOne $ permutations js
+    where
+        addOne = foldr ((++) . ao) []
+
+        ao []           = [[j]]
+        ao (k:ks)       = (j:k:ks) : map (k:) (ao ks)
+
+{-
+testperm = permutations [1,2,3] ==
+    [[1,2,3],[2,1,3],[2,3,1],[1,3,2],[3,1,2],[3,2,1]]
+-}
 
 -- |Compose sequence of variable binding modifiers, and check
 --  that the result can be used compatibly with a supplied list

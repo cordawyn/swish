@@ -70,7 +70,8 @@ Description:
   @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and
   @partCompareListPartOrd@.
   .
-  * Removed the @Swish.Utils.MiscHelpers@ module.
+  * Removed the @Swish.Utils.MiscHelpers@ module and moved single-use functionality
+  out of @Swish.Utils.ListHelpers@.
   .
   * Removed various exported symbols from a range of modules as they were
   unused.
