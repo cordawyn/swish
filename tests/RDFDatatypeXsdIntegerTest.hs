@@ -24,7 +24,6 @@ import Swish.RDF.RDFDatatypeXsdInteger
     , rdfDatatypeValXsdInteger
     , typeNameXsdInteger, namespaceXsdInteger
     , axiomsXsdInteger, rulesXsdInteger
-    , prefixXsdInteger
     )
 
 import Swish.RDF.RDFVarBinding (RDFVarBinding)
@@ -51,8 +50,8 @@ import Swish.RDF.Datatype
 import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
 import Swish.RDF.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.RDF.VarBinding (makeVarBinding)
-import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName)
-import Swish.RDF.Vocabulary (namespaceDefault)
+import Swish.Utils.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)
+import Swish.RDF.Vocabulary (namespaceDefault, namespaceRDF, namespaceRDFD, namespaceXSD)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 
 import Test.HUnit
@@ -744,11 +743,19 @@ testVarModifySuite = TestList
 --  Test rules defined for datatype
 ------------------------------------------------------------
 
+prefixes :: B.Builder
+prefixes = mconcat $ map namespaceToBuilder
+           [ namespaceRDF
+           , namespaceRDFD
+           , namespaceXSD
+           , namespaceXsdInteger
+           ]
+
 mkGraph :: B.Builder -> RDFGraph
 mkGraph gr = 
   let base = "@prefix : <" `mappend` (ns `mappend` "> . \n")
       ns = B.fromString $ show $ getNamespaceURI namespaceDefault
-  in makeRDFGraphFromN3Builder (prefixXsdInteger `mappend` (base `mappend` gr))
+  in makeRDFGraphFromN3Builder (prefixes `mappend` (base `mappend` gr))
 
 testRuleFwd :: String -> Maybe (Rule RDFGraph) -> B.Builder -> [B.Builder] -> Test
 testRuleFwd lab (Just rule) antstr constrs =

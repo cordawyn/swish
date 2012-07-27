@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatypeXsdInteger
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -22,7 +22,6 @@ module Swish.RDF.RDFDatatypeXsdInteger
     , rdfDatatypeValXsdInteger
     , typeNameXsdInteger, namespaceXsdInteger
     , axiomsXsdInteger, rulesXsdInteger
-    , prefixXsdInteger
     )
 where
 
@@ -84,17 +83,17 @@ import qualified Data.Text.Lazy.Builder as B
 nameXsdInteger :: T.Text
 nameXsdInteger      = "integer"
 
--- |Type name for xsd:integer datatype
+-- |Type name for @xsd:integer@ datatype.
 typeNameXsdInteger :: ScopedName
 typeNameXsdInteger  = makeNSScopedName namespaceXSD nameXsdInteger
 
--- |Namespace for xsd:integer datatype functions
+-- |Namespace for @xsd:integer@ datatype functions.
 namespaceXsdInteger :: Namespace
 namespaceXsdInteger = namespaceXsdType nameXsdInteger
 
---  Compose with function of two arguments
-c2 :: (b -> c) -> (a -> d -> b) -> a -> d -> c
-c2 = (.) . (.)
+-- | The RDFDatatype value for @xsd:integer@.
+rdfDatatypeXsdInteger :: RDFDatatype
+rdfDatatypeXsdInteger = Datatype rdfDatatypeValXsdInteger
 
 --  Integer power (exponentiation) function
 --  returns Nothing if exponent is negative.
@@ -110,13 +109,6 @@ intPower a b = if b < 0 then Nothing else Just (intPower1 a b)
                 (p,q)  = y `divMod` 2
                 atop   = intPower1 x p
                 atopsq = atop*atop
-
-------------------------------------------------------------
---  Declare exported RDFDatatype value for xsd:integer
-------------------------------------------------------------
-
-rdfDatatypeXsdInteger :: RDFDatatype
-rdfDatatypeXsdInteger = Datatype rdfDatatypeValXsdInteger
 
 ------------------------------------------------------------
 --  Implmentation of RDFDatatypeVal for xsd:integer
@@ -229,6 +221,10 @@ relXsdIntegerDivMod = mkIntRel3 "divmod" (const True)
     , ( const True, [ ] )
     , ( const True, [ ] )
     ]
+
+--  Compose with function of two arguments
+c2 :: (b -> c) -> (a -> d -> b) -> a -> d -> c
+c2 = (.) . (.)
 
 relXsdIntegerPower :: DatatypeRel Integer
 relXsdIntegerPower = mkIntRel3maybe "power" (const True)
@@ -426,28 +422,30 @@ rdfRulesetXsdInteger :: RDFRuleset
 rdfRulesetXsdInteger =
     makeRuleset namespaceXsdInteger axiomsXsdInteger rulesXsdInteger
 
-mkPrefix :: Namespace -> B.Builder
-mkPrefix = namespaceToBuilder
-
 prefixXsdInteger :: B.Builder
 prefixXsdInteger = 
-  mconcat
-  [ mkPrefix namespaceRDF
-  , mkPrefix namespaceRDFS
-  , mkPrefix namespaceRDFD
-  , mkPrefix namespaceXSD
-  , mkPrefix namespaceXsdInteger
-  ]
+  mconcat $ map namespaceToBuilder
+              [ namespaceRDF
+              , namespaceRDFS
+              , namespaceRDFD
+              , namespaceXSD
+              , namespaceXsdInteger
+              ]
 
 mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdInteger local (prefixXsdInteger `mappend` gr)
 
+-- | The axioms for @xsd:integer@, which are
+--
+-- > xsd:integer a rdfs:Datatype .
+--
 axiomsXsdInteger :: [RDFFormula]
 axiomsXsdInteger =
     [ mkAxiom "dt"      "xsd:integer rdf:type rdfs:Datatype ."
     ]
 
+-- | The rules for @xsd:integer@.
 rulesXsdInteger :: [RDFRule]
 rulesXsdInteger = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdInteger gr
     where
@@ -516,7 +514,8 @@ rulesXsdIntegerBuilder =
   
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

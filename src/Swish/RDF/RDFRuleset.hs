@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFRuleset
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -22,7 +22,9 @@
 --------------------------------------------------------------------------------
 
 module Swish.RDF.RDFRuleset
-    ( RDFFormula, RDFRule, RDFRuleMap
+    (
+     -- * Data types for RDF Ruleset
+     RDFFormula, RDFRule, RDFRuleMap
     , RDFClosure, RDFRuleset, RDFRulesetMap
     , nullRDFFormula
     , GraphClosure(..), makeGraphClosureRule
@@ -93,16 +95,22 @@ import qualified Data.Text.Lazy.Builder as B
 --  Datatypes for RDF ruleset
 ------------------------------------------------------------
 
+-- | A named formula expressed as a RDF Graph.
 type RDFFormula     = Formula RDFGraph
 
+-- | A named inference rule expressed in RDF.
 type RDFRule        = Rule RDFGraph
 
+-- | A 'LookupMap' for 'RDFRule' rules.
 type RDFRuleMap     = RuleMap RDFGraph
 
+-- | A 'GraphClosure' for RDF statements.
 type RDFClosure     = GraphClosure RDFLabel
 
+-- | A 'Ruleset' for RDF.
 type RDFRuleset     = Ruleset RDFGraph
 
+-- | 'LookupMap' for 'RDFRuleset'.
 type RDFRulesetMap  = RulesetMap RDFGraph
 
 ------------------------------------------------------------
@@ -523,7 +531,8 @@ applyNodeAllocTo bindvar alocvar exbnode vars =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

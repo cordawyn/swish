@@ -52,7 +52,7 @@ class (Eq ex) => Expression ex where
 --  Formula:  a named expression
 ------------------------------------------------------------
 
--- |A Formula is a named expression.
+-- | A Formula is a named expression.
 data Formula ex = Formula
     { formName :: ScopedName        -- ^ Name used for formula in proof chain
     , formExpr :: ex                -- ^ Named formula value

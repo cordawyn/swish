@@ -24,7 +24,6 @@ module Swish.RDF.RDFDatatypeXsdString
     , rdfDatatypeValXsdString
     , typeNameXsdString, namespaceXsdString
     , axiomsXsdString, rulesXsdString
-    , prefixXsdString
     )
     where
 
@@ -88,14 +87,11 @@ nameXsdString = "string"
 typeNameXsdString :: ScopedName
 typeNameXsdString  = makeNSScopedName namespaceXSD nameXsdString
 
--- |Namespace for @xsd:string@ datatype functions
+-- | Namespace for @xsd:string@ datatype functions
 namespaceXsdString :: Namespace
 namespaceXsdString = namespaceXsdType nameXsdString
 
-------------------------------------------------------------
---  Declare exported RDFDatatype value for xsd:integer
-------------------------------------------------------------
-
+-- | The RDFDatatype value for @xsd:string@.
 rdfDatatypeXsdString :: RDFDatatype
 rdfDatatypeXsdString = Datatype rdfDatatypeValXsdString
 
@@ -229,11 +225,16 @@ mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdString local (prefixXsdString `mappend` gr)
 
+-- | The axioms for @xsd:string@, which are
+--
+-- > xsd:string a rdfs:Datatype .
+--
 axiomsXsdString :: [RDFFormula]
 axiomsXsdString =
     [ mkAxiom "dt"      "xsd:string rdf:type rdfs:Datatype ."
     ]
 
+-- | The rules for @xsd:string@.
 rulesXsdString :: [RDFRule]
 rulesXsdString = rulesXsdStringClosure ++ rulesXsdStringRestriction
 

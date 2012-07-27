@@ -1,11 +1,12 @@
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ClassRestrictionRule
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -86,6 +87,7 @@ data ClassRestriction = ClassRestriction
     , crFunc    :: ClassRestrictionFn
     }
 
+-- | Equality of class restrictions is based on the name of the restriction.
 instance Eq ClassRestriction where
     cr1 == cr2  =  crName cr1 == crName cr2
 
@@ -146,11 +148,16 @@ ruleQuery = makeRDFGraphFromN3Builder $
             , "    rdfd:constraint   ?r . "
             ]
             
---  Placeholder false graph for now.
+-- | The graph
+--
+-- > _:a <http://id.ninebynine.org/2003/rdfext/rdfd#false> _:b .
+--
+-- Exported for testing.
 falseGraph :: RDFGraph
 falseGraph = makeRDFGraphFromN3Builder $
              mkPrefix namespaceRDFD `mappend` falseGraphStr
 
+-- | Exported for testing.
 falseGraphStr :: B.Builder
 falseGraphStr = "_:a rdfd:false _:b . "
 
@@ -511,9 +518,7 @@ deleteMaybe :: (Eq a) => Maybe a -> [a] -> [a]
 deleteMaybe Nothing  as = as
 deleteMaybe (Just a) as = delete a as
 
-------------------------------------------------------------
---  Make restriction rules from supplied datatype and graph
-------------------------------------------------------------
+-- | Make restriction rules from the supplied datatype and graph.
 
 makeRDFDatatypeRestrictionRules :: RDFDatatypeVal vt -> RDFGraph -> [RDFRule]
 makeRDFDatatypeRestrictionRules dtval =
@@ -523,7 +528,8 @@ makeRDFDatatypeRestrictionRules dtval =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

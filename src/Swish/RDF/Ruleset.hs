@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -15,7 +16,7 @@
 --  about a ruleset that may contribute torwards inferences in RDF;
 --  e.g. RDF and RDFS are rulesets.
 --
---  A ruleset consists of a namespace, a collection of axioms, and
+--  A 'Ruleset' consists of a namespace, a collection of axioms, and
 --  a collection of rules.
 --
 --------------------------------------------------------------------------------
