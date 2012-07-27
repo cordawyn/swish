@@ -2,8 +2,8 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  BuiltInMap
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Module      :  BuiltIn
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -16,7 +16,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.BuiltInMap
+module Swish.RDF.BuiltIn
     ( findRDFOpenVarBindingModifier
     , findRDFDatatype
     , rdfRulesetMap
@@ -24,12 +24,13 @@ module Swish.RDF.BuiltInMap
     )
 where
 
-import Swish.RDF.BuiltInDatatypes
-import Swish.RDF.BuiltInRules
+import Swish.RDF.BuiltIn.Datatypes
+import Swish.RDF.BuiltIn.Rules
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

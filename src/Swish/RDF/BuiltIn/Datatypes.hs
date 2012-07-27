@@ -2,7 +2,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  BuiltInDatatypes
+--  Module      :  Datatypes
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.BuiltInDatatypes
+module Swish.RDF.BuiltIn.Datatypes
        ( allDatatypes, findRDFDatatype )
     where
 

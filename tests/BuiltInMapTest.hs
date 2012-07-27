@@ -21,7 +21,7 @@ module Main where
 
 import Swish.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
 
-import Swish.RDF.BuiltInMap
+import Swish.RDF.BuiltIn
     ( findRDFOpenVarBindingModifier
     , findRDFDatatype
     , rdfRulesetMap

@@ -23,7 +23,7 @@ import Swish.Proof (Step(..), checkProof, checkStep, explainProof)
 import Swish.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.Ruleset (getContextAxiom, getContextRule)
 
-import Swish.RDF.BuiltInMap (rdfRulesetMap, allRulesets)
+import Swish.RDF.BuiltIn (rdfRulesetMap, allRulesets)
 
 import Swish.RDF.ProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
 import Swish.RDF.Proof (RDFProof, RDFProofStep, makeRDFProof, makeRDFProofStep )

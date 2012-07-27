@@ -2,7 +2,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  BuiltInRules
+--  Module      :  Rules
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -16,7 +16,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.BuiltInRules
+module Swish.RDF.BuiltIn.Rules
     ( findRDFOpenVarBindingModifier
     , rdfRulesetMap
     , allRulesets, allDatatypeRulesets
@@ -26,7 +26,7 @@ where
 import Swish.Datatype (typeRules, typeMkModifiers)
 import Swish.VarBinding (nullVarBindingModify, makeVarFilterModify, varFilterEQ, varFilterNE)
 
-import Swish.RDF.BuiltInDatatypes (allDatatypes)
+import Swish.RDF.BuiltIn.Datatypes (allDatatypes)
 import Swish.RDF.Ruleset (RDFRuleset, RDFRulesetMap)
 import Swish.RDF.ProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
 

@@ -45,21 +45,13 @@ import Swish.RDF.Graph (RDFGraph, emptyRDFGraph)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleMap, RDFRuleset, RDFRulesetMap)
 import Swish.RDF.VarBinding (RDFOpenVarBindingModify)
 
-import Swish.RDF.BuiltInMap
-    ( findRDFOpenVarBindingModifier
-    , findRDFDatatype
-    , rdfRulesetMap
-    )
+import Swish.RDF.BuiltIn (findRDFOpenVarBindingModifier, findRDFDatatype, rdfRulesetMap)
 
 import Swish.Utils.Namespace (ScopedName, getScopeNamespace)
 import Swish.Utils.QName (QName)
 
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    , emptyLookupMap
-    , mapFindMaybe
-    , mapVals
-    )
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
+import Swish.Utils.LookupMap (emptyLookupMap, mapFindMaybe, mapVals)
 
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (StateT(..), modify)

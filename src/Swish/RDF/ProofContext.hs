@@ -28,7 +28,7 @@ import Swish.Ruleset (makeRuleset)
 import Swish.VarBinding (VarBindingModify(..))
 import Swish.VarBinding (applyVarBinding, addVarBinding, makeVarFilterModify, varFilterDisjunction)
 
-import Swish.RDF.BuiltInDatatypes (findRDFDatatype)
+import Swish.RDF.BuiltIn.Datatypes (findRDFDatatype)
 
 import Swish.RDF.Proof (makeRdfSubgraphEntailmentRule
                        , makeRdfSimpleEntailmentRule )
