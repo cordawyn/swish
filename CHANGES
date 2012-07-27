@@ -1,17 +1,17 @@
 0.7.0.0:
 
-  - RDF literals are now stored using the Lit, LangLit, or TypedLit
-    constructors (from RDFLabel) rather than using just Lit. Language
-    codes are now represented by Swish.RDF.Vocabulary.LanguageTag
-    rather than as a ScopedName.
+  - Moved a number of modules around: generic code directly into Swish
+    and the Swish.RDF.RDF* forms renamed to Swish.RDF.*.
 
   - Parsing modules are now in the Swish.RDF.Parser hierarchy and
     Swish.RDF.RDFParser has been renamed to Seish.RDF.Parser.Utils.
 
   - Formatting modules are now in the Swish.RDF.Formatter hierarchy.
 
-  - Moved a number of modules around: generic code directly into Swish
-    and the Swish.RDF.RDF* forms renamed to Swish.RDF.*.
+  - RDF literals are now stored using the Lit, LangLit, or TypedLit
+    constructors (from RDFLabel) rather than using just Lit. Language
+    codes are now represented by Swish.RDF.Vocabulary.LanguageTag
+    rather than as a ScopedName.
 
   - Removed mkTypedLit from Swish.RDF.RDFParser; use
     Swish.RDF.RDFDatatype.makeDataTypedLiteral instead.

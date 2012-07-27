@@ -1,6 +1,19 @@
 
 Some things I want to/should do (not in order)
 
+- Rename modules. Version 0.7 provided a hopefully more-structured
+  form but they are still in the Swish namespace rather than
+  Data (or some other sanctioned top-level name).
+
+- Should the Lit/LangLit/TypedLit constructors of RDFLabel be moved
+  into a separate constructor - e.g. 
+
+    data Literal = PlainLit T.Text (Maybe LanguageTag) | 
+                   TypedLit T.Text ScopedName
+
+  since this is closer to the RDF semantics, and may make some operations
+  a bit easier?
+
 - add RDF/XML parser and formatter.
 
 - Should there be a type-level constaint that an RDF Arc can only have
