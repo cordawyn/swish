@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  BuiltInDatatypes
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -31,6 +31,7 @@ import Swish.RDF.RDFDatatypeXsdDecimal (rdfDatatypeXsdDecimal)
 --  Declare datatype map
 ------------------------------------------------------------
 
+-- | Al the data type declarations built into Swish.
 allDatatypes :: [RDFDatatype]
 allDatatypes =
     [ rdfDatatypeXsdString
@@ -38,6 +39,7 @@ allDatatypes =
     , rdfDatatypeXsdDecimal
     ]
 
+-- | Look up a data type declaration.
 findRDFDatatype :: ScopedName -> Maybe RDFDatatype
 findRDFDatatype nam = mapFindMaybe nam (LookupMap allDatatypes)
 
@@ -53,7 +55,8 @@ allDatatypeSubtypes = []
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

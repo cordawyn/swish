@@ -30,15 +30,14 @@ GraphPartition module.
 -}
 
 module Swish.RDF.TurtleFormatter
-    ( NodeGenLookupMap
-    , formatGraphAsText
+    ( formatGraphAsText
     , formatGraphAsLazyText
     , formatGraphAsBuilder
     , formatGraphIndent  
     , formatGraphDiag
       
-      -- * Auxillary routines
-    , quoteText
+    --  -- * Auxillary routines
+    -- , quoteText
     )
 where
 
@@ -353,21 +352,29 @@ removeItem os x =
 --  Define a top-level formatter function:
 ----------------------------------------------------------------------
 
+-- | Convert the graph to text.
 formatGraphAsText :: RDFGraph -> T.Text
 formatGraphAsText = L.toStrict . formatGraphAsLazyText
 
+-- | Convert the graph to text.
 formatGraphAsLazyText :: RDFGraph -> L.Text
 formatGraphAsLazyText = B.toLazyText . formatGraphAsBuilder
   
+-- | Convert the graph to a Builder.
 formatGraphAsBuilder :: RDFGraph -> B.Builder
 formatGraphAsBuilder = formatGraphIndent "\n" True
   
-formatGraphIndent :: B.Builder -> Bool -> RDFGraph -> B.Builder
+-- | Convert the graph to a builder using the given indentation text.
+formatGraphIndent ::
+    B.Builder     -- ^ indentation text
+    -> Bool       -- ^ are prefixes to be generated?
+    -> RDFGraph   -- ^ graph
+    -> B.Builder
 formatGraphIndent indnt flag gr = 
   let (res, _, _, _) = formatGraphDiag indnt flag gr
   in res
   
--- | Format graph and return additional information
+-- | Format graph and return additional information.
 formatGraphDiag :: 
   B.Builder  -- ^ indentation
   -> Bool    -- ^ are prefixes to be generated?

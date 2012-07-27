@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  BuiltInRules
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -110,6 +110,7 @@ dtVarBindingModifiers dtval =
     map (makeRdfDtOpenVarBindingModify dtval) (tvalMod dtval)
 -}
 
+-- | Find the named open variable binding modifier.
 findRDFOpenVarBindingModifier :: ScopedName -> Maybe RDFOpenVarBindingModify
 findRDFOpenVarBindingModifier nam =
     mapFindMaybe nam (LookupMap allOpenVarBindingModify)
@@ -118,9 +119,11 @@ findRDFOpenVarBindingModifier nam =
 --  Lookup map for built-in rulesets
 ------------------------------------------------------------
 
+-- | A 'LookupMap' of 'allRulesets'.
 rdfRulesetMap :: RDFRulesetMap
 rdfRulesetMap = LookupMap allRulesets
 
+-- | All the rule sets known to Swish.
 allRulesets :: [RDFRuleset]
 allRulesets =
     [ rulesetRDF
@@ -129,12 +132,14 @@ allRulesets =
     ]
     ++ allDatatypeRulesets
 
+-- | The data type rule sets known to Swish.
 allDatatypeRulesets :: [RDFRuleset]
 allDatatypeRulesets = map typeRules allDatatypes
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

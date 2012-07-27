@@ -1,10 +1,12 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFProof
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -92,8 +94,10 @@ instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
 --  Define RDF-specific types for proof framework
 ------------------------------------------------------------
 
+-- | An RDF proof.
 type RDFProof     = Proof RDFGraph
 
+-- | A step in an RDF proof.
 type RDFProofStep = Step RDFGraph
 
 ------------------------------------------------------------
@@ -119,7 +123,7 @@ makeRDFProof ::
     [RDFRuleset]      -- ^ RDF rulesets that constitute a proof context for this proof
     -> RDFFormula     -- ^ initial statement from which the goal is claimed to be proven
     -> RDFFormula     -- ^ statement that is claimed to be proven
-    -> [RDFProofStep]
+    -> [RDFProofStep] -- ^ the chain of inference rules in the proof.
     -> RDFProof
 makeRDFProof rsets base goal steps = Proof
     { proofContext = rsets
@@ -147,8 +151,8 @@ makeRDFProof rsets base goal steps = Proof
 --  In the case of forward chaining, it is often not desirable to
 --  have the properties generalized.  If forward or backward backward
 --  chaining will not be used, supply an empty vocabulary.
---  Note:  graph method 'allNodes' can be used to obtain a list of all
---  the subjects and objuects used ina  graph, not counting nested
+--  Note:  graph method 'Swish.RDF.RDFGraph.allNodes' can be used to obtain a list of all
+--  the subjects and objects used in a  graph, not counting nested
 --  formulae;  use a call of the form:
 --
 --  >  allNodes (not . labelIsVar) graph
@@ -357,7 +361,8 @@ rdfSimpleEntailCheckInference ante cons =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

@@ -13,7 +13,7 @@
 --  Portability :  OverloadedStrings
 --
 --  This module defines the datatytpe mapping and relation values
---  used for RDF dataype xsd:integer
+--  used for RDF dataype @xsd:integer@.
 --
 --------------------------------------------------------------------------------
 
