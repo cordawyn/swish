@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFVarBinding
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -31,7 +31,7 @@ module Swish.RDF.RDFVarBinding
     )
 where
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( RDFLabel(..)
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp, isUri, isBlank
@@ -45,11 +45,9 @@ import Swish.RDF.VarBinding
     , makeVarTestFilter
     )
 
-import Swish.RDF.Vocabulary
-    ( swishName )
+import Swish.RDF.Vocabulary (swishName)
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..) )
+import Swish.Utils.LookupMap (LookupMap(..))
 
 ------------------------------------------------------------
 --  Types for RDF query variable bindings and modifiers
@@ -164,7 +162,8 @@ testDatatyped vb dvar lvar = and
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

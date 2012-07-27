@@ -27,7 +27,7 @@ module Swish.RDF.Datatype
     )
 where
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( RDFLabel(..)
     , isDatatyped
     , getLiteralText

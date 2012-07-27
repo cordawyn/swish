@@ -25,17 +25,13 @@ module Swish.RDF.Formatter.NTriples
     )
 where
 
-import Swish.RDF.RDFGraph
-  ( RDFGraph, RDFLabel(..)
-  , getArcs
-  )
+import Swish.GraphClass (Arc(..))
 
-import Swish.RDF.GraphClass
-    ( Arc(..) )
+import Swish.RDF.Graph (RDFGraph, RDFLabel(..))
+import Swish.RDF.Graph (getArcs)
 
-import Swish.Utils.Namespace (ScopedName, getQName)
 import Swish.RDF.Vocabulary (fromLangTag)
-
+import Swish.Utils.Namespace (ScopedName, getQName)
 import Swish.Utils.LookupMap
     ( LookupMap, emptyLookupMap
     , mapFind, mapAdd

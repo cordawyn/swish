@@ -50,7 +50,7 @@ module Swish.RDF.Parser.Utils
     )
     where
 
-import Swish.RDF.RDFGraph (RDFGraph)
+import Swish.RDF.Graph (RDFGraph)
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS

@@ -18,11 +18,12 @@
 
 module Main where
 
-import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
+import Swish.GraphClass (Arc, arc)
 
+import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
 import Swish.RDF.Parser.N3 (parseN3)
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( RDFGraph, RDFTriple
     , RDFLabel(..), ToRDFLabel
     , NSGraph(..)
@@ -39,8 +40,6 @@ import Swish.Utils.LookupMap
     ( LookupMap(..)
     , emptyLookupMap
     , makeLookupMap)
-
-import Swish.RDF.GraphClass (Arc, arc)
 
 import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 

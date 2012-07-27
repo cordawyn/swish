@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -29,16 +29,10 @@ import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
         assertEqual, assertBool )
 
-import Data.List (sort, elemIndex)
-import Data.Maybe (fromJust)
-import Data.Ord (comparing)
-
-import Swish.Utils.ListHelpers
-import Swish.RDF.GraphClass (Arc(..), LDGraph(..),
-                             Label(..), arc,
-                             arcFromTriple,arcToTriple)
-import Swish.RDF.GraphMem
-import Swish.RDF.GraphMatch
+import Swish.GraphClass (Arc(..), LDGraph(..), Label(..))
+import Swish.GraphClass (arc, arcFromTriple, arcToTriple)
+import Swish.GraphMem
+import Swish.GraphMatch
       ( LabelMap, GenLabelMap(..), LabelEntry, 
         EquivalenceClass,
         ScopedLabel(..), makeScopedLabel, makeScopedArc,
@@ -47,9 +41,15 @@ import Swish.RDF.GraphMatch
         graphLabels, assignLabelMap, newGenerationMap,
         graphMatch1, equivalenceClasses
       )
+
+import Swish.Utils.ListHelpers
 import Swish.Utils.LookupMap (LookupEntryClass(..), makeLookupMap)
 
 import TestHelpers (runTestSuite, testEq, testEqv)
+
+import Data.List (sort, elemIndex)
+import Data.Maybe (fromJust)
+import Data.Ord (comparing)
 
 default ( Int )
 
@@ -1879,7 +1879,8 @@ tfstep = tf testGraphMatchStepSuite
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

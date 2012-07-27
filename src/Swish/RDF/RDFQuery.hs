@@ -53,7 +53,7 @@ import Swish.Datatype (DatatypeMap(..))
 import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingFilter)
 import Swish.RDF.RDFVarBinding (nullRDFVarBinding)
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( Arc(..), LDGraph(..)
     , arcSubj, arcPred, arcObj
     , RDFLabel(..)

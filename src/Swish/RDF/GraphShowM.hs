@@ -5,7 +5,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFGraphShowM
+--  Module      :  GraphShowM
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -19,9 +19,9 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFGraphShowM() where
+module Swish.RDF.GraphShowM() where
 
-import Swish.RDF.RDFGraph (RDFGraph)
+import Swish.RDF.Graph (RDFGraph)
 import Swish.RDF.Formatter.N3 (formatGraphIndent)
 import Swish.Utils.ShowM (ShowM(..))
 

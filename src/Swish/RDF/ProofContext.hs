@@ -51,7 +51,7 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.RDF.RDFGraph (RDFLabel(..), isUri)
+import Swish.RDF.Graph (RDFLabel(..), isUri)
 
 import Swish.RDF.VarBinding
     ( applyVarBinding

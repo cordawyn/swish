@@ -41,7 +41,7 @@ import Swish.RDF.Datatype (RDFDatatype)
 import Swish.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
 import Swish.Rule(Formula(..))
 
-import Swish.RDF.RDFGraph (RDFGraph, emptyRDFGraph)
+import Swish.RDF.Graph (RDFGraph, emptyRDFGraph)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleMap, RDFRuleset, RDFRulesetMap)
 import Swish.RDF.RDFVarBinding (RDFOpenVarBindingModify)
 

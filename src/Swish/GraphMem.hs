@@ -24,7 +24,7 @@
 -- Simple labelled directed graph value
 ------------------------------------------------------------
 
-module Swish.RDF.GraphMem
+module Swish.GraphMem
     ( GraphMem(..)
     , setArcs, getArcs, add, delete, extract, labels
     , LabelMem(..)
@@ -33,8 +33,8 @@ module Swish.RDF.GraphMem
     , matchGraphMem
     ) where
 
-import Swish.RDF.GraphClass
-import Swish.RDF.GraphMatch
+import Swish.GraphClass
+import Swish.GraphMatch
 
 import Data.Hashable (Hashable(..), combine)
 import Data.Ord (comparing)
@@ -42,7 +42,7 @@ import Data.Ord (comparing)
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 
--- | Memory-based graph type 
+-- | Simple memory-based graph type. 
 
 data GraphMem lb = GraphMem { arcs :: [Arc lb] }
                    deriving (Functor, F.Foldable, T.Traversable)

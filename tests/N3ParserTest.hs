@@ -18,6 +18,8 @@
 
 module Main where
 
+import Swish.GraphClass (Arc, arc) 
+
 import Swish.RDF.Parser.N3
     ( parseN3
     , parseTextFromText, parseAltFromText
@@ -26,7 +28,7 @@ import Swish.RDF.Parser.N3
     , parseURIref2FromText
     )
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..), NSGraph(..)
     , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
@@ -53,8 +55,6 @@ import Swish.RDF.Vocabulary
     , xsdDecimal 
     , xsdDouble 
     )
-
-import Swish.RDF.GraphClass (Arc, arc) 
 
 import Swish.Utils.QName (QName, qnameFromURI)
 import Swish.Utils.LookupMap (LookupMap(..))

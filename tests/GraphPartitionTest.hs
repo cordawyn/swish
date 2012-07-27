@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphPartitionTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -16,15 +16,14 @@
 
 module Main where
 
-import Swish.RDF.GraphPartition
+import Swish.GraphPartition
     ( PartitionedGraph(..), getArcs
     , GraphPartition(..), node
     , partitionGraph, comparePartitions
     )
 
-import Swish.RDF.GraphClass (Arc(..))
-
-import Swish.RDF.GraphMem (LabelMem(..))
+import Swish.GraphClass (Arc(..))
+import Swish.GraphMem (LabelMem(..))
 
 import Swish.Utils.ListHelpers (equiv)
 
@@ -556,7 +555,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

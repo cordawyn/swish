@@ -21,7 +21,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.GraphMatch
+module Swish.GraphMatch
       ( graphMatch,
         -- * Exported for testing
         LabelMap, GenLabelMap(..), LabelEntry, GenLabelEntry(..),
@@ -41,11 +41,11 @@ import Data.List (foldl', nub, sortBy, partition)
 import Data.Hashable (combine)
 import qualified Data.List as L
 
-import Swish.RDF.GraphClass (Arc(..), Label(..),
-                             arcLabels,
-                             hasLabel, arcToTriple)
-import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),
-                              makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
+import Swish.GraphClass (Arc(..), Label(..))
+import Swish.GraphClass (arcLabels, hasLabel, arcToTriple)
+
+import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
+import Swish.Utils.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                               mapAddIfNew, mapReplaceMap, mapMerge)
 import Swish.Utils.ListHelpers (select, equiv, pairSort, pairGroup, pairUngroup)
 

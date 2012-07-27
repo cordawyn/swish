@@ -15,7 +15,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.GraphPartition
+module Swish.GraphPartition
     ( PartitionedGraph(..), getArcs, getPartitions
     , GraphPartition(..), node, toArcs
     , partitionGraph, comparePartitions
@@ -23,17 +23,12 @@ module Swish.RDF.GraphPartition
     )
 where
 
-import Swish.RDF.GraphClass
-    ( Label(..)
-    , Arc(..), arcSubj, arcObj, 
-    -- , hasLabel, arcLabels
-    )
+import Swish.GraphClass (Label(..), Arc(..))
+
+import Control.Monad.State (MonadState(..), State)
+import Control.Monad.State (evalState)
 
 import Data.List (foldl', partition)
-
-import Control.Monad.State
-    ( MonadState(..), State, evalState )
-
 import Data.Maybe (mapMaybe)
 
 

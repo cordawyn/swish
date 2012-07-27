@@ -47,7 +47,7 @@ import Swish.RDF.Ruleset (makeRDFGraphFromN3Builder, makeRDFFormula, makeN3Closu
 
 import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
 
-import Swish.RDF.RDFGraph (RDFLabel(..))
+import Swish.RDF.Graph (RDFLabel(..))
 import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
 
 import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder, makeNSScopedName)
@@ -60,7 +60,8 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import Swish.RDF.VarBinding (VarBinding(..), addVarBinding, VarBindingModify(..))
+import Swish.RDF.VarBinding (VarBinding(..), VarBindingModify(..))
+import Swish.RDF.VarBinding (addVarBinding)
 
 import Data.Monoid(Monoid(..))
 

@@ -30,29 +30,22 @@ module Swish.RDF.Proof
     , makeRdfSimpleEntailmentRule )
 where
 
+import Swish.GraphClass (Label(..), LDGraph(..))
+import Swish.GraphClass (replaceArcs)
 import Swish.Proof (Proof(..), Step(..))
 import Swish.Rule (Expression(..), Rule(..))
-
-import Swish.RDF.GraphClass (Label(..), LDGraph(..))
-import Swish.RDF.GraphClass (replaceArcs)
 
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 import Swish.RDF.RDFQuery (rdfQueryInstance, rdfQuerySubs)
 
-import Swish.RDF.RDFGraph
-    ( RDFLabel(..), RDFGraph
-    --, makeBlank
-    , merge , allLabels , remapLabelList
-    {-, newNode, newNodes
-    , toRDFGraph -}, emptyRDFGraph
-    )
+import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
+import Swish.RDF.Graph (merge, allLabels, remapLabelList, emptyRDFGraph)
 
 import Swish.RDF.VarBinding (makeVarBinding)
 
 import Swish.Utils.Namespace (ScopedName)
 
-import Swish.Utils.LookupMap
-    ( makeLookupMap, mapFind )
+import Swish.Utils.LookupMap (makeLookupMap, mapFind)
 
 import Swish.Utils.ListHelpers
     ( subset
@@ -143,7 +136,7 @@ makeRDFProof rsets base goal steps = Proof
 --  In the case of forward chaining, it is often not desirable to
 --  have the properties generalized.  If forward or backward backward
 --  chaining will not be used, supply an empty vocabulary.
---  Note:  graph method 'Swish.RDF.RDFGraph.allNodes' can be used to obtain a list of all
+--  Note:  graph method 'Swish.RDF.Graph.allNodes' can be used to obtain a list of all
 --  the subjects and objects used in a  graph, not counting nested
 --  formulae;  use a call of the form:
 --

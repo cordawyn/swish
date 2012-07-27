@@ -68,7 +68,9 @@ module Swish.RDF.Parser.N3
     )
 where
 
-import Swish.RDF.RDFGraph
+import Swish.GraphClass (arc)
+
+import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
     , ToRDFLabel(..)
     , NamespaceMap
@@ -79,12 +81,8 @@ import Swish.RDF.RDFGraph
     , emptyRDFGraph
     )
 
-import Swish.RDF.GraphClass (arc)
-
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , LookupEntryClass(..)
-    , mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace )
+import Swish.Utils.LookupMap (LookupMap(..), LookupEntryClass(..))
+import Swish.Utils.LookupMap (mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
 
 import Swish.Utils.Namespace
     ( Namespace, makeNamespace

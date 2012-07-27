@@ -18,20 +18,18 @@
 
 module Main where
 
+import Swish.GraphClass (arc)
+
 import Swish.RDF.Parser.NTriples (parseNT)
 import Swish.RDF.Formatter.NTriples (formatGraphAsLazyText)
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
   ( RDFGraph, RDFLabel(..)
     , emptyRDFGraph 
     , toRDFGraph
     )
 
--- import Swish.Utils.Namespace (makeURIScopedName)
-
 import Swish.RDF.Vocabulary (toLangTag, rdfXMLLiteral)
-
-import Swish.RDF.GraphClass (arc)
 
 import Test.HUnit
     ( Test(TestCase,TestList)

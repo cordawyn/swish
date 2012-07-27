@@ -43,7 +43,7 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingXMLLiteral
     )
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( Label (..), RDFLabel(..), RDFGraph
     , Arc(..)
     , getArcs

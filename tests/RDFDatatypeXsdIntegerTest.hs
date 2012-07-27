@@ -43,13 +43,13 @@ import Swish.RDF.Datatype.XSD.Integer
 
 import Swish.RDF.RDFVarBinding (RDFVarBinding)
 
-import Swish.RDF.Ruleset (RDFRule , makeRDFGraphFromN3Builder)
-
-import Swish.RDF.RDFGraph (RDFLabel(..), RDFGraph)
+import Swish.RDF.Ruleset (RDFRule, makeRDFGraphFromN3Builder)
+import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
 
 import Swish.RDF.VarBinding (makeVarBinding)
-import Swish.Utils.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.RDF.Vocabulary (namespaceDefault, namespaceRDF, namespaceRDFD, namespaceXSD)
+
+import Swish.Utils.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 
 import Test.HUnit

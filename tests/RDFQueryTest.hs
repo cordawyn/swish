@@ -42,7 +42,7 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.RDF.RDFGraph (RDFGraph, RDFLabel(..), merge)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(..), merge)
 import Swish.RDF.VarBinding
     ( VarBinding(..)
     , makeVarBinding

@@ -30,9 +30,9 @@ module Swish.RDF.Parser.NTriples
     )
 where
 
-import Swish.RDF.RDFGraph (RDFGraph, RDFLabel(..), addArc, emptyRDFGraph)
+import Swish.GraphClass (arc)
 
-import Swish.RDF.GraphClass (arc)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(..), addArc, emptyRDFGraph)
 
 import Swish.Utils.Namespace (ScopedName, makeURIScopedName)
 

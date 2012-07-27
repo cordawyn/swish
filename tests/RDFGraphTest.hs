@@ -24,12 +24,12 @@ import Swish.Utils.LookupMap
 
 import Swish.Utils.ListHelpers (equiv)
 
-import Swish.RDF.GraphClass (Label(..), arc)
+import Swish.GraphClass (Label(..), arc)
 
 import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.Utils.QName (QName, qnameFromURI)
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
   ( RDFTriple, toRDFTriple, fromRDFTriple
   , RDFGraph 
   , RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)

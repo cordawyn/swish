@@ -94,9 +94,9 @@ import Swish.RDF.Proof (RDFProofStep)
 import Swish.RDF.Proof (makeRDFProof, makeRDFProofStep)
 import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
 
-import Swish.RDF.RDFGraphShowM()
+import Swish.RDF.GraphShowM()
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
     , emptyRDFGraph
     , NamespaceMap

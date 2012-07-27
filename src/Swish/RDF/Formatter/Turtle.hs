@@ -41,7 +41,9 @@ module Swish.RDF.Formatter.Turtle
     )
 where
 
-import Swish.RDF.RDFGraph (
+import Swish.GraphClass (Arc(..))
+
+import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..)
   , NamespaceMap, RevNamespaceMap
   -- emptyNamespaceMap,
@@ -62,8 +64,6 @@ import Swish.RDF.Vocabulary ( fromLangTag
                             , rdfNil
                             , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
                             )
-
-import Swish.RDF.GraphClass (Arc(..))
 
 import Swish.Utils.LookupMap
     ( LookupEntryClass(..)

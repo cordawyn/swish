@@ -29,6 +29,10 @@ module Swish.RDF.SwishCommands
     )
 where
 
+import Swish.GraphClass (LDGraph(..), Label(..))
+import Swish.GraphPartition (GraphPartition(..))
+import Swish.GraphPartition (partitionGraph, comparePartitions, partitionShowP)
+
 import Swish.RDF.SwishMonad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
     , setFormat, setBase, setGraph
@@ -41,14 +45,7 @@ import Swish.RDF.SwishMonad
 
 import Swish.RDF.SwishScript (parseScriptFromText)
 
-import Swish.RDF.GraphPartition
-    ( GraphPartition(..)
-    , partitionGraph, comparePartitions
-    , partitionShowP
-    )
-
-import Swish.RDF.RDFGraph
-    ( RDFGraph, merge )
+import Swish.RDF.Graph (RDFGraph, merge)
 
 import qualified Swish.RDF.Formatter.Turtle as TTLF
 import qualified Swish.RDF.Formatter.N3 as N3F
@@ -58,11 +55,6 @@ import Swish.RDF.Parser.Turtle (parseTurtle)
 import Swish.RDF.Parser.N3 (parseN3)
 import Swish.RDF.Parser.NTriples (parseNT)
 import Swish.RDF.Parser.Utils (appendURIs)
-
-import Swish.RDF.GraphClass
-    ( LDGraph(..)
-    , Label(..)
-    )
 
 import Swish.Utils.QName (QName, qnameFromURI, qnameFromFilePath, getQNameURI)
 

@@ -30,7 +30,7 @@ module Swish.RDF.ClassRestrictionRule
 import Swish.Datatype (DatatypeVal(..), DatatypeRel(..), DatatypeRelFn)
 import Swish.Rule (Rule(..), bwdCheckInference)
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( RDFLabel(..)
     , getScopedName
     , RDFGraph

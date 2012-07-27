@@ -24,7 +24,7 @@
 -- Define LDGraph, arc and related classes and types
 ------------------------------------------------------------
 
-module Swish.RDF.GraphClass
+module Swish.GraphClass
     ( LDGraph(..), replaceArcs
     , Label(..)
     , Arc(..), arc, arcToTriple, arcFromTriple

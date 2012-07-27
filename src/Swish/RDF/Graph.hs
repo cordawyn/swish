@@ -8,7 +8,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFGraph
+--  Module      :  Graph
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -24,7 +24,7 @@
 -- Simple labelled directed graph value
 ------------------------------------------------------------
 
-module Swish.RDF.RDFGraph
+module Swish.RDF.Graph
     ( 
       -- * Labels
       RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
@@ -176,12 +176,10 @@ import Swish.RDF.Vocabulary
     )
 -}
 
-import Swish.RDF.GraphClass
-    ( LDGraph(..), Label (..)
-    , Arc(..), arc, arcLabels
-    , Selector )
-
-import Swish.RDF.GraphMatch (graphMatch, LabelMap, ScopedLabel(..))
+import Swish.GraphClass (LDGraph(..), Label (..), Arc(..), Selector)
+import Swish.GraphClass (arc, arcLabels)
+import Swish.GraphMatch (LabelMap, ScopedLabel(..))
+import Swish.GraphMatch (graphMatch)
 
 import Swish.Utils.QName (QName)
 import Swish.Utils.ListHelpers (addSetElem)

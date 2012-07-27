@@ -135,6 +135,10 @@ Library
    Exposed-Modules:
       Swish
       Swish.Datatype
+      Swish.GraphClass
+      Swish.GraphMatch
+      Swish.GraphMem
+      Swish.GraphPartition
       Swish.Proof
       Swish.RDF
       Swish.RDF.BuiltInDatatypes
@@ -150,18 +154,14 @@ Library
       Swish.RDF.Formatter.NTriples
       Swish.RDF.Formatter.N3
       Swish.RDF.Formatter.Turtle
-      Swish.RDF.GraphClass
-      Swish.RDF.GraphMatch
-      Swish.RDF.GraphMem
-      Swish.RDF.GraphPartition
+      Swish.RDF.Graph
+      Swish.RDF.GraphShowM
       Swish.RDF.Parser.NTriples
       Swish.RDF.Parser.N3
       Swish.RDF.Parser.Turtle
       Swish.RDF.Parser.Utils
       Swish.RDF.Proof
       Swish.RDF.ProofContext
-      Swish.RDF.RDFGraph
-      Swish.RDF.RDFGraphShowM
       Swish.RDF.RDFQuery
       Swish.RDF.RDFVarBinding
       Swish.RDF.Ruleset

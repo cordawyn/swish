@@ -53,7 +53,9 @@ module Swish.RDF.Parser.Turtle
     )
 where
 
-import Swish.RDF.RDFGraph
+import Swish.GraphClass (arc)
+
+import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
     , ToRDFLabel(..)
     , NamespaceMap
@@ -62,12 +64,8 @@ import Swish.RDF.RDFGraph
     , emptyRDFGraph
     )
 
-import Swish.RDF.GraphClass (arc)
-
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , LookupEntryClass(..)
-    , mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace )
+import Swish.Utils.LookupMap (LookupMap(..), LookupEntryClass(..))
+import Swish.Utils.LookupMap (mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
 
 import Swish.Utils.Namespace
     ( Namespace, makeNamespace

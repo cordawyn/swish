@@ -59,7 +59,9 @@ module Swish.RDF.Formatter.N3
     )
 where
 
-import Swish.RDF.RDFGraph (
+import Swish.GraphClass (Arc(..))
+
+import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..),
   NamespaceMap, RevNamespaceMap,
   emptyNamespaceMap,
@@ -80,8 +82,6 @@ import Swish.RDF.Vocabulary (
   owlSameAs, logImplies
   , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
   )
-
-import Swish.RDF.GraphClass (Arc(..))
 
 import Swish.Utils.LookupMap
     ( LookupEntryClass(..)

@@ -38,7 +38,7 @@ import Swish.RDF.Ruleset
 import Swish.RDF.RDFQuery (rdfQueryFind, rdfQuerySubs)
 import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
     ( Label(..), RDFLabel(..), RDFGraph
     , add, allLabels, allNodes )
 

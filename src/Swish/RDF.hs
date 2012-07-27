@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDF
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -11,17 +11,18 @@
 --  Portability :  FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances
 --
 --  This module provides an in-memory RDF Graph (it re-exports
---  "Swish.RDF.RDFGraph").
+--  "Swish.RDF.Graph").
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF (module Swish.RDF.RDFGraph) where
+module Swish.RDF (module Swish.RDF.Graph) where
 
-import Swish.RDF.RDFGraph
+import Swish.RDF.Graph
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

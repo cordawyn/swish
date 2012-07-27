@@ -32,8 +32,8 @@ import Swish.RDF.Ruleset
     , nullRDFFormula
     , makeRDFFormula )
 
-import Swish.RDF.RDFGraph (RDFGraph)
-import Swish.RDF.RDFGraphShowM ()
+import Swish.RDF.Graph (RDFGraph)
+import Swish.RDF.GraphShowM ()
 
 import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (mapFindMaybe)
