@@ -48,7 +48,7 @@ import Swish.Utils.LookupMap (makeLookupMap, mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
 import Swish.Utils.Namespace (getScopeLocal)
 
-import Data.List (find, intersect, union, (\\), foldl')
+import Data.List (find, intersect, union, (\\), foldl', permutations)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 import Data.Monoid (mconcat)
 
@@ -355,33 +355,12 @@ compatibleUsage voc1 use1 use2 =
 
 -- |Find all compatible compositions of a list of variable binding
 --  modifiers for a given set of supplied bound variables.
-findCompositions :: (Eq a) => [VarBindingModify a b] -> [a]
+findCompositions :: 
+    (Eq a) => [VarBindingModify a b] 
+    -> [a]
     -> [VarBindingModify a b]
 findCompositions vbms vars =
     mapMaybe (composeCheckSequence vars) (permutations vbms)
-
-------------------------------------------------------------
---  Permutations of a list
-------------------------------------------------------------
-
--- | Returns the permutations of a list, based on code
--- by S.D.Mechveliani, 
--- <http://www.dcs.gla.ac.uk/mail-www/haskell/msg01936.html>.
---
--- TODO: replace by Data.List.permutations?
-permutations :: [a] -> [[a]]
-permutations    []     = [[]]
-permutations    (j:js) = addOne $ permutations js
-    where
-        addOne = foldr ((++) . ao) []
-
-        ao []           = [[j]]
-        ao (k:ks)       = (j:k:ks) : map (k:) (ao ks)
-
-{-
-testperm = permutations [1,2,3] ==
-    [[1,2,3],[2,1,3],[2,3,1],[1,3,2],[3,1,2],[3,2,1]]
--}
 
 -- |Compose sequence of variable binding modifiers, and check
 --  that the result can be used compatibly with a supplied list
