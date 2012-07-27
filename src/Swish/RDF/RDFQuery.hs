@@ -48,10 +48,10 @@ module Swish.RDF.RDFQuery
     , rdfQuerySubs2 )
 where
 
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBinding, nullRDFVarBinding
-    , RDFVarBindingFilter
-    )
+import Swish.Datatype (DatatypeMap(..))
+
+import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingFilter)
+import Swish.RDF.RDFVarBinding (nullRDFVarBinding)
 
 import Swish.RDF.RDFGraph
     ( Arc(..), LDGraph(..)
@@ -67,8 +67,7 @@ import Swish.RDF.RDFGraph
     , resRdfNil
     )
 
-import Swish.RDF.MapXsdInteger (mapXsdInteger)
-import Swish.RDF.Datatype (DatatypeMap(..))
+import Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger)
 
 import Swish.RDF.VarBinding
     ( VarBinding(..)

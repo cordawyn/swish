@@ -55,6 +55,9 @@ Description:
   .
   * Formatting modules are now in the @Swish.RDF.Formatter@ hierarchy.
   .
+  * Moved a number of modules around: generic code directly into @Swish@
+  and the @Swish.RDF.RDF*@ forms renamed to @Swish.RDF.*@.
+  .
   * Removed @mkTypedLit@ from @Swish.RDF.RDFParser@; use
   @Swish.RDF.RDFDatatype.makeDataTypedLiteral@ instead.
   .
@@ -131,12 +134,18 @@ Library
 
    Exposed-Modules:
       Swish
+      Swish.Datatype
       Swish.RDF
       Swish.RDF.BuiltInDatatypes
       Swish.RDF.BuiltInMap
       Swish.RDF.BuiltInRules
       Swish.RDF.ClassRestrictionRule
       Swish.RDF.Datatype
+      Swish.RDF.Datatype.XSD.Decimal
+      Swish.RDF.Datatype.XSD.Integer
+      Swish.RDF.Datatype.XSD.MapDecimal
+      Swish.RDF.Datatype.XSD.MapInteger
+      Swish.RDF.Datatype.XSD.String
       Swish.RDF.Formatter.NTriples
       Swish.RDF.Formatter.N3
       Swish.RDF.Formatter.Turtle
@@ -144,17 +153,11 @@ Library
       Swish.RDF.GraphMatch
       Swish.RDF.GraphMem
       Swish.RDF.GraphPartition
-      Swish.RDF.MapXsdDecimal
-      Swish.RDF.MapXsdInteger
       Swish.RDF.Parser.NTriples
       Swish.RDF.Parser.N3
       Swish.RDF.Parser.Turtle
       Swish.RDF.Parser.Utils
       Swish.RDF.Proof
-      Swish.RDF.RDFDatatype
-      Swish.RDF.RDFDatatypeXsdDecimal
-      Swish.RDF.RDFDatatypeXsdInteger
-      Swish.RDF.RDFDatatypeXsdString
       Swish.RDF.RDFGraph
       Swish.RDF.RDFGraphShowM
       Swish.RDF.RDFProof

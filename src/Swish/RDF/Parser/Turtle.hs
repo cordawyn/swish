@@ -88,7 +88,7 @@ import Swish.RDF.Vocabulary
     , defaultBase
     )
 
-import Swish.RDF.RDFDatatype (makeDatatypedLiteral)
+import Swish.RDF.Datatype (makeDatatypedLiteral)
 
 import Swish.RDF.Parser.Utils
     ( ParseResult

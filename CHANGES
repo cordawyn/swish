@@ -10,6 +10,9 @@
 
   - Formatting modules are now in the Swish.RDF.Formatter hierarchy.
 
+  - Moved a number of modules around: generic code directly into Swish
+    and the Swish.RDF.RDF* forms renamed to Swish.RDF.*.
+
   - Removed mkTypedLit from Swish.RDF.RDFParser; use
     Swish.RDF.RDFDatatype.makeDataTypedLiteral instead.
 

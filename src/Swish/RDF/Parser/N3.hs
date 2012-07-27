@@ -100,6 +100,8 @@ import Swish.Utils.Namespace
 
 import Swish.Utils.QName (QName)
 
+import Swish.RDF.Datatype (makeDatatypedLiteral)
+
 import Swish.RDF.Vocabulary
     ( LanguageTag
     , toLangTag
@@ -108,8 +110,6 @@ import Swish.RDF.Vocabulary
     , owlSameAs, logImplies
     , xsdBoolean, xsdInteger, xsdDecimal, xsdDouble
     )
-
-import Swish.RDF.RDFDatatype (makeDatatypedLiteral)
 
 import Swish.RDF.Parser.Utils
     ( SpecialMap

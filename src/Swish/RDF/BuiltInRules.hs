@@ -47,7 +47,7 @@ import Swish.RDF.VarBinding
     , varFilterEQ, varFilterNE
     )
 
-import Swish.RDF.Datatype (typeRules, typeMkModifiers)
+import Swish.Datatype (typeRules, typeMkModifiers)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
 

@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFDatatypeXsdDecimal
+--  Module      :  Decimal
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
 --                     2011 William Waites, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
@@ -13,7 +13,7 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This module defines the structures used by Swish to represent and
+--  This module defines the structures used to represent and
 --  manipulate RDF @xsd:decimal@ datatyped literals.
 --
 --  Note that in versions @0.6.4@ and @0.6.5@, this module was a mixture
@@ -28,7 +28,7 @@
 -- the values are mapped to Haskell Double values, which is not a good match
 -- for xsd:decimal.
 
-module Swish.RDF.RDFDatatypeXsdDecimal
+module Swish.RDF.Datatype.XSD.Decimal
     ( rdfDatatypeXsdDecimal
     , rdfDatatypeValXsdDecimal
     , typeNameXsdDecimal, namespaceXsdDecimal
@@ -36,23 +36,7 @@ module Swish.RDF.RDFDatatypeXsdDecimal
     )
 where
 
-import Swish.RDF.RDFRuleset
-    ( RDFFormula, RDFRule, RDFRuleset 
-    , makeRDFGraphFromN3Builder
-    , makeRDFFormula
-    )
-
-import Swish.RDF.RDFDatatype
-    ( RDFDatatype
-    , RDFDatatypeVal
-    , RDFDatatypeMod
-    , makeRdfDtOpenVarBindingModifiers
-    )
-
-import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
-import Swish.RDF.MapXsdDecimal (mapXsdDecimal)
-
-import Swish.RDF.Datatype
+import Swish.Datatype
     ( Datatype(..)
     , DatatypeVal(..)
     , DatatypeRel(..), DatatypeRelPr
@@ -64,6 +48,15 @@ import Swish.RDF.Datatype
     , makeVmod21inv, makeVmod21
     , makeVmod20
     )
+
+import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
+import Swish.RDF.Datatype (makeRdfDtOpenVarBindingModifiers)
+import Swish.RDF.Datatype.XSD.MapDecimal (mapXsdDecimal)
+
+import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.RDFRuleset (makeRDFGraphFromN3Builder, makeRDFFormula)
+
+import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
 
 import Swish.RDF.Ruleset (makeRuleset)
 

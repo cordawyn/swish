@@ -19,13 +19,14 @@ module Swish.RDF.BuiltInDatatypes
        ( allDatatypes, findRDFDatatype )
     where
 
-import Swish.RDF.RDFDatatype (RDFDatatype)
+import Swish.RDF.Datatype (RDFDatatype)
+
+import Swish.RDF.Datatype.XSD.String (rdfDatatypeXsdString)
+import Swish.RDF.Datatype.XSD.Integer (rdfDatatypeXsdInteger)
+import Swish.RDF.Datatype.XSD.Decimal (rdfDatatypeXsdDecimal)
 
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
-import Swish.RDF.RDFDatatypeXsdString (rdfDatatypeXsdString)
-import Swish.RDF.RDFDatatypeXsdInteger (rdfDatatypeXsdInteger)
-import Swish.RDF.RDFDatatypeXsdDecimal (rdfDatatypeXsdDecimal)
 
 ------------------------------------------------------------
 --  Declare datatype map

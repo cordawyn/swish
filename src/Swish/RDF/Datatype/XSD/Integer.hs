@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFDatatypeXsdInteger
+--  Module      :  Integer
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -12,12 +12,12 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This module defines the structures used by Swish to represent and
+--  This module defines the structures used to represent and
 --  manipulate RDF @xsd:integer@ datatyped literals.
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFDatatypeXsdInteger
+module Swish.RDF.Datatype.XSD.Integer
     ( rdfDatatypeXsdInteger
     , rdfDatatypeValXsdInteger
     , typeNameXsdInteger, namespaceXsdInteger
@@ -25,23 +25,7 @@ module Swish.RDF.RDFDatatypeXsdInteger
     )
 where
 
-import Swish.RDF.RDFRuleset
-    ( RDFFormula, RDFRule, RDFRuleset 
-    , makeRDFGraphFromN3Builder
-    , makeRDFFormula
-    )
-
-import Swish.RDF.RDFDatatype
-    ( RDFDatatype
-    , RDFDatatypeVal
-    , RDFDatatypeMod
-    , makeRdfDtOpenVarBindingModifiers
-    )
-
-import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
-import Swish.RDF.MapXsdInteger (mapXsdInteger)
-
-import Swish.RDF.Datatype
+import Swish.Datatype
     ( Datatype(..)
     , DatatypeVal(..)
     , DatatypeRel(..), DatatypeRelPr
@@ -55,6 +39,15 @@ import Swish.RDF.Datatype
     , makeVmod20
     , makeVmod22
     )
+
+import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
+import Swish.RDF.Datatype (makeRdfDtOpenVarBindingModifiers)
+import Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger)
+
+import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.RDFRuleset (makeRDFGraphFromN3Builder, makeRDFFormula)
+
+import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
 
 import Swish.RDF.Ruleset (makeRuleset)
 

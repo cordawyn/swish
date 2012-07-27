@@ -19,25 +19,7 @@
 
 module Main where
 
-import Swish.RDF.RDFDatatypeXsdInteger
-    ( rdfDatatypeXsdInteger
-    , rdfDatatypeValXsdInteger
-    , typeNameXsdInteger, namespaceXsdInteger
-    , axiomsXsdInteger, rulesXsdInteger
-    )
-
-import Swish.RDF.RDFVarBinding (RDFVarBinding)
-
-import Swish.RDF.RDFRuleset
-    ( RDFRule 
-    , makeRDFGraphFromN3Builder
-    )
-
-import Swish.RDF.RDFDatatype (RDFDatatypeMod, applyRDFDatatypeMod)
-import Swish.RDF.RDFGraph (RDFLabel(..), RDFGraph)
-import Swish.RDF.ClassRestrictionRule (falseGraphStr)
-
-import Swish.RDF.Datatype
+import Swish.Datatype
     ( typeName, typeRules, typeMkRules
     , getTypeAxiom, getTypeRule
     , DatatypeVal(..)
@@ -46,6 +28,22 @@ import Swish.RDF.Datatype
     , DatatypeMod(..)
     , nullDatatypeMod
     )
+
+import Swish.RDF.ClassRestrictionRule (falseGraphStr)
+import Swish.RDF.Datatype (RDFDatatypeMod, applyRDFDatatypeMod)
+
+import Swish.RDF.Datatype.XSD.Integer
+    ( rdfDatatypeXsdInteger
+    , rdfDatatypeValXsdInteger
+    , typeNameXsdInteger, namespaceXsdInteger
+    , axiomsXsdInteger, rulesXsdInteger
+    )
+
+import Swish.RDF.RDFVarBinding (RDFVarBinding)
+
+import Swish.RDF.RDFRuleset (RDFRule , makeRDFGraphFromN3Builder)
+
+import Swish.RDF.RDFGraph (RDFLabel(..), RDFGraph)
 
 import Swish.RDF.Ruleset (Ruleset(..), getRulesetRule)
 import Swish.RDF.Rule    (Formula(..), Rule(..), nullFormula, nullRule)

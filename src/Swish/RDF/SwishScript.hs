@@ -71,6 +71,11 @@ module Swish.RDF.SwishScript
     )
 where
 
+import Swish.Datatype (typeMkRules)
+import Swish.RDF.Proof (explainProof, showsProof)
+
+import Swish.RDF.Datatype (RDFDatatype)
+
 import Swish.RDF.SwishMonad
     ( SwishStateIO, SwishStatus(..) 
     , modGraphs, findGraph, findFormula
@@ -81,21 +86,11 @@ import Swish.RDF.SwishMonad
     , NamedGraph(..)
     )
 
-import Swish.RDF.RDFDatatype
-    ( RDFDatatype )
-
-import Swish.RDF.RDFRuleset
-    ( RDFFormula, RDFRule
-    , RDFRuleset
-    , makeRDFClosureRule
-    )
-
-import Swish.RDF.RDFProof
-    ( RDFProofStep, makeRDFProof, makeRDFProofStep )
-
-import Swish.RDF.RDFVarBinding
-    ( RDFVarBindingModify
-    )
+import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.RDFRuleset (makeRDFClosureRule)
+import Swish.RDF.RDFProof (RDFProofStep)
+import Swish.RDF.RDFProof (makeRDFProof, makeRDFProofStep)
+import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
 
 import Swish.RDF.RDFGraphShowM()
 
@@ -122,8 +117,6 @@ import Swish.RDF.Parser.N3
     )
 
 import Swish.RDF.Formatter.N3 (formatGraphAsBuilder)
-import Swish.RDF.Datatype (typeMkRules)
-import Swish.RDF.Proof (explainProof, showsProof)
 import Swish.RDF.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
 import Swish.RDF.Rule (Formula(..), Rule(..)) 
 import Swish.RDF.VarBinding (composeSequence)

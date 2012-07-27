@@ -4,9 +4,8 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  MapXsdDecimal
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                     2011 William Waites, 2011, 2012 Douglas Burke
+--  Module      :  MapInteger
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -14,32 +13,32 @@
 --  Portability :  OverloadedStrings
 --
 --  This module defines the datatytpe mapping and relation values
---  used for RDF dataype @xsd:decimal@.
+--  used for RDF dataype @xsd:integer@.
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.MapXsdDecimal (mapXsdDecimal) where
+module Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger) where
 
-import Swish.RDF.Datatype (DatatypeMap(..))
+import Swish.Datatype (DatatypeMap(..))
 
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
 
 ------------------------------------------------------------
---  Implementation of DatatypeMap for xsd:decimal
+--  Implementation of DatatypeMap for xsd:integer
 ------------------------------------------------------------
 
 -- | Functions that perform lexical-to-value
---  and value-to-canonical-lexical mappings for @xsd:decimal@ values.
+--  and value-to-canonical-lexical mappings for @xsd:integer@ values.
 --
-mapXsdDecimal :: DatatypeMap Double
-mapXsdDecimal = DatatypeMap
-    { -- mapL2V :: T.Text -> Maybe Double
-      mapL2V = \txt -> case T.double txt of
-      	 Right (val, "") -> Just val
+mapXsdInteger :: DatatypeMap Integer
+mapXsdInteger = DatatypeMap
+    { -- mapL2V :: T.Text -> Maybe Integer
+      mapL2V = \txt -> case T.signed T.decimal txt of
+         Right (val, "") -> Just val
          _ -> Nothing
          
-      -- mapV2L :: Double -> Maybe T.Text
+      -- mapV2L :: Integer -> Maybe T.Text
       -- TODO: for now convert via String as issues with text-format
       --       (inability to use with ghci)   
     , mapV2L = Just . T.pack . show
@@ -48,8 +47,7 @@ mapXsdDecimal = DatatypeMap
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                2011 William Waites, 2011, 2012 Douglas Burke
---
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

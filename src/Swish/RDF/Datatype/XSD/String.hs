@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFDatatypeXsdString
+--  Module      :  String
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -12,14 +12,14 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This module defines the structures used by Swish to represent and
+--  This module defines the structures used to represent and
 --  manipulate RDF @xsd:string@ datatyped literals.
 --
 --------------------------------------------------------------------------------
 
 -- TODO: this should convert to/from T.Text rather than String
 
-module Swish.RDF.RDFDatatypeXsdString
+module Swish.RDF.Datatype.XSD.String
     ( rdfDatatypeXsdString
     , rdfDatatypeValXsdString
     , typeNameXsdString, namespaceXsdString
@@ -27,26 +27,7 @@ module Swish.RDF.RDFDatatypeXsdString
     )
     where
 
-import Swish.RDF.RDFRuleset
-    ( RDFFormula, RDFRule, RDFRuleset
-    , makeRDFGraphFromN3Builder
-    , makeRDFFormula
-    , makeN3ClosureRule
-    )
-
-import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
-
-import Swish.RDF.RDFDatatype
-    ( RDFDatatype
-    , RDFDatatypeVal
-    , RDFDatatypeMod
-    , makeRdfDtOpenVarBindingModifiers
-    )
-
-import Swish.RDF.RDFGraph (RDFLabel(..))
-import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
-
-import Swish.RDF.Datatype
+import Swish.Datatype
     ( Datatype(..)
     , DatatypeVal(..)
     , DatatypeMap(..)
@@ -56,6 +37,17 @@ import Swish.RDF.Datatype
     , DatatypeMod(..) 
     , makeVmod20
     )
+
+import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
+import Swish.RDF.Datatype (makeRdfDtOpenVarBindingModifiers )
+
+import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.RDFRuleset (makeRDFGraphFromN3Builder, makeRDFFormula, makeN3ClosureRule)
+
+import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
+
+import Swish.RDF.RDFGraph (RDFLabel(..))
+import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
 
 import Swish.RDF.Ruleset (makeRuleset)
 import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder, makeNSScopedName)
