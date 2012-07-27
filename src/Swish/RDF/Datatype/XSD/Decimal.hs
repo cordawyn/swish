@@ -48,17 +48,16 @@ import Swish.Datatype
     , makeVmod21inv, makeVmod21
     , makeVmod20
     )
+import Swish.Ruleset (makeRuleset)
 
 import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
 import Swish.RDF.Datatype (makeRdfDtOpenVarBindingModifiers)
 import Swish.RDF.Datatype.XSD.MapDecimal (mapXsdDecimal)
 
-import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleset)
-import Swish.RDF.RDFRuleset (makeRDFGraphFromN3Builder, makeRDFFormula)
+import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.Ruleset (makeRDFGraphFromN3Builder, makeRDFFormula)
 
 import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
-
-import Swish.RDF.Ruleset (makeRuleset)
 
 import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder, makeNSScopedName)
 

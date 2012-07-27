@@ -135,6 +135,7 @@ Library
    Exposed-Modules:
       Swish
       Swish.Datatype
+      Swish.Proof
       Swish.RDF
       Swish.RDF.BuiltInDatatypes
       Swish.RDF.BuiltInMap
@@ -158,14 +159,11 @@ Library
       Swish.RDF.Parser.Turtle
       Swish.RDF.Parser.Utils
       Swish.RDF.Proof
+      Swish.RDF.ProofContext
       Swish.RDF.RDFGraph
       Swish.RDF.RDFGraphShowM
-      Swish.RDF.RDFProof
-      Swish.RDF.RDFProofContext
       Swish.RDF.RDFQuery
-      Swish.RDF.RDFRuleset
       Swish.RDF.RDFVarBinding
-      Swish.RDF.Rule
       Swish.RDF.Ruleset
       Swish.RDF.SwishCommands
       Swish.RDF.SwishMain
@@ -181,6 +179,8 @@ Library
       Swish.RDF.Vocabulary.RDF
       Swish.RDF.Vocabulary.SIOC
       Swish.RDF.Vocabulary.XSD
+      Swish.Rule
+      Swish.Ruleset
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
       Swish.Utils.Namespace

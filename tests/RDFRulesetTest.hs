@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFRulesetTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -20,14 +20,17 @@
 
 module Main where
 
-import Swish.RDF.RDFRuleset
+import Swish.Rule (Formula(..), Rule(..), fwdCheckInference )
+import Swish.Ruleset (makeRuleset, getRulesetNamespace, getRulesetAxioms)
+import Swish.Ruleset (getRulesetRules, getRulesetAxiom, getRulesetRule)
+
+import Swish.RDF.Ruleset
     ( RDFFormula, RDFRule, RDFClosure, RDFRuleset
     , GraphClosure(..)
     , makeRDFGraphFromN3Builder
     , makeRDFFormula
     , makeN3ClosureSimpleRule
     , makeNodeAllocTo
-    -- for debugging
     , graphClosureFwdApply, graphClosureBwdApply
     )
 
@@ -49,12 +52,8 @@ import Swish.RDF.RDFGraph
     )
     
 import Swish.RDF.VarBinding (makeVarBinding, vbmCompose, makeVarFilterModify)
-import Swish.RDF.Ruleset
-    ( makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules
-    , getRulesetAxiom, getRulesetRule )
-
-import Swish.RDF.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
+
 import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
 
 import Test.HUnit
@@ -403,7 +402,8 @@ tt = runTestTT
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

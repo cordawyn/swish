@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
@@ -10,152 +10,523 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses
+--  Portability :  OverloadedStrings
 --
---  This module defines a ruleset data type, used to collect information
---  about a ruleset that may contribute torwards inferences in RDF;
---  e.g. RDF and RDFS are rulesets.
+--  This module defines some datatypes and functions that are
+--  used to define rules and rulesets over RDF graphs.
 --
---  A 'Ruleset' consists of a namespace, a collection of axioms, and
---  a collection of rules.
+--  For the routines that accept a graph in N3 format, the following
+--  namespaces are pre-defined for use by the graph:
+--     @rdf:@ and @rdfs:@.
 --
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Ruleset
-    ( Ruleset(..), RulesetMap
-    , makeRuleset, getRulesetNamespace, getRulesetAxioms, getRulesetRules
-    , getRulesetAxiom, getRulesetRule
-    , getContextAxiom, getMaybeContextAxiom
-    , getContextRule,  getMaybeContextRule
+    (
+     -- * Data types for RDF Ruleset
+     RDFFormula, RDFRule, RDFRuleMap
+    , RDFClosure, RDFRuleset, RDFRulesetMap
+    , nullRDFFormula
+    , GraphClosure(..), makeGraphClosureRule
+    , makeRDFGraphFromN3Builder
+    , makeRDFFormula
+    , makeRDFClosureRule
+      -- * Create rules using Notation3 statements
+    , makeN3ClosureRule
+    , makeN3ClosureSimpleRule
+    , makeN3ClosureModifyRule
+    , makeN3ClosureAllocatorRule
+    , makeNodeAllocTo
+      -- * Debugging
+    , graphClosureFwdApply, graphClosureBwdApply
     )
 where
 
-import Swish.Utils.Namespace (Namespace, ScopedName)
-import Swish.RDF.Rule (Formula(..), Rule(..))
+import Swish.Rule (Formula(..), Rule(..), RuleMap)
+import Swish.Rule (fwdCheckInference, nullSN)
+import Swish.Ruleset (Ruleset(..), RulesetMap)
 
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..), LookupMap(..)
-    , mapFindMaybe
+import Swish.RDF.GraphClass (Label(..), Arc(..), LDGraph(..))
+
+import Swish.RDF.RDFQuery
+    ( rdfQueryFind
+    , rdfQueryBack, rdfQueryBackModify
+    , rdfQuerySubs
+    , rdfQuerySubsBlank
     )
 
-{-
-Used for the Show instance of Ruleset, which was
-used for debugging but has been removed as not
-really needed by the general user.
+import Swish.RDF.RDFGraph
+    ( RDFLabel(..), RDFGraph
+    , makeBlank, newNodes
+    , merge, allLabels
+    , toRDFGraph, emptyRDFGraph )
 
-import Swish.Utils.ShowM (ShowM(..))
-import Data.List (intercalate)
--}
+import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
+import Swish.RDF.Parser.N3 (parseN3)
 
-import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
+import Swish.RDF.VarBinding
+    ( makeVarBinding
+    , applyVarBinding, joinVarBindings
+    , VarBindingModify(..)
+    , vbmCompose
+    , varBindingId
+    )
 
--- | A Rule set.
+import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
+import Swish.Utils.Namespace (Namespace, ScopedName)
+import Swish.Utils.Namespace (makeNSScopedName, namespaceToBuilder)
 
-data Ruleset ex = Ruleset
-    { rsNamespace :: Namespace    -- ^ Namespace.
-    , rsAxioms    :: [Formula ex] -- ^ Axioms.
-    , rsRules     :: [Rule ex]    -- ^ Rules.
+import Swish.Utils.ListHelpers (equiv, flist)
+
+import Data.List (nub)
+import Data.Maybe (fromMaybe)
+import Data.Monoid (Monoid(..))
+
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
+
+------------------------------------------------------------
+--  Datatypes for RDF ruleset
+------------------------------------------------------------
+
+-- | A named formula expressed as a RDF Graph.
+type RDFFormula     = Formula RDFGraph
+
+-- | A named inference rule expressed in RDF.
+type RDFRule        = Rule RDFGraph
+
+-- | A 'LookupMap' for 'RDFRule' rules.
+type RDFRuleMap     = RuleMap RDFGraph
+
+-- | A 'GraphClosure' for RDF statements.
+type RDFClosure     = GraphClosure RDFLabel
+
+-- | A 'Ruleset' for RDF.
+type RDFRuleset     = Ruleset RDFGraph
+
+-- | 'LookupMap' for 'RDFRuleset'.
+type RDFRulesetMap  = RulesetMap RDFGraph
+
+------------------------------------------------------------
+--  Declare null RDF formula
+------------------------------------------------------------
+
+-- | The null RDF formula.
+nullRDFFormula :: Formula RDFGraph
+nullRDFFormula = Formula
+    { formName = nullSN "nullRDFGraph"
+    , formExpr = emptyRDFGraph
     }
 
-{-
+------------------------------------------------------------
+--  Datatype for graph closure rule
+------------------------------------------------------------
 
-Used for debugging.
+-- |Datatype for constructing a graph closure rule
+data GraphClosure lb = GraphClosure
+    { nameGraphRule :: ScopedName   -- ^ Name of rule for proof display
+    , ruleAnt       :: [Arc lb]     -- ^ Antecedent triples pattern
+                                    --   (may include variable nodes)
+    , ruleCon       :: [Arc lb]     -- ^ Consequent triples pattern
+                                    --   (may include variable nodes)
+    , ruleModify    :: VarBindingModify lb lb
+                                    -- ^ Structure that defines additional
+                                    --   constraints and/or variable
+                                    --   bindings based on other matched
+                                    --   query variables.  Matching the
+                                    --   antecedents.  Use 'varBindingId' if
+                                    --   no additional variable constraints
+                                    --   or bindings are added beyond those
+                                    --   arising from graph queries.
+    }
 
-instance (ShowM ex) => Show (Ruleset ex) where
-  show (Ruleset ns axs rls) = 
-    intercalate "\n" 
-    [ "Ruleset: " ++ show ns
-    , "Axioms:" ]
-    ++ (showsFormulae "\n" axs 
-       (intercalate "\n" ("Rules:" : map show rls))) ""
--}
+instance (Label lb) => Eq (GraphClosure lb) where
+    c1 == c2 = nameGraphRule c1 == nameGraphRule c2 &&
+               ruleAnt c1 `equiv` ruleAnt c2 &&
+               ruleCon c1 `equiv` ruleCon c2
 
--- | Ruleset comparisons are based only on their namespace components.
-instance Eq (Ruleset ex) where
-    r1 == r2 = rsNamespace r1 == rsNamespace r2
+instance (Label lb) => Show (GraphClosure lb) where
+    show c = "GraphClosure " ++ show (nameGraphRule c)
 
-instance LookupEntryClass (Ruleset ex) Namespace (Ruleset ex)
+------------------------------------------------------------
+--  Define inference rule based on RDF graph closure rule
+------------------------------------------------------------
+
+-- |Define a value of type Rule based on an RDFClosure value.
+makeGraphClosureRule :: GraphClosure RDFLabel -> Rule RDFGraph
+makeGraphClosureRule grc = newrule
     where
-        keyVal   r@(Ruleset k _ _) = (k,r)
-        newEntry (_,r)             = r
+        newrule = Rule
+            { ruleName       = nameGraphRule grc
+            , fwdApply       = graphClosureFwdApply grc
+            , bwdApply       = graphClosureBwdApply grc
+            , checkInference = fwdCheckInference newrule
+            }
 
--- | A 'LookupMap' for a 'Ruleset'.
-type RulesetMap ex = LookupMap (Ruleset ex)
+-- | Forward chaining function based on RDF graph closure description
+--
+--  Note:  antecedents here are presumed to share bnodes.
+--
+graphClosureFwdApply :: 
+  GraphClosure RDFLabel 
+  -> [RDFGraph] 
+  -> [RDFGraph]
+graphClosureFwdApply grc grs =
+    let gr   = if null grs then emptyRDFGraph else foldl1 add grs
+        vars = queryFind (ruleAnt grc) gr
+        varm = vbmApply (ruleModify grc) vars
+        cons = querySubs varm (ruleCon grc)
+    in
+        {-
+        seq cons $
+        seq (trace "\ngraphClosureFwdApply") $
+        seq (traceShow "\nvars: " vars) $
+        seq (traceShow "\nvarm: " varm) $
+        seq (traceShow "\ncons: " cons) $
+        seq (trace "\n") $
+        -}
+        --  Return null list or single result graph that is the union
+        --  (not merge) of individual results:
+        if null cons then [] else [foldl1 add cons]
+        -- cons {- don't merge results -}
 
--- | Create a ruleset.
-makeRuleset :: Namespace -> [Formula ex] -> [Rule ex] -> Ruleset ex
-makeRuleset nsp fms rls = Ruleset
-    { rsNamespace = nsp
-    , rsAxioms    = fms
-    , rsRules     = rls
+-- | Backward chaining function based on RDF graph closure description
+graphClosureBwdApply :: GraphClosure RDFLabel -> RDFGraph -> [[RDFGraph]]
+graphClosureBwdApply grc gr =
+    let vars = rdfQueryBackModify (ruleModify grc) $
+               queryBack (ruleCon grc) gr
+        --  This next function eliminates duplicate variable bindings.
+        --  It is strictly redundant, but comparing variable
+        --  bindings is much cheaper than comparing graphs.
+        --  I don't know if many duplicate graphs will be result
+        --  of exact duplicate variable bindings, so this may be
+        --  not very effective.
+        varn = map nub vars
+    in
+        --  The 'nub ante' below eliminates duplicate antecedent graphs,
+        --  based on graph matching, which tests for equivalence under
+        --  bnode renaming, with a view to reducing redundant arcs in
+        --  the merged antecedent graph, hence less to prove in
+        --  subsequent back-chaining steps.
+        --
+        --  Each antecedent is reduced to a single RDF graph, when
+        --  bwdApply specifies a list of expressions corresponding to
+        --  each antecedent.
+        [ [foldl1 merge (nub ante)]
+          | vs <- varn
+          , let ante = querySubsBlank vs (ruleAnt grc) ]
+
+------------------------------------------------------------
+--  RDF graph query and substitution support functions
+------------------------------------------------------------
+
+queryFind :: [Arc RDFLabel] -> RDFGraph -> [RDFVarBinding]
+queryFind qas = rdfQueryFind (toRDFGraph qas)
+
+queryBack :: [Arc RDFLabel] -> RDFGraph -> [[RDFVarBinding]]
+queryBack qas = rdfQueryBack (toRDFGraph qas)
+
+querySubs :: [RDFVarBinding] -> [Arc RDFLabel] -> [RDFGraph]
+querySubs vars = rdfQuerySubs vars . toRDFGraph
+
+querySubsBlank :: [RDFVarBinding] -> [Arc RDFLabel] -> [RDFGraph]
+querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
+
+------------------------------------------------------------
+--  Method for creating an RDF formula value from N3 text
+------------------------------------------------------------
+
+mkPrefix :: Namespace -> B.Builder
+mkPrefix = namespaceToBuilder
+
+prefixRDF :: B.Builder
+prefixRDF = 
+  mconcat 
+  [ mkPrefix namespaceRDF
+  , mkPrefix namespaceRDFS
+    ]
+
+-- |Helper function to parse a string containing Notation3
+--  and return the corresponding RDFGraph value.
+--
+makeRDFGraphFromN3Builder :: B.Builder -> RDFGraph
+makeRDFGraphFromN3Builder b = 
+  let t = B.toLazyText (prefixRDF `mappend` b)
+  in case parseN3 t Nothing of
+    Left  msg -> error msg
+    Right gr  -> gr
+
+-- |Create an RDF formula.
+makeRDFFormula ::
+    Namespace     -- ^ namespace to which the formula is allocated
+    -> T.Text     -- ^ local name for the formula in the namespace
+    -> B.Builder  -- ^ graph in Notation 3 format
+    -> RDFFormula
+makeRDFFormula scope local gr = 
+  Formula
+    { formName = makeNSScopedName scope local
+    , formExpr = makeRDFGraphFromN3Builder gr
     }
 
--- | Extract the namespace of a ruleset.
-getRulesetNamespace :: Ruleset ex -> Namespace
-getRulesetNamespace = rsNamespace
+------------------------------------------------------------
+--  Create an RDF closure rule from supplied graphs
+------------------------------------------------------------
 
--- | Extract the axioms from a ruleset.
-getRulesetAxioms :: Ruleset ex -> [Formula ex]
-getRulesetAxioms = rsAxioms
+-- |Constructs an RDF graph closure rule.  That is, a rule that
+--  given some set of antecedent statements returns new statements
+--  that may be added to the graph.
+--
+makeRDFClosureRule ::
+    ScopedName -- ^ scoped name for the new rule
+    -> [RDFGraph] -- ^ RDFGraphs that are the entecedent of the rule.
+                  --
+                  -- (Note:  bnodes and variable names are assumed to be shared
+                  -- by all the entecedent graphs supplied.  /is this right?/)
+    -> RDFGraph   -- ^ the consequent graph
+    -> RDFVarBindingModify -- ^ is a variable binding modifier value that may impose
+    --          additional conditions on the variable bindings that
+    --          can be used for this inference rule, or which may
+    --          cause new values to be allocated for unbound variables.
+    --          These modifiers allow for certain inference patterns
+    --          that are not captured by simple "closure rules", such
+    --          as the allocation of bnodes corresponding to literals,
+    --          and are an extension point for incorporating datatypes
+    --          into an inference process.
+    --
+    --          If no additional constraints or variable bindings are
+    --          to be applied, use value 'varBindingId'
+    --
+    -> RDFRule
+makeRDFClosureRule sname antgrs congr vmod = makeGraphClosureRule
+    GraphClosure
+        { nameGraphRule = sname
+        , ruleAnt       = concatMap getArcs antgrs
+        , ruleCon       = getArcs congr
+        , ruleModify    = vmod
+        }
 
--- | Extract the rules from a ruleset.
-getRulesetRules :: Ruleset ex -> [Rule ex]
-getRulesetRules = rsRules
+------------------------------------------------------------
+--  Methods to create an RDF closure rule from N3 input
+------------------------------------------------------------
+--
+--  These functions are used internally by Swish to construct
+--  rules from textual descriptions.
 
--- | Find a named axiom in a ruleset.
-getRulesetAxiom :: ScopedName -> Ruleset ex -> Maybe (Formula ex)
-getRulesetAxiom nam rset =
-    mapFindMaybe nam (LookupMap (getRulesetAxioms rset))
-    -- listToMaybe $ filter ( (matchName nam) . formName ) $ getRulesetAxioms rset
+-- |Constructs an RDF graph closure rule.  That is, a rule that
+--  given some set of antecedent statements returns new statements
+--  that may be added to the graph.  This is the basis for
+--  implementation of most of the inference rules given in the
+--  RDF formal semantics document.
+--
+makeN3ClosureRule ::
+    Namespace -- ^ namespace to which the rule is allocated
+    -> T.Text -- ^ local name for the rule in the namespace
+    -> B.Builder 
+    -- ^ the Notation3 representation
+    --   of the antecedent graph.  (Note: multiple antecedents
+    --   can be handled by combining multiple graphs.)
+    -> B.Builder -- ^ the Notation3 representation of the consequent graph.
+    -> RDFVarBindingModify
+    -- ^ a variable binding modifier value that may impose
+    --   additional conditions on the variable bindings that
+    --   can be used for this inference rule, or which may
+    --   cause new values to be allocated for unbound variables.
+    --   These modifiers allow for certain inference patterns
+    --   that are not captured by simple closure rules, such
+    --   as the allocation of bnodes corresponding to literals,
+    --   and are an extension point for incorporating datatypes
+    --   into an inference process.
+    --
+    --   If no additional constraints or variable bindings are
+    --   to be applied, use a value of 'varBindingId', or use
+    --   'makeN3ClosureSimpleRule'.
+    -> RDFRule
+makeN3ClosureRule scope local ant con =
+    makeRDFClosureRule (makeNSScopedName scope local) [antgr] congr
+    where
+        antgr = makeRDFGraphFromN3Builder ant
+        congr = makeRDFGraphFromN3Builder con
 
--- | Find a named rule in a ruleset. 
-getRulesetRule :: ScopedName -> Ruleset ex -> Maybe (Rule ex)
-getRulesetRule nam rset =
-    mapFindMaybe nam (LookupMap (getRulesetRules rset))
-    -- listToMaybe $ filter ( (matchName nam) . ruleName ) $ getRulesetRules rset
+-- |Construct a simple RDF graph closure rule without
+--  additional node allocations or variable binding constraints.
+--
+makeN3ClosureSimpleRule ::
+    Namespace -- ^ namespace to which the rule is allocated
+    -> T.Text -- ^ local name for the rule in the namepace
+    -> B.Builder
+    -- ^ the Notation3 representation
+    --   of the antecedent graph.  (Note: multiple antecedents
+    --   can be handled by combining multiple graphs.)
+    -> B.Builder  -- ^ the Notation3 representation of the consequent graph.
+    -> RDFRule
+makeN3ClosureSimpleRule scope local ant con =
+    makeN3ClosureRule scope local ant con varBindingId
 
--- | Find a named axiom in a proof context.
-getContextAxiom :: 
-  ScopedName -- ^ Name of axiom.
-  -> Formula ex -- ^ Default axiom (used if named component does not exist).
-  -> [Ruleset ex] -- ^ Rulesets to search.
-  -> Formula ex
-getContextAxiom nam def rsets = fromMaybe def (getMaybeContextAxiom nam rsets)
-    {-
-    foldr (flip fromMaybe) def $ map (getRulesetAxiom nam) rsets
-    -}
+-- |Constructs an RDF graph closure rule that incorporates
+--  a variable binding filter and a variable binding modifier.
+--
+makeN3ClosureModifyRule ::
+    Namespace -- ^ namespace to which the rule is allocated
+    -> T.Text -- ^ local name for the rule in the given namespace
+    -> B.Builder -- ^ the Notation3 representation
+    --                of the antecedent graph.  (Note: multiple antecedents
+    --                can be handled by combining multiple graphs.)
+    -> B.Builder -- ^ the Notation3 representation of the consequent graph.
+    -> RDFVarBindingModify
+    -- ^ a variable binding modifier value that may impose
+    --   additional conditions on the variable bindings that
+    --   can be used for this inference rule (@vflt@).
+    --
+    --   These modifiers allow for certain inference patterns
+    --   that are not captured by simple closure rules, such
+    --   as deductions that pertain only to certain kinds of
+    --   nodes in a graph.
+    -> RDFVarBindingModify
+    -- ^ a variable binding modifier that is applied to the
+    --   variable bindings obtained, typically to create some
+    --   additional variable bindings.  This is applied before
+    --   the preceeding filter rule (@vflt@).
+    -> RDFRule
+makeN3ClosureModifyRule scope local ant con vflt vmod =
+    makeN3ClosureRule scope local ant con modc
+    where
+        modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
 
--- | Find a named axiom in a proof context.
-getMaybeContextAxiom ::
-  ScopedName -- ^ Name of axiom.
-  -> [Ruleset ex] -- ^ Rulesets to search.
-  -> Maybe (Formula ex)
-getMaybeContextAxiom nam rsets =
-    listToMaybe $ mapMaybe (getRulesetAxiom nam) rsets
+{-
+    makeRDFClosureRule (ScopedName scope local) [antgr] congr modc
+    where
+        antgr = makeRDFGraphFromN3String ant
+        congr = makeRDFGraphFromN3String con
+        modc  = case vbmCompose vmod vflt of
+            Just x  -> x
+            Nothing -> varBindingId
+-}
 
--- | Find a named rule in a proof context.
-getContextRule :: 
-  ScopedName -- ^ Name of rule.
-  -> Rule ex -- ^ Default rule (used if named component does not exist).
-  -> [Ruleset ex] -- ^ Rulesets to search.
-  -> Rule ex
-getContextRule nam def rsets = fromMaybe def (getMaybeContextRule nam rsets)
-    {-
-    foldr (flip fromMaybe) def $ map (getRulesetRule nam) rsets
-    -}
+-- |Construct an RDF graph closure rule with a bnode allocator.
+--
+--  This function is rather like 'makeN3ClosureModifyRule', except that
+--  the variable binding modifier is a function from the variables in
+--  the variables and bnodes contained in the antecedent graph.
+--
+makeN3ClosureAllocatorRule ::
+    Namespace -- ^ namespace to which the rule is allocated
+    -> T.Text -- ^ local name for the rule in the given namespace
+    -> B.Builder -- ^ the Notation3 representation
+    --                of the antecedent graph.  (Note: multiple antecedents
+    --                can be handled by combining multiple graphs.)
+    -> B.Builder -- ^ the Notation3 representation of the consequent graph.
+    -> RDFVarBindingModify
+    -- ^ variable binding modifier value that may impose
+    --   additional conditions on the variable bindings that
+    --   can be used for this inference rule (@vflt@).
+    -> ( [RDFLabel] -> RDFVarBindingModify )
+    -- ^ function applied to a list of nodes to yield a
+    --   variable binding modifier value.
+    --
+    --   The supplied parameter is applied to a list of all of
+    --   the variable nodes (including all blank nodes) in the
+    --   antecedent graph, and then composed with the @vflt@
+    --   value.  This allows any node allocation
+    --   function to avoid allocating any blank nodes that
+    --   are already used in the antecedent graph.
+    --   (See 'makeNodeAllocTo').
+    -> RDFRule
+makeN3ClosureAllocatorRule scope local ant con vflt aloc =
+    makeRDFClosureRule (makeNSScopedName scope local) [antgr] congr modc
+    where
+        antgr = makeRDFGraphFromN3Builder ant
+        congr = makeRDFGraphFromN3Builder con
+        vmod  = aloc (allLabels labelIsVar antgr)
+        modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
 
--- | Find a named rule in a proof context.
-getMaybeContextRule :: 
-  ScopedName -- ^ Name of rule.
-  -> [Ruleset ex] -- ^ Rulesets to search.
-  -> Maybe (Rule ex)
-getMaybeContextRule nam rsets =
-    listToMaybe $ mapMaybe (getRulesetRule nam) rsets
+------------------------------------------------------------
+--  Query binding modifier for "allocated to" logic
+------------------------------------------------------------
+
+-- |This function defines a variable binding modifier that
+--  allocates a new blank node for each value bound to
+--  a query variable, and binds it to another variable
+--  in each query binding.
+--
+--  This provides a single binding for query variables that would
+--  otherwise be unbound by a query.  For example, consider the
+--  inference pattern:
+--        
+--  >  ?a hasUncle ?c => ?a hasFather ?b . ?b hasBrother ?c .
+--        
+--  For a given @?a@ and @?c@, there is insufficient information
+--  here to instantiate a value for variable @?b@.  Using this
+--  function as part of a graph instance closure rule allows
+--  forward chaining to allocate a single bnode for each
+--  occurrence of @?a@, so that given:
+--        
+--  >  Jimmy hasUncle Fred .
+--  >  Jimmy hasUncle Bob .
+--
+--  leads to exactly one bnode inference of:
+--
+--  >  Jimmy hasFather _:f .
+--
+--  giving:
+--
+--  >  Jimmy hasFather _:f .
+--  >  _:f   hasBrother Fred .
+--  >  _:f   hasBrother Bob .
+--
+--  rather than:
+--
+--  >  Jimmy hasFather _:f1 .
+--  >  _:f1  hasBrother Fred .
+--  >  Jimmy hasFather _:f2 .
+--  >  _:f2  hasBrother Bob .
+--
+--  This form of constrained allocation of bnodes is also required for
+--  some of the inference patterns described by the RDF formal semantics,
+--  particularly those where bnodes are substituted for URIs or literals.
+--
+makeNodeAllocTo ::
+    RDFLabel      -- ^ variable node to which a new blank node is bound
+    -> RDFLabel   -- ^ variable which is bound in each query to a graph
+                  --  node to which new blank nodes are allocated.
+    -> [RDFLabel]
+    -> RDFVarBindingModify
+makeNodeAllocTo bindvar alocvar exbnode = VarBindingModify
+        { vbmName   = swishName "makeNodeAllocTo"
+        , vbmApply  = applyNodeAllocTo bindvar alocvar exbnode
+        , vbmVocab  = [alocvar,bindvar]
+        , vbmUsage  = [[bindvar]]
+        }
+
+--  Auxiliary function that performs the node allocation defined
+--  by makeNodeAllocTo.
+--
+--  bindvar is a variable node to which a new blank node is bound
+--  alocvar is a variable which is bound in each query to a graph
+--          node to which new blank nodes are allocated.
+--  exbnode is a list of existing blank nodes, to be avoided by
+--          the new blank node allocator.
+--  vars    is a list of variable bindings to which new bnode
+--          allocations for the indicated bindvar are to be added.
+--
+applyNodeAllocTo ::
+    RDFLabel -> RDFLabel -> [RDFLabel] -> [RDFVarBinding] -> [RDFVarBinding]
+applyNodeAllocTo bindvar alocvar exbnode vars =
+    let
+        app       = applyVarBinding
+        alocnodes = zip (nub $ flist (map app vars) alocvar)
+                        (newNodes (makeBlank bindvar) exbnode)
+        newvb var = joinVarBindings
+            ( makeVarBinding $ head
+              [ [(bindvar,b)] | (v,b) <- alocnodes, app var alocvar == v ] )
+            var
+    in
+        map newvb vars
+
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

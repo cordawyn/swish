@@ -23,7 +23,18 @@ module Swish.RDF.BuiltInRules
     )
 where
 
+import Swish.Datatype (typeRules, typeMkModifiers)
+
+import Swish.RDF.VarBinding
+    ( nullVarBindingModify
+    , makeVarFilterModify
+    , varFilterEQ, varFilterNE
+    )
+
 import Swish.RDF.BuiltInDatatypes (allDatatypes)
+
+import Swish.RDF.Ruleset (RDFRuleset, RDFRulesetMap)
+import Swish.RDF.ProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
 
 import Swish.RDF.RDFVarBinding
     ( RDFOpenVarBindingModify
@@ -34,20 +45,6 @@ import Swish.RDF.RDFVarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.RDF.RDFRuleset (RDFRuleset, RDFRulesetMap)
-
-import Swish.RDF.RDFProofContext
-    ( rulesetRDF
-    , rulesetRDFS
-    , rulesetRDFD )
-
-import Swish.RDF.VarBinding
-    ( nullVarBindingModify
-    , makeVarFilterModify
-    , varFilterEQ, varFilterNE
-    )
-
-import Swish.Datatype (typeRules, typeMkModifiers)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
 

@@ -1,279 +1,360 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Proof
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  FlexibleInstances, UndecidableInstances
 --
---  This module defines a framework for constructing proofs
---  over some expression form.  It is intended to be used
---  with RDF graphs, but the structures aim to be quite
---  generic with respect to the expression forms allowed.
---
---  It does not define any proof-finding strategy.
+--  This module instantiates the 'Proof' framework for
+--  constructing proofs over 'RDFGraph' expressions.
+--  The intent is that this can be used to test some
+--  correspondences between the RDF Model theory and
+--  corresponding proof theory based on closure rules
+--  applied to the graph, per <http://www.w3.org/TR/rdf-mt/>.
 --
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Proof
-    ( Proof(..), Step(..)
-    , checkProof, explainProof, checkStep, showProof, showsProof, showsFormula )
+    ( RDFProof, RDFProofStep
+    , makeRDFProof, makeRDFProofStep
+    , makeRdfInstanceEntailmentRule
+    , makeRdfSubgraphEntailmentRule
+    , makeRdfSimpleEntailmentRule )
 where
 
-import Swish.RDF.Ruleset (Ruleset(..))
+import Swish.Proof (Proof(..), Step(..))
+import Swish.Rule (Expression(..), Rule(..))
 
-import Swish.RDF.Rule
-    ( Expression(..), Formula(..), Rule(..)
-    , showsFormula, showsFormulae )
+import Swish.RDF.GraphClass (Label(..), LDGraph(..))
+import Swish.RDF.GraphClass (replaceArcs)
 
-import Swish.Utils.ShowM (ShowM(..))
+import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.RDFQuery (rdfQueryInstance, rdfQuerySubs)
 
-import Swish.Utils.ListHelpers (subset)
+import Swish.RDF.RDFGraph
+    ( RDFLabel(..), RDFGraph
+    --, makeBlank
+    , merge , allLabels , remapLabelList
+    {-, newNode, newNodes
+    , toRDFGraph -}, emptyRDFGraph
+    )
 
-import Data.List (union, intersect, intercalate, foldl')
-import Data.Maybe (catMaybes, isNothing)
+import Swish.RDF.VarBinding (makeVarBinding)
+
+import Swish.Utils.Namespace (ScopedName)
+
+import Swish.Utils.LookupMap
+    ( makeLookupMap, mapFind )
+
+import Swish.Utils.ListHelpers
+    ( subset
+    , powerSet
+    , powerSequencesLen
+    , flist
+    )
 
 ------------------------------------------------------------
---  Proof framework
+--  Type instantiation of Proof framework for RDFGraph data
 ------------------------------------------------------------
-
--- |Step in proof chain
 --
---  The display name for a proof step comes from the display name of its
---  consequence formula.
-data Step ex = Step
-    { stepRule :: Rule ex           -- ^ Inference rule used
-    , stepAnt  :: [Formula ex]      -- ^ Antecedents of inference rule
-    , stepCon  :: Formula ex        -- ^ Named consequence of inference rule
-    } deriving Show
+--  This is a partial instantiation of the proof framework.
+--  Details for applying inference rules are specific to the
+--  graph instance type.
 
--- |Proof is a structure that presents a chain of rule applications
---  that yield a result expression from a given expression
-data Proof ex = Proof
-    { proofContext :: [Ruleset ex]  -- ^ Proof context:  list of rulesets,
-                                    --   each of which provides a number of
-                                    --   axioms and rules.
-    , proofInput   :: Formula ex    -- ^ Given expression
-    , proofResult  :: Formula ex    -- ^ Result expression
-    , proofChain   :: [Step ex]     -- ^ Chain of inference rule applications
-                                    --   progressing from input to result
+------------------------------------------------------------
+--  Proof datatypes for graph values
+------------------------------------------------------------
+
+-- The following is an orphan instance
+
+-- |Instances of 'LDGraph' are also instance of the
+--  @Expression@ class, for which proofs can be constructed.
+--  The empty RDF graph is always @True@ (other enduring
+--  truths are asserted as axioms).
+instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
+    isValid = null . getArcs 
+
+------------------------------------------------------------
+--  Define RDF-specific types for proof framework
+------------------------------------------------------------
+
+-- | An RDF proof.
+type RDFProof     = Proof RDFGraph
+
+-- | A step in an RDF proof.
+type RDFProofStep = Step RDFGraph
+
+------------------------------------------------------------
+--  Helper functions for constructing proofs on RDF graphs
+------------------------------------------------------------
+
+-- |Make an RDF graph proof step.
+--
+makeRDFProofStep ::
+    RDFRule  -- ^ rule to use for this step
+    -> [RDFFormula] -- ^ antecedent RDF formulae for this step
+    -> RDFFormula -- ^ RDF formula that is the consequent for this step 
+    -> RDFProofStep
+makeRDFProofStep rul ants con = Step
+    { stepRule = rul
+    , stepAnt  = ants
+    , stepCon  = con
     }
 
--- |Return a list of axioms from all the rulesets in a proof
-proofAxioms :: Proof a -> [Formula a]
-proofAxioms = concatMap rsAxioms . proofContext
-
--- |Return a list of rules from all the rulesets in a proof
-proofRules :: Proof a -> [Rule a]
-proofRules = concatMap rsRules . proofContext
-
--- |Return list of axioms actually referenced by a proof
-proofAxiomsUsed :: Proof ex -> [Formula ex]
-proofAxiomsUsed proof = foldl' union [] $ map stepAxioms (proofChain proof)
-    where
-        stepAxioms st = stepAnt st `intersect` proofAxioms proof
-
--- |Check consistency of given proof.
---  The supplied rules and axioms are assumed to be correct.
-checkProof :: (Expression ex) => Proof ex -> Bool
-checkProof pr =
-    checkProof1 (proofRules pr) initExpr (proofChain pr) goalExpr
-    where
-        initExpr = formExpr (proofInput pr) : map formExpr (proofAxioms pr)
-        goalExpr = formExpr $ proofResult pr
-
-checkProof1 :: (Expression ex) => [Rule ex] -> [ex] -> [Step ex] -> ex -> Bool
-checkProof1 _     prev []       res = res `elem` prev
-checkProof1 rules prev (st:steps) res =
-    checkStep rules prev st &&
-    checkProof1 rules (formExpr (stepCon st):prev) steps res
-
--- | A proof step is valid if rule is in list of rules
---  and the antecedents are sufficient to obtain the conclusion
---  and the antecedents are in the list of formulae already proven.
+-- |Make an RDF proof.
 --
---  Note:  this function depends on the ruleName of any rule being
---  unique among all rules.  In particular the name of the step rule
---  being in correspondence with the name of one of the indicated
---  valid rules of inference.
-checkStep :: 
-  (Expression ex) 
-  => [Rule ex]   -- ^ rules
-  -> [ex]        -- ^ antecedants
-  -> Step ex     -- ^ the step to validate
-  -> Bool        -- ^ @True@ if the step is valid
+makeRDFProof ::
+    [RDFRuleset]      -- ^ RDF rulesets that constitute a proof context for this proof
+    -> RDFFormula     -- ^ initial statement from which the goal is claimed to be proven
+    -> RDFFormula     -- ^ statement that is claimed to be proven
+    -> [RDFProofStep] -- ^ the chain of inference rules in the proof.
+    -> RDFProof
+makeRDFProof rsets base goal steps = Proof
+    { proofContext = rsets
+    , proofInput   = base
+    , proofResult  = goal
+    , proofChain   = steps
+    }
 
-checkStep rules prev step = isNothing $ explainStep rules prev step
+------------------------------------------------------------
+--  RDF instance entailment inference rule
+------------------------------------------------------------
 
-{-
-
-Is the following an optimisation of the above?
-
-checkStep rules prev step =
-    -- Rule name is one of supplied rules, and
-    (ruleName srul `elem` map ruleName rules) &&
-    -- Antecedent expressions are all previously accepted expressions
-    (sant `subset` prev)   &&
-    -- Inference rule yields concequence from antecendents
-    checkInference srul sant scon
+-- |Make an inference rule dealing with RDF instance entailment;
+--  i.e. entailments that are due to replacement of a URI or literal
+--  node with a blank node.
+--
+--  The part of this rule expected to be useful is 'checkInference'.
+--  The 'fwdApply' and 'bwdApply' functions defined here may return
+--  rather large results if applied to graphs with many variables or
+--  a large vocabulary, and are defined for experimentation.
+--
+--  Forward and backward chaining is performed with respect to a
+--  specified vocabulary.  In the case of backward chaining, it would
+--  otherwise be impossible to bound the options thus generated.
+--  In the case of forward chaining, it is often not desirable to
+--  have the properties generalized.  If forward or backward backward
+--  chaining will not be used, supply an empty vocabulary.
+--  Note:  graph method 'Swish.RDF.RDFGraph.allNodes' can be used to obtain a list of all
+--  the subjects and objects used in a  graph, not counting nested
+--  formulae;  use a call of the form:
+--
+--  >  allNodes (not . labelIsVar) graph
+--
+makeRdfInstanceEntailmentRule :: 
+  ScopedName     -- ^ name
+  -> [RDFLabel]  -- ^ vocabulary
+  -> RDFRule
+makeRdfInstanceEntailmentRule name vocab = newrule
     where
-        --  Rule from proof step:
-        srul = stepRule step
-        --  Antecedent expressions from proof step:
-        sant = map formExpr $ stepAnt step
-        --  Consequentent expression from proof step:
-        scon = formExpr $ stepCon step
+        newrule = Rule
+            { ruleName = name
+            , fwdApply = rdfInstanceEntailFwdApply vocab
+            , bwdApply = rdfInstanceEntailBwdApply vocab
+            , checkInference = rdfInstanceEntailCheckInference
+            }
+
+--  Instance entailment forward chaining
+--
+--  Note:  unless the initial graph is small, the total result
+--  here could be very large.  The existential generalizations are
+--  sequenced in increasing number of substitutions applied.
+--  This sequencing is determined by the powerset function used,
+--  which generates subsets in increasing order of size
+--  (see module 'ListHelpers').
+--
+--  The instances generated are all copies of the merge of the
+--  supplied graphs, with some or all of the non-variable nodes
+--  replaced by blank nodes.
+rdfInstanceEntailFwdApply :: [RDFLabel] -> [RDFGraph] -> [RDFGraph]
+rdfInstanceEntailFwdApply vocab ante =
+    let
+        --  Merge antecedents to single graph, renaming bnodes if needed.
+        --  (Null test and using 'foldl1' to avoid merging if possible.)
+        mergeGraph  = if null ante then emptyRDFGraph
+                        else foldl1 merge ante
+        --  Obtain lists of variable and non-variable nodes
+        --  (was: nonvarNodes = allLabels (not . labelIsVar) mergeGraph)
+        nonvarNodes = vocab
+        varNodes    = allLabels labelIsVar mergeGraph
+        --  Obtain list of possible remappings for non-variable nodes
+        mapList     = remapLabelList nonvarNodes varNodes
+        mapSubLists = powerSet mapList
+        mapGr ls = fmap (\l -> mapFind l l (makeLookupMap ls))
+    in
+        --  Return all remappings of the original merged graph
+        flist (map mapGr mapSubLists) mergeGraph
+
+--  Instance entailment backward chaining (for specified vocabulary)
+--
+--  [[[TODO:  this is an incomplete implementation, there being no
+--  provision for instantiating some variables and leaving others
+--  alone.  This can be overcome in many cases by combining instance
+--  and subgraph chaining.
+--  Also, there is no provision for instantiating some variables in
+--  a triple and leaving others alone.  This may be fixed later if
+--  this function is really needed to be completely faithful to the
+--  precise notion of instance entailment.]]]
+rdfInstanceEntailBwdApply :: [RDFLabel] -> RDFGraph -> [[RDFGraph]]
+rdfInstanceEntailBwdApply vocab cons =
+    let
+        --  Obtain list of variable nodes
+        varNodes     = allLabels labelIsVar cons
+        --  Generate a substitution for each combination of variable
+        --  and vocabulary node.
+        varBindings  = map (makeVarBinding . zip varNodes) vocSequences
+        vocSequences = powerSequencesLen (length varNodes) vocab
+    in
+        --  Generate a substitution for each combination of variable
+        --  and vocabulary:
+        [ rdfQuerySubs [v] cons | v <- varBindings ]
+
+--  Instance entailment inference checker
+rdfInstanceEntailCheckInference :: [RDFGraph] -> RDFGraph -> Bool
+rdfInstanceEntailCheckInference ante cons =
+    let
+        mante = if null ante then emptyRDFGraph -- merged antecedents
+                    else foldl1 merge ante
+        qvars = rdfQueryInstance cons mante     -- all query matches
+        bsubs = rdfQuerySubs qvars cons         -- all back substitutions
+    in
+        --  Return True if any back-substitution matches the original
+        --  merged antecendent graph.
+        elem mante bsubs
+
+--  Instance entailment notes.
+--
+--  Relation to simple entailment (s-entails):
+--
+--  (1) back-substitution yields original graph
+--  ex:s1 ex:p1 ex:o1  s-entails  ex:s1 ex:p1 _:o1  by [_:o1/ex:o1]
+--
+--  (2) back-substitution yields original graph
+--  ex:s1 ex:p1 ex:o1  s-entails  ex:s1 ex:p1 _:o2  by [_:o2/ex:o1]
+--  ex:s1 ex:p1  _:o1             ex:s1 ex:p1 _:o3     [_:o3/_:o1]
+--
+--  (3) back-substitution does not yield original graph
+--  ex:s1 ex:p1 ex:o1  s-entails  ex:s1 ex:p1 _:o2  by [_:o2/ex:o1]
+--  ex:s1 ex:p1  _:o1             ex:s1 ex:p1 _:o3     [_:o3/ex:o1]
+--
+--  (4) consider
+--  ex:s1 ex:p1 ex:o1  s-entails  ex:s1 ex:p1 ex:o1
+--  ex:s1 ex:p1 ex:o2             ex:s1 ex:p1 ex:o2
+--  ex:s1 ex:p1 ex:o3             ex:s1 ex:p1 _:o1
+--                                ex:s1 ex:p1 _:o2
+--  where [_:o1/ex:o1,_:o2/ex:o2] yields a simple entailment but not
+--  an instance entailment, but [_:o1/ex:o3,_:o2/ex:o3] is also
+--  (arguably) an instance entailment.  Therefore, it is not sufficient
+--  to look only at the "largest" substitutions to determine instance
+--  entailment.
+--
+--  All this means that when checking for instance entailment by
+--  back substitution, all of the query results must be checked.
+--  This seems clumsy.  If this function is heavily used with
+--  multiple query matches, a modified query that uses each
+--  triple of the target graph exactly once may be required.
+
+------------------------------------------------------------
+--  RDF subgraph entailment inference rule
+------------------------------------------------------------
+
+-- |Make an inference rule dealing with RDF subgraph entailment.
+--  The part of this rule expected to be useful is 'checkInference'.
+--  The 'fwdApply' function defined here may return rather large
+--  results.  But in the name of completeness and experimentation
+--  with the possibilities of lazy evaluation, it has been defined.
+--
+--  Backward chaining is not performed, as there is no reasonable way
+--  to choose a meaningful supergraph of that supplied.
+makeRdfSubgraphEntailmentRule :: ScopedName -> RDFRule
+makeRdfSubgraphEntailmentRule name = newrule
+    where
+        newrule = Rule
+            { ruleName = name
+            , fwdApply = rdfSubgraphEntailFwdApply
+            , bwdApply = const []
+            , checkInference = rdfSubgraphEntailCheckInference
+            }
+
+--  Subgraph entailment forward chaining
+--
+--  Note:  unless the initial graph is small, the total result
+--  here could be very large.  The subgraphs are sequenced in
+--  increasing size of the sub graph.  This sequencing is determined
+--  by the 'powerSet' function used which generates subsets in
+--  increasing order of size (see module 'ListHelpers').
+rdfSubgraphEntailFwdApply :: [RDFGraph] -> [RDFGraph]
+rdfSubgraphEntailFwdApply ante =
+    let
+        --  Merge antecedents to single graph, renaming bnodes if needed.
+        --  (Null test and using 'foldl1' to avoid merging if possible.)
+        mergeGraph  = if null ante then emptyRDFGraph
+                        else foldl1 merge ante
+    in
+        --  Return all subgraphs of the full graph constructed above
+        map (replaceArcs mergeGraph) (init $ powerSet $ getArcs mergeGraph)
+
+--  Subgraph entailment inference checker
+--
+--  This is of dubious utiltiy, as it doesn't allow for node renaming.
+--  The simple entailment inference rule is probably more useful here.
+rdfSubgraphEntailCheckInference :: [RDFGraph] -> RDFGraph -> Bool
+rdfSubgraphEntailCheckInference ante cons =
+    let
+        --  Combine antecedents to single graph, renaming bnodes if needed.
+        --  (Null test and using 'foldl1' to avoid merging if possible.)
+        fullGraph  = if null ante then emptyRDFGraph
+                        else foldl1 add ante
+    in
+        --  Check each consequent graph arc is in the antecedent graph
+        getArcs cons `subset` getArcs fullGraph
+
+------------------------------------------------------------
+--  RDF simple entailment inference rule
+------------------------------------------------------------
+
+-- |Make an inference rule dealing with RDF simple entailment.
+--  The part of this rule expected to be useful is 'checkInference'.
+--  The 'fwdApply' and 'bwdApply' functions defined return null
+--  results, indicating that they are not useful for the purposes
+--  of proof discovery.
+makeRdfSimpleEntailmentRule :: ScopedName -> RDFRule
+makeRdfSimpleEntailmentRule name = newrule
+    where
+        newrule = Rule
+            { ruleName = name
+            , fwdApply = const []
+            , bwdApply = const []
+            , checkInference = rdfSimpleEntailCheckInference
+            }
+
+--  Simple entailment inference checker
+--
+--  Note:  antecedents here are presumed to share bnodes.
+--         (Use 'merge' instead of 'add' for non-shared bnodes)
+--
+rdfSimpleEntailCheckInference :: [RDFGraph] -> RDFGraph -> Bool
+rdfSimpleEntailCheckInference ante cons =
+    let agr = if null ante then emptyRDFGraph else foldl1 add ante
+    in
+        not $ null $ rdfQueryInstance cons agr
+
+{- original..
+        not $ null $ rdfQueryInstance cons (foldl1 merge ante)
 -}
-
-
-{-
-    (formExpr (stepCon step) `elem` sfwd)
-    -- (or $ map (`subset` sant) sbwd)
-    where
-        --  Rule from proof step:
-        srul = stepRule step
-        --  Antecedent expressions from proof step:
-        sant = map formExpr $ stepAnt step
-        --  Forward chaining from antecedents of proof step
-        scon = map formExpr $ stepCon step
-        --  Forward chaining from antecedents of proof step
-
-        sfwd = fwdApply srul sant
-        --  Backward chaining from consequent of proof step
-        --  (Does not work because of introduction of existentials)
-        sbwd = bwdApply srul (formExpr $ stepCon step)
--}
-
--- |Check proof. If there is an error then return information
--- about the failing step.
-explainProof ::
-    (Expression ex) => Proof ex -> Maybe String
-explainProof pr =
-    explainProof1 (proofRules pr) initExpr (proofChain pr) goalExpr
-    where
-        initExpr = formExpr (proofInput pr) : map formExpr (proofAxioms pr)
-        goalExpr = formExpr $ proofResult pr
-
-explainProof1 ::
-    (Expression ex) => [Rule ex] -> [ex] -> [Step ex] -> ex -> Maybe String
-explainProof1 _     prev []       res   =
-    if res `elem` prev then Nothing else Just "Result not demonstrated"
-explainProof1 rules prev (st:steps) res =
-    case explainStep rules prev st  of
-        Nothing -> explainProof1 rules (formExpr (stepCon st):prev) steps res
-        Just ex -> Just ("Invalid step: "++show (formName $ stepCon st)++": "++ex)
-
--- | A proof step is valid if rule is in list of rules
---  and the antecedents are sufficient to obtain the conclusion
---  and the antecedents are in the list of formulae already proven.
---
---  Note:  this function depends on the ruleName of any rule being
---  unique among all rules.  In particular the name of the step rule
---  being in correspondence with the name of one of the indicated
---  valid rules of inference.
---
-explainStep :: 
-  (Expression ex) 
-  => [Rule ex]  -- ^ rules
-  -> [ex]       -- ^ previous
-  -> Step ex    -- ^ step
-  -> Maybe String -- ^ @Nothing@ if step is okay, otherwise a string indicating the error
-explainStep rules prev step =
-        if null errors then Nothing else Just $ intercalate ", " errors
-    where
-        --  Rule from proof step:
-        srul = stepRule step
-        --  Antecedent expressions from proof step:
-        sant = map formExpr $ stepAnt step
-        --  Consequentent expression from proof step:
-        scon = formExpr $ stepCon step
-        --  Tests for step to be valid
-        errors = catMaybes
-            -- Rule name is one of supplied rules, and
-            [ require (ruleName srul `elem` map ruleName rules)
-                      ("rule "++show (ruleName srul)++" not present")
-            -- Antecedent expressions are all previously accepted expressions
-            , require (sant `subset` prev)
-                      "antecedent not axiom or previous result"
-            -- Inference rule yields consequence from antecedents
-            , require (checkInference srul sant scon)
-                      "rule does not deduce consequence from antecedents"
-            ]
-        require b s = if b then Nothing else Just s
-
--- |Create a displayable form of a proof, returned as a `ShowS` value.
---
---  This function is intended to allow the calling function some control
---  of multiline displays by providing:
---
---  (1) the first line of the proof is not preceded by any text, so
---      it may be appended to some preceding text on the same line,
---
---  (2) the supplied newline string is used to separate lines of the
---      formatted text, and may include any desired indentation, and
---
---  (3) no newline is output following the final line of text.
-showsProof :: 
-  (ShowM ex) 
-  => String    -- ^ newline string
-  -> Proof ex 
-  -> ShowS
-showsProof newline proof =
-    if null axioms then shProof else shAxioms . shProof
-    where
-        axioms = proofAxiomsUsed proof
-        shAxioms =
-            showString    ("Axioms:" ++ newline) .
-            showsFormulae newline (proofAxiomsUsed proof) newline
-        shProof =
-            showString    ("Input:" ++ newline) .
-            showsFormula  newline (proofInput  proof) .
-            showString    (newline ++ "Proof:" ++ newline) .
-            showsSteps    newline (proofChain  proof)
-
--- |Returns a simple string representation of a proof.
-showProof :: 
-  (ShowM ex) 
-  => String    -- ^ newline string
-  -> Proof ex 
-  -> String
-showProof newline proof = showsProof newline proof ""
-
--- |Create a displayable form of a list of labelled proof steps
-showsSteps :: (ShowM ex) => String -> [Step ex] -> ShowS
-showsSteps _       []     = id
-showsSteps newline [s]    = showsStep  newline s
-showsSteps newline (s:ss) = showsStep  newline s .
-                            showString newline .
-                            showsSteps newline ss
-
--- |Create a displayable form of a labelled proof step.
-showsStep :: (ShowM ex) => String -> Step ex -> ShowS
-showsStep newline s = showsFormula newline (stepCon s) .
-                      showString newline .
-                      showString ("  (by ["++rulename++"] from "++antnames++")")
-    where
-        rulename = show . ruleName $ stepRule s
-        antnames = showNames $ map (show . formName) (stepAnt s)
-
--- |Return a string containing a list of names.
-showNames :: [String] -> String
-showNames []      = "<nothing>"
-showNames [n]     = showName n
-showNames [n1,n2] = showName n1 ++ " and " ++ showName n2
-showNames (n1:ns) = showName n1 ++ ", " ++ showNames ns
-
--- |Return a string representing a single name.
-showName :: String -> String
-showName n = "["++n++"]"
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

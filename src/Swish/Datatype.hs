@@ -55,15 +55,9 @@ module Swish.Datatype
     )
 where
 
-import Swish.RDF.Ruleset
-    ( Ruleset(..)
-    , getRulesetAxiom, getRulesetRule
-    )
-
-import Swish.RDF.Rule
-    ( Formula(..)
-    , Rule(..)
-    )
+import Swish.Rule (Formula(..), Rule(..))
+import Swish.Ruleset (Ruleset(..))
+import Swish.Ruleset (getRulesetAxiom, getRulesetRule)
 
 import Swish.RDF.Vocabulary (swishName)
 import Swish.Utils.Namespace (ScopedName)

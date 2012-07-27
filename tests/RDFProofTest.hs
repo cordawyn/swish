@@ -19,16 +19,14 @@
 
 module Main where
 
-import Swish.RDF.RDFProof
+import Swish.Rule (Rule(..))
+
+import Swish.RDF.Proof
     ( makeRdfInstanceEntailmentRule
     , makeRdfSubgraphEntailmentRule
     , makeRdfSimpleEntailmentRule
     )
-
-import Swish.RDF.RDFQuery (rdfQueryFind, rdfQuerySubs)
-import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
-
-import Swish.RDF.RDFRuleset
+import Swish.RDF.Ruleset
     ( RDFRule
     , makeRDFGraphFromN3Builder
     , makeN3ClosureAllocatorRule
@@ -36,6 +34,9 @@ import Swish.RDF.RDFRuleset
     , makeN3ClosureSimpleRule
     , makeNodeAllocTo
     )
+
+import Swish.RDF.RDFQuery (rdfQueryFind, rdfQuerySubs)
+import Swish.RDF.RDFVarBinding (RDFVarBinding, RDFVarBindingModify)
 
 import Swish.RDF.RDFGraph
     ( Label(..), RDFLabel(..), RDFGraph
@@ -49,7 +50,6 @@ import Swish.RDF.VarBinding
     , varFilterNE
     )
 
-import Swish.RDF.Rule (Rule(..))
 import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
 import Test.HUnit ( Test(TestList) )

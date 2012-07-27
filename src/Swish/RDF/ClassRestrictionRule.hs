@@ -28,6 +28,7 @@ module Swish.RDF.ClassRestrictionRule
        where
 
 import Swish.Datatype (DatatypeVal(..), DatatypeRel(..), DatatypeRelFn)
+import Swish.Rule (Rule(..), bwdCheckInference)
 
 import Swish.RDF.RDFGraph
     ( RDFLabel(..)
@@ -41,8 +42,8 @@ import Swish.RDF.RDFGraph
     , resRdfdMaxCardinality
     )
 
-import Swish.RDF.RDFRuleset (RDFRule, makeRDFGraphFromN3Builder)
 import Swish.RDF.Datatype (RDFDatatypeVal, fromRDFLabel, toRDFLabel)
+import Swish.RDF.Ruleset (RDFRule, makeRDFGraphFromN3Builder)
 
 import Swish.RDF.RDFQuery
     ( rdfQueryFind
@@ -51,7 +52,6 @@ import Swish.RDF.RDFQuery
     )
 
 import Swish.RDF.RDFVarBinding (RDFVarBinding)
-import Swish.RDF.Rule ( Rule(..), bwdCheckInference)
 import Swish.RDF.VarBinding (VarBinding(..))
 import Swish.RDF.Vocabulary (namespaceRDFD)
 

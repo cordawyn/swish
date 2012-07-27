@@ -19,6 +19,8 @@
 
 module Main where
 
+import Swish.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
+
 import Swish.RDF.BuiltInMap
     ( findRDFOpenVarBindingModifier
     , findRDFDatatype
@@ -27,8 +29,6 @@ import Swish.RDF.BuiltInMap
     )
 
 import Swish.RDF.Datatype.XSD.Integer (typeNameXsdInteger, namespaceXsdInteger)
-
-import Swish.RDF.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
 
 import Swish.Utils.Namespace (makeNSScopedName)
 

@@ -20,7 +20,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.Rule
+module Swish.Rule
        ( Expression(..), Formula(..), Rule(..), RuleMap
        , nullScope, nullSN, nullFormula, nullRule
        , fwdCheckInference, bwdCheckInference

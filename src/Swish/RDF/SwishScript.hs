@@ -72,7 +72,9 @@ module Swish.RDF.SwishScript
 where
 
 import Swish.Datatype (typeMkRules)
-import Swish.RDF.Proof (explainProof, showsProof)
+import Swish.Proof (explainProof, showsProof)
+import Swish.Rule (Formula(..), Rule(..)) 
+import Swish.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
 
 import Swish.RDF.Datatype (RDFDatatype)
 
@@ -86,10 +88,10 @@ import Swish.RDF.SwishMonad
     , NamedGraph(..)
     )
 
-import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleset)
-import Swish.RDF.RDFRuleset (makeRDFClosureRule)
-import Swish.RDF.RDFProof (RDFProofStep)
-import Swish.RDF.RDFProof (makeRDFProof, makeRDFProofStep)
+import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
+import Swish.RDF.Ruleset (makeRDFClosureRule)
+import Swish.RDF.Proof (RDFProofStep)
+import Swish.RDF.Proof (makeRDFProof, makeRDFProofStep)
 import Swish.RDF.RDFVarBinding (RDFVarBindingModify)
 
 import Swish.RDF.RDFGraphShowM()
@@ -117,8 +119,6 @@ import Swish.RDF.Parser.N3
     )
 
 import Swish.RDF.Formatter.N3 (formatGraphAsBuilder)
-import Swish.RDF.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
-import Swish.RDF.Rule (Formula(..), Rule(..)) 
 import Swish.RDF.VarBinding (composeSequence)
 
 import Swish.Utils.Namespace (ScopedName, getScopeNamespace)

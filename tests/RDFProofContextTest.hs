@@ -19,20 +19,21 @@
 
 module Main where
 
-import Swish.RDF.BuiltInMap (rdfRulesetMap, allRulesets)
-import Swish.RDF.RDFProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
-import Swish.RDF.RDFProof (RDFProof, RDFProofStep, makeRDFProof, makeRDFProofStep )
+import Swish.Proof (Step(..), checkProof, checkStep, explainProof)
+import Swish.Rule (Formula(..), Rule(..), nullFormula, nullRule)
+import Swish.Ruleset (getContextAxiom, getContextRule)
 
-import Swish.RDF.RDFRuleset
+import Swish.RDF.BuiltInMap (rdfRulesetMap, allRulesets)
+
+import Swish.RDF.ProofContext (rulesetRDF, rulesetRDFS, rulesetRDFD)
+import Swish.RDF.Proof (RDFProof, RDFProofStep, makeRDFProof, makeRDFProofStep )
+import Swish.RDF.Ruleset
     ( RDFFormula, RDFRule, RDFRuleset
     , nullRDFFormula
     , makeRDFFormula )
 
 import Swish.RDF.RDFGraph (RDFGraph)
 import Swish.RDF.RDFGraphShowM ()
-import Swish.RDF.Proof (Step(..), checkProof, checkStep, explainProof)
-import Swish.RDF.Ruleset (getContextAxiom, getContextRule)
-import Swish.RDF.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 
 import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (mapFindMaybe)

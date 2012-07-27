@@ -38,9 +38,11 @@ module Swish.RDF.SwishMonad
 where
 
 import Swish.RDF.Datatype (RDFDatatype)
+import Swish.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
+import Swish.Rule(Formula(..))
 
 import Swish.RDF.RDFGraph (RDFGraph, emptyRDFGraph)
-import Swish.RDF.RDFRuleset (RDFFormula, RDFRule, RDFRuleMap, RDFRuleset, RDFRulesetMap)
+import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleMap, RDFRuleset, RDFRulesetMap)
 import Swish.RDF.RDFVarBinding (RDFOpenVarBindingModify)
 
 import Swish.RDF.BuiltInMap
@@ -48,9 +50,6 @@ import Swish.RDF.BuiltInMap
     , findRDFDatatype
     , rdfRulesetMap
     )
-
-import Swish.RDF.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
-import Swish.RDF.Rule(Formula(..))
 
 import Swish.Utils.Namespace (ScopedName, getScopeNamespace)
 import Swish.Utils.QName (QName)

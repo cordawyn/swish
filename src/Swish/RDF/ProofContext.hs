@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  RDFProofContext
+--  Module      :  ProofContext
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -19,17 +19,19 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.RDFProofContext ( rulesetRDF 
-                                 , rulesetRDFS
-                                 , rulesetRDFD) where
+module Swish.RDF.ProofContext ( rulesetRDF 
+                              , rulesetRDFS
+                              , rulesetRDFD) where
+
+import Swish.Datatype (typeMkCanonicalForm)
+import Swish.Ruleset (makeRuleset)
 
 import Swish.RDF.BuiltInDatatypes (findRDFDatatype)
 
-import Swish.RDF.RDFProof
-    ( makeRdfSubgraphEntailmentRule
-    , makeRdfSimpleEntailmentRule )
+import Swish.RDF.Proof (makeRdfSubgraphEntailmentRule
+                       , makeRdfSimpleEntailmentRule )
 
-import Swish.RDF.RDFRuleset 
+import Swish.RDF.Ruleset 
     ( RDFFormula, RDFRule, RDFRuleset 
     , makeRDFFormula
     , makeN3ClosureRule
@@ -59,8 +61,6 @@ import Swish.RDF.VarBinding
     , varFilterDisjunction
     )
 
-import Swish.RDF.Ruleset (makeRuleset)
-import Swish.Datatype (typeMkCanonicalForm)
 import Swish.Utils.Namespace (Namespace, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
