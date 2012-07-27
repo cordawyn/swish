@@ -6,7 +6,7 @@
 -- |
 --  Module      :  RDFDatatypeXsdDecimal
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                     2011 Douglas Burke
+--                     2011 William Waites, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -14,16 +14,25 @@
 --  Portability :  OverloadedStrings
 --
 --  This module defines the structures used by Swish to represent and
---  manipulate RDF @xsd:double@ datatyped literals.
+--  manipulate RDF @xsd:decimal@ datatyped literals.
+--
+--  Note that in versions @0.6.4@ and @0.6.5@, this module was a mixture
+--  of support for @xsd:decimal@ and @xsd:double@. In @0.7.0@ the module
+--  has been changed to @xsd:decimal@, but this may change.
 --
 --------------------------------------------------------------------------------
+
+-- NOTE: William's code is half about xsd:decimal and half xsd:double.
+-- I have changed it all to xsd:decimal since the rules do not handle some
+-- of the xsd:double specific conditions (e.g. NaN/Inf values). However,
+-- the values are mapped to Haskell Double values, which is not a good match
+-- for xsd:decimal.
 
 module Swish.RDF.RDFDatatypeXsdDecimal
     ( rdfDatatypeXsdDecimal
     , rdfDatatypeValXsdDecimal
     , typeNameXsdDecimal, namespaceXsdDecimal
     , axiomsXsdDecimal, rulesXsdDecimal
-    , prefixXsdDecimal
     )
 where
 
@@ -77,35 +86,28 @@ import qualified Data.Text.Lazy.Builder as B
 --  Misc values
 ------------------------------------------------------------
 
---  Local name for Double datatype
 nameXsdDecimal :: T.Text
 nameXsdDecimal      = "decimal"
 
--- |Type name for xsd:double datatype
+-- |Type name for @xsd:decimal@ datatype.
 typeNameXsdDecimal :: ScopedName
 typeNameXsdDecimal  = makeNSScopedName namespaceXSD nameXsdDecimal
 
--- |Namespace for xsd:double datatype functions
+-- | Namespace for @xsd:decimal@ datatype functions.
 namespaceXsdDecimal :: Namespace
 namespaceXsdDecimal = namespaceXsdType nameXsdDecimal
 
-------------------------------------------------------------
---  Declare exported RDFDatatype value for xsd:double
-------------------------------------------------------------
-
+-- | The RDFDatatype value for @xsd:decimal@.
 rdfDatatypeXsdDecimal :: RDFDatatype
 rdfDatatypeXsdDecimal = Datatype rdfDatatypeValXsdDecimal
 
-------------------------------------------------------------
---  Implmentation of RDFDatatypeVal for xsd:double
-------------------------------------------------------------
-
--- |Define Datatype value for @xsd:double@.
+-- |Define Datatype value for @xsd:decimal@.
 --
 --  Members of this datatype decimal values.
 --
 --  The lexical form consists of an optional @+@ or @-@
---  followed by a sequence of decimal digits.
+--  followed by a sequence of decimal digits, an optional
+--  decimal point and a sequence of decimal digits.
 --
 --  The canonical lexical form has leading zeros and @+@ sign removed.
 --
@@ -121,7 +123,7 @@ rdfDatatypeValXsdDecimal = DatatypeVal
     , tvalMod       = modXsdDecimal         -- [DatatypeMod Double]
     }
 
--- |relXsdDecimal contains arithmetic and other relations for xsd:double values.
+-- |relXsdDecimal contains arithmetic and other relations for xsd:decimal values.
 --
 --  The functions are inspired by those defined by CWM as math: properties
 --  (<http://www.w3.org/2000/10/swap/doc/CwmBuiltins.html>).
@@ -240,7 +242,7 @@ relXsdDecimalGe :: DatatypeRel Double
 relXsdDecimalGe = mkDecRel2 "ge" (lcomp (>=))
     ( repeat (const True, []) )
 
--- |modXsdDecimal contains variable binding modifiers for xsd:double values.
+-- |modXsdDecimal contains variable binding modifiers for xsd:decimal values.
 --
 --  The functions are selected from those defined by CWM as math:
 --  properties
@@ -362,7 +364,7 @@ modXsdDecimalCompare nam rel = DatatypeMod
         f0 _          = []
 
 -- |rulesetXsdDecimal contains rules and axioms that allow additional
---  deductions when xsd:double values appear in a graph.
+--  deductions when xsd:decimal values appear in a graph.
 --
 --  The rules defined here are concerned with basic decimal arithmetic
 --  operations: +, -, *, /, **
@@ -373,28 +375,33 @@ rdfRulesetXsdDecimal :: RDFRuleset
 rdfRulesetXsdDecimal =
     makeRuleset namespaceXsdDecimal axiomsXsdDecimal rulesXsdDecimal
 
-mkPrefix :: Namespace -> B.Builder
-mkPrefix = namespaceToBuilder
-
 prefixXsdDecimal :: B.Builder
 prefixXsdDecimal = 
-  mconcat
-  [ mkPrefix namespaceRDF
-  , mkPrefix namespaceRDFS
-  , mkPrefix namespaceRDFD
-  , mkPrefix namespaceXSD
-  , mkPrefix namespaceXsdDecimal
-  ]
+  mconcat $ map namespaceToBuilder
+              [ namespaceRDF
+              , namespaceRDFS
+              , namespaceRDFD
+              , namespaceXSD
+              , namespaceXsdDecimal
+              ]
 
 mkAxiom :: T.Text -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdDecimal local (prefixXsdDecimal `mappend` gr)
 
+-- | The axioms for @xsd:decimal@, which are
+--
+-- > xsd:decimal a rdfs:Datatype .
+--
 axiomsXsdDecimal :: [RDFFormula]
 axiomsXsdDecimal =
-    [ mkAxiom "dt"      "xsd:double rdf:type rdfs:Datatype ."
+    [ mkAxiom "dt"
+                  "xsd:decimal rdf:type rdfs:Datatype ."
+                  -- "xsd:double rdf:type rdfs:Datatype ."
     ]
 
+-- | The rules for @xsd:decimal@.
+--
 rulesXsdDecimal :: [RDFRule]
 rulesXsdDecimal = makeRDFDatatypeRestrictionRules rdfDatatypeValXsdDecimal gr
     where
@@ -464,7 +471,7 @@ rulesXsdDecimalBuilder =
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                2011 Douglas Burke, 2011 William Waites
+--                2011 William Waites, 2011, 2012 Douglas Burke, 
 --  All rights reserved.
 --
 --  This file is part of Swish.

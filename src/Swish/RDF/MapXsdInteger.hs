@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  MapXsdInteger
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -28,8 +28,8 @@ import qualified Data.Text.Read as T
 --  Implementation of DatatypeMap for xsd:integer
 ------------------------------------------------------------
 
--- |mapXsdInteger contains functions that perform lexical-to-value
---  and value-to-canonical-lexical mappings for xsd:integer values
+-- | Functions that perform lexical-to-value
+--  and value-to-canonical-lexical mappings for @xsd:integer@ values.
 --
 mapXsdInteger :: DatatypeMap Integer
 mapXsdInteger = DatatypeMap
@@ -46,7 +46,8 @@ mapXsdInteger = DatatypeMap
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

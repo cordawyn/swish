@@ -6,7 +6,7 @@
 -- |
 --  Module      :  MapXsdDecimal
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                     2011 Douglas Burke, 2011 William Waites
+--                     2011 William Waites, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -14,7 +14,7 @@
 --  Portability :  OverloadedStrings
 --
 --  This module defines the datatytpe mapping and relation values
---  used for RDF dataype xsd:decimal
+--  used for RDF dataype @xsd:decimal@.
 --
 --------------------------------------------------------------------------------
 
@@ -29,8 +29,8 @@ import qualified Data.Text.Read as T
 --  Implementation of DatatypeMap for xsd:decimal
 ------------------------------------------------------------
 
--- |mapXsdDecimal contains functions that perform lexical-to-value
---  and value-to-canonical-lexical mappings for xsd:decimal values
+-- | Functions that perform lexical-to-value
+--  and value-to-canonical-lexical mappings for @xsd:decimal@ values.
 --
 mapXsdDecimal :: DatatypeMap Double
 mapXsdDecimal = DatatypeMap
@@ -48,7 +48,7 @@ mapXsdDecimal = DatatypeMap
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                2011 Douglas Burke, 2011 William Waites
+--                2011 William Waites, 2011, 2012 Douglas Burke
 --
 --  All rights reserved.
 --

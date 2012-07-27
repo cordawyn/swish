@@ -58,6 +58,9 @@ Description:
   .
   * Removed un-used @containedIn@ element of the @LDGraph@ type class.
   .
+  * Clarified that @Swish.RDF.RDFDatatypeXsdDecimal@ is for @xsd:decimal@ rather
+  than @xsd:double@.
+  .
   * Support using versions 0.8 or 0.9 of the @intern@ package and version 0.5 of
   @containers@.
   .
