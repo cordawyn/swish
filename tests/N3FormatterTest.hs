@@ -18,9 +18,7 @@
 
 module Main where
 
-import Swish.RDF.N3Formatter
-    ( formatGraphAsLazyText
-    , formatGraphDiag )
+import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
 
 import Swish.RDF.Parser.N3 (parseN3)
 

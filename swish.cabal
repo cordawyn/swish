@@ -50,8 +50,10 @@ Description:
   (@RDFLabel@) rather than using just @Lit@. Language codes are now represented
   by @Swish.RDF.Vocabulary.LanguageTag@ rather than as a @ScopedName@.
   .
-  * Parsing modules are now in the @Swish.RDF.Parser@ hierachy and
+  * Parsing modules are now in the @Swish.RDF.Parser@ hierarchy and
   @Swish.RDF.RDFParser@ has been renamed to @Swish.RDF.Parser.Utils@.
+  .
+  * Formatting modules are now in the @Swish.RDF.Formatter@ hierarchy.
   .
   * Removed @mkTypedLit@ from @Swish.RDF.RDFParser@; use
   @Swish.RDF.RDFDatatype.makeDataTypedLiteral@ instead.
@@ -135,14 +137,15 @@ Library
       Swish.RDF.BuiltInRules
       Swish.RDF.ClassRestrictionRule
       Swish.RDF.Datatype
+      Swish.RDF.Formatter.NTriples
+      Swish.RDF.Formatter.N3
+      Swish.RDF.Formatter.Turtle
       Swish.RDF.GraphClass
       Swish.RDF.GraphMatch
       Swish.RDF.GraphMem
       Swish.RDF.GraphPartition
       Swish.RDF.MapXsdDecimal
       Swish.RDF.MapXsdInteger
-      Swish.RDF.NTFormatter
-      Swish.RDF.N3Formatter
       Swish.RDF.Parser.NTriples
       Swish.RDF.Parser.N3
       Swish.RDF.Parser.Turtle
@@ -165,7 +168,6 @@ Library
       Swish.RDF.SwishMain
       Swish.RDF.SwishMonad
       Swish.RDF.SwishScript
-      Swish.RDF.TurtleFormatter
       Swish.RDF.VarBinding
       Swish.RDF.Vocabulary
       Swish.RDF.Vocabulary.DublinCore

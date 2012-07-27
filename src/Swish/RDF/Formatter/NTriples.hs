@@ -3,7 +3,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  N3Formatter
+--  Module      :  NTriples
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -18,7 +18,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.NTFormatter
+module Swish.RDF.Formatter.NTriples
     ( formatGraphAsText
     , formatGraphAsLazyText
     , formatGraphAsBuilder

@@ -5,8 +5,10 @@
     codes are now represented by Swish.RDF.Vocabulary.LanguageTag
     rather than as a ScopedName.
 
-  - Parsing modules are now in the Swish.RDF.Parser hiearchy and
+  - Parsing modules are now in the Swish.RDF.Parser hierarchy and
     Swish.RDF.RDFParser has been renamed to Seish.RDF.Parser.Utils.
+
+  - Formatting modules are now in the Swish.RDF.Formatter hierarchy.
 
   - Removed mkTypedLit from Swish.RDF.RDFParser; use
     Swish.RDF.RDFDatatype.makeDataTypedLiteral instead.

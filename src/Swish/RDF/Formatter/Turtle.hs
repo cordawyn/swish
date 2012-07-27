@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  N3Formatter
+--  Module      :  Turtle
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -12,31 +12,11 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a Notation 3 formatter (see [1], [2] and [3]),
---  for an RDFGraph value.
---
--- REFERENCES:
---
--- (1) <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
---     Notation3 (N3): A readable RDF syntax,
---     W3C Team Submission 14 January 2008
---
--- (2) <http://www.w3.org/DesignIssues/Notation3.html>
---     Tim Berners-Lee's design issues series notes and description
---
--- (2) <http://www.w3.org/2000/10/swap/Primer.html>
---     Notation 3 Primer by Sean Palmer
---
---  TODO:
---
---   * Initial prefix list to include nested formulae;
---      then don't need to update prefix list for these.
---
---   * correct output of strings containing unsupported escape
---     characters (such as @\\q@)
---
---   * more flexible terminator generation for formatted formulae
---     (for inline blank nodes.)
+--  This Module implements a Turtle formatter 
+--  for an RDFGraph value. See
+--  <http://www.w3.org/TR/turtle/>
+--  \"Turtle, Terse RDF Triple Language\",
+--  W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
 --
 --------------------------------------------------------------------------------
 
@@ -49,37 +29,39 @@ GraphPartition module.
 
 -}
 
-module Swish.RDF.N3Formatter
-    ( NodeGenLookupMap
-    , formatGraphAsText
+module Swish.RDF.Formatter.Turtle
+    ( formatGraphAsText
     , formatGraphAsLazyText
     , formatGraphAsBuilder
     , formatGraphIndent  
     , formatGraphDiag
+      
+    --  -- * Auxillary routines
+    -- , quoteText
     )
 where
 
 import Swish.RDF.RDFGraph (
-  RDFGraph, RDFLabel(..),
-  NamespaceMap, RevNamespaceMap,
-  emptyNamespaceMap,
-  FormulaMap, emptyFormulaMap,
-  getArcs, labels,
-  setNamespaces, getNamespaces,
-  getFormulae,
+  RDFGraph, RDFLabel(..)
+  , NamespaceMap, RevNamespaceMap
+  -- emptyNamespaceMap,
+  -- FormulaMap, emptyFormulaMap,
+  , getArcs
+  , labels
+  -- , setNamespaces
+  , getNamespaces,
+  -- getFormulae,
   emptyRDFGraph
   , quote
   , quoteT
   , resRdfFirst, resRdfRest, resRdfNil
   )
 
-import Swish.RDF.Vocabulary (
-  fromLangTag, 
-  rdfType,
-  rdfNil,
-  owlSameAs, logImplies
-  , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
-  )
+import Swish.RDF.Vocabulary ( fromLangTag 
+                            , rdfType
+                            , rdfNil
+                            , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
+                            )
 
 import Swish.RDF.GraphClass (Arc(..))
 
@@ -87,7 +69,9 @@ import Swish.Utils.LookupMap
     ( LookupEntryClass(..)
     , LookupMap, emptyLookupMap, reverseLookupMap
     , listLookupMap
-    , mapFind, mapFindMaybe, mapAdd, mapDelete, mapMerge
+    , mapFind, mapFindMaybe, mapAdd
+    -- , mapDelete
+    , mapMerge
     )
 
 import Swish.Utils.Namespace (ScopedName, getScopeLocal, getScopeURI)
@@ -97,7 +81,7 @@ import Data.Char (isDigit)
 import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
 
 import Data.Monoid (Monoid(..))
-import Control.Monad (liftM, when, void)
+import Control.Monad (liftM, when)
 import Control.Monad.State (State, modify, get, put, runState)
 
 -- it strikes me that using Lazy Text here is likely to be
@@ -125,39 +109,39 @@ quoteB f v = B.fromString $ quote f v
 type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
 
-data N3FormatterState = N3FS
+data TurtleFormatterState = TFS
     { indent    :: B.Builder
     , lineBreak :: Bool
     , graph     :: RDFGraph
     , subjs     :: SubjTree RDFLabel
     , props     :: PredTree RDFLabel   -- for last subject selected
     , objs      :: [RDFLabel]          -- for last property selected
-    , formAvail :: FormulaMap RDFLabel
-    , formQueue :: [(RDFLabel,RDFGraph)]
+    -- , formAvail :: FormulaMap RDFLabel
+    -- , formQueue :: [(RDFLabel,RDFGraph)]
     , nodeGenSt :: NodeGenState
     , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
     }
              
-type Formatter a = State N3FormatterState a
+type Formatter a = State TurtleFormatterState a
 
-emptyN3FS :: NodeGenState -> N3FormatterState
-emptyN3FS ngs = N3FS
+emptyTFS :: NodeGenState -> TurtleFormatterState
+emptyTFS ngs = TFS
     { indent    = "\n"
     , lineBreak = False
     , graph     = emptyRDFGraph
     , subjs     = []
     , props     = []
     , objs      = []
-    , formAvail = emptyFormulaMap
-    , formQueue = []
+    -- , formAvail = emptyFormulaMap
+    -- , formQueue = []
     , nodeGenSt = ngs
     , bNodesCheck   = []
     , traceBuf  = []
     }
 
--- | Node name generation state information that carries through
--- and is updated by nested formulae
+--  | Node name generation state information that carries through
+--  and is updated by nested formulae
 type NodeGenLookupMap = LookupMap (RDFLabel,Int)
 
 data NodeGenState = Ngs
@@ -233,6 +217,7 @@ addTrace tr = do
   put $ st { traceBuf = tr : traceBuf st }
 -}
   
+{-
 queueFormula :: RDFLabel -> Formatter ()
 queueFormula fn = do
   st <- get
@@ -243,13 +228,14 @@ queueFormula fn = do
                     }
   case mapFindMaybe fn fa of
     Nothing -> return ()
-    Just v -> void $ put $ newState v
+    Just v -> put (newState v) >> return ()
+-}
 
 {-
 Return the graph associated with the label and delete it
 from the store, if there is an association, otherwise
 return Nothing.
--}
+
 extractFormula :: RDFLabel -> Formatter (Maybe RDFGraph)
 extractFormula fn = do
   st <- get
@@ -258,6 +244,8 @@ extractFormula fn = do
   case mapFindMaybe fn fa of
     Nothing -> return Nothing
     Just fv -> put newState >> return (Just fv)
+
+-}
 
 {-
 moreFormulae :: Formatter Bool
@@ -377,7 +365,7 @@ formatGraphAsBuilder :: RDFGraph -> B.Builder
 formatGraphAsBuilder = formatGraphIndent "\n" True
   
 -- | Convert the graph to a builder using the given indentation text.
-formatGraphIndent :: 
+formatGraphIndent ::
     B.Builder     -- ^ indentation text
     -> Bool       -- ^ are prefixes to be generated?
     -> RDFGraph   -- ^ graph
@@ -386,7 +374,7 @@ formatGraphIndent indnt flag gr =
   let (res, _, _, _) = formatGraphDiag indnt flag gr
   in res
   
--- | Format graph and return additional information
+-- | Format graph and return additional information.
 formatGraphDiag :: 
   B.Builder  -- ^ indentation
   -> Bool    -- ^ are prefixes to be generated?
@@ -399,7 +387,7 @@ formatGraphDiag indnt flag gr =
         nodeGen  = findMaxBnode gr
         }
              
-      (out, fgs) = runState fg (emptyN3FS ngs)
+      (out, fgs) = runState fg (emptyTFS ngs)
       ogs        = nodeGenSt fgs
   
   in (out, nodeMap ogs, nodeGen ogs, traceBuf fgs)
@@ -514,19 +502,6 @@ formatObjects sb pr prstr = do
       return $ nl `mappend` fr
     else return $ mconcat [prstr, " ", obstr]
 
-insertFormula :: RDFGraph -> Formatter B.Builder
-insertFormula gr = do
-  ngs0  <- getNgs
-  ind   <- getIndent
-  let grm = formatGraph (ind `mappend` "    ") "" True False
-            (setNamespaces emptyNamespaceMap gr)
-
-      (f3str, fgs') = runState grm (emptyN3FS ngs0)
-
-  setNgs (nodeGenSt fgs')
-  f4str <- nextLine " } "
-  return $ mconcat [" { ",f3str, f4str]
-
 {-
 Add a list inline. We are given the labels that constitute
 the list, in order, so just need to display them surrounded
@@ -544,13 +519,13 @@ Add a blank node inline.
 
 insertBnode :: LabelContext -> RDFLabel -> Formatter B.Builder
 insertBnode SubjContext lbl = do
+  -- a safety check
   flag <- moreProperties
-  txt <- if flag
-         then (`mappend` "\n") `liftM` formatProperties lbl ""
-         else return ""
-
-  -- TODO: handle indentation?
-  return $ mconcat ["[", txt, "]"]
+  if flag
+    then do
+      txt <- (`mappend` "\n") `liftM` formatProperties lbl ""
+      return $ mconcat ["[] ", txt]
+    else error $ "Internal error: expected properties with label: " ++ show lbl
 
 insertBnode _ lbl = do
   ost <- get
@@ -612,14 +587,14 @@ setGraph gr = do
                  , subjs     = arcTree arcs
                  , props     = []
                  , objs      = []
-                 , formAvail = getFormulae gr
+                 -- , formAvail = getFormulae gr
                  , nodeGenSt = ngs'
                  , bNodesCheck   = countBnodes arcs
                  }
 
   put nst
 
-hasMore :: (N3FormatterState -> [b]) -> Formatter Bool
+hasMore :: (TurtleFormatterState -> [b]) -> Formatter Bool
 hasMore lens = (not . null . lens) `liftM` get
 
 moreSubjects :: Formatter Bool
@@ -700,22 +675,11 @@ nextLine str = do
 -- This is being updated to produce inline formula, lists and     
 -- blank nodes. The code is not efficient.
 --
-
-specialTable :: [(ScopedName, String)]
-specialTable = 
-  [ (rdfType, "a")
-  , (owlSameAs, "=")
-  , (logImplies, "=>")
-  , (rdfNil, "()")
-  ]
+--
+-- Note: There is a lot less customisation possible in Turtle than N3.
+--      
 
 formatLabel :: LabelContext -> RDFLabel -> Formatter B.Builder
-{-
-formatLabel lab@(Blank (_:_)) = do
-  name <- formatNodeId lab
-  queueFormula lab
-  return name
--}
 
 {-
 The "[..]" conversion is done last, after "()" and "{}" checks.
@@ -725,65 +689,51 @@ formatLabel lctxt lab@(Blank (_:_)) = do
   case mlst of
     Just lst -> insertList lst
     Nothing -> do
-              mfml <- extractFormula lab
-              case mfml of
-                Just fml -> insertFormula fml
-                Nothing -> do
-                          nb1 <- getBnodesCheck
-                          if lctxt /= PredContext && lab `notElem` nb1
-                            then insertBnode lctxt lab
-                            else formatNodeId lab
+      -- NOTE: unlike N3 we do not properly handle "formula"/named graphs
+      -- also we only expand out bnodes into [...] format when it's a object.
+      -- although we need to handle [] for the subject.
+      nb1 <- getBnodesCheck
+      if lctxt /= PredContext && lab `notElem` nb1
+        then insertBnode lctxt lab
+        else formatNodeId lab
 
-formatLabel _ lab@(Res sn) = 
-  case lookup sn specialTable of
-    Just txt -> return $ quoteB True txt -- TODO: do we need to quote?
-    Nothing -> do
-      pr <- getPrefixes
-      let nsuri  = getScopeURI sn
-          local  = getScopeLocal sn
-          premap = reverseLookupMap pr :: RevNamespaceMap
-          prefix = mapFindMaybe nsuri premap
+-- formatLabel _ lab@(Res sn) = 
+formatLabel ctxt (Res sn)
+  | ctxt == PredContext && sn == rdfType = return "a"
+  | ctxt == ObjContext  && sn == rdfNil  = return "()"
+  | otherwise = do
+  pr <- getPrefixes
+  let nsuri  = getScopeURI sn
+      local  = getScopeLocal sn
+      premap = reverseLookupMap pr :: RevNamespaceMap
+      prefix = mapFindMaybe nsuri premap
           
-          name   = case prefix of
-                     Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
+      name   = case prefix of
+        Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
+        _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
       
-      {-
-          name   = case prefix of
-                     Just p -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
-      -}
-          
-      queueFormula lab
-      return name
+  return name
 
 -- The canonical notation for xsd:double in XSD, with an upper-case E,
 -- does not match the syntax used in N3, so we need to convert here.     
 -- Rather than converting back to a Double and then displaying that       
 -- we just convert E to e for now.      
---
+--      
+formatLabel _ (Lit lit) = return $ quoteText lit
+formatLabel _ (LangLit lit lcode) = return $ quoteText lit `mappend` "@" `mappend` B.fromText (fromLangTag lcode)
 formatLabel _ (TypedLit lit dtype)
     | dtype == xsdDouble = return $ B.fromText $ T.toLower lit
     | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit
     | otherwise = return $ quoteText lit `mappend` "^^" `mappend` showScopedName dtype
-formatLabel _ (LangLit lit lcode) =
-    return $ quoteText lit `mappend` "@" `mappend` B.fromText (fromLangTag lcode)
-formatLabel _ (Lit lit) = return $ quoteText lit
 
 formatLabel _ lab = return $ B.fromString $ show lab
 
-{-
-We have to decide whether to use " or """ to quote
-the string.
-
-There is also no need to restrict the string to the
-ASCII character set; this could be an option but we
-can also leave Unicode as is (or at least convert to UTF-8).
-
-If we use """ to surround the string then we protect the
-last character if it is a " (assuming it isn't protected).
+{-|
+Convert text into a format for display in Turtle. The idea
+is to use one double quote unless three are needed, and to
+handle adding necessary @\\@ characters, or conversion
+for Unicode characters.
 -}
-
 quoteText :: T.Text -> B.Builder
 quoteText txt = 
   let st = T.unpack txt -- TODO: fix
@@ -857,22 +807,6 @@ commonFstEq f ps =
     [ (fst $ head sps,f $ map snd sps) | sps <- groupBy fstEq ps ]
     where
         fstEq (f1,_) (f2,_) = f1 == f2
-
-{-
--- Diagnostic code for checking arcTree logic:
-testArcTree = (arcTree testArcTree1) == testArcTree2
-testArcTree1 =
-    [Arc "s1" "p11" "o111", Arc "s1" "p11" "o112"
-    ,Arc "s1" "p12" "o121", Arc "s1" "p12" "o122"
-    ,Arc "s2" "p21" "o211", Arc "s2" "p21" "o212"
-    ,Arc "s2" "p22" "o221", Arc "s2" "p22" "o222"
-    ]
-testArcTree2 =
-    [("s1",[("p11",["o111","o112"]),("p12",["o121","o122"])])
-    ,("s2",[("p21",["o211","o212"]),("p22",["o221","o222"])])
-    ]
--}
-
 
 findMaxBnode :: RDFGraph -> Int
 findMaxBnode = maximum . map getAutoBnodeIndex . labels

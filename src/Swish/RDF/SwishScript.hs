@@ -121,7 +121,7 @@ import Swish.RDF.Parser.N3
     , newBlankNode
     )
 
-import Swish.RDF.N3Formatter (formatGraphAsBuilder)
+import Swish.RDF.Formatter.N3 (formatGraphAsBuilder)
 import Swish.RDF.Datatype (typeMkRules)
 import Swish.RDF.Proof (explainProof, showsProof)
 import Swish.RDF.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)

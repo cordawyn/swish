@@ -50,9 +50,9 @@ import Swish.RDF.GraphPartition
 import Swish.RDF.RDFGraph
     ( RDFGraph, merge )
 
-import qualified Swish.RDF.TurtleFormatter as TTLF
-import qualified Swish.RDF.N3Formatter as N3F
-import qualified Swish.RDF.NTFormatter as NTF
+import qualified Swish.RDF.Formatter.Turtle as TTLF
+import qualified Swish.RDF.Formatter.N3 as N3F
+import qualified Swish.RDF.Formatter.NTriples as NTF
 
 import Swish.RDF.Parser.Turtle (parseTurtle)
 import Swish.RDF.Parser.N3 (parseN3)

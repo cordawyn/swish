@@ -19,7 +19,7 @@
 module Main where
 
 import Swish.RDF.Parser.NTriples (parseNT)
-import Swish.RDF.NTFormatter (formatGraphAsLazyText)
+import Swish.RDF.Formatter.NTriples (formatGraphAsLazyText)
 
 import Swish.RDF.RDFGraph
   ( RDFGraph, RDFLabel(..)
