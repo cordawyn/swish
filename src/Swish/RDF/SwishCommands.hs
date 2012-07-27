@@ -5,14 +5,14 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishCommands
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  SwishCommands:  functions to deal with indivudual Swish command options.
+--  Functions to deal with indivudual Swish command options.
 --
 --------------------------------------------------------------------------------
 
@@ -86,39 +86,26 @@ import Data.Maybe (isJust, fromMaybe)
 
 import Control.Exception as CE
 
-------------------------------------------------------------
---  Set file format to supplied value
-------------------------------------------------------------
-
--- the second argument allows for options to be passed along
--- with the format (a la cwm) but this is not supported yet
+-- | Set the file format.
 --
-swishFormat :: SwishFormat -> Maybe String -> SwishStateIO ()
-swishFormat fmt _ = modify (setFormat fmt)
+swishFormat :: SwishFormat -> SwishStateIO ()
+swishFormat = modify . setFormat
 
-------------------------------------------------------------
---  Set base URI to supplied value
-------------------------------------------------------------
+-- | Set (or clear) the base URI.
+swishBase :: Maybe QName -> SwishStateIO ()
+swishBase = modify . setBase
 
--- the Maybe String argument is ignored (a result of a lack of
--- design with the command-line processing)
---
-swishBase :: Maybe QName -> Maybe String -> SwishStateIO ()
-swishBase mb _ = modify (setBase mb)
-
-------------------------------------------------------------
---  Read graph from named file
-------------------------------------------------------------
-
-swishInput :: Maybe String -> SwishStateIO ()
+-- | Read in a graph and make it the current graph.
+swishInput :: 
+    Maybe String       -- ^ A filename or, if 'Nothing', then use standard input.
+    -> SwishStateIO ()
 swishInput fnam =
   swishReadGraph fnam >>= maybe (return ()) (modify . setGraph)
   
-------------------------------------------------------------
---  Merge graph from named file
-------------------------------------------------------------
-
-swishMerge :: Maybe String -> SwishStateIO ()
+-- | Read in a graph and merge it with the current graph.
+swishMerge :: 
+    Maybe String       -- ^ A filename or, if 'Nothing', then use standard input.
+    -> SwishStateIO ()
 swishMerge fnam =
   swishReadGraph fnam >>= maybe (return ()) (modify . mergeGraph)
     
@@ -127,11 +114,10 @@ mergeGraph gr state = state { graph = newgr }
     where
         newgr = merge gr (graph state)
 
-------------------------------------------------------------
---  Compare graph from named file
-------------------------------------------------------------
-
-swishCompare :: Maybe String -> SwishStateIO ()
+-- | Read in a graph and compare it with the current graph.
+swishCompare ::
+    Maybe String       -- ^ A filename or, if 'Nothing', then use standard input.
+    -> SwishStateIO ()
 swishCompare fnam =
   swishReadGraph fnam >>= maybe (return ()) compareGraph
     
@@ -145,7 +131,11 @@ compareGraph gr = do
 --  Display graph differences from named file
 ------------------------------------------------------------
 
-swishGraphDiff :: Maybe String -> SwishStateIO ()
+-- | Read in a graph and display the differences to the current
+-- graph to standard output.
+swishGraphDiff ::
+    Maybe String       -- ^ A filename or, if 'Nothing', then use standard input.
+    -> SwishStateIO ()
 swishGraphDiff fnam =
   swishReadGraph fnam >>= maybe (return ()) diffGraph
 
@@ -192,7 +182,10 @@ swishOutputPart _ hnd part =
 --  Execute script from named file
 ------------------------------------------------------------
 
-swishScript :: Maybe String -> SwishStateIO ()
+-- | Read in a script and execute it.
+swishScript ::
+    Maybe String       -- ^ A filename or, if 'Nothing', then use standard input.
+    -> SwishStateIO ()
 swishScript fnam = swishReadScript fnam >>= mapM_ swishCheckResult
 
 swishReadScript :: Maybe String -> SwishStateIO [SwishStateIO ()]
@@ -258,11 +251,10 @@ swishCheckResult swishcommand = do
     Just x -> reportLine x >> modify resetInfo
     _      -> return ()
 
-------------------------------------------------------------
---  Output graph to named file
-------------------------------------------------------------
-
-swishOutput :: Maybe String -> SwishStateIO ()
+-- | Write out the current graph.
+swishOutput :: 
+    Maybe String       -- ^ A filename or, if 'Nothing', then use standard output.
+    -> SwishStateIO ()
 swishOutput = swishWriteFile swishOutputGraph
    
 swishOutputGraph :: Maybe String -> Handle -> SwishStateIO ()
@@ -406,7 +398,8 @@ swishCreateWriteableFile (Just fnam) = do
   
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

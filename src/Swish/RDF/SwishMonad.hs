@@ -1,10 +1,11 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishMonad
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -17,6 +18,11 @@
 
 module Swish.RDF.SwishMonad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
+    , SwishFormat(..)
+    , NamedGraph(..)
+    , NamedGraphMap
+    -- * Create and modify the Swish state
+    , emptyState
     , setFormat, setBase, setGraph
     , modGraphs, findGraph, findFormula
     , modRules, findRule
@@ -25,11 +31,9 @@ module Swish.RDF.SwishMonad
     , setInfo, resetInfo, setError, resetError
     , setStatus
     -- , setVerbose
-    , emptyState
-    , SwishFormat(..)
-    , NamedGraph(..), NamedGraphMap
+    -- * Error handling
     , swishError
-    , reportLines, reportLine
+    , reportLine
     )
 where
 
@@ -102,7 +106,7 @@ data SwishState = SwishState
     , rulesets  :: RDFRulesetMap    -- ^ script processor rulesets
     , infomsg   :: Maybe String     -- ^ information message, or Nothing
     , errormsg  :: Maybe String     -- ^ error message, or Nothing
-    , exitcode  :: SwishStatus      -- ^ current status message
+    , exitcode  :: SwishStatus      -- ^ current status
     }
 
 -- | Status of the processor
@@ -124,8 +128,11 @@ instance Show SwishStatus where
   show SwishArgumentError     = "Argument error: use -h or -? for help."
   show SwishExecutionError    = "There was a problem executing a Swish script."
 
+-- | The state monad used in executing Swish programs.
 type SwishStateIO a = StateT SwishState IO a
 
+-- | The default state for Swish: no loaded graphs or rules, and format
+-- set to 'N3'.
 emptyState :: SwishState
 emptyState = SwishState
     { format    = N3
@@ -139,68 +146,82 @@ emptyState = SwishState
     , exitcode  = SwishSuccess
     }
 
+-- | Change the format.
 setFormat :: SwishFormat -> SwishState -> SwishState
 setFormat   fm state = state { format = fm }
 
+-- | Change (or remove) the base URI.
 setBase :: Maybe QName -> SwishState -> SwishState
 setBase bs state = state { base = bs }
 
+-- | Change the current graph.
 setGraph :: RDFGraph -> SwishState -> SwishState
 setGraph    gr state = state { graph = gr }
 
+-- | Modify the named graphs.
 modGraphs ::
     ( NamedGraphMap -> NamedGraphMap ) -> SwishState -> SwishState
 modGraphs grmod state = state { graphs = grmod (graphs state) }
 
+-- | Find a named graph.
 findGraph :: ScopedName -> SwishState -> Maybe [RDFGraph]
 findGraph nam state = mapFindMaybe nam (graphs state)
 
+-- | Find a formula. The search is first made in the named graphs
+-- and then, if not found, the rulesets.
 findFormula :: ScopedName -> SwishState -> Maybe RDFFormula
 findFormula nam state = case findGraph nam state of
         Nothing  -> getMaybeContextAxiom nam (mapVals $ rulesets state)
         Just []  -> Just $ Formula nam emptyRDFGraph
         Just grs -> Just $ Formula nam (head grs)
 
+-- | Modify the named rules.
 modRules ::
     ( RDFRuleMap -> RDFRuleMap ) -> SwishState -> SwishState
 modRules rlmod state = state { rules = rlmod (rules state) }
 
+-- | Find a named rule.
 findRule :: ScopedName -> SwishState -> Maybe RDFRule
 findRule nam state =
-    let
-        localrule   = mapFindMaybe nam (rules state)
-        contextrule = getMaybeContextRule nam $ mapVals $ rulesets state
-    in
-        case localrule of
-            Nothing -> contextrule
-            justlr  -> justlr
+    case mapFindMaybe nam (rules state) of
+      Nothing -> getMaybeContextRule nam $ mapVals $ rulesets state
+      justlr  -> justlr
 
+-- | Modify the rule sets.
 modRulesets ::
     ( RDFRulesetMap -> RDFRulesetMap ) -> SwishState -> SwishState
 modRulesets rsmod state = state { rulesets = rsmod (rulesets state) }
 
+-- | Find a rule set.
 findRuleset ::
     ScopedName -> SwishState -> Maybe RDFRuleset
 findRuleset nam state = mapFindMaybe (getScopeNamespace nam) (rulesets state)
 
+-- | Find a modify rule.
 findOpenVarModify :: ScopedName -> SwishState -> Maybe RDFOpenVarBindingModify
 findOpenVarModify nam _ = findRDFOpenVarBindingModifier nam
 
+-- | Find a data type declaration.
 findDatatype :: ScopedName -> SwishState -> Maybe RDFDatatype
 findDatatype nam _ = findRDFDatatype nam
 
+-- | Set the information message.
 setInfo :: String -> SwishState -> SwishState
 setInfo msg state = state { infomsg = Just msg }
 
+-- | Clear the information message.
 resetInfo :: SwishState -> SwishState
 resetInfo state = state { infomsg = Nothing }
 
+-- | Set the error message.
 setError :: String -> SwishState -> SwishState
 setError msg state = state { errormsg = Just msg }
 
+-- | Clear the error message.
 resetError :: SwishState -> SwishState
 resetError state = state { errormsg = Nothing }
 
+-- | Set the status.
 setStatus :: SwishStatus -> SwishState -> SwishState
 setStatus ec state = state { exitcode = ec }
 
@@ -222,32 +243,25 @@ instance LookupEntryClass NamedGraph ScopedName [RDFGraph]
         keyVal   (NamedGraph k v) = (k,v)
         newEntry (k,v)            = NamedGraph k v
 
+-- | A LookupMap for the graphs dictionary.
 type NamedGraphMap = LookupMap NamedGraph
 
 -- | Report error and set exit status code
 
 swishError :: String -> SwishStatus -> SwishStateIO ()
 swishError msg sts = do
-  reportLines [msg, show sts ++ "\n"]
-  -- when (sts == 4) $ reportLine "Use 'Swish -h' or 'Swish -?' for help\n"
+  mapM_ reportLine [msg, show sts ++ "\n"]
   modify $ setStatus sts
 
--- | Output text to the standard error stream
---
---  Each string in the supplied list is a line of text to
---  be displayed.
-
-reportLines  :: [String] -> SwishStateIO ()
-reportLines = mapM_ reportLine 
-
+-- | Output the text to the standard error stream (a new line is
+-- added to the output).
 reportLine  :: String -> SwishStateIO ()
-reportLine line =
-    -- lift putStrLn line
-    lift $ hPutStrLn stderr line
+reportLine = lift . hPutStrLn stderr
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke 
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke 
 --  All rights reserved.
 --
 --  This file is part of Swish.

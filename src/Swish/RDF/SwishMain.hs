@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishMain
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -205,10 +205,12 @@ validateCommand cmd =
       marg       = if null arg then Nothing else Just arg
       
       wrap f = Right $ SA (cmd, f marg)
+      wrap1 f = Right $ SA (cmd, f)
+
   in case nam of
-    "-ttl"  -> wrap $ swishFormat Turtle
-    "-nt"   -> wrap $ swishFormat NT
-    "-n3"   -> wrap $ swishFormat N3
+    "-ttl"  -> wrap1 $ swishFormat Turtle
+    "-nt"   -> wrap1 $ swishFormat NT
+    "-n3"   -> wrap1 $ swishFormat N3
     "-i"    -> wrap swishInput
     "-m"    -> wrap swishMerge
     "-c"    -> wrap swishCompare
@@ -227,10 +229,10 @@ swishCommand :: SwishAction -> SwishStateIO ()
 swishCommand (SA (_,act)) = act
 
 validateBase :: String -> Maybe String -> Either (String, SwishStatus) SwishAction
-validateBase arg Nothing  = Right $ SA (arg, swishBase Nothing Nothing)
+validateBase arg Nothing  = Right $ SA (arg, swishBase Nothing)
 validateBase arg (Just b) =
   case fmap qnameFromURI (parseURI b) of
-    j@(Just _) -> Right $ SA (arg, swishBase j Nothing)
+    j@(Just _) -> Right $ SA (arg, swishBase j)
     _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
   
 ------------------------------------------------------------
@@ -268,7 +270,8 @@ runSwishActions acts = exitcode `liftM` execStateT (swishCommands acts) emptySta
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
