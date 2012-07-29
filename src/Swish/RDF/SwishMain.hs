@@ -77,7 +77,6 @@ import Swish.RDF.SwishMonad
     )
 
 import Swish.Utils.QName (qnameFromURI)
-import Swish.Utils.ListHelpers (breakAll)
 
 import Control.Monad.State (execStateT)
 import Control.Monad (liftM)
@@ -263,6 +262,13 @@ runSwish cmdline = do
         _  -> do
           putStrLn $ "Swish exit: " ++ show ec
           return $ ExitFailure $ fromEnum ec
+
+-- |Break list into a list of sublists, separated by element
+--  satisfying supplied condition.
+breakAll :: (a -> Bool) -> [a] -> [[a]]
+breakAll _ [] = []
+breakAll p s  = let (h,s') = break p s
+                    in h : breakAll p (drop 1 s')
 
 -- | Execute the given set of actions.
 runSwishActions :: [SwishAction] -> IO SwishStatus

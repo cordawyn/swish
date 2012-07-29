@@ -25,7 +25,6 @@ module Swish.Utils.ListHelpers
        , pairUngroup -- GraphMatch
        , pairSort -- GraphMatch
        , pairGroup -- GraphMatch
-       , breakAll -- SwishMain
        , powerSet -- ClassRestrictionRule, RDF.Proof
        , listProduct -- RDF.Query
        , powerSequencesLen -- RDF.Proof
@@ -102,17 +101,6 @@ pairGroup = map (factor . unzip) . groupBy eqFirst . pairSort
       -- this enforced by the types
       factor (as, bs) = (head as, bs)
       eqFirst = (==) `on` fst
-
-------------------------------------------------------------
---  Separate list into sublists
-------------------------------------------------------------
-
--- |Break list into a list of sublists, separated by element
---  satisfying supplied condition.
-breakAll :: (a -> Bool) -> [a] -> [[a]]
-breakAll _ [] = []
-breakAll p s  = let (h,s') = break p s
-                    in h : breakAll p (drop 1 s')
 
 ------------------------------------------------------------
 --  Powerset
