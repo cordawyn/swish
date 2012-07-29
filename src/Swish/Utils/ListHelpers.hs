@@ -21,7 +21,6 @@ module Swish.Utils.ListHelpers
          select  -- GraphMatch
        , subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
-       , addSetElem -- RDF.Graph
        , pairUngroup -- GraphMatch
        , pairSort -- GraphMatch
        , pairGroup -- GraphMatch
@@ -68,11 +67,6 @@ a `subset` b    = and [ ma `elem` b | ma <- a ]
 
 equiv           :: (Eq a) => [a] -> [a] -> Bool
 a `equiv` b     = a `subset` b && b `subset` a
-
--- |Add element to set
-
-addSetElem :: (Eq a) => a -> [a] -> [a]
-addSetElem e es = if e `elem` es then es else e:es
 
 ------------------------------------------------------------
 --  Filter, ungroup, sort and group pairs by first member

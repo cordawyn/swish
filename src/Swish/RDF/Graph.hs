@@ -182,7 +182,6 @@ import Swish.GraphMatch (LabelMap, ScopedLabel(..))
 import Swish.GraphMatch (graphMatch)
 
 import Swish.Utils.QName (QName)
-import Swish.Utils.ListHelpers (addSetElem)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..), LookupEntryClass(..)
@@ -1178,6 +1177,11 @@ but it does ensure that the arc is unknown before adding it.
 -}
 addArc :: (Label lb) => Arc lb -> NSGraph lb -> NSGraph lb
 addArc ar gr = gr { statements=addSetElem ar (statements gr) }
+
+-- |Add element to the set.
+
+addSetElem :: (Eq a) => a -> [a] -> [a]
+addSetElem e es = if e `elem` es then es else e:es
 
 instance Functor NSGraph where
   fmap f (NSGraph ns fml stmts) =
