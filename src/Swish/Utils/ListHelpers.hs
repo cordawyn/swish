@@ -20,9 +20,6 @@ module Swish.Utils.ListHelpers
        ( -- list of Swish.xxx modules the routine is used in
          subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
-       , pairUngroup -- GraphMatch
-       , pairSort -- GraphMatch
-       , pairGroup -- GraphMatch
        , powerSet -- ClassRestrictionRule, RDF.Proof
        , listProduct -- RDF.Query
        , powerSequencesLen -- RDF.Proof
@@ -30,10 +27,6 @@ module Swish.Utils.ListHelpers
         
       )
 where
-
-import Data.Function (on)  
-import Data.List (sortBy, groupBy)
-import Data.Ord (comparing)  
 
 ------------------------------------------------------------
 --  Set functions
@@ -51,34 +44,6 @@ a `subset` b    = and [ ma `elem` b | ma <- a ]
 
 equiv           :: (Eq a) => [a] -> [a] -> Bool
 a `equiv` b     = a `subset` b && b `subset` a
-
-------------------------------------------------------------
---  Filter, ungroup, sort and group pairs by first member
-------------------------------------------------------------
-
-{-
-pairSelect :: ((a,b) -> Bool) -> ((a,b) -> c) -> [(a,b)] -> [c]
-pairSelect p f as = map f (filter p as)
--}
-
--- | Ungroup the pairs.
-pairUngroup :: 
-    (a,[b])    -- ^ Given (a,bs)
-    -> [(a,b)] -- ^ Returns (a,b) for all b in bs
-pairUngroup (a,bs) = [ (a,b) | b <- bs ]
-
--- | Order the pairs based on the first argument.
-pairSort :: (Ord a) => [(a,b)] -> [(a,b)]
-pairSort = sortBy (comparing fst)
-
--- | Group the pairs based on the first argument.
-pairGroup :: (Ord a) => [(a,b)] -> [(a,[b])]
-pairGroup = map (factor . unzip) . groupBy eqFirst . pairSort 
-    where
-      -- as is not [] by construction, but would be nice to have
-      -- this enforced by the types
-      factor (as, bs) = (head as, bs)
-      eqFirst = (==) `on` fst
 
 ------------------------------------------------------------
 --  Powerset

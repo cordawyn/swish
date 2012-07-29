@@ -38,8 +38,9 @@ import Swish.GraphMatch
         ScopedLabel(..), makeScopedLabel, makeScopedArc,
         LabelIndex, nullLabelVal, emptyMap,
         mapLabelIndex, {-mapLabelList,-} setLabelHash, newLabelMap,
-        graphLabels, assignLabelMap, newGenerationMap,
-        graphMatch1, equivalenceClasses
+        graphLabels, assignLabelMap, newGenerationMap
+        -- graphMatch1  only used with pairSort
+	, equivalenceClasses
       )
 
 import Swish.Utils.ListHelpers
@@ -1121,11 +1122,15 @@ testEquivClass33_1, testEquivClass33_2 :: Test
 testEquivClass33_1 = testeq "EquivClass33_1" ec31test ec31
 testEquivClass33_2 = testeq "EquivClass33_2" ec32test ec32
 
+{- as pairSOrt is no-longer exported need to check this code gets tested
+
 -- This value is nonsense for this test,
 -- but a parameter is needed for graphMatch1 (below)
 
 ec3pairs :: [(EquivClass, EquivClass)]
 ec3pairs = zip (pairSort ec31) (pairSort ec32)
+
+-}
 
 {-  This is a pointless test in this case
 
@@ -1139,8 +1144,12 @@ ec3test  =
 testEquivClass33_3 = testeq "EquivClass33_3" ec3test ec3pairs
 -}
 
+{- pairSort is no longer exported
+
 eq3lmap1 :: (Bool, LabelMap (ScopedLabel LabelMem))
 eq3lmap1 = graphMatch1 False matchable eq3hs1 eq3hs2 eq3lmap ec3pairs
+
+-}
 
 eq3ltst1 :: LabelMap (ScopedLabel LabelMem)
 eq3ltst1 = tstLabelMap 2
@@ -1161,8 +1170,10 @@ eq3ltst1 = tstLabelMap 2
 -- testEqAssignMap34 = testeq "EqAssignMap34" (Just eq3ltst1) eq3lmap1
 -- testEqAssignMap34 = testeq "EqAssignMap34" Nothing eq3lmap1
 
+{- pairSort is not exported
 testEqAssignMap34 :: Test
 testEqAssignMap34 = testeq "EqAssignMap34" False (fst eq3lmap1)
+-}
 
 {-
 eq3rc1      = reclassify eq3hs1 eq3lmap
@@ -1189,7 +1200,7 @@ testGraphMatchStepSuite = TestList
   , testEqGraphMap31_1, testEqGraphMap31_2
   , testEqAssignMap32
   , testEquivClass33_1, testEquivClass33_2 -- , testEquivClass33_3
-  , testEqAssignMap34
+  -- , testEqAssignMap34    pairSort is not exported
   -- , testEqReclassify35_1, testEqReclassify35_2
   ]
 

@@ -37,8 +37,10 @@ import Control.Exception.Base (assert)
 import Control.Arrow (second)
 
 import Data.Ord (comparing)
-import Data.List (foldl', nub, sortBy, partition)
+import Data.List (foldl', nub, sortBy, groupBy, partition)
+import Data.Function (on)  
 import Data.Hashable (combine)
+
 import qualified Data.List as L
 
 import Swish.GraphClass (Arc(..), Label(..))
@@ -47,7 +49,7 @@ import Swish.GraphClass (arcLabels, hasLabel, arcToTriple)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                               mapAddIfNew, mapReplaceMap, mapMerge)
-import Swish.Utils.ListHelpers (equiv, pairSort, pairGroup, pairUngroup)
+import Swish.Utils.ListHelpers (equiv)
 
 --------------------------
 --  Label index value type
@@ -137,6 +139,34 @@ ecSize = length . ecLabels
 
 ecRemoveLabel :: (Label lb) => EquivalenceClass lb -> lb -> EquivalenceClass lb
 ecRemoveLabel xs l = second (L.delete l) xs
+
+------------------------------------------------------------
+--  Filter, ungroup, sort and group pairs by first member
+------------------------------------------------------------
+
+{-
+pairSelect :: ((a,b) -> Bool) -> ((a,b) -> c) -> [(a,b)] -> [c]
+pairSelect p f as = map f (filter p as)
+-}
+
+-- | Ungroup the pairs.
+pairUngroup :: 
+    (a,[b])    -- ^ Given (a,bs)
+    -> [(a,b)] -- ^ Returns (a,b) for all b in bs
+pairUngroup (a,bs) = [ (a,b) | b <- bs ]
+
+-- | Order the pairs based on the first argument.
+pairSort :: (Ord a) => [(a,b)] -> [(a,b)]
+pairSort = sortBy (comparing fst)
+
+-- | Group the pairs based on the first argument.
+pairGroup :: (Ord a) => [(a,b)] -> [(a,[b])]
+pairGroup = map (factor . unzip) . groupBy eqFirst . pairSort 
+    where
+      -- as is not [] by construction, but would be nice to have
+      -- this enforced by the types
+      factor (as, bs) = (head as, bs)
+      eqFirst = (==) `on` fst
 
 ------------------------------------------------------------
 --  Augmented graph label value - for graph matching
