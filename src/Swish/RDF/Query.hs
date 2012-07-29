@@ -44,6 +44,9 @@ module Swish.RDF.Query
     , rdfFindArcs, rdfSubjEq, rdfPredEq, rdfObjEq
     , rdfFindPredVal, rdfFindPredInt, rdfFindValSubj
     , rdfFindList
+    -- * Utility routines
+    , allp
+    , anyp
     -- * Exported for testing
     , rdfQuerySubs2 )
 where
@@ -73,7 +76,7 @@ import Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger)
 
 import Swish.RDF.Vocabulary (xsdInteger, xsdNonNegInteger)
 
-import Swish.Utils.ListHelpers (listProduct, allp, anyp)
+import Swish.Utils.ListHelpers (listProduct, flist)
 
 import qualified Data.Traversable as Traversable
 
@@ -424,6 +427,33 @@ mapNode varb lab =
 ------------------------------------------------------------
 --
 --  [[[TODO:  modify above code to use these for all graph queries]]]
+
+-- |Test if a value satisfies all predicates in a list
+--
+allp :: [a->Bool] -> a -> Bool
+allp ps a = and (flist ps a)
+
+{-
+allptest0 = allp [(>=1),(>=2),(>=3)] 0     -- False
+allptest1 = allp [(>=1),(>=2),(>=3)] 1     -- False
+allptest2 = allp [(>=1),(>=2),(>=3)] 2     -- False
+allptest3 = allp [(>=1),(>=2),(>=3)] 3     -- True
+allptest  = and [not allptest0,not allptest1,not allptest2,allptest3]
+-}
+
+-- |Test if a value satisfies any predicate in a list
+--
+anyp :: [a->Bool] -> a -> Bool
+anyp ps a = or (flist ps a)
+
+{-
+anyptest0 = anyp [(>=1),(>=2),(>=3)] 0     -- False
+anyptest1 = anyp [(>=1),(>=2),(>=3)] 1     -- True
+anyptest2 = anyp [(>=1),(>=2),(>=3)] 2     -- True
+anyptest3 = anyp [(>=1),(>=2),(>=3)] 3     -- True
+anyptest  = and [not anyptest0,anyptest1,anyptest2,anyptest3]
+-}
+
 
 -- |Take a predicate on an
 --  RDF statement and a graph, and returns all statements in the graph
