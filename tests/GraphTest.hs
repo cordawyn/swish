@@ -110,7 +110,10 @@ makeEntries = map newEntry
 --  Graph helper function tests
 ------------------------------------------------------------
 
--- select
+{-
+
+-- select; no longer exported so need to check that
+-- other tests still test this routine
 
 testSelect :: String -> String -> String -> Test
 testSelect lab = testeq ("Select"++lab )
@@ -135,6 +138,8 @@ testSelectSuite = TestList
     [
     testSelect01, testSelect02, testSelect03, testSelect04
     ]
+
+-}
 
 -- subset
 
@@ -1839,8 +1844,8 @@ testGraphEqSuiteMore = TestList
 
 allTests :: Test
 allTests = TestList
-  [ testSelectSuite
-  , testSubsetSuite
+  [ -- testSelectSuite
+    testSubsetSuite
   , testLabSuite
   , testGraphSuite
   , testLabelEqSuite

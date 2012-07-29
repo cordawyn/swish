@@ -5,6 +5,10 @@ Some things I want to/should do (not in order)
   form but they are still in the Swish namespace rather than
   Data (or some other sanctioned top-level name).
 
+- Check test coverage since the removal of some of the routines
+  (e.g. those in ListHelpers) has lead to the removal of some tests:
+  GraphTest.select
+
 - Should the Lit/LangLit/TypedLit constructors of RDFLabel be moved
   into a separate constructor - e.g. 
 

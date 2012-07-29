@@ -18,8 +18,7 @@
 
 module Swish.Utils.ListHelpers
        ( -- list of Swish.xxx modules the routine is used in
-         select  -- GraphMatch
-       , subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
+         subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
        , pairUngroup -- GraphMatch
        , pairSort -- GraphMatch
@@ -37,19 +36,6 @@ where
 import Data.Function (on)  
 import Data.List (sortBy, groupBy)
 import Data.Ord (comparing)  
-
-------------------------------------------------------------
---  Generic helpers
-------------------------------------------------------------
-
--- |Select is like filter, except that it tests one list to select
---  elements from a second list.
-select :: ( a -> Bool ) -> [a] -> [b] -> [b]
-select _ [] []           = []
-select f (e1:l1) (e2:l2)
-    | f e1      = e2 : select f l1 l2
-    | otherwise = select f l1 l2
-select _ _ _    = error "select supplied with different length lists"
 
 ------------------------------------------------------------
 --  Set functions

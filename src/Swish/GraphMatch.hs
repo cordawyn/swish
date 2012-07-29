@@ -47,7 +47,7 @@ import Swish.GraphClass (arcLabels, hasLabel, arcToTriple)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                               mapAddIfNew, mapReplaceMap, mapMerge)
-import Swish.Utils.ListHelpers (select, equiv, pairSort, pairGroup, pairUngroup)
+import Swish.Utils.ListHelpers (equiv, pairSort, pairGroup, pairUngroup)
 
 --------------------------
 --  Label index value type
@@ -555,6 +555,16 @@ remapLabels gs lmap@(LabelMap gen _) ls =
         -- mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
         mapAdjacent l       = sum (sigsOver l) `combine` hashModulus -- is this a sensible replacement for `rem` MH.hashModulus        
         sigsOver l          = select (hasLabel l) gs (arcSignatures lmap gs)
+
+-- |Select is like filter, except that it tests one list to select
+--  elements from a second list.
+select :: ( a -> Bool ) -> [a] -> [b] -> [b]
+select _ [] []           = []
+select f (e1:l1) (e2:l2)
+    | f e1      = e2 : select f l1 l2
+    | otherwise = select f l1 l2
+select _ _ _    = error "select supplied with different length lists"
+
 
 -- | Return list of distinct labels used in a graph
 
