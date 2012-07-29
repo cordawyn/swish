@@ -63,7 +63,7 @@ import Swish.VarBinding (addVarBinding, nullVarBindingModify)
 
 import Swish.RDF.Vocabulary (swishName)
 
-import Swish.Utils.ListHelpers (flist, deleteIndex)
+import Swish.Utils.ListHelpers (flist)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.LookupMap (mapFindMaybe)
 import Swish.Utils.Namespace (ScopedName)
@@ -985,6 +985,28 @@ listFnApp p (f,z,g,n) (a0:args)
         app _            = Just []
 
 listFnApp _ _ [] = error "listFnApp called with an empty list" -- -Wall
+
+-- |Delete the n'th element of a list, returning the result
+--
+--  If the list doesn't have an n'th element, return the list unchanged.
+--
+deleteIndex :: [a] -> Int -> [a]
+deleteIndex [] _ = []
+deleteIndex xxs@(x:xs) n
+    | n <  0    = xxs
+    | n == 0    = xs
+    | otherwise = x:deleteIndex xs (n-1)
+
+{-
+testdi1 = deleteIndex [1,2,3,4] 0    == [2,3,4]
+testdi2 = deleteIndex [1,2,3,4] 1    == [1,3,4]
+testdi3 = deleteIndex [1,2,3,4] 2    == [1,2,4]
+testdi4 = deleteIndex [1,2,3,4] 3    == [1,2,3]
+testdi5 = deleteIndex [1,2,3,4] 4    == [1,2,3,4]
+testdi6 = deleteIndex [1,2,3,4] (-1) == [1,2,3,4]
+testdi = and
+    [ testdi1, testdi2, testdi3, testdi4, testdi5, testdi6 ]
+-}
 
 --------------------------------------------------------
 --  Datatype sub/supertype description

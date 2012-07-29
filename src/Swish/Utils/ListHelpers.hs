@@ -19,7 +19,6 @@
 module Swish.Utils.ListHelpers
        ( -- list of Swish.xxx modules the routine is used in
          select  -- GraphMatch
-       , deleteIndex -- Datatype
        , subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
        , addSetElem -- RDF.Graph
@@ -53,28 +52,6 @@ select f (e1:l1) (e2:l2)
     | f e1      = e2 : select f l1 l2
     | otherwise = select f l1 l2
 select _ _ _    = error "select supplied with different length lists"
-
--- |Delete the n'th element of a list, returning the result
---
---  If the list doesn't have an n'th element, return the list unchanged.
---
-deleteIndex :: [a] -> Int -> [a]
-deleteIndex [] _ = []
-deleteIndex xxs@(x:xs) n
-    | n <  0    = xxs
-    | n == 0    = xs
-    | otherwise = x:deleteIndex xs (n-1)
-
-{-
-testdi1 = deleteIndex [1,2,3,4] 0    == [2,3,4]
-testdi2 = deleteIndex [1,2,3,4] 1    == [1,3,4]
-testdi3 = deleteIndex [1,2,3,4] 2    == [1,2,4]
-testdi4 = deleteIndex [1,2,3,4] 3    == [1,2,3]
-testdi5 = deleteIndex [1,2,3,4] 4    == [1,2,3,4]
-testdi6 = deleteIndex [1,2,3,4] (-1) == [1,2,3,4]
-testdi = and
-    [ testdi1, testdi2, testdi3, testdi4, testdi5, testdi6 ]
--}
 
 ------------------------------------------------------------
 --  Set functions
