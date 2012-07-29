@@ -69,6 +69,7 @@ module Swish.RDF.Parser.N3
 where
 
 import Swish.GraphClass (arc)
+import Swish.QName (QName)
 
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
@@ -95,8 +96,6 @@ import Swish.Utils.Namespace
     , makeNSScopedName
     , nullScopedName
     )
-
-import Swish.Utils.QName (QName)
 
 import Swish.RDF.Datatype (makeDatatypedLiteral)
 

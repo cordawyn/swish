@@ -180,8 +180,7 @@ import Swish.GraphClass (LDGraph(..), Label (..), Arc(..), Selector)
 import Swish.GraphClass (arc, arcLabels)
 import Swish.GraphMatch (LabelMap, ScopedLabel(..))
 import Swish.GraphMatch (graphMatch)
-
-import Swish.Utils.QName (QName)
+import Swish.QName (QName)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..), LookupEntryClass(..)

@@ -19,6 +19,7 @@
 module Main where
 
 import Swish.GraphClass (Arc, arc) 
+import Swish.QName (QName, qnameFromURI)
 
 import Swish.RDF.Parser.N3
     ( parseN3
@@ -56,7 +57,6 @@ import Swish.RDF.Vocabulary
     , xsdDouble 
     )
 
-import Swish.Utils.QName (QName, qnameFromURI)
 import Swish.Utils.LookupMap (LookupMap(..))
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual)

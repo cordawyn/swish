@@ -20,7 +20,7 @@
 -- URI. This is partly to support the existing tests (too lazy to resolve whether
 -- the tests really should be using relative URIs in this case).
 
-module Swish.Utils.QName
+module Swish.QName
     ( QName
     , newQName
     , qnameFromURI
@@ -57,7 +57,7 @@ and the local part of the identifier, which can be empty.
 
 > Prelude> :set prompt "swish> "
 > swish> :set -XOverloadedStrings
-> swish> :m + Swish.Utils.QName
+> swish> :m + Swish.QName
 > swish> let qn1 = "http://example.com/" :: QName
 > swish> let qn2 = "http://example.com/bob" :: QName
 > swish> let qn3 = "http://example.com/bob/fred" :: QName

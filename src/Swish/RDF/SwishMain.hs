@@ -59,6 +59,8 @@ module Swish.RDF.SwishMain (
   validateCommands
   ) where
 
+import Swish.QName (qnameFromURI)
+
 import Swish.RDF.SwishCommands
     ( swishFormat
     , swishBase
@@ -75,8 +77,6 @@ import Swish.RDF.SwishMonad
     , emptyState
     , SwishFormat(..)
     )
-
-import Swish.Utils.QName (qnameFromURI)
 
 import Control.Monad.State (execStateT)
 import Control.Monad (liftM)

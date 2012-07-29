@@ -42,7 +42,7 @@ module Swish.Utils.Namespace
     )
     where
 
-import Swish.Utils.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
+import Swish.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
 
 import Data.Monoid (Monoid(..))

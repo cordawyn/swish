@@ -19,7 +19,7 @@
 
 module Main where
 
-import Swish.Utils.QName
+import Swish.QName
     ( QName
     , newQName
     , qnameFromURI

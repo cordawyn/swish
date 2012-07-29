@@ -141,6 +141,7 @@ Library
       Swish.GraphMem
       Swish.GraphPartition
       Swish.Proof
+      Swish.QName
       Swish.RDF
       Swish.RDF.BuiltIn
       Swish.RDF.BuiltIn.Datatypes
@@ -185,7 +186,6 @@ Library
       Swish.Utils.LookupMap
       Swish.Utils.Namespace
       Swish.Utils.PartOrderedCollection
-      Swish.Utils.QName
       Swish.Utils.ShowM
       Swish.VarBinding
       Data.Interned.URI

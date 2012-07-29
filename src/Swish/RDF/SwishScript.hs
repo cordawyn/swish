@@ -119,10 +119,11 @@ import Swish.RDF.Parser.N3
     , newBlankNode
     )
 
+import Swish.QName (QName, qnameFromURI)
+
 import Swish.RDF.Formatter.N3 (formatGraphAsBuilder)
 
 import Swish.Utils.Namespace (ScopedName, getScopeNamespace)
-import Swish.Utils.QName (QName, qnameFromURI)
 import Swish.Utils.LookupMap (mapReplaceOrAdd)
 import Swish.Utils.ListHelpers (equiv, flist)
 

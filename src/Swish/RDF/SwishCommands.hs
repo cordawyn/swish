@@ -32,6 +32,7 @@ where
 import Swish.GraphClass (LDGraph(..), Label(..))
 import Swish.GraphPartition (GraphPartition(..))
 import Swish.GraphPartition (partitionGraph, comparePartitions, partitionShowP)
+import Swish.QName (QName, qnameFromURI, qnameFromFilePath, getQNameURI)
 
 import Swish.RDF.SwishMonad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
@@ -55,8 +56,6 @@ import Swish.RDF.Parser.Turtle (parseTurtle)
 import Swish.RDF.Parser.N3 (parseN3)
 import Swish.RDF.Parser.NTriples (parseNT)
 import Swish.RDF.Parser.Utils (appendURIs)
-
-import Swish.Utils.QName (QName, qnameFromURI, qnameFromFilePath, getQNameURI)
 
 import System.IO
     ( Handle, openFile, IOMode(..)
