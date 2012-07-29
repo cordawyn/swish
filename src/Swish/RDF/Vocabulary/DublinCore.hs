@@ -183,7 +183,7 @@ module Swish.RDF.Vocabulary.DublinCore
       
     ) where
 
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (parseURI)

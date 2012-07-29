@@ -35,6 +35,7 @@ import Swish.Datatype
     , ApplyModifier
     , DatatypeSub(..)
     )
+import Swish.Namespace (ScopedName)
 import Swish.VarBinding (VarBindingModify(..))
 
 import Swish.RDF.Graph
@@ -45,8 +46,6 @@ import Swish.RDF.Graph
     )
 
 import Swish.RDF.VarBinding (RDFVarBinding, RDFOpenVarBindingModify)
-
-import Swish.Utils.Namespace (ScopedName)
 
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe, isJust, fromJust)

@@ -140,6 +140,7 @@ Library
       Swish.GraphMatch
       Swish.GraphMem
       Swish.GraphPartition
+      Swish.Namespace
       Swish.Proof
       Swish.QName
       Swish.RDF
@@ -184,7 +185,6 @@ Library
       Swish.Ruleset
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
-      Swish.Utils.Namespace
       Swish.Utils.PartOrderedCollection
       Swish.Utils.ShowM
       Swish.VarBinding

@@ -150,7 +150,7 @@ module Swish.RDF.Graph
     )
     where
 
-import Swish.Utils.Namespace
+import Swish.Namespace
     ( Namespace, makeNamespace, getNamespaceTuple
     , getScopedNameURI
     , ScopedName

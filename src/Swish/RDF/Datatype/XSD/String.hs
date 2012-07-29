@@ -38,6 +38,8 @@ import Swish.Datatype
     , makeVmod20
     )
 
+import Swish.Namespace (Namespace, ScopedName)
+import Swish.Namespace (namespaceToBuilder, makeNSScopedName)
 import Swish.Ruleset (makeRuleset)
 import Swish.VarBinding (VarBinding(..), VarBindingModify(..))
 import Swish.VarBinding (addVarBinding)
@@ -57,8 +59,6 @@ import Swish.RDF.Vocabulary
     , namespaceXSD
     , namespaceXsdType
     )
-
-import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder, makeNSScopedName)
 
 import Data.Monoid(Monoid(..))
 

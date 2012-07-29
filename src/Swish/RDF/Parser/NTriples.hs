@@ -31,11 +31,9 @@ module Swish.RDF.Parser.NTriples
 where
 
 import Swish.GraphClass (arc)
+import Swish.Namespace (ScopedName, makeURIScopedName)
 
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..), addArc, emptyRDFGraph)
-
-import Swish.Utils.Namespace (ScopedName, makeURIScopedName)
-
 import Swish.RDF.Vocabulary (LanguageTag, toLangTag)
 
 import Swish.RDF.Parser.Utils (ParseResult

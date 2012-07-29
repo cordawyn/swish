@@ -22,6 +22,7 @@
 
 module Main where
 
+import Swish.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.VarBinding
     ( VarBinding(..)
     , makeVarBinding
@@ -52,7 +53,6 @@ import Swish.RDF.VarBinding
 
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..), merge)
 
-import Swish.Utils.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.RDF.Vocabulary (namespaceRDF, toLangTag, swishName, rdfType, rdfXMLLiteral)
 import Swish.RDF.Parser.N3 (parseN3)
 

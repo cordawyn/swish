@@ -28,7 +28,9 @@ module Swish.Rule
        )
        where
 
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, ScopedName)
+import Swish.Namespace (makeNamespace, makeScopedName, makeNSScopedName)
+
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.ShowM (ShowM(..))
 

@@ -69,6 +69,17 @@ module Swish.RDF.Parser.N3
 where
 
 import Swish.GraphClass (arc)
+import Swish.Namespace
+    ( Namespace, makeNamespace
+    , ScopedName
+    , getScopeNamespace
+    , getScopedNameURI
+    , getScopeNamespace
+    , makeURIScopedName
+    , makeQNameScopedName
+    , makeNSScopedName
+    , nullScopedName
+    )
 import Swish.QName (QName)
 
 import Swish.RDF.Graph
@@ -84,18 +95,6 @@ import Swish.RDF.Graph
 
 import Swish.Utils.LookupMap (LookupMap(..), LookupEntryClass(..))
 import Swish.Utils.LookupMap (mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
-
-import Swish.Utils.Namespace
-    ( Namespace, makeNamespace
-    , ScopedName
-    , getScopeNamespace
-    , getScopedNameURI
-    , getScopeNamespace
-    , makeURIScopedName
-    , makeQNameScopedName
-    , makeNSScopedName
-    , nullScopedName
-    )
 
 import Swish.RDF.Datatype (makeDatatypedLiteral)
 

@@ -28,6 +28,7 @@ module Swish.RDF.ClassRestrictionRule
        where
 
 import Swish.Datatype (DatatypeVal(..), DatatypeRel(..), DatatypeRelFn)
+import Swish.Namespace (Namespace, ScopedName, namespaceToBuilder)
 import Swish.Rule (Rule(..), bwdCheckInference)
 import Swish.VarBinding (VarBinding(..))
 
@@ -55,7 +56,6 @@ import Swish.RDF.Query
 import Swish.RDF.VarBinding (RDFVarBinding)
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
-import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder)
 import Swish.Utils.PartOrderedCollection
     ( minima, maxima
     , partCompareEq, partComparePair

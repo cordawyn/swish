@@ -60,6 +60,7 @@ module Swish.RDF.Formatter.N3
 where
 
 import Swish.GraphClass (Arc(..))
+import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..),
@@ -89,8 +90,6 @@ import Swish.Utils.LookupMap
     , listLookupMap
     , mapFind, mapFindMaybe, mapAdd, mapDelete, mapMerge
     )
-
-import Swish.Utils.Namespace (ScopedName, getScopeLocal, getScopeURI)
 
 import Data.Char (isDigit)
 

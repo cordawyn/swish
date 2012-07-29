@@ -19,6 +19,7 @@
 
 module Main where
 
+import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 import Swish.Rule (Rule(..))
 import Swish.VarBinding (VarBinding(..), VarBindingModify(..))
 import Swish.VarBinding (makeVarFilterModify, varBindingId, varFilterNE)
@@ -43,8 +44,6 @@ import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingModify)
 import Swish.RDF.Graph
     ( Label(..), RDFLabel(..), RDFGraph
     , add, allLabels, allNodes )
-
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
 import Test.HUnit ( Test(TestList) )
 

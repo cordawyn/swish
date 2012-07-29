@@ -28,6 +28,7 @@ import Swish.Datatype
     , DatatypeMod(..)
     , nullDatatypeMod
     )
+import Swish.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.Ruleset (Ruleset(..), getRulesetRule)
 import Swish.VarBinding (makeVarBinding)
@@ -49,7 +50,6 @@ import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
 
 import Swish.RDF.Vocabulary (namespaceDefault, namespaceRDF, namespaceRDFD, namespaceXSD)
 
-import Swish.Utils.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
 
 import Test.HUnit

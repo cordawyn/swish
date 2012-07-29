@@ -40,13 +40,13 @@ module Swish.VarBinding
     )
 where
 
+import Swish.Namespace (ScopedName, getScopeLocal)
+
 import Swish.RDF.Vocabulary (swishName)
 
 import Swish.Utils.ListHelpers (equiv, subset, flist)
 import Swish.Utils.LookupMap (LookupEntryClass(..))
 import Swish.Utils.LookupMap (makeLookupMap, mapFindMaybe)
-import Swish.Utils.Namespace (ScopedName)
-import Swish.Utils.Namespace (getScopeLocal)
 
 import Data.List (find, intersect, union, (\\), foldl', permutations)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)

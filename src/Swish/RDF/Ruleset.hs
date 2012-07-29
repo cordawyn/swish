@@ -42,6 +42,8 @@ module Swish.RDF.Ruleset
     )
 where
 
+import Swish.Namespace (Namespace, ScopedName)
+import Swish.Namespace (makeNSScopedName, namespaceToBuilder)
 import Swish.Rule (Formula(..), Rule(..), RuleMap)
 import Swish.Rule (fwdCheckInference, nullSN)
 import Swish.Ruleset (Ruleset(..), RulesetMap)
@@ -66,8 +68,6 @@ import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingModify)
 import Swish.RDF.Parser.N3 (parseN3)
 
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
-import Swish.Utils.Namespace (Namespace, ScopedName)
-import Swish.Utils.Namespace (makeNSScopedName, namespaceToBuilder)
 
 import Swish.Utils.ListHelpers (equiv, flist)
 

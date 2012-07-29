@@ -24,6 +24,7 @@ module Swish.RDF.BuiltIn.Rules
 where
 
 import Swish.Datatype (typeRules, typeMkModifiers)
+import Swish.Namespace (ScopedName)
 import Swish.VarBinding (nullVarBindingModify, makeVarFilterModify, varFilterEQ, varFilterNE)
 
 import Swish.RDF.BuiltIn.Datatypes (allDatatypes)
@@ -40,7 +41,6 @@ import Swish.RDF.VarBinding
     )
 
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
-import Swish.Utils.Namespace (ScopedName)
 
 ------------------------------------------------------------
 --  Declare variable binding filters list

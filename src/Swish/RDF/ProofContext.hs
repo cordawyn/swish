@@ -24,6 +24,7 @@ module Swish.RDF.ProofContext ( rulesetRDF
                               , rulesetRDFD) where
 
 import Swish.Datatype (typeMkCanonicalForm)
+import Swish.Namespace (Namespace, makeNSScopedName)
 import Swish.Ruleset (makeRuleset)
 import Swish.VarBinding (VarBindingModify(..))
 import Swish.VarBinding (applyVarBinding, addVarBinding, makeVarFilterModify, varFilterDisjunction)
@@ -54,8 +55,6 @@ import Swish.RDF.VarBinding
     )
 
 import Swish.RDF.Graph (RDFLabel(..), isUri)
-
-import Swish.Utils.Namespace (Namespace, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDFD

@@ -55,6 +55,7 @@ module Swish.Datatype
     )
 where
 
+import Swish.Namespace (ScopedName)
 import Swish.Rule (Formula(..), Rule(..))
 import Swish.Ruleset (Ruleset(..))
 import Swish.Ruleset (getRulesetAxiom, getRulesetRule)
@@ -66,7 +67,6 @@ import Swish.RDF.Vocabulary (swishName)
 import Swish.Utils.ListHelpers (flist)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.LookupMap (mapFindMaybe)
-import Swish.Utils.Namespace (ScopedName)
 
 -- used to add Show instances for structures during debugging
 -- but backed out again.

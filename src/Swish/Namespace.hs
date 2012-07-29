@@ -23,7 +23,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.Utils.Namespace
+module Swish.Namespace
     ( Namespace
     , makeNamespace, makeNamespaceQName
       , getNamespacePrefix, getNamespaceURI, getNamespaceTuple

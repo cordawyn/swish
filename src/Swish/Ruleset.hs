@@ -30,9 +30,9 @@ module Swish.Ruleset
     )
 where
 
+import Swish.Namespace (Namespace, ScopedName)
 import Swish.Rule (Formula(..), Rule(..))
 
-import Swish.Utils.Namespace (Namespace, ScopedName)
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.LookupMap (mapFindMaybe)
 

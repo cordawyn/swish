@@ -26,12 +26,12 @@ module Swish.RDF.Formatter.NTriples
 where
 
 import Swish.GraphClass (Arc(..))
+import Swish.Namespace (ScopedName, getQName)
 
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..))
 import Swish.RDF.Graph (getArcs)
 
 import Swish.RDF.Vocabulary (fromLangTag)
-import Swish.Utils.Namespace (ScopedName, getQName)
 import Swish.Utils.LookupMap
     ( LookupMap, emptyLookupMap
     , mapFind, mapAdd

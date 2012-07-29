@@ -19,6 +19,7 @@
 
 module Main where
 
+import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Proof (Step(..), checkProof, checkStep, explainProof)
 import Swish.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.Ruleset (getContextAxiom, getContextRule)
@@ -35,7 +36,6 @@ import Swish.RDF.Ruleset
 import Swish.RDF.Graph (RDFGraph)
 import Swish.RDF.GraphShowM ()
 
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.Utils.LookupMap (mapFindMaybe)
 
 import Swish.RDF.Vocabulary

@@ -19,6 +19,15 @@
 module Main where
 
 import Swish.GraphClass (Arc, arc) 
+import Swish.Namespace (
+  Namespace, makeNamespace, getNamespaceURI
+  , ScopedName
+  , makeScopedName
+  , makeNSScopedName
+  , nullScopedName
+  -- , makeUriScopedName
+  , namespaceToBuilder
+  )
 import Swish.QName (QName, qnameFromURI)
 
 import Swish.RDF.Parser.N3
@@ -36,16 +45,6 @@ import Swish.RDF.Graph
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
     , resOwlSameAs, resLogImplies
     )
-
-import Swish.Utils.Namespace (
-  Namespace, makeNamespace, getNamespaceURI
-  , ScopedName
-  , makeScopedName
-  , makeNSScopedName
-  , nullScopedName
-  -- , makeUriScopedName
-  , namespaceToBuilder
-  )
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF

@@ -39,6 +39,8 @@ import Swish.Datatype
     , makeVmod20
     , makeVmod22
     )
+import Swish.Namespace (Namespace, ScopedName)
+import Swish.Namespace (namespaceToBuilder, makeNSScopedName)
 import Swish.Ruleset (makeRuleset)
 
 import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
@@ -49,8 +51,6 @@ import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 import Swish.RDF.Ruleset (makeRDFGraphFromN3Builder, makeRDFFormula)
 
 import Swish.RDF.ClassRestrictionRule (makeRDFDatatypeRestrictionRules)
-
-import Swish.Utils.Namespace (Namespace, ScopedName, namespaceToBuilder, makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( namespaceRDF

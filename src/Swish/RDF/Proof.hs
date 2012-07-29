@@ -32,6 +32,7 @@ where
 
 import Swish.GraphClass (Label(..), LDGraph(..))
 import Swish.GraphClass (replaceArcs)
+import Swish.Namespace (ScopedName)
 import Swish.Proof (Proof(..), Step(..))
 import Swish.Rule (Expression(..), Rule(..))
 import Swish.VarBinding (makeVarBinding)
@@ -43,7 +44,6 @@ import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
 import Swish.Utils.ListHelpers (subset, powerSet, powerSequencesLen, flist)
 import Swish.Utils.LookupMap (makeLookupMap, mapFind)
-import Swish.Utils.Namespace (ScopedName)
 
 ------------------------------------------------------------
 --  Type instantiation of Proof framework for RDFGraph data

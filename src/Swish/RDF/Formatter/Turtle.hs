@@ -42,6 +42,7 @@ module Swish.RDF.Formatter.Turtle
 where
 
 import Swish.GraphClass (Arc(..))
+import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..)
@@ -73,8 +74,6 @@ import Swish.Utils.LookupMap
     -- , mapDelete
     , mapMerge
     )
-
-import Swish.Utils.Namespace (ScopedName, getScopeLocal, getScopeURI)
 
 import Data.Char (isDigit)
 

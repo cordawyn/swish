@@ -50,6 +50,8 @@ module Swish.RDF.Parser.Utils
     )
     where
 
+import Swish.Namespace (Namespace, makeNamespace, ScopedName)
+
 import Swish.RDF.Graph (RDFGraph)
 import Swish.RDF.Vocabulary
     ( namespaceRDF
@@ -64,7 +66,6 @@ import Swish.RDF.Vocabulary
     )
 
 import Swish.Utils.LookupMap (LookupMap(..))
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName)
 
 import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L

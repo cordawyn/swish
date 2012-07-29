@@ -20,6 +20,8 @@
 
 module Main where
 
+import Swish.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
+
 import Swish.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.Ruleset (makeRuleset, getRulesetNamespace, getRulesetAxioms)
 import Swish.Ruleset (getRulesetRules, getRulesetAxiom, getRulesetRule)
@@ -53,8 +55,6 @@ import Swish.RDF.Graph
     )
     
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
-
-import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
 
 import Test.HUnit
     ( Test(TestCase,TestList)

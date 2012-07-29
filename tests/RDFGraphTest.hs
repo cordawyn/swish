@@ -18,6 +18,7 @@
 
 module Main where
 
+import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.QName (QName, qnameFromURI)
 
 import Swish.Utils.LookupMap
@@ -27,8 +28,6 @@ import Swish.Utils.LookupMap
 import Swish.Utils.ListHelpers (equiv)
 
 import Swish.GraphClass (Label(..), arc)
-
-import Swish.Utils.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
 
 import Swish.RDF.Graph
   ( RDFTriple, toRDFTriple, fromRDFTriple

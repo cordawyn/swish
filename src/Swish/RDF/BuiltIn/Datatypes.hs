@@ -19,6 +19,8 @@ module Swish.RDF.BuiltIn.Datatypes
        ( allDatatypes, findRDFDatatype )
     where
 
+import Swish.Namespace (ScopedName)
+
 import Swish.RDF.Datatype (RDFDatatype)
 
 import Swish.RDF.Datatype.XSD.String (rdfDatatypeXsdString)
@@ -26,7 +28,6 @@ import Swish.RDF.Datatype.XSD.Integer (rdfDatatypeXsdInteger)
 import Swish.RDF.Datatype.XSD.Decimal (rdfDatatypeXsdDecimal)
 
 import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
-import Swish.Utils.Namespace (ScopedName)
 
 ------------------------------------------------------------
 --  Declare datatype map

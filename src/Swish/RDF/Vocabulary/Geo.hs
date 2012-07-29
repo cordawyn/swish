@@ -35,7 +35,7 @@ module Swish.RDF.Vocabulary.Geo
     )
 where
 
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)

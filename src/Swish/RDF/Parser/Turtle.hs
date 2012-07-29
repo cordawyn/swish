@@ -53,6 +53,16 @@ module Swish.RDF.Parser.Turtle
     )
 where
 
+import Swish.Namespace
+    ( Namespace, makeNamespace
+    , ScopedName
+    , getScopeNamespace
+    , getScopedNameURI
+    , getScopeNamespace
+    , makeURIScopedName
+    , makeNSScopedName
+    )
+
 import Swish.GraphClass (arc)
 
 import Swish.RDF.Graph
@@ -66,16 +76,6 @@ import Swish.RDF.Graph
 
 import Swish.Utils.LookupMap (LookupMap(..), LookupEntryClass(..))
 import Swish.Utils.LookupMap (mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
-
-import Swish.Utils.Namespace
-    ( Namespace, makeNamespace
-    , ScopedName
-    , getScopeNamespace
-    , getScopedNameURI
-    , getScopeNamespace
-    , makeURIScopedName
-    , makeNSScopedName
-    )
 
 import Swish.RDF.Vocabulary
     ( LanguageTag

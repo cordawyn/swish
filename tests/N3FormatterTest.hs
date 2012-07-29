@@ -19,6 +19,7 @@
 module Main where
 
 import Swish.GraphClass (Arc, arc)
+import Swish.Namespace (Namespace, makeNamespace, makeNSScopedName, namespaceToBuilder)
 
 import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
 import Swish.RDF.Parser.N3 (parseN3)
@@ -33,8 +34,6 @@ import Swish.RDF.Graph
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
     , resOwlSameAs
     )
-
-import Swish.Utils.Namespace (Namespace, makeNamespace, makeNSScopedName, namespaceToBuilder)
 
 import Swish.Utils.LookupMap
     ( LookupMap(..)

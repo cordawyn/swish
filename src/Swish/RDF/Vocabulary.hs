@@ -63,11 +63,11 @@ module Swish.RDF.Vocabulary
     )
 where
 
+import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+
 import Swish.RDF.Vocabulary.RDF
 import Swish.RDF.Vocabulary.OWL
 import Swish.RDF.Vocabulary.XSD
-
-import Swish.Utils.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 
 import Data.Char (isDigit)
 import Data.Monoid (mappend, mconcat)

@@ -19,6 +19,7 @@
 
 module Main where
 
+import Swish.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
 import Swish.QName
     ( QName
     , newQName
@@ -28,7 +29,6 @@ import Swish.QName
     , getQNameURI
     )
 
-import Swish.Utils.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
 import Test.HUnit (Test(TestList))
 
 import Network.URI (URI, parseURIReference)

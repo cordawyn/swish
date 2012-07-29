@@ -19,6 +19,7 @@
 
 module Main where
 
+import Swish.Namespace (makeNSScopedName)
 import Swish.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
 
 import Swish.RDF.BuiltIn
@@ -29,8 +30,6 @@ import Swish.RDF.BuiltIn
     )
 
 import Swish.RDF.Datatype.XSD.Integer (typeNameXsdInteger, namespaceXsdInteger)
-
-import Swish.Utils.Namespace (makeNSScopedName)
 
 import Swish.RDF.Vocabulary
     ( swishName
