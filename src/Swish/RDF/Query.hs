@@ -253,7 +253,7 @@ rdfQueryBackModify qbm = concatMap (rdfQueryBackModify1 qbm)
 --
 rdfQueryBackModify1 ::
     VarBindingModify a b -> [VarBinding a b] -> [[VarBinding a b]]
-rdfQueryBackModify1 qbm qbs = sequence $ map (vbmApply qbm . (:[])) qbs
+rdfQueryBackModify1 qbm = mapM (vbmApply qbm . (:[]))
 
 ------------------------------------------------------------
 --  Simple entailment graph query
