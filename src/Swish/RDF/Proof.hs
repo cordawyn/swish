@@ -42,8 +42,10 @@ import Swish.RDF.Graph (merge, allLabels, remapLabelList, emptyRDFGraph)
 import Swish.RDF.Query (rdfQueryInstance, rdfQuerySubs)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
-import Swish.Utils.ListHelpers (subset, powerSet, flist)
+import Swish.Utils.ListHelpers (subset, flist)
 import Swish.Utils.LookupMap (makeLookupMap, mapFind)
+
+import Data.List (subsequences)
 
 ------------------------------------------------------------
 --  Type instantiation of Proof framework for RDFGraph data
@@ -151,9 +153,6 @@ makeRdfInstanceEntailmentRule name vocab = newrule
 --  Note:  unless the initial graph is small, the total result
 --  here could be very large.  The existential generalizations are
 --  sequenced in increasing number of substitutions applied.
---  This sequencing is determined by the powerset function used,
---  which generates subsets in increasing order of size
---  (see module 'ListHelpers').
 --
 --  The instances generated are all copies of the merge of the
 --  supplied graphs, with some or all of the non-variable nodes
@@ -171,7 +170,7 @@ rdfInstanceEntailFwdApply vocab ante =
         varNodes    = allLabels labelIsVar mergeGraph
         --  Obtain list of possible remappings for non-variable nodes
         mapList     = remapLabelList nonvarNodes varNodes
-        mapSubLists = powerSet mapList
+        mapSubLists = (tail . subsequences) mapList
         mapGr ls = fmap (\l -> mapFind l l (makeLookupMap ls))
     in
         --  Return all remappings of the original merged graph
@@ -289,9 +288,7 @@ makeRdfSubgraphEntailmentRule name = newrule
 --
 --  Note:  unless the initial graph is small, the total result
 --  here could be very large.  The subgraphs are sequenced in
---  increasing size of the sub graph.  This sequencing is determined
---  by the 'powerSet' function used which generates subsets in
---  increasing order of size (see module 'ListHelpers').
+--  increasing size of the sub graph.
 rdfSubgraphEntailFwdApply :: [RDFGraph] -> [RDFGraph]
 rdfSubgraphEntailFwdApply ante =
     let
@@ -301,7 +298,7 @@ rdfSubgraphEntailFwdApply ante =
                         else foldl1 merge ante
     in
         --  Return all subgraphs of the full graph constructed above
-        map (replaceArcs mergeGraph) (init $ powerSet $ getArcs mergeGraph)
+        map (replaceArcs mergeGraph) (init $ tail $ subsequences $ getArcs mergeGraph)
 
 --  Subgraph entailment inference checker
 --

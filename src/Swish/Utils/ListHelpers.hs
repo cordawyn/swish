@@ -20,8 +20,7 @@ module Swish.Utils.ListHelpers
        ( -- list of Swish.xxx modules the routine is used in
          subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
-       , powerSet -- ClassRestrictionRule, RDF.Proof
-       , flist -- Datatype, RDF.Proof, RDF.Ruleset, SwishScript, VarBinding
+       , flist -- Datatype, RDF.Proof, RDF.Ruleset, SwishScript, VarBinding, ...
         
       )
 where
@@ -42,58 +41,6 @@ a `subset` b    = and [ ma `elem` b | ma <- a ]
 
 equiv           :: (Eq a) => [a] -> [a] -> Bool
 a `equiv` b     = a `subset` b && b `subset` a
-
-------------------------------------------------------------
---  Powerset
-------------------------------------------------------------
-
---  [[[TBD... there's a much better implementation in my email,
---     from Christopher Hendrie.  This is the raw code.]]]
-{-
->ranked_powerset :: [a] -> [[[a]]]
->ranked_powerset = takeWhile (not . null) . foldr next_powerset ([[]] :
-repeat [])
->
->next_powerset :: a -> [[[a]]] -> [[[a]]]
->next_powerset x r = zipWith (++) ([] : map (map (x:)) r) r
->
->powerset :: [a] -> [[a]]
->powerset = tail . concat . ranked_powerset
--}
-
--- |Powerset of a list, in ascending order of size.
---  Assumes the supplied list has no duplicate elements.
-powerSet :: [a] -> [[a]]
-powerSet as =
-    concatMap (`combinations` as) [1..length as]
-
--- |Combinations of n elements from a list, each being returned in the
---  order that they appear in the list.
-combinations :: Int -> [a] -> [[a]]
-combinations _ []       = []        -- Don't include empty combinations
-combinations n as@(ah:at)
-    | n <= 0            = [[]]
-    | n >  length as    = []
-    | n == length as    = [as]
-    | otherwise         = map (ah:) (combinations (n-1) at) ++
-                          combinations n at
-
-{-
--- |Return list of integers from lo to hi.
-intRange :: Int -> Int -> [Int]
-intRange lo hi = take (hi-lo+1) (iterate (+1) 1)
--}
-
-{-
--- Tests
-testcomb0 = combinations 0 "abcd" -- []
-testcomb1 = combinations 1 "abcd" -- ["a","b","c","d"]
-testcomb2 = combinations 2 "abcd" -- ["ab","ac","ad","bc","bd","cd"]
-testcomb3 = combinations 3 "abcd" -- ["abc","abd","acd","bcd"]
-testcomb4 = combinations 4 "abcd" -- ["abcd"]
-testcomb5 = combinations 5 "abcd" -- []
-testpower = powerSet "abc"        -- ["a","b","c","ab","ac","bc","abc"]
--}
 
 ------------------------------------------------------------
 --  Functions, lists and monads

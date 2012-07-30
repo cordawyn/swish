@@ -64,13 +64,12 @@ import Swish.Utils.PartOrderedCollection
     )
 
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
-import Swish.Utils.ListHelpers (powerSet)
 
 import Control.Monad (liftM)
 
-import Data.Monoid (Monoid (..))
+import Data.List (delete, nub, (\\), subsequences)
 import Data.Maybe (fromJust, fromMaybe, mapMaybe)
-import Data.List (delete, nub, (\\))
+import Data.Monoid (Monoid (..))
 
 import qualified Data.Text.Lazy.Builder as B
 
@@ -479,7 +478,7 @@ coverSets  :: (Eq a) => [[a]] -> [([Maybe a],[a])] -> [[[Maybe a]]]
 coverSets pvs dts =
     minima partCompareListSubset $ map (map fst) ctss
     where
-        ctss = filter coverspvs $ powerSet cts
+        ctss = filter coverspvs $ tail $ subsequences cts
         cts  = minima (partComparePair partCompareListMaybe partCompareEq) dts
         coverspvs cs = coversVals delete (map snd cs) pvs
 
