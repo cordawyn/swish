@@ -229,7 +229,7 @@ makeStatements (sub,stmts) = do
 makeStatement :: 
     (Eq lb) =>
     Arc lb
-    -> PState lb ((LabelledPartition lb), [LabelledArcs lb])
+    -> PState lb (LabelledPartition lb, [LabelledArcs lb])
 makeStatement (Arc _ prop obj) = do
     intobj <- pickIntSubject obj
     (gpobj, moresubs) <- if null intobj

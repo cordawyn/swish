@@ -69,7 +69,7 @@ import Swish.RDF.Vocabulary.RDF
 import Swish.RDF.Vocabulary.OWL
 import Swish.RDF.Vocabulary.XSD
 
-import Data.Char (isDigit)
+import Data.Char (isDigit, isAsciiLower)
 import Data.Monoid (mappend, mconcat)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.String (IsString(..))
@@ -212,8 +212,7 @@ toLangTag lbl =
         toks = T.split (=='-') tag
     in if all (\s -> let l = T.length s in l > 0 && l < 9) toks
        then let primtag : subtags = toks
-                isVChar c = c >= 'a' && c <= 'z'
-            in if T.all isVChar primtag && all (T.all (\c -> isVChar c || isDigit c)) subtags
+            in if T.all isAsciiLower primtag && all (T.all (\c -> isAsciiLower c || isDigit c)) subtags
                then Just $ LanguageTag tag primtag subtags
                else Nothing
        else Nothing

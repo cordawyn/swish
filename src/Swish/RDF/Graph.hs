@@ -711,7 +711,7 @@ quote f (c:st) =
 -- surround a string with quotes ("...")
 
 quote1Str :: T.Text -> String
-quote1Str t = '"' : quote False (T.unpack t) ++ ['"']
+quote1Str t = '"' : quote False (T.unpack t) ++ "\""
 
 ---------------------------------------------------------
 --  Selected RDFLabel values
