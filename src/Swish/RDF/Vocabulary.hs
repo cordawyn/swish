@@ -70,12 +70,15 @@ import Swish.RDF.Vocabulary.OWL
 import Swish.RDF.Vocabulary.XSD
 
 import Data.Char (isDigit, isAsciiLower)
+import Data.List (isPrefixOf)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Monoid (mappend, mconcat)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.String (IsString(..))
 
 import Network.URI (URI, parseURI)
 
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 
 ------------------------------------------------------------
@@ -178,8 +181,8 @@ swishName = makeNSScopedName namespaceSwish
 -- > en-gb
 --
 data LanguageTag = 
-    LanguageTag T.Text T.Text [T.Text]
-    -- store full value, then primary tag, then sub tags
+    LanguageTag T.Text (NonEmpty T.Text)
+    -- store full value, then the tags
 
 instance Show LanguageTag where
     show = T.unpack . fromLangTag
@@ -192,7 +195,7 @@ instance IsString LanguageTag where
 -- | The equality test matches on the full definition, so
 -- @en-GB@ does not match @en@. See also 'compareLangTags'.
 instance Eq LanguageTag where
-    LanguageTag f1 _ _ == LanguageTag f2 _ _ = f1 == f2
+    LanguageTag f1 _ == LanguageTag f2 _ = f1 == f2
 
 -- | Create a 'LanguageTag' element from the label.
 -- 
@@ -213,13 +216,13 @@ toLangTag lbl =
     in if all (\s -> let l = T.length s in l > 0 && l < 9) toks
        then let primtag : subtags = toks
             in if T.all isAsciiLower primtag && all (T.all (\c -> isAsciiLower c || isDigit c)) subtags
-               then Just $ LanguageTag tag primtag subtags
+               then Just $ LanguageTag tag (NE.fromList toks)
                else Nothing
        else Nothing
 
 -- | Convert a language tag back into text form.
 fromLangTag :: LanguageTag -> T.Text
-fromLangTag (LanguageTag f _ _) = f
+fromLangTag (LanguageTag f _) = f
 
 -- | Compare language tags using the Language-range specification
 -- in section 2.5 of RFC 3066.
@@ -240,8 +243,10 @@ compareLangTags ::
     LanguageTag     -- ^ base language
     -> LanguageTag  -- ^ comparison language
     -> Bool
-compareLangTags (LanguageTag _ p1 s1) (LanguageTag _ p2 s2) =
-    p1 == p2 && length s2 >= length s1 && and (zipWith (==) s1 s2)
+compareLangTags (LanguageTag _ (a :| as)) 
+                    (LanguageTag _ (b :| bs))
+                        | a == b    = as `isPrefixOf` bs
+                        | otherwise = False
 
 ------------------------------------------------------------
 --  Define namespaces for RDF rules, axioms, etc
