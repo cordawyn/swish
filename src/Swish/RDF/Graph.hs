@@ -208,6 +208,7 @@ import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, foldl')
 import Data.Ord (comparing)
+import Data.Word
 
 import Data.String (IsString(..))
 import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
@@ -1137,6 +1138,32 @@ data NSGraph lb = NSGraph
     , statements :: [Arc lb]        -- ^ the statements in the graph
     }
 
+instance (Label lb) => Monoid (NSGraph lb) where
+  mempty = NSGraph emptyNamespaceMap (LookupMap []) []
+  mappend = merge
+  
+instance (Label lb) => LDGraph NSGraph lb where
+    getArcs      = statements 
+    setArcs as g = g { statements=as }
+
+instance Functor NSGraph where
+  fmap f (NSGraph ns fml stmts) =
+    NSGraph ns (formulaeMap f fml) ((map $ fmap f) stmts)
+
+instance Foldable.Foldable NSGraph where
+  foldMap = Traversable.foldMapDefault
+
+instance Traversable.Traversable NSGraph where
+  traverse f (NSGraph ns fml stmts) = 
+    NSGraph ns <$> formulaeMapA f fml <*> (Traversable.traverse $ Traversable.traverse f) stmts
+  
+instance (Label lb) => Eq (NSGraph lb) where
+    (==) = grEq
+
+instance (Label lb) => Show (NSGraph lb) where
+    show     = grShow ""
+    showList = grShowList ""
+
 -- | Retrieve the namespace map in the graph.
 getNamespaces :: NSGraph lb -> NamespaceMap
 getNamespaces = namespaces
@@ -1161,14 +1188,6 @@ getFormula g l = mapFindMaybe l (formulae g)
 setFormula     :: (Label lb) => Formula lb -> NSGraph lb -> NSGraph lb
 setFormula f g = g { formulae=mapReplaceOrAdd f (formulae g) }
 
-instance (Label lb) => Monoid (NSGraph lb) where
-  mempty = NSGraph emptyNamespaceMap (LookupMap []) []
-  mappend = merge
-  
-instance (Label lb) => LDGraph NSGraph lb where
-    getArcs      = statements 
-    setArcs as g = g { statements=as }
-
 {-|
 Add an arc to the graph. It does not relabel any blank nodes in the input arc,
 nor does it change the namespace map, 
@@ -1181,24 +1200,6 @@ addArc ar gr = gr { statements=addSetElem ar (statements gr) }
 
 addSetElem :: (Eq a) => a -> [a] -> [a]
 addSetElem e es = if e `elem` es then es else e:es
-
-instance Functor NSGraph where
-  fmap f (NSGraph ns fml stmts) =
-    NSGraph ns (formulaeMap f fml) ((map $ fmap f) stmts)
-
-instance Foldable.Foldable NSGraph where
-  foldMap = Traversable.foldMapDefault
-
-instance Traversable.Traversable NSGraph where
-  traverse f (NSGraph ns fml stmts) = 
-    NSGraph ns <$> formulaeMapA f fml <*> (Traversable.traverse $ Traversable.traverse f) stmts
-  
-instance (Label lb) => Eq (NSGraph lb) where
-    (==) = grEq
-
-instance (Label lb) => Show (NSGraph lb) where
-    show     = grShow ""
-    showList = grShowList ""
 
 grShowList :: (Label lb) => String -> [NSGraph lb] -> String -> String
 grShowList _ []     = showString "[no graphs]"
@@ -1356,7 +1357,17 @@ newNodes :: (Label lb) => lb -> [lb] -> [lb]
 newNodes dn existnodes =
     filter (not . (`elem` existnodes)) $ trynodes (noderootindex dn)
 
-noderootindex :: (Label lb) => lb -> (String,Int)
+{- 
+
+For now go with a 32-bit integer (since Int on my machine uses 32-bit
+values). We could instead use a Whole class constraint from
+Numeric.Natural (in semigroups), but it is probably better to
+specialize here. The idea for using Word<X> rather than Int is to
+make it obvious that we are only interested in values >= 0.
+
+-}
+
+noderootindex :: (Label lb) => lb -> (String, Word32)
 noderootindex dn = (nh,nx) where
     (nh,nt) = splitnodeid $ getLocal dn
     nx      = if null nt then 0 else read nt
@@ -1364,7 +1375,7 @@ noderootindex dn = (nh,nx) where
 splitnodeid :: String -> (String,String)
 splitnodeid = break isDigit
 
-trynodes :: (Label lb) => (String,Int) -> [lb]
+trynodes :: (Label lb) => (String, Word32) -> [lb]
 trynodes (nr,nx) = [ makeLabel (nr++show n) | n <- iterate (+1) nx ]
 
 {-

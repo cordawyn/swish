@@ -33,16 +33,6 @@ module Swish.GraphMatch
         graphMatch1, graphMatch2, equivalenceClasses, reclassify
       ) where
 
-import Control.Exception.Base (assert)
-import Control.Arrow (second)
-
-import Data.Ord (comparing)
-import Data.List (foldl', nub, sortBy, groupBy, partition)
-import Data.Function (on)  
-import Data.Hashable (combine)
-
-import qualified Data.List as L
-
 import Swish.GraphClass (Arc(..), Label(..))
 import Swish.GraphClass (arcLabels, hasLabel, arcToTriple)
 
@@ -50,6 +40,17 @@ import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Swish.Utils.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                               mapAddIfNew, mapReplaceMap, mapMerge)
 import Swish.Utils.ListHelpers (equiv)
+
+import Control.Exception.Base (assert)
+import Control.Arrow (second)
+
+import Data.Ord (comparing)
+import Data.List (foldl', nub, sortBy, groupBy, partition)
+import Data.Function (on)  
+import Data.Hashable (combine)
+import Data.Word
+
+import qualified Data.List as L
 
 --------------------------
 --  Label index value type
@@ -62,11 +63,11 @@ import Swish.Utils.ListHelpers (equiv)
 --  bijection.  The first member is a generation counter that
 --  ensures new values are distinct from earlier passes.
 
-type LabelIndex = (Int,Int)
+type LabelIndex = (Word32, Word32)
 
 -- | The null, or empty, index value.
 nullLabelVal :: LabelIndex
-nullLabelVal = (0,0)
+nullLabelVal = (0, 0)
 
 -----------------------
 --  Label mapping types
@@ -94,7 +95,7 @@ instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
 
 -- | Type for label->index lookup table
 data (Label lb, Eq lv, Show lv) => GenLabelMap lb lv =
-    LabelMap Int (LookupMap (GenLabelEntry lb lv))
+    LabelMap Word32 (LookupMap (GenLabelEntry lb lv))
 
 -- | A label lookup table specialized to 'LabelIndex' indices.
 type LabelMap lb = GenLabelMap lb LabelIndex
@@ -229,7 +230,7 @@ graphMatch :: (Label lb) =>
     --   that formula assignments are compatible.)
     -> [Arc lb] -- ^ the first graph to be compared, as a list of arcs
     -> [Arc lb] -- ^ the second graph to be compared, as a list of arcs
-    -> (Bool,LabelMap (ScopedLabel lb))
+    -> (Bool, LabelMap (ScopedLabel lb))
     -- ^ If the first element is `True` then the second element maps each label
     --   to an equivalence class identifier, otherwise it is just
     --   `emptyMap`.
@@ -435,7 +436,7 @@ labelMatch matchable lmap l1 l2 =
 --  supplied from the current label map.  The generation number in the
 --  resulting label map is incremented.
 --
-newLabelMap :: (Label lb) => LabelMap lb -> [(lb,Int)] -> LabelMap lb
+newLabelMap :: (Label lb) => LabelMap lb -> [(lb, Word32)] -> LabelMap lb
 newLabelMap lmap []       = newGenerationMap lmap
 newLabelMap lmap (lv:lvs) = setLabelHash (newLabelMap lmap lvs) lv
 
@@ -445,7 +446,7 @@ newLabelMap lmap (lv:lvs) = setLabelHash (newLabelMap lmap lvs) lv
 --  is made to the label map.
 
 setLabelHash :: (Label lb)
-    => LabelMap lb -> (lb,Int) -> LabelMap lb
+    => LabelMap lb -> (lb, Word32) -> LabelMap lb
 setLabelHash  (LabelMap g lmap) (lb,lh) =
     LabelMap g ( mapReplaceAll lmap $ newEntry (lb,(g,lh)) )
 
@@ -477,8 +478,8 @@ assignLabelMap1 lab (LabelMap g lvs) = LabelMap g lvs'
 
 --  Calculate initial value for a node
 
-initVal :: (Label lb) => lb -> Int
-initVal = hashVal 0
+initVal :: (Label lb) => lb -> Word32
+initVal = fromIntegral . hashVal 0
 
 hashVal :: (Label lb) => Int -> lb -> Int
 hashVal seed lab =
@@ -578,10 +579,10 @@ remapLabels gs lmap@(LabelMap gen _) ls =
     LabelMap gen' (LookupMap newEntries)
     where
         gen'                = gen+1
-        newEntries          = [ newEntry (l, (gen',newIndex l)) | l <- ls ]
+        newEntries          = [ newEntry (l, (gen', fromIntegral (newIndex l))) | l <- ls ]
         newIndex l
-            | labelIsVar l  = mapAdjacent l     -- adjacency classifies variable labels
-            | otherwise     = hashVal gen l     -- otherwise rehash (to disentangle collisions)
+            | labelIsVar l  = mapAdjacent l                 -- adjacency classifies variable labels
+            | otherwise     = hashVal (fromIntegral gen) l  -- otherwise rehash (to disentangle collisions)
         -- mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
         mapAdjacent l       = sum (sigsOver l) `combine` hashModulus -- is this a sensible replacement for `rem` MH.hashModulus        
         sigsOver l          = select (hasLabel l) gs (arcSignatures lmap gs)
@@ -601,6 +602,8 @@ select _ _ _    = error "select supplied with different length lists"
 graphLabels :: (Label lb) => [Arc lb] -> [lb]
 graphLabels = nub . concatMap arcLabels
 
+-- TODO: worry about overflow?
+
 -- | Calculate a signature value for each arc that can be used in constructing an
 --   adjacency based value for a node.  The adjacancy value for a label is obtained
 --   by summing the signatures of all statements containing that label.
@@ -614,9 +617,9 @@ arcSignatures lmap =
     map (sigCalc . arcToTriple) 
     where
         sigCalc (s,p,o)  =
-            ( labelVal2 s +
-              labelVal2 p * 3 +
-              labelVal2 o * 5 )
+            fromIntegral ( labelVal2 s +
+                           labelVal2 p * 3 +
+                           labelVal2 o * 5 )
             `combine` hashModulus
             -- `rem` hashModulus
           

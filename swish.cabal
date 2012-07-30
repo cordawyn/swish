@@ -76,6 +76,8 @@ Description:
   * Removed various exported symbols from a range of modules as they were
   unused.
   .
+  * Use @Word32@ rather than @Int@ for label indexes (@Swish.GraphMatch.LabelIndex@).
+  .
   * Clarified that @Swish.RDF.RDFDatatypeXsdDecimal@ is for @xsd:decimal@ rather
   than @xsd:double@.
   .

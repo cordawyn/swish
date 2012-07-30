@@ -28,6 +28,9 @@
   - Removed various exported symbols from a range of modules as they were
     un-used.
 
+  - Use Word32 rather than Int for label indexes
+    (Swish.GraphMatch.LabelIndex).
+
   - Bump the upper constraint on the containers package to include
     version 0.5.
 

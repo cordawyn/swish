@@ -51,6 +51,7 @@ import TestHelpers (runTestSuite, testEq, testEqv)
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust)
 import Data.Ord (comparing)
+import Data.Word
 
 default ( Int )
 
@@ -101,7 +102,7 @@ testeqv lab req got =
 --  Label map and entry creation helpers
 ------------------------------------------------------------
 
-tstLabelMap :: (Label lb) => Int -> [(lb,LabelIndex)] -> LabelMap lb
+tstLabelMap :: (Label lb) => Word32 -> [(lb,LabelIndex)] -> LabelMap lb
 tstLabelMap gen lvs = LabelMap gen (makeLookupMap $ makeEntries lvs)
 
 makeEntries :: (Label lb) => [(lb,LabelIndex)] -> [LabelEntry lb]
@@ -671,30 +672,30 @@ lmap5 = tstLabelMap 2 [(s1,(1,142577)),(s2,(1,142578)),(s3,(1,142579)),
                        (b3,(1,262143)),(b4,(1,262143))]
 -}
 
-bhash :: Int
+bhash :: Word32
 bhash = 23
 
-l1hash, l4hash, l10hash :: Int
+l1hash, l4hash, l10hash :: Word32
 l1hash = 2524
 l4hash = -1302210307
 l10hash = 10836024  
 
-l1hash2, l4hash2, l10hash2 :: Int
+l1hash2, l4hash2, l10hash2 :: Word32
 l1hash2 = 2524
 l4hash2 = -1302210307
 l10hash2 = 10836024  
 
-o1hash, o2hash, o3hash :: Int
+o1hash, o2hash, o3hash :: Word32
 o1hash = 2623
 o2hash = 2620
 o3hash = 2621
 
-p1hash, p2hash, p3hash :: Int
+p1hash, p2hash, p3hash :: Word32
 p1hash = 2624
 p2hash = 2627
 p3hash = 2626
 
-s1hash, s2hash, s3hash :: Int
+s1hash, s2hash, s3hash :: Word32
 s1hash = 2723
 s2hash = 2720
 s3hash = 2721
@@ -1088,7 +1089,7 @@ testEqAssignMap32 :: Test
 testEqAssignMap32 = testeq "EqAssignMap32" eq3ltst eq3lmap
 
 type EquivClass = EquivalenceClass (ScopedLabel LabelMem)
-type EquivArgs  = ((Int, Int), [ScopedLabel LabelMem])
+type EquivArgs  = ((Word32, Word32), [ScopedLabel LabelMem])
 
 ec31 :: [EquivClass]
 ec31     = equivalenceClasses eq3lmap (graphLabels as11)
@@ -1105,9 +1106,7 @@ ec32 = equivalenceClasses eq3lmap (graphLabels as22)
 
 ec32test :: [EquivArgs]
 ec32test =
-    [ 
-      ((1,-1302210307),[l4_2])
-    , ((1,2524),[l1_2])
+    [ ((1,2524),[l1_2])
     , ((1,2620),[o2_2])
     , ((1,2621),[o3_2])
     , ((1,2623),[o1_2])
@@ -1116,6 +1115,7 @@ ec32test =
     , ((1,2721),[s3_2])
     , ((1,2723),[s1_2])
     , ((1,10836024),[l10_2])
+    , ((1,2992756989),[l4_2])
     ]
   
 testEquivClass33_1, testEquivClass33_2 :: Test
