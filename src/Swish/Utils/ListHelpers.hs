@@ -21,7 +21,6 @@ module Swish.Utils.ListHelpers
          subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
        , powerSet -- ClassRestrictionRule, RDF.Proof
-       , powerSequencesLen -- RDF.Proof
        , flist -- Datatype, RDF.Proof, RDF.Ruleset, SwishScript, VarBinding
         
       )
@@ -95,23 +94,6 @@ testcomb4 = combinations 4 "abcd" -- ["abcd"]
 testcomb5 = combinations 5 "abcd" -- []
 testpower = powerSet "abc"        -- ["a","b","c","ab","ac","bc","abc"]
 -}
-
-------------------------------------------------------------
---  Powersequence (?) -- all sequences from some base values
-------------------------------------------------------------
-
--- |Construct list of lists of sequences of increasing length
-powerSeqBylen :: [a] -> [[a]] -> [[[a]]]
-powerSeqBylen rs ps = ps : powerSeqBylen rs (powerSeqNext rs ps)
-
--- |Return sequences of length n+1 given original sequence
---  and list of all sequences of length n
-powerSeqNext :: [a] -> [[a]] -> [[a]]
-powerSeqNext rs rss = [ h:t | t <- rss, h <- rs ]
-
--- |Return all powersequences of a given length
-powerSequencesLen :: Int -> [a] -> [[a]]
-powerSequencesLen len rs = powerSeqBylen rs [[]] !! len
 
 ------------------------------------------------------------
 --  Functions, lists and monads

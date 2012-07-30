@@ -42,7 +42,7 @@ import Swish.RDF.Graph (merge, allLabels, remapLabelList, emptyRDFGraph)
 import Swish.RDF.Query (rdfQueryInstance, rdfQuerySubs)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
-import Swish.Utils.ListHelpers (subset, powerSet, powerSequencesLen, flist)
+import Swish.Utils.ListHelpers (subset, powerSet, flist)
 import Swish.Utils.LookupMap (makeLookupMap, mapFind)
 
 ------------------------------------------------------------
@@ -213,6 +213,23 @@ rdfInstanceEntailCheckInference ante cons =
         --  Return True if any back-substitution matches the original
         --  merged antecendent graph.
         elem mante bsubs
+
+------------------------------------------------------------
+--  Powersequence (?) -- all sequences from some base values
+------------------------------------------------------------
+
+-- |Construct list of lists of sequences of increasing length
+powerSeqBylen :: [a] -> [[a]] -> [[[a]]]
+powerSeqBylen rs ps = ps : powerSeqBylen rs (powerSeqNext rs ps)
+
+-- |Return sequences of length n+1 given original sequence
+--  and list of all sequences of length n
+powerSeqNext :: [a] -> [[a]] -> [[a]]
+powerSeqNext rs rss = [ h:t | t <- rss, h <- rs ]
+
+-- |Return all powersequences of a given length
+powerSequencesLen :: Int -> [a] -> [[a]]
+powerSequencesLen len rs = powerSeqBylen rs [[]] !! len
 
 --  Instance entailment notes.
 --
