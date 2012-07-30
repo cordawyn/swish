@@ -206,7 +206,7 @@ import Data.Monoid (Monoid(..))
 import Data.Maybe (mapMaybe)
 import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
-import Data.List (intersect, union, findIndices, foldl')
+import Data.List (intersect, union, foldl')
 import Data.Ord (comparing)
 
 import Data.String (IsString(..))
@@ -1362,8 +1362,7 @@ noderootindex dn = (nh,nx) where
     nx      = if null nt then 0 else read nt
 
 splitnodeid :: String -> (String,String)
-splitnodeid dn = splitAt (tx+1) dn where
-    tx = last $ (-1):findIndices (not . isDigit) dn
+splitnodeid = break isDigit
 
 trynodes :: (Label lb) => (String,Int) -> [lb]
 trynodes (nr,nx) = [ makeLabel (nr++show n) | n <- iterate (+1) nx ]
