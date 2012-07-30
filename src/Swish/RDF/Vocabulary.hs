@@ -47,7 +47,7 @@ module Swish.RDF.Vocabulary
     , LanguageTag
     , toLangTag
     , fromLangTag
-    , compareLangTags
+    , isBaseLang
     
     -- * Miscellaneous routines
     , swishName
@@ -158,8 +158,9 @@ swishName = makeNSScopedName namespaceSwish
 -- RFC 3066 <http://www.ietf.org/rfc/rfc3066.txt>.
 --
 -- Use 'toLangTag' to create a tag and 'fromLangTag' to
--- convert back (although this is not guaranteed to preserve
--- case).
+-- convert back. The case is preserved for the tag, although
+-- comparison (both the 'Eq' instance and 'compareLangTag')
+-- is done using the lower-case form of the tags.
 --
 -- As an example:
 --
@@ -169,16 +170,18 @@ swishName = makeNSScopedName namespaceSwish
 -- > swish> let en = "en" :: LanguageTag
 -- > swish> let us = "en-us" :: LanguageTag
 -- > swish> let gb = "en-GB" :: LanguageTag
+-- > swish> gb
+-- > en-GB
+-- > swish> gb == "en-gb"
+-- > True
 -- > swish> en == us
 -- > False
--- > swish> compareLangTags en us
+-- > swish> en `isBaseLang` us
 -- > True
--- > swish> compareLangTags us en
+-- > swish> us `isBaseLang` en
 -- > False
--- > swish> compareLangTags us gb
+-- > swish> us `isBaseLang` gb
 -- > False
--- > swish> gb
--- > en-gb
 --
 data LanguageTag = 
     LanguageTag T.Text (NonEmpty T.Text)
@@ -193,9 +196,9 @@ instance IsString LanguageTag where
     fromString = fromJust . toLangTag . T.pack
 
 -- | The equality test matches on the full definition, so
--- @en-GB@ does not match @en@. See also 'compareLangTags'.
+-- @en-GB@ does not match @en@. See also 'isBaseLang'.
 instance Eq LanguageTag where
-    LanguageTag f1 _ == LanguageTag f2 _ = f1 == f2
+    LanguageTag _ t1 == LanguageTag _ t2 = t1 == t2
 
 -- | Create a 'LanguageTag' element from the label.
 -- 
@@ -216,7 +219,7 @@ toLangTag lbl =
     in if all (\s -> let l = T.length s in l > 0 && l < 9) toks
        then let primtag : subtags = toks
             in if T.all isAsciiLower primtag && all (T.all (\c -> isAsciiLower c || isDigit c)) subtags
-               then Just $ LanguageTag tag (NE.fromList toks)
+               then Just $ LanguageTag lbl (NE.fromList toks)
                else Nothing
        else Nothing
 
@@ -233,20 +236,20 @@ fromLangTag (LanguageTag f _) = f
 --
 -- Note that 
 --
--- > compareLangTag l1 l2 == compareLangTag l2 l1
+-- > l1 `isBaseLang` l2 == l2 `isBaseLang` l1
 --
 -- only when
 --
 -- > l1 == l2
 --
-compareLangTags :: 
+isBaseLang :: 
     LanguageTag     -- ^ base language
     -> LanguageTag  -- ^ comparison language
     -> Bool
-compareLangTags (LanguageTag _ (a :| as)) 
-                    (LanguageTag _ (b :| bs))
-                        | a == b    = as `isPrefixOf` bs
-                        | otherwise = False
+isBaseLang (LanguageTag _ (a :| as)) 
+               (LanguageTag _ (b :| bs))
+                   | a == b    = as `isPrefixOf` bs
+                   | otherwise = False
 
 ------------------------------------------------------------
 --  Define namespaces for RDF rules, axioms, etc
