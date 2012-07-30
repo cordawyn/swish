@@ -21,7 +21,6 @@ module Swish.Utils.ListHelpers
          subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
        , powerSet -- ClassRestrictionRule, RDF.Proof
-       , listProduct -- RDF.Query
        , powerSequencesLen -- RDF.Proof
        , flist -- Datatype, RDF.Proof, RDF.Ruleset, SwishScript, VarBinding
         
@@ -95,40 +94,6 @@ testcomb3 = combinations 3 "abcd" -- ["abc","abd","acd","bcd"]
 testcomb4 = combinations 4 "abcd" -- ["abcd"]
 testcomb5 = combinations 5 "abcd" -- []
 testpower = powerSet "abc"        -- ["a","b","c","ab","ac","bc","abc"]
--}
-
-------------------------------------------------------------
---  List product
-------------------------------------------------------------
-
--- |Given a list of lists, construct a new list of lists where
---  each member of the new list is the same length as the original
---  list, and each member corresponds to a different choice of
---  one element from each of the original members in the
---  corresponding position.  Thus:
---
---  > listProduct [[a1,a2],[b1],[c1,c2]] =
---  >      [ [a1,b1,c1], [a1,b1,c2], [a2,b1,c1], [a2,b1,c2] ]
---
---  Note:  The length of the resulting list is the product of
---  lengths of the components of the original list.  Thus, if
---  any member of the original list is empty then so is the
---  resulting list:
---
---  > listProduct [[a1,a2],[],[c1,c2]] = []
---
---  NOTE:  this is subsumed by 'sequence'
---
-listProduct :: [[a]] -> [[a]]
-listProduct []       = [[]]
-listProduct (as:ass) = concat [ map (a:) (listProduct ass) | a <- as ]
-
-{-
-test1 = listProduct [["a1","a2"],["b1"],["c1","c2"]]
-test2 = listProduct [["a1","a2"],[],["c1","c2"]]
-
-lp []       = [[]]
-lp (as:ass) = concatMap (\a -> (map (a:) (lp ass))) as
 -}
 
 ------------------------------------------------------------

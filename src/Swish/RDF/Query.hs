@@ -76,7 +76,7 @@ import Swish.RDF.Datatype.XSD.MapInteger (mapXsdInteger)
 
 import Swish.RDF.Vocabulary (xsdInteger, xsdNonNegInteger)
 
-import Swish.Utils.ListHelpers (listProduct, flist)
+import Swish.Utils.ListHelpers (flist)
 
 import qualified Data.Traversable as Traversable
 
@@ -247,13 +247,13 @@ rdfQueryBackModify qbm = concatMap (rdfQueryBackModify1 qbm)
 --  (a) make each list member into a singleton list
 --  (b) apply the binding modifier to each such list, which may result
 --      in a list with zero, one or more elements.
---  (c) return the listProduct of these, each member of which is
+--  (c) return the  sequence of these, each member of which is
 --      an alternative list of variable bindings, where the members of
 --      each alternative must be used together.
 --
 rdfQueryBackModify1 ::
     VarBindingModify a b -> [VarBinding a b] -> [[VarBinding a b]]
-rdfQueryBackModify1 qbm qbs = listProduct $ map (vbmApply qbm . (:[])) qbs
+rdfQueryBackModify1 qbm qbs = sequence $ map (vbmApply qbm . (:[])) qbs
 
 ------------------------------------------------------------
 --  Simple entailment graph query
