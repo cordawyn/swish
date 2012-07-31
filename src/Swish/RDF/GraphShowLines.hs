@@ -1,11 +1,11 @@
-{-# LANGUAGE FlexibleInstances #-} -- needed for ghc 7.2
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  GraphShowM
+--  Module      :  GraphShowLines
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -13,24 +13,25 @@
 --  Stability   :  experimental
 --  Portability :  FlexibleInstances, TypeSynonymInstances
 --
---  This module defines a `ShowM` class instance for `RDFGraph`, to be
+--  This module defines a `ShowLines` class instance for `RDFGraph`, to be
 --  used when displaying RDF Graph values as part of a proof sequence,
 --  etc.
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.GraphShowM() where
+module Swish.RDF.GraphShowLines () where
 
 import Swish.RDF.Graph (RDFGraph)
 import Swish.RDF.Formatter.N3 (formatGraphIndent)
-import Swish.Utils.ShowM (ShowM(..))
+
+import Data.String.ShowLines (ShowLines(..))
 
 -- import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
 
-instance ShowM RDFGraph where
-    -- showms linebreak = shows . L.unpack . B.toLazyText . formatGraphIndent linebreak False 
-    showms linebreak = shows . formatGraphIndent (B.fromString linebreak) False 
+instance ShowLines RDFGraph where
+    -- showls linebreak = shows . L.unpack . B.toLazyText . formatGraphIndent linebreak False 
+    showls linebreak = shows . formatGraphIndent (B.fromString linebreak) False 
 
 --------------------------------------------------------------------------------
 --

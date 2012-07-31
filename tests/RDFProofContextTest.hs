@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFProofContextTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -34,7 +34,7 @@ import Swish.RDF.Ruleset
     , makeRDFFormula )
 
 import Swish.RDF.Graph (RDFGraph)
-import Swish.RDF.GraphShowM ()
+-- import Swish.RDF.GraphShowLines ()
 
 import Swish.Utils.LookupMap (mapFindMaybe)
 
@@ -679,7 +679,8 @@ p10 = runTestTT $ TestList
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

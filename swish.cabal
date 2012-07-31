@@ -48,7 +48,8 @@ Description:
   .
   * Moved a number of modules around: generic code directly into @Swish@
   and the @Swish.RDF.RDF*@ forms renamed to @Swish.RDF.*@. Some modules
-  have been moved out of the @Swish.Utils.*@ namespace.
+  have been moved out of the @Swish.Utils.*@ namespace. Generic modules
+  have been placed into the @Data.*@ namespace.
   .
   * Parsing modules are now in the @Swish.RDF.Parser@ hierarchy and
   @Swish.RDF.RDFParser@ has been renamed to @Swish.RDF.Parser.Utils@.
@@ -140,6 +141,7 @@ Library
    Exposed-Modules:
       Data.Interned.URI
       Data.Ord.Partial
+      Data.String.ShowLines
       Swish
       Swish.Datatype
       Swish.GraphClass
@@ -164,7 +166,7 @@ Library
       Swish.RDF.Formatter.N3
       Swish.RDF.Formatter.Turtle
       Swish.RDF.Graph
-      Swish.RDF.GraphShowM
+      Swish.RDF.GraphShowLines
       Swish.RDF.Parser.NTriples
       Swish.RDF.Parser.N3
       Swish.RDF.Parser.Turtle
@@ -191,7 +193,6 @@ Library
       Swish.Ruleset
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
-      Swish.Utils.ShowM
       Swish.VarBinding
 
    ghc-options:

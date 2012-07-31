@@ -28,12 +28,11 @@ import Swish.Rule (Expression(..), Formula(..), Rule(..))
 import Swish.Rule (showsFormula, showsFormulae)
 import Swish.Ruleset (Ruleset(..))
 
-import Swish.Utils.ShowM (ShowM(..))
-
 import Swish.Utils.ListHelpers (subset)
 
 import Data.List (union, intersect, intercalate, foldl')
 import Data.Maybe (catMaybes, isNothing)
+import Data.String.ShowLines (ShowLines(..))
 
 ------------------------------------------------------------
 --  Proof framework
@@ -216,7 +215,7 @@ explainStep rules prev step =
 --
 --  (3) no newline is output following the final line of text.
 showsProof :: 
-  (ShowM ex) 
+  (ShowLines ex) 
   => String    -- ^ newline string
   -> Proof ex 
   -> ShowS
@@ -235,14 +234,14 @@ showsProof newline proof =
 
 -- |Returns a simple string representation of a proof.
 showProof :: 
-  (ShowM ex) 
+  (ShowLines ex) 
   => String    -- ^ newline string
   -> Proof ex 
   -> String
 showProof newline proof = showsProof newline proof ""
 
 -- |Create a displayable form of a list of labelled proof steps
-showsSteps :: (ShowM ex) => String -> [Step ex] -> ShowS
+showsSteps :: (ShowLines ex) => String -> [Step ex] -> ShowS
 showsSteps _       []     = id
 showsSteps newline [s]    = showsStep  newline s
 showsSteps newline (s:ss) = showsStep  newline s .
@@ -250,7 +249,7 @@ showsSteps newline (s:ss) = showsStep  newline s .
                             showsSteps newline ss
 
 -- |Create a displayable form of a labelled proof step.
-showsStep :: (ShowM ex) => String -> Step ex -> ShowS
+showsStep :: (ShowLines ex) => String -> Step ex -> ShowS
 showsStep newline s = showsFormula newline (stepCon s) .
                       showString newline .
                       showString ("  (by ["++rulename++"] from "++antnames++")")

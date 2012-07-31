@@ -2,37 +2,34 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  ShowM
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Module      :  ShowLines
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This module defines an extension of the Show class for displaying
+--  This module defines an extension of the 'Show' class for displaying
 --  multi-line values.  It serves the following purposes:
 --
 --  (1) provides a method with greater layout control of multiline values,
 --
---  (2) provides a possibility to override the default Show behaviour
---      for programs that use the extended ShowM interface, and
+--  (2) provides a possibility to override the default 'Show' behaviour
+--      for programs that use the extended 'ShowLines' interface, and
 --
---  (3) uses a ShowS intermediate value to avoid unnecessary
+--  (3) uses a 'ShowS' intermediate value to avoid unnecessary
 --      concatenation of long strings.
 --
 --------------------------------------------------------------------------------
 
-module Swish.Utils.ShowM (ShowM(..)) where
+module Data.String.ShowLines (ShowLines(..)) where
 
-------------------------------------------------------------
---  ShowM framework
-------------------------------------------------------------
-
--- |ShowM is a type class for values that may be formatted in
+-- |ShowLines is a type class for values that may be formatted in
 --  multi-line displays.
-class (Show sh) => ShowM sh where
+class (Show sh) => ShowLines sh where
     -- |Multi-line value display method
+    --
     --  Create a multiline displayable form of a value, returned
     --  as a 'ShowS' value.  The default implementation behaves just
     --  like a normal instance of 'Show'.
@@ -47,12 +44,13 @@ class (Show sh) => ShowM sh where
     --      formatted text, and may include any desired indentation, and
     --
     --  (3) no newline is output following the final line of text.
-    showms :: String -> sh -> ShowS
-    showms _ = shows
+    showls :: String -> sh -> ShowS
+    showls _ = shows
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

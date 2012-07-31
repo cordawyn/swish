@@ -32,10 +32,10 @@ import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (makeNamespace, makeScopedName, makeNSScopedName)
 
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Swish.Utils.ShowM (ShowM(..))
 
 import Network.URI (URI, parseURI)
 import Data.Maybe (fromJust)
+import Data.String.ShowLines (ShowLines(..))
 
 import qualified Data.Text as T
 
@@ -101,7 +101,7 @@ nullFormula = Formula
 
 -- |Return a displayable form of a list of labelled formulae
 showsFormulae :: 
-  (ShowM ex) 
+  (ShowLines ex) 
   => String        -- ^ newline
   -> [Formula ex]  -- ^ the formulae to show
   -> String        -- ^ text to be placed after the formulae
@@ -115,13 +115,13 @@ showsFormulae newline (f:fs) after = showsFormula  newline f .
 
 -- |Create a displayable form of a labelled formula
 showsFormula :: 
-  (ShowM ex) 
+  (ShowLines ex) 
   => String      -- ^ newline
   -> Formula ex  -- ^ formula
   -> ShowS
 showsFormula newline f =
     showsWidth 16 ("["++show (formName f)++"] ") .
-    showms (newline ++ replicate 16 ' ') (formExpr f)
+    showls (newline ++ replicate 16 ' ') (formExpr f)
 
 ------------------------------------------------------------
 --  Rule
