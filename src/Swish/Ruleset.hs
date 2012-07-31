@@ -33,9 +33,6 @@ where
 import Swish.Namespace (Namespace, ScopedName)
 import Swish.Rule (Formula(..), Rule(..))
 
-import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Swish.Utils.LookupMap (mapFindMaybe)
-
 {-
 Used for the Show instance of Ruleset, which was
 used for debugging but has been removed as not
@@ -45,6 +42,7 @@ import Swish.Utils.ShowM (ShowM(..))
 import Data.List (intercalate)
 -}
 
+import Data.LookupMap (LookupEntryClass(..), LookupMap(..), mapFindMaybe)
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 
 -- | A Rule set.

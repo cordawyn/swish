@@ -36,9 +36,6 @@ module Swish.GraphMatch
 import Swish.GraphClass (Arc(..), Label(..))
 import Swish.GraphClass (arcLabels, hasLabel, arcToTriple)
 
-import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Swish.Utils.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
-                              mapAddIfNew, mapReplaceMap, mapMerge)
 import Swish.Utils.ListHelpers (equiv)
 
 import Control.Exception.Base (assert)
@@ -46,6 +43,9 @@ import Control.Arrow (second)
 
 import Data.Ord (comparing)
 import Data.List (foldl', nub, sortBy, groupBy, partition)
+import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
+import Data.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
+                       mapAddIfNew, mapReplaceMap, mapMerge)
 import Data.Function (on)  
 import Data.Hashable (combine)
 import Data.Word

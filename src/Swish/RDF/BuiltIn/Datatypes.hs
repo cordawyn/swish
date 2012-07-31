@@ -27,7 +27,7 @@ import Swish.RDF.Datatype.XSD.String (rdfDatatypeXsdString)
 import Swish.RDF.Datatype.XSD.Integer (rdfDatatypeXsdInteger)
 import Swish.RDF.Datatype.XSD.Decimal (rdfDatatypeXsdDecimal)
 
-import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
+import Data.LookupMap (LookupMap(..), mapFindMaybe)
 
 ------------------------------------------------------------
 --  Declare datatype map

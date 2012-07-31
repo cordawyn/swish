@@ -56,7 +56,7 @@ import Swish.RDF.Vocabulary
     , xsdDouble 
     )
 
-import Swish.Utils.LookupMap (LookupMap(..))
+import Data.LookupMap (LookupMap(..))
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual)
 

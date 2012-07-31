@@ -49,11 +49,11 @@ import Swish.RDF.VarBinding (RDFOpenVarBindingModify)
 
 import Swish.RDF.BuiltIn (findRDFOpenVarBindingModifier, findRDFDatatype, rdfRulesetMap)
 
-import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Swish.Utils.LookupMap (emptyLookupMap, mapFindMaybe, mapVals)
-
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (StateT(..), modify)
+
+import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
+import Data.LookupMap (emptyLookupMap, mapFindMaybe, mapVals)
 
 import System.IO (hPutStrLn, stderr)
 

@@ -93,9 +93,6 @@ import Swish.RDF.Graph
     , emptyRDFGraph
     )
 
-import Swish.Utils.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Swish.Utils.LookupMap (mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
-
 import Swish.RDF.Datatype (makeDatatypedLiteral)
 
 import Swish.RDF.Vocabulary
@@ -135,14 +132,17 @@ import Swish.RDF.Parser.Utils
 import Control.Applicative
 import Control.Monad (forM_, foldM)
 
+import Data.Char (isSpace, isDigit, ord, isAsciiLower) 
+import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
+import Data.LookupMap (mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
+import Data.Maybe (fromMaybe, fromJust)
+
 import Network.URI (URI(..), parseURIReference)
 
-import Data.Char (isSpace, isDigit, ord, isAsciiLower) 
-import Data.Maybe (fromMaybe, fromJust)
+import Text.ParserCombinators.Poly.StateText
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
-import Text.ParserCombinators.Poly.StateText
 
 ----------------------------------------------------------------------
 -- Define parser state and helper functions

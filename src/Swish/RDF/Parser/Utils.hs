@@ -65,18 +65,17 @@ import Swish.RDF.Vocabulary
     , defaultBase
     )
 
-import Swish.Utils.LookupMap (LookupMap(..))
+import Data.Char (isSpace, isHexDigit, chr)
+import Data.LookupMap (LookupMap(..))
+import Data.Maybe (fromMaybe, fromJust)
+
+import Network.URI (URI(..), relativeTo, parseURIReference)
+
+import Text.ParserCombinators.Poly.StateText
 
 import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Read as R
-
-import Text.ParserCombinators.Poly.StateText
-
-import Network.URI (URI(..), relativeTo, parseURIReference)
-
-import Data.Char (isSpace, isHexDigit, chr)
-import Data.Maybe (fromMaybe, fromJust)
 
 -- Code
 

@@ -36,8 +36,6 @@ import Swish.RDF.Ruleset
 import Swish.RDF.Graph (RDFGraph)
 -- import Swish.RDF.GraphShowLines ()
 
-import Swish.Utils.LookupMap (mapFindMaybe)
-
 import Swish.RDF.Vocabulary
     ( namespaceRDF
     , namespaceRDFS
@@ -48,6 +46,8 @@ import Swish.RDF.Vocabulary
     , scopeRDFS
     , scopeRDFD
     )
+
+import Data.LookupMap (mapFindMaybe)
 
 import Test.HUnit
     ( Test(TestCase,TestList)

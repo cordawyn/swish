@@ -43,11 +43,11 @@ module Swish.Namespace
     where
 
 import Swish.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
-import Swish.Utils.LookupMap (LookupEntryClass(..))
 
+import Data.LookupMap (LookupEntryClass(..))
+import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
-import Data.Maybe (fromMaybe)
 
 import Network.URI (URI(..), parseURIReference, nullURI)
 

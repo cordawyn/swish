@@ -50,7 +50,7 @@ import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
 
 import Swish.RDF.Vocabulary (namespaceDefault, namespaceRDF, namespaceRDFD, namespaceXSD)
 
-import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
+import Data.LookupMap (LookupMap(..), mapFindMaybe)
 
 import Test.HUnit
     ( Test(TestCase,TestList)

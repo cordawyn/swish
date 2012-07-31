@@ -43,9 +43,9 @@ import Swish.RDF.Query (rdfQueryInstance, rdfQuerySubs)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
 import Swish.Utils.ListHelpers (subset, flist)
-import Swish.Utils.LookupMap (makeLookupMap, mapFind)
 
 import Data.List (subsequences)
+import Data.LookupMap (makeLookupMap, mapFind)
 
 ------------------------------------------------------------
 --  Type instantiation of Proof framework for RDFGraph data

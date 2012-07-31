@@ -21,9 +21,7 @@ module Main where
 import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.QName (QName, qnameFromURI)
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..), LookupEntryClass(..)
-    , mapFindMaybe )
+import Data.LookupMap (LookupMap(..), LookupEntryClass(..), mapFindMaybe)
 
 import Swish.Utils.ListHelpers (equiv)
 

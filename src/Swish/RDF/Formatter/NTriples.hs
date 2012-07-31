@@ -32,15 +32,12 @@ import Swish.RDF.Graph (RDFGraph, RDFLabel(..))
 import Swish.RDF.Graph (getArcs)
 
 import Swish.RDF.Vocabulary (fromLangTag)
-import Swish.Utils.LookupMap
-    ( LookupMap, emptyLookupMap
-    , mapFind, mapAdd
-    )
-
-import Data.Char (ord, intToDigit, toUpper)
 
 import Control.Monad.State
 import Control.Applicative ((<$>))
+
+import Data.Char (ord, intToDigit, toUpper)
+import Data.LookupMap (LookupMap, emptyLookupMap, mapFind, mapAdd)
 import Data.Monoid
 
 -- it strikes me that using Lazy Text here is likely to be

@@ -35,10 +35,7 @@ import Swish.RDF.Graph
     , resOwlSameAs
     )
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..)
-    , emptyLookupMap
-    , makeLookupMap)
+import Data.LookupMap (LookupMap(..), emptyLookupMap, makeLookupMap)
 
 import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 

@@ -140,6 +140,7 @@ Library
 
    Exposed-Modules:
       Data.Interned.URI
+      Data.LookupMap
       Data.Ord.Partial
       Data.String.ShowLines
       Swish
@@ -192,7 +193,6 @@ Library
       Swish.Rule
       Swish.Ruleset
       Swish.Utils.ListHelpers
-      Swish.Utils.LookupMap
       Swish.VarBinding
 
    ghc-options:

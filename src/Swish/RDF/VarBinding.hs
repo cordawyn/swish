@@ -43,7 +43,7 @@ import Swish.RDF.Graph
 
 import Swish.RDF.Vocabulary (swishName)
 
-import Swish.Utils.LookupMap (LookupMap(..))
+import Data.LookupMap (LookupMap(..))
 
 ------------------------------------------------------------
 --  Types for RDF query variable bindings and modifiers

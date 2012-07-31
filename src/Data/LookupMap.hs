@@ -30,7 +30,7 @@
 --  Generic list-of-pairs lookup functions
 ------------------------------------------------------------
 
-module Swish.Utils.LookupMap
+module Data.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
     , emptyLookupMap, makeLookupMap, listLookupMap
     , reverseLookupMap
@@ -104,12 +104,12 @@ instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
     newEntry = id
     keyVal   = id
 
--- |Define a lookup map based on a list of values.
---
 --  Note:  the class constraint that a is an instance of 'LookupEntryClass'
 --  is not defined here, for good reasons (which I forget right now, but
 --  something to do with the method dictionary being superfluous on
 --  an algebraic data type).
+--
+-- |Define a lookup map based on a list of values.
 --
 data LookupMap a = LookupMap [a]
   deriving (Functor, F.Foldable, T.Traversable)

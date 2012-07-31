@@ -45,10 +45,9 @@ import Swish.Namespace (ScopedName, getScopeLocal)
 import Swish.RDF.Vocabulary (swishName)
 
 import Swish.Utils.ListHelpers (equiv, subset, flist)
-import Swish.Utils.LookupMap (LookupEntryClass(..))
-import Swish.Utils.LookupMap (makeLookupMap, mapFindMaybe)
 
 import Data.List (find, intersect, union, (\\), foldl', permutations)
+import Data.LookupMap (LookupEntryClass(..), makeLookupMap, mapFindMaybe)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 import Data.Monoid (mconcat)
 

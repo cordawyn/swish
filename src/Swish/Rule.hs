@@ -31,11 +31,11 @@ module Swish.Rule
 import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (makeNamespace, makeScopedName, makeNSScopedName)
 
-import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
-
-import Network.URI (URI, parseURI)
+import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Data.Maybe (fromJust)
 import Data.String.ShowLines (ShowLines(..))
+
+import Network.URI (URI, parseURI)
 
 import qualified Data.Text as T
 

@@ -74,9 +74,6 @@ import Swish.RDF.Graph
     , emptyRDFGraph
     )
 
-import Swish.Utils.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Swish.Utils.LookupMap (mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
-
 import Swish.RDF.Vocabulary
     ( LanguageTag
     , toLangTag
@@ -109,14 +106,17 @@ import Swish.RDF.Parser.Utils
 import Control.Applicative
 import Control.Monad (foldM)
 
+import Data.Char (ord, isAsciiLower, isAsciiUpper, isDigit) 
+import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
+import Data.LookupMap (mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
+import Data.Maybe (fromMaybe, fromJust)
+
 import Network.URI (URI(..), parseURIReference)
 
-import Data.Char (ord, isAsciiLower, isAsciiUpper, isDigit) 
-import Data.Maybe (fromMaybe, fromJust)
+import Text.ParserCombinators.Poly.StateText
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
-import Text.ParserCombinators.Poly.StateText
 
 ----------------------------------------------------------------------
 -- Define parser state and helper functions

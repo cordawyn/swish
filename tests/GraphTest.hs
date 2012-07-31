@@ -43,15 +43,16 @@ import Swish.GraphMatch
 	, equivalenceClasses
       )
 
-import Swish.Utils.ListHelpers
-import Swish.Utils.LookupMap (LookupEntryClass(..), makeLookupMap)
+import Swish.Utils.ListHelpers (subset)
+
+import Data.LookupMap (LookupEntryClass(..), makeLookupMap)
 
 import TestHelpers (runTestSuite, testEq, testEqv)
 
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust)
 import Data.Ord (comparing)
-import Data.Word
+import Data.Word (Word32)
 
 default ( Int )
 

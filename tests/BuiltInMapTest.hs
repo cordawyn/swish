@@ -39,7 +39,7 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import Swish.Utils.LookupMap (mapFindMaybe)
+import Data.LookupMap (mapFindMaybe)
 
 import Test.HUnit
     ( Test(TestCase,TestList)

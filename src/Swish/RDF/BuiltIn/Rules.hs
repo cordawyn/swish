@@ -40,7 +40,7 @@ import Swish.RDF.VarBinding
     , rdfVarBindingMemberProp
     )
 
-import Swish.Utils.LookupMap (LookupMap(..), mapFindMaybe)
+import Data.LookupMap (LookupMap(..), mapFindMaybe)
 
 ------------------------------------------------------------
 --  Declare variable binding filters list

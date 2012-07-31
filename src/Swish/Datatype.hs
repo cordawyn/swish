@@ -65,17 +65,16 @@ import Swish.VarBinding (addVarBinding, nullVarBindingModify)
 import Swish.RDF.Vocabulary (swishName)
 
 import Swish.Utils.ListHelpers (flist)
-import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Swish.Utils.LookupMap (mapFindMaybe)
 
 -- used to add Show instances for structures during debugging
 -- but backed out again.
 --
 -- import Swish.Utils.ShowM (ShowM(..))
 
-import Data.Maybe( isJust, catMaybes )
+import Control.Monad (join, liftM)
 
-import Control.Monad( join, liftM )
+import Data.LookupMap (LookupEntryClass(..), LookupMap(..), mapFindMaybe)
+import Data.Maybe (isJust, catMaybes)
 
 import qualified Data.Text as T
 

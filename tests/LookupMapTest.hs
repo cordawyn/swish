@@ -17,7 +17,7 @@
 
 module Main where
 
-import Swish.Utils.LookupMap
+import Data.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
     , makeLookupMap
     , reverseLookupMap

@@ -66,22 +66,14 @@ import Swish.RDF.Vocabulary ( fromLangTag
                             , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
                             )
 
-import Swish.Utils.LookupMap
-    ( LookupEntryClass(..)
-    , LookupMap, emptyLookupMap, reverseLookupMap
-    , listLookupMap
-    , mapFind, mapFindMaybe, mapAdd
-    -- , mapDelete
-    , mapMerge
-    )
-
-import Data.Char (isDigit)
-
-import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
-
-import Data.Monoid (Monoid(..))
 import Control.Monad (liftM, when)
 import Control.Monad.State (State, modify, get, put, runState)
+
+import Data.Char (isDigit)
+import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
+import Data.LookupMap (LookupEntryClass(..), LookupMap)
+import Data.LookupMap (emptyLookupMap, reverseLookupMap, listLookupMap, mapFind, mapFindMaybe, mapAdd, mapMerge)
+import Data.Monoid (Monoid(..))
 
 -- it strikes me that using Lazy Text here is likely to be
 -- wrong; however I have done no profiling to back this

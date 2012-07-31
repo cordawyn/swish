@@ -182,11 +182,26 @@ import Swish.GraphMatch (LabelMap, ScopedLabel(..))
 import Swish.GraphMatch (graphMatch)
 import Swish.QName (QName)
 
-import Swish.Utils.LookupMap
-    ( LookupMap(..), LookupEntryClass(..)
-    , listLookupMap
-    , mapFind, mapFindMaybe, mapReplaceOrAdd, mapAddIfNew
-    , mapVals, mapKeys )
+import Control.Applicative (Applicative, liftA, (<$>), (<*>))
+
+import Network.URI (URI)
+
+import Data.Monoid (Monoid(..))
+import Data.Maybe (mapMaybe)
+import Data.Char (ord, isDigit)
+import Data.Hashable (hashWithSalt)
+import Data.List (intersect, union, foldl')
+import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
+import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplaceOrAdd, mapAddIfNew, mapVals, mapKeys )
+import Data.Ord (comparing)
+import Data.Word (Word32)
+
+import Data.String (IsString(..))
+import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
+
+import System.Locale (defaultTimeLocale)  
+
+import Text.Printf
 
 import qualified Data.Foldable as Foldable
 import qualified Data.Traversable as Traversable
@@ -197,23 +212,6 @@ import qualified Data.Text.Read as T
 -- import Data.Text.Format (format)
 -- import Data.Text.Buildable
 -- import Data.Text.Format.Types (Only(..))
-
-import Control.Applicative (Applicative, liftA, (<$>), (<*>))
-
-import Network.URI (URI)
-
-import Data.Monoid (Monoid(..))
-import Data.Maybe (mapMaybe)
-import Data.Char (ord, isDigit)
-import Data.Hashable (hashWithSalt)
-import Data.List (intersect, union, foldl')
-import Data.Ord (comparing)
-import Data.Word
-
-import Data.String (IsString(..))
-import Data.Time (UTCTime, Day, ParseTime, parseTime, formatTime)
-import System.Locale (defaultTimeLocale)  
-import Text.Printf
 
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
 import Data.Tuple (swap)
