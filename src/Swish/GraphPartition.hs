@@ -29,8 +29,10 @@ import Control.Monad.State (MonadState(..), State)
 import Control.Monad.State (evalState)
 
 import Data.List (foldl', partition)
+import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.Maybe (mapMaybe)
 
+import qualified Data.List.NonEmpty as NE
 
 ------------------------------------------------------------
 --  Data type for a partitioned graph
@@ -60,9 +62,13 @@ getPartitions (PartitionedGraph ps) = ps
 
 -- QUS: is the list always guaranteed to be non-empty in PartSub?
 
+-- Note: do not use the LabelledPartition local type here since we do
+-- not want it to appear in the documentation.
+
 -- | Represent a partition of a graph by a node and (optional) contents.
 data GraphPartition lb
     = PartObj lb
+    -- | PartSub lb (NonEmpty (lb,GraphPartition lb))
     | PartSub lb [(lb,GraphPartition lb)]
 
 -- | Returns the node for the partition.
@@ -160,6 +166,7 @@ partitionShowP pref (PartSub sb (pr:prs)) =
 --     elsewhere:  for each such chain, pick a root node arbitrarily.
 --
 partitionGraph :: (Label lb) => [Arc lb] -> PartitionedGraph lb
+partitionGraph [] = PartitionedGraph []
 partitionGraph arcs =
     makePartitions fixs topv1 intv1
     where
@@ -175,7 +182,7 @@ partitionGraph arcs =
         stripObj (k,(s,_)) = (k,s)
 
 -- Local state type for partitioning function
-type LabelledArcs lb = (lb, [Arc lb])
+type LabelledArcs lb = (lb, NonEmpty (Arc lb))
 type LabelledPartition lb = (lb, GraphPartition lb)
 type MakePartitionState lb = ([LabelledArcs lb], [LabelledArcs lb], [LabelledArcs lb])
 type PState lb = State (MakePartitionState lb)
@@ -222,8 +229,9 @@ makeStatements ::
     LabelledArcs lb
     -> PState lb (GraphPartition lb, [LabelledArcs lb])
 makeStatements (sub,stmts) = do
-    propmore <- mapM makeStatement stmts
+    propmore <- mapM makeStatement (NE.toList stmts)
     let (props,moresubs) = unzip propmore
+    -- return (PartSub sub (NE.fromList props), concat moresubs)
     return (PartSub sub props, concat moresubs)
 
 makeStatement :: 
@@ -374,27 +382,27 @@ matchNodes l1 l2
 --  Example:    collect fst [(1,'a'),(2,'b'),(1,'c')] =
 --                  [(1,[(1,'a'),(1,'c')]),(2,[(2,'b')])]
 --
-collect :: (Eq b) => (a->b) -> [a] -> [(b,[a])]
+collect :: (Eq b) => (a->b) -> [a] -> [(b, NonEmpty a)]
 collect = collectBy (==)
 
-collectBy :: (b->b->Bool) -> (a->b) -> [a] -> [(b,[a])]
+collectBy :: (b->b->Bool) -> (a->b) -> [a] -> [(b, NonEmpty a)]
 collectBy cmp sel = map reverseCollection . collectBy1 cmp sel []
 
-collectBy1 :: (b->b->Bool) -> (a->b) -> [(b,[a])] -> [a] -> [(b,[a])]
+collectBy1 :: (b->b->Bool) -> (a->b) -> [(b, NonEmpty a)] -> [a] -> [(b, NonEmpty a)]
 collectBy1 _   _   sofar []     = sofar
 collectBy1 cmp sel sofar (a:as) =
     collectBy1 cmp sel (collectBy2 cmp sel a sofar) as
 
-collectBy2 :: (b->b->Bool) -> (a->b) -> a -> [(b,[a])] -> [(b,[a])]
-collectBy2 _   sel a [] = [(sel a,[a])]
-collectBy2 cmp sel a (col@(k,as):cols)
-    | cmp ka k  = (k,a:as):cols
-    | otherwise = col:collectBy2 cmp sel a cols
+collectBy2 :: (b->b->Bool) -> (a->b) -> a -> [(b, NonEmpty a)] -> [(b, NonEmpty a)]
+collectBy2 _   sel a [] = [(sel a, a :| [])]
+collectBy2 cmp sel a (col@(k,as) : cols)
+    | cmp ka k  = (k, a <| as) : cols
+    | otherwise = col : collectBy2 cmp sel a cols
     where
         ka = sel a
 
-reverseCollection :: (b,[a]) -> (b,[a])
-reverseCollection (k,as) = (k,reverse as)
+reverseCollection :: (b, NonEmpty a) -> (b, NonEmpty a)
+reverseCollection (k,as) = (k, NE.reverse as)
 
 {-
 -- Example/test:
@@ -436,7 +444,7 @@ collectMoreBy2 ::
     (b->b->Bool) -> (a->b) -> a -> [(b,(c,[a]))] -> [(b,(c,[a]))]
 collectMoreBy2 _   _   _ [] = []
 collectMoreBy2 cmp sel a (col@(k,(b,as)):cols)
-    | cmp (sel a) k = (k,(b,a:as)):cols
+    | cmp (sel a) k = (k,(b, a:as)):cols
     | otherwise     = col:collectMoreBy2 cmp sel a cols
 
 reverseMoreCollection :: (b,(c,[a])) -> (b,(c,[a]))
@@ -456,7 +464,7 @@ testCollectMore2 = testCollectMore1
 -}
 
 -- |Remove supplied element from a list using the supplied test
---  function, and return Just the element remoived and the
+--  function, and return Just the element removed and the
 --  remaining list, or Nothing if no element was matched for removal.
 --
 {-
