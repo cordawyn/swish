@@ -133,7 +133,7 @@ emptyTFS ngs = TFS
     , traceBuf  = []
     }
 
---  | Node name generation state information.
+-- | Node name generation state information.
 type NodeGenLookupMap = LookupMap (RDFLabel, Word32)
 
 data NodeGenState = Ngs

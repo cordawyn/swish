@@ -67,7 +67,6 @@ getPartitions (PartitionedGraph ps) = ps
 data GraphPartition lb
     = PartObj lb
     | PartSub lb (NonEmpty (lb,GraphPartition lb))
-    -- | PartSub lb [(lb,GraphPartition lb)]
 
 -- | Returns the node for the partition.
 node :: GraphPartition lb -> lb

@@ -62,6 +62,8 @@ Description:
   (@RDFLabel@) rather than using just @Lit@. Language codes are now represented
   by @Swish.RDF.Vocabulary.LanguageTag@ rather than as a @ScopedName@.
   .
+  * Make use of @Data.List.NonEmpty@ in a few cases.
+  .
   * Removed @mkTypedLit@ from @Swish.RDF.RDFParser@; use
   @Swish.RDF.RDFDatatype.makeDataTypedLiteral@ instead.
   .
@@ -80,7 +82,8 @@ Description:
   * Removed various exported symbols from a range of modules as they were
   unused.
   .
-  * Use @Word32@ rather than @Int@ for label indexes (@Swish.GraphMatch.LabelIndex@).
+  * Use @Word32@ rather than @Int@ for label indexes (@Swish.GraphMatch.LabelIndex@)
+  and in the bnode counts when formatting to N3/Turtle.
   .
   * Clarified that @Swish.RDF.RDFDatatypeXsdDecimal@ is for @xsd:decimal@ rather
   than @xsd:double@.

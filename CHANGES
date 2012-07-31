@@ -17,6 +17,8 @@
     codes are now represented by Swish.RDF.Vocabulary.LanguageTag
     rather than as a ScopedName.
 
+  - Make use of Data.List.NonEmpty in a few cases.
+
   - Removed mkTypedLit from Swish.RDF.RDFParser; use
     Swish.RDF.RDFDatatype.makeDataTypedLiteral instead.
 
@@ -33,7 +35,8 @@
     un-used.
 
   - Use Word32 rather than Int for label indexes
-    (Swish.GraphMatch.LabelIndex).
+    (Swish.GraphMatch.LabelIndex) and in the bnode counts when formatting
+    to N3/Turtle.
 
   - Bump the upper constraint on the containers package to include
     version 0.5.
