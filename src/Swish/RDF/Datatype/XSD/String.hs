@@ -17,8 +17,6 @@
 --
 --------------------------------------------------------------------------------
 
--- TODO: this should convert to/from T.Text rather than String
-
 module Swish.RDF.Datatype.XSD.String
     ( rdfDatatypeXsdString
     , rdfDatatypeValXsdString
