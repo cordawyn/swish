@@ -27,6 +27,8 @@ import Swish.GraphMem (LabelMem(..))
 
 import Swish.Utils.ListHelpers (equiv)
 
+import Data.List.NonEmpty (fromList)
+
 import Test.HUnit (Test(TestCase, TestList),
                    assertEqual, assertBool)
 
@@ -88,24 +90,36 @@ gp3 = PartitionedGraph [ p11, p13 ]
 gp4 = PartitionedGraph [ p11, p14 ]
 gp5 = PartitionedGraph [ p11, p12, p15 ]
 
+toPF :: 
+    String 
+    -> [(LabelMem, GraphPartition LabelMem)] 
+    -> GraphPartition LabelMem
+toPF l xs = PartSub (LF l) (fromList xs)
+
+toPV :: 
+    String 
+    -> [(LabelMem, GraphPartition LabelMem)] 
+    -> GraphPartition LabelMem
+toPV l xs = PartSub (LV l) (fromList xs)
+
 p11, p12, p13, p14, p15 :: GraphPartition LabelMem
 
-p11 = PartSub (LF "s1") [ (LF "p11",PartObj (LF "o11")) ]
-p12 = PartSub (LF "s2") [ (LF "p21",PartObj (LF "o21"))
-                        , (LF "p22",PartObj (LF "o22"))
-                        ]
-p13 = PartSub (LF "s3") [ (LF "p31",PartObj (LF "o31"))
-                        , (LF "p32",p12)
-                        , (LF "p33",PartObj (LF "s3"))
-                        ]
-p14 = PartSub (LF "s3") [ (LF "p31",PartObj (LF "o31"))
-                        , (LF "p33",PartObj (LF "s3"))
-                        , (LF "p32",p12)
-                        ]
-p15 = PartSub (LF "s3") [ (LF "p31",PartObj (LF "o31"))
-                        , (LF "p32",PartObj (LF "s2"))
-                        , (LF "p33",PartObj (LF "s3"))
-                        ]
+p11 = toPF "s1" [ (LF "p11",PartObj (LF "o11")) ]
+p12 = toPF "s2" [ (LF "p21",PartObj (LF "o21"))
+                , (LF "p22",PartObj (LF "o22"))
+                ]
+p13 = toPF "s3" [ (LF "p31",PartObj (LF "o31"))
+                , (LF "p32",p12)
+                , (LF "p33",PartObj (LF "s3"))
+                ]
+p14 = toPF "s3" [ (LF "p31",PartObj (LF "o31"))
+                , (LF "p33",PartObj (LF "s3"))
+                , (LF "p32",p12)
+                ]
+p15 = toPF "s3" [ (LF "p31",PartObj (LF "o31"))
+                , (LF "p32",PartObj (LF "s2"))
+                , (LF "p33",PartObj (LF "s3"))
+                ]
 
 ga1, ga2, ga3, ga4, ga5 :: [Arc LabelMem]
 
@@ -326,77 +340,77 @@ pp6r = PartitionedGraph [ ps2r, ps1,  pb5b2, pb3br ]
 ps1, ps2f, ps2r, pb3f, pb3r, pb3af, pb3ar,
   pb4af, pb4ar :: GraphPartition LabelMem
 
-ps1  = PartSub (LF "s1") [ (LF "p",PartObj (LF "o11")) ]
-ps2f = PartSub (LF "s2") [ (LF "p1",PartObj (LF "o21"))
-                         , (LF "p2",PartObj (LF "o22"))
-                         ]
-ps2r = PartSub (LF "s2") [ (LF "p2",PartObj (LF "o22"))
-                         , (LF "p1",PartObj (LF "o21"))
-                         ]
-pb3f = PartSub (LV "b3") [ (LF "p",PartObj (LF "o31"))
-                         , (LF "p",PartObj (LF "s2"))
-                         , (LF "p",PartObj (LV "b3"))
-                         ]
-pb3r = PartSub (LV "b3") [ (LF "p",PartObj (LV "b3"))
-                         , (LF "p",PartObj (LF "s2"))
-                         , (LF "p",PartObj (LF "o31"))
-                         ]
+ps1  = toPF "s1" [ (LF "p",PartObj (LF "o11")) ]
+ps2f = toPF "s2" [ (LF "p1",PartObj (LF "o21"))
+                 , (LF "p2",PartObj (LF "o22"))
+                 ]
+ps2r = toPF "s2" [ (LF "p2",PartObj (LF "o22"))
+                 , (LF "p1",PartObj (LF "o21"))
+                 ]
+pb3f = toPV "b3" [ (LF "p",PartObj (LF "o31"))
+                 , (LF "p",PartObj (LF "s2"))
+                 , (LF "p",PartObj (LV "b3"))
+                 ]
+pb3r = toPV "b3" [ (LF "p",PartObj (LV "b3"))
+                 , (LF "p",PartObj (LF "s2"))
+                 , (LF "p",PartObj (LF "o31"))
+                 ]
 
-pb3af = PartSub (LV "b3") [ (LF "p",PartObj (LF "o31"))
-                          , (LF "p",PartObj (LF "s2"))
-                          , (LF "p",PartObj (LV "b3"))
-                          , (LF "p",pb4af)
-                          ]
-pb3ar = PartSub (LV "b3") [ (LF "p",pb4ar)
-                          , (LF "p",PartObj (LV "b3"))
-                          , (LF "p",PartObj (LF "s2"))
-                          , (LF "p",PartObj (LF "o31"))
-                          ]
-pb4af = PartSub (LV "b4") [ (LF "p",PartObj (LF "s2"))
-                          , (LF "p",PartObj (LV "b3"))
-                          ]
-pb4ar = PartSub (LV "b4") [ (LF "p",PartObj (LV "b3"))
-                          , (LF "p",PartObj (LF "s2"))
-                          ]
+pb3af = toPV "b3" [ (LF "p",PartObj (LF "o31"))
+                  , (LF "p",PartObj (LF "s2"))
+                  , (LF "p",PartObj (LV "b3"))
+                  , (LF "p",pb4af)
+                  ]
+pb3ar = toPV "b3" [ (LF "p",pb4ar)
+                  , (LF "p",PartObj (LV "b3"))
+                  , (LF "p",PartObj (LF "s2"))
+                  , (LF "p",PartObj (LF "o31"))
+                  ]
+pb4af = toPV "b4" [ (LF "p",PartObj (LF "s2"))
+                  , (LF "p",PartObj (LV "b3"))
+                  ]
+pb4ar = toPV "b4" [ (LF "p",PartObj (LV "b3"))
+                  , (LF "p",PartObj (LF "s2"))
+                  ]
         
 pb5a1, pb5b1, pb5c1 :: GraphPartition LabelMem
 
-pb5a1 = PartSub (LV "b5a") [ (LF "p",pb5b1) ]
-pb5b1 = PartSub (LV "b5b") [ (LF "p",pb5c1) ]
-pb5c1 = PartSub (LV "b5c") [ (LF "p",PartObj (LV "b5a")) ]
+pb5a1 = toPV "b5a" [ (LF "p",pb5b1) ]
+pb5b1 = toPV "b5b" [ (LF "p",pb5c1) ]
+pb5c1 = toPV "b5c" [ (LF "p",PartObj (LV "b5a")) ]
 
 pb3bf, pb3br, pb4bf, pb4br :: GraphPartition LabelMem
 
-pb3bf = PartSub (LV "b3") [ (LF "p",PartObj (LF "o31"))
-                          , (LF "p",PartObj (LF "s2"))
-                          , (LF "p",PartObj (LV "b3"))
-                          , (LF "p",pb4bf)
-                          ]
-pb3br = PartSub (LV "b3") [ (LF "p",pb4br)
-                          , (LF "p",PartObj (LV "b3"))
-                          , (LF "p",PartObj (LF "s2"))
-                          , (LF "p",PartObj (LF "o31"))
-                          ]
-pb4bf = PartSub (LV "b4") [ (LF "p",PartObj (LF "s2"))
-                          , (LF "p",PartObj (LV "b3"))
-                          , (LF "p",PartObj (LV "b5b"))
-                          ]
-pb4br = PartSub (LV "b4") [ (LF "p",PartObj (LV "b5b"))
-                          , (LF "p",PartObj (LV "b3"))
-                          , (LF "p",PartObj (LF "s2"))
-                          ]
+pb3bf = toPV "b3" [ (LF "p",PartObj (LF "o31"))
+                  , (LF "p",PartObj (LF "s2"))
+                  , (LF "p",PartObj (LV "b3"))
+                  , (LF "p",pb4bf)
+                  ]
+pb3br = toPV "b3" [ (LF "p",pb4br)
+                  , (LF "p",PartObj (LV "b3"))
+                  , (LF "p",PartObj (LF "s2"))
+                  , (LF "p",PartObj (LF "o31"))
+                  ]
+pb4bf = toPV "b4" [ (LF "p",PartObj (LF "s2"))
+                  , (LF "p",PartObj (LV "b3"))
+                  , (LF "p",PartObj (LV "b5b"))
+                  ]
+pb4br = toPV "b4" [ (LF "p",PartObj (LV "b5b"))
+                  , (LF "p",PartObj (LV "b3"))
+                  , (LF "p",PartObj (LF "s2"))
+                  ]
 
 pb5a2, pb5b2, pb5c2 :: GraphPartition LabelMem
 
-pb5a2 = PartSub (LV "b5a") [ (LF "p",PartObj (LV "b5b")) ]
-pb5b2 = PartSub (LV "b5b") [ (LF "p",pb5c2) ]
-pb5c2 = PartSub (LV "b5c") [ (LF "p",pb5a2) ]
+pb5a2 = toPV "b5a" [ (LF "p",PartObj (LV "b5b")) ]
+pb5b2 = toPV "b5b" [ (LF "p",pb5c2) ]
+pb5c2 = toPV "b5c" [ (LF "p",pb5a2) ]
 
 pb5a3, pb5b3, pb5c3 :: GraphPartition LabelMem
 
-pb5a3 = PartSub (LV "b5a") [ (LF "p",pb5b3) ]
-pb5b3 = PartSub (LV "b5b") [ (LF "p",PartObj (LV "b5c")) ]
-pb5c3 = PartSub (LV "b5c") [ (LF "p",pb5a3) ]
+pb5a3 = toPV "b5a" [ (LF "p",pb5b3) ]
+pb5b3 = toPV "b5b" [ (LF "p",PartObj (LV "b5c")) ]
+pb5c3 = toPV "b5c" [ (LF "p",pb5a3) ]
 
 testPartition11, testPartition12, testPartition13, testPartition14, testPartition15, 
   testPartition16 :: Test
@@ -448,13 +462,13 @@ testPartition54 = testEqv "testPartition54" []   (comparePartitions pp4f pp4r)
 testPartition55 = testEqv "testPartition55" []   (comparePartitions pp5f pp5r)
 testPartition56 = testEqv "testPartition56" []   (comparePartitions pp6f pp6r)
 testPartition57 = testEqv "testPartition57"
-        [(Nothing,Just $ PartSub (LV "b3") [(LF "p",pb4af)])]
+        [(Nothing,Just $ toPV "b3" [(LF "p",pb4af)])]
         (comparePartitions pp3f pp4f)
 testPartition58 = testEqv "testPartition58"
         [(Nothing,Just pb5a1)]
         (comparePartitions pp4f pp5f)
 testPartition59 = testEqv "testPartition59"
-        [(Nothing,Just $ PartSub (LV "b4") [(LF "p",PartObj (LV "b5b"))])]
+        [(Nothing,Just $ toPV "b4" [(LF "p",PartObj (LV "b5b"))])]
         (comparePartitions pp5f pp6f)
 
 testPartitionSuite :: Test
@@ -506,19 +520,19 @@ pgc1b = PartitionedGraph [ c11, c12b ]
 
 c11, c12a, c12b, c13a, c13b :: GraphPartition LabelMem
 
-c11  = PartSub (LF "s1") [ (LF "p11",PartObj (LF "o11")) ]
-c12a = PartSub (LF "s2") [ (LF "p21",c13a)
+c11  = toPF "s1" [ (LF "p11",PartObj (LF "o11")) ]
+c12a = toPF "s2" [ (LF "p21",c13a)
                          , (LF "p22",PartObj (LF "o22"))
                          ]
-c12b = PartSub (LF "s2") [ (LF "p22",PartObj (LF "o22"))
+c12b = toPF "s2" [ (LF "p22",PartObj (LF "o22"))
                          , (LF "p21",c13b)
                          ]
-c13a = PartSub (LV "b3") [ (LF "p31",PartObj (LF "o31"))
-                         , (LF "p33",PartObj (LF "o33a"))
-                         ]
-c13b = PartSub (LV "b3") [ (LF "p31",PartObj (LF "o31"))
-                         , (LF "p33",PartObj (LF "o33b"))
-                         ]
+c13a = toPV "b3" [ (LF "p31",PartObj (LF "o31"))
+                 , (LF "p33",PartObj (LF "o33a"))
+                 ]
+c13b = toPV "b3" [ (LF "p31",PartObj (LF "o31"))
+                 , (LF "p33",PartObj (LF "o33b"))
+                 ]
        
 testCompare01 :: Test
 testCompare01 = testEqv "testCompare01"

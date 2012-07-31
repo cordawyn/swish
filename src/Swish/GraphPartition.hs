@@ -60,16 +60,14 @@ getArcs (PartitionedGraph ps) = concatMap toArcs ps
 getPartitions :: PartitionedGraph lb -> [GraphPartition lb]
 getPartitions (PartitionedGraph ps) = ps
 
--- QUS: is the list always guaranteed to be non-empty in PartSub?
-
 -- Note: do not use the LabelledPartition local type here since we do
 -- not want it to appear in the documentation.
 
 -- | Represent a partition of a graph by a node and (optional) contents.
 data GraphPartition lb
     = PartObj lb
-    -- | PartSub lb (NonEmpty (lb,GraphPartition lb))
-    | PartSub lb [(lb,GraphPartition lb)]
+    | PartSub lb (NonEmpty (lb,GraphPartition lb))
+    -- | PartSub lb [(lb,GraphPartition lb)]
 
 -- | Returns the node for the partition.
 node :: GraphPartition lb -> lb
@@ -80,7 +78,7 @@ node (PartSub sb _) = sb
 -- list is returned for `PartObj`.
 toArcs :: GraphPartition lb -> [Arc lb]
 toArcs (PartObj _)      = []
-toArcs (PartSub sb prs) = concatMap toArcs1 prs
+toArcs (PartSub sb prs) = concatMap toArcs1 $ NE.toList prs
     where
         toArcs1 (pr,ob) = Arc sb pr (node ob) : toArcs ob
 
@@ -98,9 +96,8 @@ instance (Label lb) => Show (GraphPartition lb) where
 --  partitionShow = partitionShowP ""
 -- ?
 partitionShow :: (Label lb) => GraphPartition lb -> String
-partitionShow (PartObj ob)          = show ob
-partitionShow (PartSub sb [])       = "(" ++ show sb ++ ")" -- just to make -Wall happy, is this sensible?
-partitionShow (PartSub sb (pr:prs)) =
+partitionShow (PartObj ob)             = show ob
+partitionShow (PartSub sb (pr :| prs)) =
     "("++ show sb ++ " " ++ showpr pr ++ concatMap ((" ; "++).showpr) prs ++ ")"
     where
         showpr (a,b) = show a ++ " " ++ show b
@@ -113,9 +110,8 @@ partitionShowP ::
     String 
     -> GraphPartition lb 
     -> String
-partitionShowP _    (PartObj ob)          = show ob
-partitionShowP pref (PartSub sb [])       = pref ++ "(" ++ show sb ++ ")" -- just to make -Wall happy, is this sensible?
-partitionShowP pref (PartSub sb (pr:prs)) =
+partitionShowP _    (PartObj ob)             = show ob
+partitionShowP pref (PartSub sb (pr :| prs)) =
     pref++"("++ show sb ++ " " ++ showpr pr ++ concatMap (((pref++"  ; ")++).showpr) prs ++ ")"
     where
         showpr (a,b) = show a ++ " " ++ partitionShowP (pref++"  ") b
@@ -231,8 +227,8 @@ makeStatements ::
 makeStatements (sub,stmts) = do
     propmore <- mapM makeStatement (NE.toList stmts)
     let (props,moresubs) = unzip propmore
-    -- return (PartSub sub (NE.fromList props), concat moresubs)
-    return (PartSub sub props, concat moresubs)
+    return (PartSub sub (NE.fromList props), concat moresubs)
+    -- return (PartSub sub props, concat moresubs)
 
 makeStatement :: 
     (Eq lb) =>
@@ -340,14 +336,17 @@ comparePartitions2 pg1 pg2 =
 comparePartitions3 :: (Label lb) =>
     lb 
     -> lb 
-    -> [LabelledPartition lb] 
-    -> [LabelledPartition lb] 
+    -> NonEmpty (LabelledPartition lb)
+    -> NonEmpty (LabelledPartition lb)
     -> Maybe [(Maybe (GraphPartition lb),Maybe (GraphPartition lb))]
 comparePartitions3 l1 l2 s1s s2s = Just $
-        ds ++ [ (Just (PartSub l1 [r1p]),Nothing) | r1p<-r1 ]
-           ++ [ (Nothing,Just (PartSub l2 [r2p])) | r2p<-r2 ]
+        ds ++ [ (Just (PartSub l1 (r1p :| [])),Nothing) | r1p<-r1 ]
+           ++ [ (Nothing,Just (PartSub l2 (r2p :| []))) | r2p<-r2 ]
     where
-        (ds,r1,r2) = listDifferences (comparePartitions4 l1 l2) s1s s2s
+        (ds,r1,r2) = listDifferences 
+                     (comparePartitions4 l1 l2) 
+                     (NE.toList s1s)
+                     (NE.toList s2s)
 
 comparePartitions4 :: (Label lb) =>
     lb 
