@@ -56,13 +56,6 @@ import Swish.RDF.Query
 import Swish.RDF.VarBinding (RDFVarBinding)
 import Swish.RDF.Vocabulary (namespaceRDFD)
 
-import Swish.Utils.PartOrderedCollection
-    ( minima, maxima
-    , partCompareEq, partComparePair
-    , partCompareListMaybe
-    , partCompareListSubset
-    )
-
 import Swish.Utils.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
 
 import Control.Monad (liftM)
@@ -70,6 +63,7 @@ import Control.Monad (liftM)
 import Data.List (delete, nub, (\\), subsequences)
 import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.Monoid (Monoid (..))
+import Data.Ord.Partial (minima, maxima, partCompareEq, partComparePair, partCompareListMaybe, partCompareListSubset)
 
 import qualified Data.Text.Lazy.Builder as B
 

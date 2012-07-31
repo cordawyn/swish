@@ -2,7 +2,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  PartOrderedCollection
+--  Module      :  Partial
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -12,7 +12,7 @@
 --
 --  This module provides methods to support operations on partially ordered
 --  collections.  The partial ordering relationship is represented by
---  `Maybe Ordering`.
+--  'Maybe' 'Ordering'.
 --
 --  Thanks to members of the haskell-cafe mailing list -
 --    Robert (rvollmert-lists\@gmx.net) and
@@ -23,10 +23,12 @@
 
 -- at present the only user of this module is Swish.RDF.ClassRestrictionRule
 
-module Swish.Utils.PartOrderedCollection
+module Data.Ord.Partial
     ( PartCompare
+      -- * Finding the range of a part-ordered list
     , minima
     , maxima
+      -- * Comparing part-ordered containers
     , partCompareEq
     , partComparePair
     , partCompareListMaybe

@@ -47,7 +47,8 @@ Description:
   Changes in version @0.7.0.0@:
   .
   * Moved a number of modules around: generic code directly into @Swish@
-  and the @Swish.RDF.RDF*@ forms renamed to @Swish.RDF.*@.
+  and the @Swish.RDF.RDF*@ forms renamed to @Swish.RDF.*@. Some modules
+  have been moved out of the @Swish.Utils.*@ namespace.
   .
   * Parsing modules are now in the @Swish.RDF.Parser@ hierarchy and
   @Swish.RDF.RDFParser@ has been renamed to @Swish.RDF.Parser.Utils@.
@@ -137,6 +138,8 @@ Library
    Hs-Source-Dirs: src/
 
    Exposed-Modules:
+      Data.Interned.URI
+      Data.Ord.Partial
       Swish
       Swish.Datatype
       Swish.GraphClass
@@ -188,10 +191,8 @@ Library
       Swish.Ruleset
       Swish.Utils.ListHelpers
       Swish.Utils.LookupMap
-      Swish.Utils.PartOrderedCollection
       Swish.Utils.ShowM
       Swish.VarBinding
-      Data.Interned.URI
 
    ghc-options:
       -Wall -fno-warn-orphans

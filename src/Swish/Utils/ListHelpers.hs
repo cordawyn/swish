@@ -17,8 +17,8 @@
 --------------------------------------------------------------------------------
 
 module Swish.Utils.ListHelpers
-       ( -- list of Swish.xxx modules the routine is used in
-         subset -- Proof, RDF.Proof, VarBinding [also defined in Utils.PartOrderedCollection]
+       ( -- list of modules the routine is used in
+         subset -- Proof, RDF.Proof, VarBinding [also defined in Data.Ord.Partial]
        , equiv -- GraphMatch, RDF.Ruleset, SwishScript, VarBinding, Utils.LookupMap
        , flist -- Datatype, RDF.Proof, RDF.Ruleset, SwishScript, VarBinding, ...
         
