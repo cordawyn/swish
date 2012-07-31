@@ -49,14 +49,6 @@ import Swish.RDF.Parser.Utils (ParseResult
     , hex8
     )
   
-{-
-import Swish.RDF.RDFParser
-    ( ParseResult, RDFParser
-    , ignore
-    , annotateParsecError
-    )
--}
-
 import Control.Applicative
 
 import Network.URI (parseURI)
@@ -93,7 +85,7 @@ updateGraph f s = s { graphState = f (graphState s) }
 --  accepts a string and returns a graph or error
 ----------------------------------------------------------------------
 
--- | Parser that carries around a `NTState` record.
+-- | Parser that carries around a NTState record.
 type NTParser a = Parser NTState a
 
 -- | Parse a string.

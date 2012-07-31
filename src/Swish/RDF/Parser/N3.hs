@@ -136,6 +136,7 @@ import Data.Char (isSpace, isDigit, ord, isAsciiLower)
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
 import Data.LookupMap (mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
+import Data.Word (Word32)
 
 import Network.URI (URI(..), parseURIReference)
 
@@ -154,7 +155,7 @@ data N3State = N3State
         , thisNode   :: RDFLabel            -- current context node (aka 'this')
         , prefixUris :: NamespaceMap        -- namespace prefix mapping table
         , syntaxUris :: SpecialMap          -- special name mapping table
-        , nodeGen    :: Int                 -- blank node id generator
+        , nodeGen    :: Word32              -- blank node id generator
         , keywordsList :: [T.Text]          -- contents of the @keywords statement
         , allowLocalNames :: Bool           -- True if @keywords used so that bare names are QNames in default namespace
         }

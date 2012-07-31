@@ -30,7 +30,8 @@ GraphPartition module.
 -}
 
 module Swish.RDF.Formatter.Turtle
-    ( formatGraphAsText
+    ( NodeGenLookupMap
+    , formatGraphAsText
     , formatGraphAsLazyText
     , formatGraphAsBuilder
     , formatGraphIndent  
@@ -74,6 +75,7 @@ import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
 import Data.LookupMap (LookupEntryClass(..), LookupMap)
 import Data.LookupMap (emptyLookupMap, reverseLookupMap, listLookupMap, mapFind, mapFindMaybe, mapAdd, mapMerge)
 import Data.Monoid (Monoid(..))
+import Data.Word (Word32)
 
 -- it strikes me that using Lazy Text here is likely to be
 -- wrong; however I have done no profiling to back this
@@ -131,14 +133,13 @@ emptyTFS ngs = TFS
     , traceBuf  = []
     }
 
---  | Node name generation state information that carries through
---  and is updated by nested formulae
-type NodeGenLookupMap = LookupMap (RDFLabel,Int)
+--  | Node name generation state information.
+type NodeGenLookupMap = LookupMap (RDFLabel, Word32)
 
 data NodeGenState = Ngs
     { prefixes  :: NamespaceMap
     , nodeMap   :: NodeGenLookupMap
-    , nodeGen   :: Int
+    , nodeGen   :: Word32
     }
 
 emptyNgs :: NodeGenState
@@ -370,7 +371,7 @@ formatGraphDiag ::
   B.Builder  -- ^ indentation
   -> Bool    -- ^ are prefixes to be generated?
   -> RDFGraph 
-  -> (B.Builder, NodeGenLookupMap, Int, [String])
+  -> (B.Builder, NodeGenLookupMap, Word32, [String])
 formatGraphDiag indnt flag gr = 
   let fg  = formatGraph indnt " .\n" False flag gr
       ngs = emptyNgs {
@@ -799,10 +800,10 @@ commonFstEq f ps =
     where
         fstEq (f1,_) (f2,_) = f1 == f2
 
-findMaxBnode :: RDFGraph -> Int
+findMaxBnode :: RDFGraph -> Word32
 findMaxBnode = maximum . map getAutoBnodeIndex . labels
 
-getAutoBnodeIndex   :: RDFLabel -> Int
+getAutoBnodeIndex   :: RDFLabel -> Word32
 getAutoBnodeIndex (Blank ('_':lns)) = res where
     -- cf. prelude definition of read s ...
     res = case [x | (x,t) <- reads lns, ("","") <- lex t] of

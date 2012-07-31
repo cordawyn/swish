@@ -110,6 +110,7 @@ import Data.Char (ord, isAsciiLower, isAsciiUpper, isDigit)
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
 import Data.LookupMap (mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
+import Data.Word (Word32)
 
 import Network.URI (URI(..), parseURIReference)
 
@@ -127,7 +128,7 @@ data TurtleState = TurtleState
         { graphState :: RDFGraph            -- Graph under construction
         , prefixUris :: NamespaceMap        -- namespace prefix mapping table
         , baseUri    :: URI                 -- base URI
-        , nodeGen    :: Int                 -- blank node id generator
+        , nodeGen    :: Word32              -- blank node id generator
         } deriving Show
 
 -- | Functions to update TurtleState vector (use with stUpdate)
