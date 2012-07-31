@@ -99,7 +99,7 @@ partitionShow (PartSub sb (pr:prs)) =
     where
         showpr (a,b) = show a ++ " " ++ show b
 
--- only used in Swish.RDF.SwishCommands  
+-- only used in Swish.Commands  
 
 -- | Convert a partition into a string with a leading separator string.
 partitionShowP :: 

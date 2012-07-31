@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  SwishMonad
+--  Module      :  Monad
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -16,7 +17,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.SwishMonad
+module Swish.Monad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
     , SwishFormat(..)
     , NamedGraph(..)

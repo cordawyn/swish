@@ -4,7 +4,7 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  SwishCommands
+--  Module      :  Commands
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
@@ -16,7 +16,7 @@
 --
 --------------------------------------------------------------------------------
 
-module Swish.RDF.SwishCommands
+module Swish.Commands
     ( swishFormat
     , swishBase
     -- , swishVerbose
@@ -32,19 +32,12 @@ where
 import Swish.GraphClass (LDGraph(..), Label(..))
 import Swish.GraphPartition (GraphPartition(..))
 import Swish.GraphPartition (partitionGraph, comparePartitions, partitionShowP)
+import Swish.Monad (SwishStateIO, SwishState(..)
+                   , SwishStatus(..), SwishFormat(..)
+                   , setFormat, setBase, setGraph, resetInfo
+                   , resetError, setStatus, swishError, reportLine)
 import Swish.QName (QName, qnameFromURI, qnameFromFilePath, getQNameURI)
-
-import Swish.RDF.SwishMonad
-    ( SwishStateIO, SwishState(..), SwishStatus(..)
-    , setFormat, setBase, setGraph
-    , resetInfo, resetError, setStatus
-    -- , setVerbose
-    , SwishFormat(..)
-    , swishError
-    , reportLine
-    )
-
-import Swish.RDF.SwishScript (parseScriptFromText)
+import Swish.Script (parseScriptFromText)
 
 import Swish.RDF.Graph (RDFGraph, merge)
 
@@ -58,10 +51,10 @@ import Swish.RDF.Parser.NTriples (parseNT)
 import Swish.RDF.Parser.Utils (appendURIs)
 
 import System.IO
-    ( Handle, openFile, IOMode(..)
+    ( Handle, IOMode(..)
     , hPutStr, hPutStrLn, hClose
     , hIsReadable, hIsWritable
-    , stdin, stdout
+    , openFile, stdin, stdout
     )
 
 import Network.URI (parseURIReference)

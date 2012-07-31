@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  SwishTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -12,20 +12,20 @@
 --
 --  SwishTest:  Test cases for Swish program.
 --
+--  At present we ar missing the files it uses.
+--
 --------------------------------------------------------------------------------
 
 module Main where
 
-import System.Exit
+import Swish
 
+import System.Exit
 import System.Time
 
 import Test.HUnit
       ( Test(..), Assertable(..),
         assertEqual, runTestTT, runTestText, putTextToHandle )
-
-import Swish.RDF.SwishMain
-
 
 ------------------------------------------------------------
 --  Interactive test cases
@@ -118,7 +118,8 @@ main = testAll
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke 
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke 
 --  All rights reserved.
 --
 --  This file is part of Swish.

@@ -2,11 +2,13 @@
 
   - Moved a number of modules around: generic code directly into Swish
     and the Swish.RDF.RDF* forms renamed to Swish.RDF.*. Some modules
-    have been moved out of the Swish.Utils.* namespace. Generic modiles
-    have been placed into the @Data.*@ namespace.
+    have been moved out of the Swish.Utils.* namespace. Generic modules
+    have been placed into the Data.* namespace. The Swish.RDF.Swish
+    modules have been moved to Swish.* and Swish.RDF.SwishMain has
+    been removed; use Swish instead.
 
   - Parsing modules are now in the Swish.RDF.Parser hierarchy and
-    Swish.RDF.RDFParser has been renamed to Seish.RDF.Parser.Utils.
+    Swish.RDF.RDFParser has been renamed to Swish.RDF.Parser.Utils.
 
   - Formatting modules are now in the Swish.RDF.Formatter hierarchy.
 

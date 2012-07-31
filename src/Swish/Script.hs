@@ -3,8 +3,8 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 {- |
-Module      :  SwishScript
-Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+Module      :  Script
+Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
 License     :  GPL V2
 
 Maintainer  :  Douglas Burke
@@ -18,7 +18,7 @@ the supplied script.
 
 -}
 
-module Swish.RDF.SwishScript
+module Swish.Script
     ( 
       -- * Syntax
       -- $syntax
@@ -72,22 +72,18 @@ module Swish.RDF.SwishScript
 where
 
 import Swish.Datatype (typeMkRules)
+import Swish.Monad ( SwishStateIO, SwishStatus(..), NamedGraph(..))
+import Swish.Monad (modGraphs, findGraph, findFormula
+                   , modRules, findRule
+                   , modRulesets, findRuleset
+                   , findOpenVarModify, findDatatype
+                   , setInfo, setError, setStatus)
 import Swish.Proof (explainProof, showsProof)
 import Swish.Rule (Formula(..), Rule(..)) 
 import Swish.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
 import Swish.VarBinding (composeSequence)
 
 import Swish.RDF.Datatype (RDFDatatype)
-
-import Swish.RDF.SwishMonad
-    ( SwishStateIO, SwishStatus(..) 
-    , modGraphs, findGraph, findFormula
-    , modRules, findRule
-    , modRulesets, findRuleset
-    , findOpenVarModify, findDatatype
-    , setInfo, setError, setStatus
-    , NamedGraph(..)
-    )
 
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 import Swish.RDF.Ruleset (makeRDFClosureRule)
@@ -99,8 +95,8 @@ import Swish.RDF.GraphShowLines ()
 
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
-    , emptyRDFGraph
     , NamespaceMap
+    , emptyRDFGraph
     , setNamespaces
     , merge, add
     )
@@ -909,7 +905,7 @@ putResourceData muri gsh = do
 {- $syntax
 
 The script syntax is based loosely on Notation3, and the script parser is an
-extension of the Notation3 parser in the module "Swish.RDF.N3Parser".
+extension of the Notation3 parser in the module "Swish.RDF.Parser.N3".
 The comment character is @#@ and white space is ignored.
 
 > script            := command *
@@ -1446,8 +1442,8 @@ either of:
 
 or, from @ghci@:
 
-> Prelude> :m + Swish.RDF.SwishMain
-> Prelude Swish.RDF.SwishMain> :set prompt "Swish> "
+> Prelude> :set prompt "Swish> "
+> Swish> :m + Swish
 > Swish> runSwish "-s=example.ss"
 
 and the output is
@@ -1481,7 +1477,8 @@ and the output is
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--    2011, 2012 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.
