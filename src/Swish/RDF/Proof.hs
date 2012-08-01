@@ -31,7 +31,6 @@ module Swish.RDF.Proof
 where
 
 import Swish.GraphClass (Label(..), LDGraph(..))
-import Swish.GraphClass (replaceArcs)
 import Swish.Namespace (ScopedName)
 import Swish.Proof (Proof(..), Step(..))
 import Swish.Rule (Expression(..), Rule(..))
@@ -298,7 +297,7 @@ rdfSubgraphEntailFwdApply ante =
                         else foldl1 merge ante
     in
         --  Return all subgraphs of the full graph constructed above
-        map (replaceArcs mergeGraph) (init $ tail $ subsequences $ getArcs mergeGraph)
+        map (setArcs mergeGraph) (init $ tail $ subsequences $ getArcs mergeGraph)
 
 --  Subgraph entailment inference checker
 --

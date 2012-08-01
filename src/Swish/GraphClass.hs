@@ -25,10 +25,11 @@
 ------------------------------------------------------------
 
 module Swish.GraphClass
-    ( LDGraph(..), replaceArcs
+    ( LDGraph(..)
     , Label(..)
-    , Arc(..), arc, arcToTriple, arcFromTriple
+    , Arc(..)
     , Selector
+    , arc, arcToTriple, arcFromTriple
     , hasLabel, arcLabels -- , arcNodes
     )
 where
@@ -46,7 +47,7 @@ import Data.List (foldl', union, (\\))
 --
 
 {-|
-Labelled Directed Graph class
+Labelled Directed Graph class.
 
 Minimum required implementation:  `setArcs` and `getArcs`.
 -}
@@ -57,7 +58,7 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     --  component-level operations
       
     -- | Replace the existing arcs in the graph.
-    setArcs     :: [Arc lb] -> lg lb -> lg lb
+    setArcs     :: lg lb -> [Arc lb] -> lg lb
     
     -- | Extract all the arcs from a graph
     getArcs     :: lg lb -> [Arc lb]
@@ -90,8 +91,8 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     nodes g     = foldl' union [] (map arcNodes (getArcs g))
     
     -- | Update the arcs in a graph using a supplied function.
-    update      :: ( [Arc lb] -> [Arc lb] ) -> lg lb -> lg lb
-    update f g  = setArcs ( f (getArcs g) ) g
+    update      :: ([Arc lb] -> [Arc lb]) -> lg lb -> lg lb
+    update f g  = setArcs g ( f (getArcs g) )
 
 {-
 TODO:
@@ -100,14 +101,6 @@ TODO:
 
   This means adding the emptyGr function to the interface
 -}
-
--- |Function to replace arcs in a graph with a given list of arcs.
---
--- This is identical to @flip setArcs@ and so may be removed.
---    
-replaceArcs :: (LDGraph lg lb) => lg lb -> [Arc lb] -> lg lb
-replaceArcs = flip setArcs
--- replaceArcs gr as = update (const as) gr
 
 -- | Label class
 --

@@ -75,7 +75,7 @@ base4 = "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
 setArcsT :: (LDGraph lg lb) =>
             [(lb, lb, lb)] -> lg lb -> lg lb
-setArcsT a = setArcs $ map arcFromTriple a
+setArcsT a g = setArcs g $ map arcFromTriple a
 
 getArcsT :: (LDGraph lg lb) =>
             lg lb -> [(lb, lb, lb)]

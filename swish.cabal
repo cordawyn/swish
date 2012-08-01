@@ -62,7 +62,7 @@ Description:
   (@RDFLabel@) rather than using just @Lit@. Language codes are now represented
   by @Swish.RDF.Vocabulary.LanguageTag@ rather than as a @ScopedName@.
   .
-  * Local names are now represented by the #@wish.QName.LName@ type 
+  * Local names are now represented by the @Swish.QName.LName@ type 
   rather than as a @Text@ value. A few routines now return a @Maybe@ value
   rather than error-ing out on invalid input.
   .
@@ -75,6 +75,7 @@ Description:
   @Swish.RDF.RDFGraph@; use @arcSubj@, @arcPred@ or @arcObj@ instead.
   .
   * Removed un-used @containedIn@ element of the @LDGraph@ type class.
+  The arguments to @setArcs@ have been flipped and @replaceArcs@ removed.
   .
   * Removed un-used exports from @Swish.Utils.PartOrderedCollection@: 
   @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and

@@ -49,7 +49,7 @@ data GraphMem lb = GraphMem { arcs :: [Arc lb] }
                             
 instance (Label lb) => LDGraph GraphMem lb where
     getArcs      = arcs
-    setArcs as g = g { arcs=as }
+    setArcs g as = g { arcs=as }
     -- gmap f g = g { arcs = (map $ fmap f) (arcs g) }
 
 instance (Label lb) => Eq (GraphMem lb) where

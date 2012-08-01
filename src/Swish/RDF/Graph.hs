@@ -1142,7 +1142,7 @@ instance (Label lb) => Monoid (NSGraph lb) where
   
 instance (Label lb) => LDGraph NSGraph lb where
     getArcs      = statements 
-    setArcs as g = g { statements=as }
+    setArcs g as = g { statements=as }
 
 instance Functor NSGraph where
   fmap f (NSGraph ns fml stmts) =
