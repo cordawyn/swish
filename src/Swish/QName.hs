@@ -35,17 +35,17 @@ module Swish.QName
     )
     where
 
-import System.Directory (canonicalizePath)
-import System.FilePath (splitFileName)
-
-import Network.URI (URI(..), URIAuth(..)
-                    , parseURIReference)
+import Control.Monad (liftM)
 
 import Data.String (IsString(..))
 import Data.Maybe (fromMaybe)
-
 import Data.Interned (intern, unintern)
 import Data.Interned.URI (InternedURI)
+
+import Network.URI (URI(..), URIAuth(..), parseURIReference)
+
+import System.Directory (canonicalizePath)
+import System.FilePath (splitFileName)
 
 import qualified Data.Text as T
 
@@ -216,16 +216,17 @@ qnameFromURI uri =
   let uf = uriFragment uri
       up = uriPath uri
       q0 = Just $ QName iuri uri emptyLName
+      start = QName iuri
       iuri = intern uri
   in case uf of
        "#"    -> q0
-       '#':xs -> newLName (T.pack xs) >>= return . QName iuri (uri {uriFragment = "#"})
+       '#':xs -> start (uri {uriFragment = "#"}) `liftM` newLName (T.pack xs)
        ""     -> case break (=='/') (reverse up) of
                    ("",_) -> q0 -- path ends in / or is empty
                    (_,"") -> q0 -- path contains no /
                    (rlname,rpath) -> 
-                       newLName (T.pack (reverse rlname)) >>=
-                       return . QName iuri (uri {uriPath = reverse rpath}) 
+                       start (uri {uriPath = reverse rpath}) `liftM` 
+                       newLName (T.pack (reverse rlname))
 
        -- e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
        _ -> Nothing

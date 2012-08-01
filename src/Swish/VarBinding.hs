@@ -104,22 +104,14 @@ subBinding vb1 vb2 = vbEnum vb1 `subset` vbEnum vb2
 --  pairs of variable and corresponding assigned value.
 --
 makeVarBinding :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> VarBinding a b
+makeVarBinding [] = nullVarBinding
 makeVarBinding vrbs =
-    if null vrbs then nullVarBinding -- (nullVarBinding :: VarBinding a b)
-    else VarBinding
-        { vbMap  = selectFrom vrbs
-        , vbEnum = vrbs
-        , vbNull = null vrbs
-        }
-    where
-        selectFrom = flip mapFindMaybe . makeLookupMap
-        --  selectFrom bs is the VarBinding lookup function
-        {-
-        selectFrom :: (Eq a) => [(a,b)] -> a -> Maybe b
-        selectFrom []         _ = Nothing
-        selectFrom ((v,r):bs) l = if l == v then Just r
-                                    else selectFrom bs l
-        -}
+    let selectFrom = flip mapFindMaybe . makeLookupMap
+    in VarBinding
+           { vbMap  = selectFrom vrbs
+           , vbEnum = vrbs
+           , vbNull = False
+           }
 
 -- |Apply query binding to a supplied value, returning the value
 --  unchanged if no binding is defined

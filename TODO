@@ -64,13 +64,6 @@ Some things I want to/should do (not in order)
   strings and values for the formatter/parser code (such as,
   perhaps, Swish.RDF.Datatype.DatatypeMap)
 
-Text conversion:
-
-  - converting to Text in pieces, so lots of conversion via String
-    is apparent. This needs fixing, including
-      RDFDatatypeXsdString
-    to convert to/from Text rather than String
-
 Issues in the conversion to URI for Namespace/QName/...
 
 * parse issues
@@ -116,7 +109,7 @@ If we use a named prefix then things behave as expected: ie
   @prefix my: <http://example.com/ns#>.
   p:mejpg my:photoOf my:me .
 
-is passed through unchnaged (except for an additional @prefix statement
+is passed through unchanged (except for an additional @prefix statement
 getting added).
 
 Need to add a test of this. Of course, the issue is what should the default
