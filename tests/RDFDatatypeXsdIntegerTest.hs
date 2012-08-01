@@ -29,6 +29,7 @@ import Swish.Datatype
     , nullDatatypeMod
     )
 import Swish.Namespace (ScopedName, getNamespaceURI, makeScopedName, makeNSScopedName, namespaceToBuilder)
+import Swish.QName (LName)
 import Swish.Rule    (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.Ruleset (Ruleset(..), getRulesetRule)
 import Swish.VarBinding (makeVarBinding)
@@ -76,7 +77,7 @@ import TestHelpers (runTestSuite
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-xsdIntName :: T.Text -> ScopedName
+xsdIntName :: LName -> ScopedName
 xsdIntName = makeNSScopedName namespaceXsdInteger 
 
 axiomXsdIntegerDT :: ScopedName

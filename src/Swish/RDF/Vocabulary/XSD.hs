@@ -62,12 +62,11 @@ module Swish.RDF.Vocabulary.XSD
     )
 where
 
-import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, ScopedName, makeNamespace, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -85,7 +84,7 @@ namespaceXSD = makeNamespace (Just "xsd") xsdURI
 ------------------------------------------------------------
 
 -- | Create a scoped name for an XSD datatype with the given name.
-xsdType :: T.Text -> ScopedName
+xsdType :: LName -> ScopedName
 xsdType = makeNSScopedName namespaceXSD
 
 -- | @xsd:string@ from <http://www.w3.org/TR/xmlschema-2/#string>.

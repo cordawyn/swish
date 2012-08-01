@@ -42,7 +42,7 @@ module Swish.Namespace
     )
     where
 
-import Swish.QName (QName, newQName, getQNameURI, getNamespace, getLocalName)
+import Swish.QName (QName, LName, newQName, getLName, emptyLName, getQNameURI, getNamespace, getLocalName)
 
 import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromMaybe)
@@ -64,13 +64,6 @@ import qualified Data.Text.Lazy.Builder as B
 data Namespace = Namespace (Maybe T.Text) URI
 -- data Namespace = Namespace (Maybe T.Text) !URI
                  
-{-                 
-                 {
-                   nsPrefix :: Maybe T.Text
-                 , nsURI :: URI
-                 }
--}
-
 -- | Returns the prefix stored in the name space.                 
 getNamespacePrefix :: Namespace -> Maybe T.Text
 getNamespacePrefix (Namespace p _) = p
@@ -108,7 +101,7 @@ makeNamespace = Namespace
 -- the name space with a local component.
 makeNamespaceQName :: 
     Namespace   -- ^ The name space URI is used in the qualified name
-    -> T.Text   -- ^ local component of the qualified name (can be \"\")
+    -> LName    -- ^ local component of the qualified name (can be 'emptyLName')
     -> QName
 makeNamespaceQName (Namespace _ uri) = newQName uri
 
@@ -136,10 +129,10 @@ namespaceToBuilder (Namespace pre uri) =
 --  Some applications may handle null namespace URIs as meaning
 --  the local part is relative to some base URI.
 --
-data ScopedName = ScopedName !QName Namespace T.Text
+data ScopedName = ScopedName !QName Namespace LName
 
 -- | Returns the local part.
-getScopeLocal :: ScopedName -> T.Text
+getScopeLocal :: ScopedName -> LName
 getScopeLocal (ScopedName _ _ l) = l
 
 -- | Returns the namespace.
@@ -172,7 +165,7 @@ instance Ord ScopedName where
 -- uses @prefix:local@, otherwise @<url>@.
 instance Show ScopedName where
     show (ScopedName qn n l) = case getNamespacePrefix n of
-      Just pre -> T.unpack $ mconcat [pre, ":", l]
+      Just pre -> T.unpack $ mconcat [pre, ":", getLName l]
       _        -> show qn -- "<" ++ show (getNamespaceURI n) ++ T.unpack l ++ ">"
 
 -- |Get the QName corresponding to a scoped name.
@@ -183,29 +176,42 @@ getQName (ScopedName qn _ _) = qn
 getScopedNameURI :: ScopedName -> URI
 getScopedNameURI = getQNameURI . getQName
 
--- for the moment leave matchName using String rather than Text
-
 -- |Test if supplied string matches the display form of a
 --  scoped name.
 matchName :: String -> ScopedName -> Bool
 matchName str nam = str == show nam
 
--- |Construct a ScopedName from prefix, URI and local name
-makeScopedName :: Maybe T.Text -> URI -> T.Text -> ScopedName
-makeScopedName pre nsuri local =
-  ScopedName (newQName nsuri local) (Namespace pre nsuri) local
+-- |Construct a ScopedName.
+makeScopedName :: 
+    Maybe T.Text  -- ^ prefix for the namespace
+    -> URI        -- ^ namespace
+    -> LName      -- ^ local name
+    -> ScopedName
+makeScopedName pre nsuri local = 
+    ScopedName (newQName nsuri local)
+               (Namespace pre nsuri)
+               local
 
 -- |Construct a ScopedName from a QName.
-makeQNameScopedName :: Maybe T.Text -> QName -> ScopedName
+makeQNameScopedName :: 
+    Maybe T.Text   -- ^ prefix
+    -> QName 
+    -> ScopedName
 makeQNameScopedName pre qn = ScopedName qn (Namespace pre (getNamespace qn)) (getLocalName qn)
+
+-- could use qnameFromURI to find a local name if there is one.
 
 -- | Construct a ScopedName for a bare URI (the label is set to \"\").
 makeURIScopedName :: URI -> ScopedName
-makeURIScopedName uri = makeScopedName Nothing uri ""
+makeURIScopedName uri = makeScopedName Nothing uri emptyLName
 
--- | Construct a ScopedName from a Namespace and local component
-makeNSScopedName :: Namespace -> T.Text -> ScopedName
-makeNSScopedName ns local = ScopedName (newQName (getNamespaceURI ns) local) ns local
+-- | Construct a ScopedName.
+makeNSScopedName :: 
+    Namespace     -- ^ namespace
+    -> LName      -- ^ local component
+    -> ScopedName
+makeNSScopedName ns local = 
+    ScopedName (newQName (getNamespaceURI ns) local) ns local
 
 -- | This should never appear as a valid name
 nullScopedName :: ScopedName

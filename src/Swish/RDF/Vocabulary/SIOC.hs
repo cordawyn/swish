@@ -108,11 +108,10 @@ module Swish.RDF.Vocabulary.SIOC
 where
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -129,7 +128,7 @@ namespaceSIOC = makeNamespace (Just "sioc") siocURI
 --  Terms
 ------------------------------------------------------------
 
-toS :: T.Text -> ScopedName
+toS :: LName -> ScopedName
 toS  = makeNSScopedName namespaceSIOC
 
 -- Classes

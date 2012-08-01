@@ -70,8 +70,9 @@ where
 
 import Swish.GraphClass (arc)
 import Swish.Namespace
-    ( Namespace, makeNamespace
+    ( Namespace
     , ScopedName
+    , makeNamespace
     , getScopeNamespace
     , getScopedNameURI
     , getScopeNamespace
@@ -80,7 +81,7 @@ import Swish.Namespace
     , makeNSScopedName
     , nullScopedName
     )
-import Swish.QName (QName)
+import Swish.QName (QName, newLName)
 
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
@@ -750,20 +751,32 @@ TODO:
   and so shouldn't we do the same thing there too?
 -}
 
+-- for now assume that the parsing rule for the local part
+-- will not create an invalid LName.
+toName :: Namespace -> T.Text -> ScopedName
+toName ns l = 
+    case newLName l of
+      Just local -> makeNSScopedName ns local
+      _ -> error $ "Invalid local name: " ++ T.unpack l
+
 qname :: N3Parser ScopedName
-qname =
-  fmap (uncurry makeNSScopedName) (char ':' >> g)
-  <|> (n3Name >>= fullOrLocalQName)
+qname = qname1 <|> qname2
+
+qname1 :: N3Parser ScopedName
+qname1 = fmap (uncurry toName) (char ':' >> g)
     where
       g = (,) <$> getDefaultPrefix <*> (n3Name <|> return "")
                
+qname2 :: N3Parser ScopedName
+qname2 = n3Name >>= fullOrLocalQName
+
 fullOrLocalQName :: T.Text -> N3Parser ScopedName
 fullOrLocalQName name = 
   (char ':' *> fullQName name)
   <|> localQName name
   
 fullQName :: T.Text -> N3Parser ScopedName
-fullQName name = makeNSScopedName <$> findPrefix name <*> (n3Name <|> pure "")
+fullQName name = toName <$> findPrefix name <*> (n3Name <|> pure "")
   
 findPrefix :: T.Text -> N3Parser Namespace
 findPrefix pre = do
@@ -777,7 +790,7 @@ localQName name = do
   st <- stGet
   if getAllowLocalNames st
     then let g = (,) <$> getDefaultPrefix <*> pure name
-         in uncurry makeNSScopedName <$> g
+         in uncurry toName <$> g
             
     else fail ("Invalid 'bare' word: " ++ T.unpack name)-- TODO: not ideal error message; can we handle this case differently?
 

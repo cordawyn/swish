@@ -20,6 +20,7 @@
 module Main where
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
+import Swish.QName (LName, newLName)
 import Swish.Proof (Step(..), checkProof, checkStep, explainProof)
 import Swish.Rule (Formula(..), Rule(..), nullFormula, nullRule)
 import Swish.Ruleset (getContextAxiom, getContextRule)
@@ -92,7 +93,7 @@ testProofStep lab valid rules antes step =
 
 --  Various support methods
 
-makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
+makeFormula :: Namespace -> LName -> B.Builder -> RDFFormula
 makeFormula scope local gr =
     makeRDFFormula scope local (prefix `mappend` gr)
 
@@ -104,7 +105,7 @@ getAxiom :: String -> RDFFormula
 getAxiom nam = getContextAxiom (makeSName nam) nullRDFFormula rdfdContext
 
 makeSName :: String -> ScopedName
-makeSName nam = makeNSScopedName ns (T.pack loc)
+makeSName nam = makeNSScopedName ns (fromJust (newLName (T.pack loc)))
     where
         (pre,_:loc) = break (==':') nam
         ns = case pre of

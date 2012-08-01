@@ -41,6 +41,7 @@ import Swish.Datatype
     )
 import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (namespaceToBuilder, makeNSScopedName)
+import Swish.QName (LName)
 import Swish.Ruleset (makeRuleset)
 
 import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
@@ -64,7 +65,6 @@ import Data.Monoid(Monoid(..))
 import Control.Monad (liftM)
 import Data.Maybe (maybeToList)
 
-import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -72,8 +72,8 @@ import qualified Data.Text.Lazy.Builder as B
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
-nameXsdInteger :: T.Text
-nameXsdInteger      = "integer"
+nameXsdInteger :: LName
+nameXsdInteger = "integer"
 
 -- |Type name for @xsd:integer@ datatype.
 typeNameXsdInteger :: ScopedName
@@ -150,7 +150,7 @@ relXsdInteger =
     ]
 
 mkIntRel2 ::
-    T.Text -> DatatypeRelPr Integer -> UnaryFnTable Integer
+    LName -> DatatypeRelPr Integer -> UnaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel2 nam pr fns = DatatypeRel
     { dtRelName = makeNSScopedName namespaceXsdInteger nam
@@ -158,7 +158,7 @@ mkIntRel2 nam pr fns = DatatypeRel
     }
 
 mkIntRel3 ::
-    T.Text -> DatatypeRelPr Integer -> BinaryFnTable Integer
+    LName -> DatatypeRelPr Integer -> BinaryFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3 nam pr fns = DatatypeRel
     { dtRelName = makeNSScopedName namespaceXsdInteger nam
@@ -166,7 +166,7 @@ mkIntRel3 nam pr fns = DatatypeRel
     }
 
 mkIntRel3maybe ::
-    T.Text -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
+    LName -> DatatypeRelPr Integer -> BinMaybeFnTable Integer
     -> DatatypeRel Integer
 mkIntRel3maybe nam pr fns = DatatypeRel
     { dtRelName = makeNSScopedName namespaceXsdInteger nam
@@ -392,7 +392,7 @@ modXsdIntegerGt = modXsdIntegerCompare "gt" (>)
 modXsdIntegerGe = modXsdIntegerCompare "ge" (>=)
 
 modXsdIntegerCompare ::
-    T.Text -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
+    LName -> (Integer->Integer->Bool) -> RDFDatatypeMod Integer
 modXsdIntegerCompare nam rel = DatatypeMod
     { dmName = makeNSScopedName namespaceXsdInteger nam
     , dmModf = [ f0 ]
@@ -424,7 +424,7 @@ prefixXsdInteger =
               , namespaceXsdInteger
               ]
 
-mkAxiom :: T.Text -> B.Builder -> RDFFormula
+mkAxiom :: LName -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdInteger local (prefixXsdInteger `mappend` gr)
 

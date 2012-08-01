@@ -22,11 +22,13 @@ module Main where
 import Swish.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
 import Swish.QName
     ( QName
+    , LName
     , newQName
     , qnameFromURI
     , getNamespace
     , getLocalName
     , getQNameURI
+    , getLName
     )
 
 import Test.HUnit (Test(TestList))
@@ -120,9 +122,12 @@ nq1, nq2 :: QName
 nq1 = newQName base1 "s1"
 nq2 = newQName base1 "s2"
 
+toQN :: String -> QName
+toQN = fromJust . qnameFromURI . toURI
+
 qu1, qu2, qu3, qu4, qu5, qu6, qu7 :: QName
-qu1 = qnameFromURI (toURI "http://id.ninebynine.org/wip/2003/test/graph1/node#s1")
-qu2 = qnameFromURI (toURI "http://id.ninebynine.org/wip/2003/test/graph2/node/s2")
+qu1 = toQN "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
+qu2 = toQN "http://id.ninebynine.org/wip/2003/test/graph2/node/s2"
 qu3 = "http://id.ninebynine.org/wip/2003/test/graph3/node"
 qu4 = "http://id.ninebynine.org/wip/2003/test/graph5/"
 qu5 = "http://id.ninebynine.org/wip/2003/test/graph5/s5"
@@ -172,13 +177,13 @@ testPartQNameSuite =
         "http://id.ninebynine.org/wip/2003/test/graph3/node"
         (getNamespace qb3)
   , testTextEq "testGetLocalName01"
-        "s1" (getLocalName qb1s1)
+        "s1" (getLName (getLocalName qb1s1))
   , testTextEq "testGetLocalName02"
-        "s2" (getLocalName qb2s2)
+        "s2" (getLName (getLocalName qb2s2))
   , testTextEq "testGetLocalName03"
-      "s3" (getLocalName qb3s3)
+      "s3" (getLName (getLocalName qb3s3))
   , testTextEq "testGetLocalName04"
-      "" (getLocalName qb3)
+      "" (getLName (getLocalName qb3))
   , testURIEq "testGetQNameURI01"
       "http://id.ninebynine.org/wip/2003/test/graph1/node#s1"
       (getQNameURI qb1s1)
@@ -277,12 +282,12 @@ test somewhat and also include a check of the
 URI combination done by newQName (may be tested elsewhere).
 -}
 
-testSplitURI :: String -> String -> (String,T.Text) -> Test
+testSplitURI :: String -> String -> (String, LName) -> Test
 testSplitURI lbl input (a,b) =
   let qn = newQName (toURI a) b
   in 
    TestList
-   [ testCompare lbl ":split" qn ((qnameFromURI . toURI) input)
+   [ testCompare lbl ":split" qn ((fromJust . qnameFromURI . toURI) input)
    , testCompare lbl ":show"  input (show (getQNameURI qn))
    ]
 
@@ -334,7 +339,7 @@ testSplitURISuite =
 testSQRoundTrip :: String -> String -> Test
 testSQRoundTrip lbl uri = 
   let u = (fromJust . parseURIReference) uri
-      qn = qnameFromURI u
+      qn = (fromJust . qnameFromURI) u
       sn = makeQNameScopedName Nothing qn
   in TestList
      [ testCompare "SQ:URI"   lbl u  (getScopedNameURI sn)

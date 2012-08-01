@@ -63,7 +63,7 @@ import Test.HUnit (Test(TestCase,TestList), assertEqual)
 import Network.URI (URI, nullURI, parseURIReference)
 
 import Data.Monoid (Monoid(..))
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.List (intercalate)
 
 import qualified Data.Text as T
@@ -241,7 +241,7 @@ baseFile :: String
 baseFile = "file:///dev/null"
 
 dqn :: QName
-dqn = (qnameFromURI . toURI) baseFile
+dqn = (fromJust . qnameFromURI . toURI) baseFile
 
 toNS :: T.Text -> String -> Namespace
 toNS p = makeNamespace (Just p) . toURI

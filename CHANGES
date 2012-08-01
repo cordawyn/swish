@@ -17,6 +17,10 @@
     codes are now represented by Swish.RDF.Vocabulary.LanguageTag
     rather than as a ScopedName.
 
+  - Local names are now represented by the Swish.QName.LName type
+    rather than as a Text value. A few routines now return a Maybe value
+    rather than error-ing out on invalid input.
+
   - Make use of Data.List.NonEmpty in a few cases.
 
   - Removed mkTypedLit from Swish.RDF.RDFParser; use

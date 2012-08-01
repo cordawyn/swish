@@ -29,15 +29,14 @@ module Swish.Rule
        where
 
 import Swish.Namespace (Namespace, ScopedName)
-import Swish.Namespace (makeNamespace, makeScopedName, makeNSScopedName)
+import Swish.Namespace (makeNamespace, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Data.Maybe (fromJust)
 import Data.String.ShowLines (ShowLines(..))
 
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Expressions
@@ -79,7 +78,7 @@ nullScope = makeNamespace (Just "null") nullScopeURI
 
 -- | Create a scoped name with the null namespace.
 nullSN :: 
-  T.Text -- ^ local name.
+  LName -- ^ local name.
   -> ScopedName
 nullSN = makeNSScopedName nullScope
 
@@ -92,7 +91,7 @@ nullScopeURI = tU "http://id.ninebynine.org/2003/Ruleset/null"
 -- | The null formula.
 nullFormula :: Formula ex
 nullFormula = Formula
-    { formName = makeScopedName (Just "null") nullScopeURI "nullFormula"
+    { formName = makeNSScopedName nullScope "nullFormula"
     , formExpr = error "Null formula"
     }
 
@@ -210,7 +209,7 @@ bwdCheckInference rule ante cons = any checkAnts (bwdApply rule cons)
 -- | The null rule.
 nullRule :: Rule ex
 nullRule = Rule
-    { ruleName = makeScopedName (Just "null") nullScopeURI "nullRule"
+    { ruleName = makeNSScopedName nullScope "nullRule"
     , fwdApply = \ _ -> []
     , bwdApply = \ _ -> []
     , checkInference = \ _ _ -> False

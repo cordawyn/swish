@@ -203,7 +203,7 @@ calculateBaseURI (Just fnam) =
       case mbase of
         Just buri -> case appendURIs (getQNameURI buri) furi of
           Left emsg -> fail emsg -- TODO: think about this ...
-          Right res -> return $ qnameFromURI res
+          Right res -> return $ fromMaybe defURI (qnameFromURI res)
         Nothing -> lift $ qnameFromFilePath fnam
         
     Nothing -> fail $ "Unable to convert to URI: filepath=" ++ fnam

@@ -53,17 +53,11 @@ module Swish.RDF.Parser.Turtle
     )
 where
 
-import Swish.Namespace
-    ( Namespace, makeNamespace
-    , ScopedName
-    , getScopeNamespace
-    , getScopedNameURI
-    , getScopeNamespace
-    , makeURIScopedName
-    , makeNSScopedName
-    )
-
 import Swish.GraphClass (arc)
+import Swish.Namespace (Namespace, ScopedName)
+import Swish.Namespace (makeNamespace, getScopeNamespace, getScopedNameURI
+                       , getScopeNamespace, makeURIScopedName, makeNSScopedName)
+import Swish.QName (newLName, emptyLName)
 
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
@@ -665,7 +659,7 @@ iriref = lexeme ((makeURIScopedName <$> _iriRef) <|> prefixedName)
 prefixedName :: TurtleParser ScopedName
 prefixedName = 
   _pnameLN <|> 
-  flip makeNSScopedName T.empty <$> (_pnameNS >>= findPrefixNamespace)
+  flip makeNSScopedName emptyLName <$> (_pnameNS >>= findPrefixNamespace)
 
 {-
 [69s] BlankNode ::= BLANK_NODE_LABEL 
@@ -710,9 +704,12 @@ _pnameNS = optional _pnPrefix <* char ':'
 -}
 
 _pnameLN :: TurtleParser ScopedName
-_pnameLN = makeNSScopedName 
-           <$> (_pnameNS >>= findPrefixNamespace) 
-           <*> fmap L.toStrict _pnLocal
+_pnameLN = do
+  ns <- _pnameNS >>= findPrefixNamespace
+  l <- fmap L.toStrict _pnLocal
+  case newLName l of
+    Just lname -> return $ makeNSScopedName ns lname
+    _ -> fail $ "Invalid local name: '" ++ T.unpack l ++ "'"
 
 {-
 [73s] <BLANK_NODE_LABEL> ::= "_:" PN_LOCAL 

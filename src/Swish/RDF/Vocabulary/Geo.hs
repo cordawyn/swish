@@ -35,12 +35,11 @@ module Swish.RDF.Vocabulary.Geo
     )
 where
 
-import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, ScopedName, makeNamespace, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -57,7 +56,7 @@ namespaceGEO = makeNamespace (Just "geo") geoURI
 --  Terms
 ------------------------------------------------------------
 
-toG :: T.Text -> ScopedName
+toG :: LName -> ScopedName
 toG  = makeNSScopedName namespaceGEO
 
 -- | @geo:location@.

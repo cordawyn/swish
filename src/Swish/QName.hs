@@ -22,6 +22,10 @@
 
 module Swish.QName
     ( QName
+    , LName
+    , emptyLName
+    , newLName
+    , getLName
     , newQName
     , qnameFromURI
     , getNamespace
@@ -32,6 +36,7 @@ module Swish.QName
     where
 
 import System.Directory (canonicalizePath)
+import System.FilePath (splitFileName)
 
 import Network.URI (URI(..), URIAuth(..)
                     , parseURIReference)
@@ -48,12 +53,48 @@ import qualified Data.Text as T
 --  Qualified name
 ------------------------------------------------------------
 --
---  cf. http://www.w3.org/TR/REC-xml-names/
+--  These are RDF QNames rather than XML ones (as much as
+--  RDF can claim to have them).
+--
+
+
+{-| A local name, which can be empty.
+
+At present, the local name can not 
+contain spaces or the \'#\', \':\', or \'/\' characters. This restriction is
+experimental.
+-}
+newtype LName = LName T.Text
+    deriving (Eq, Ord)
+
+instance Show LName where
+    show (LName t) = show t
+
+-- | This is not total since attempting to convert a string
+--   containing invalid characters will cause an error.
+instance IsString LName where
+    fromString s = 
+        fromMaybe (error ("Invalid local name: " ++ s)) $
+                  newLName (T.pack s)
+
+-- | The empty local name.
+emptyLName :: LName
+emptyLName = LName ""
+
+-- | Create a local name.
+newLName :: T.Text -> Maybe LName
+newLName l = if T.any (`elem` " #:/") l then Nothing else Just (LName l)
+
+-- | Extract the local name.
+getLName :: LName -> T.Text
+getLName (LName l) = l
 
 {-| 
 
 A qualified name, consisting of a namespace URI
 and the local part of the identifier, which can be empty.
+The serialisation of a QName is formed by concatanating the
+two components.
 
 > Prelude> :set prompt "swish> "
 > swish> :set -XOverloadedStrings
@@ -62,14 +103,8 @@ and the local part of the identifier, which can be empty.
 > swish> let qn2 = "http://example.com/bob" :: QName
 > swish> let qn3 = "http://example.com/bob/fred" :: QName
 > swish> let qn4 = "http://example.com/bob/fred#x" :: QName
-> swish> getLocalName qn1
-> ""
-> swish> getLocalName qn2
-> "bob"
-> swish> getLocalName qn3
-> "fred"
-> swish> getLocalName qn4
-> "x"
+> swish> map getLocalName [qn1, qn2, qn3, qn4]
+> ["","bob","fred","x"]
 > swish> getNamespace qn1
 > http://example.com
 > swish> getNamespace qn2
@@ -87,13 +122,13 @@ as well as the namespace component. This may or
 may not be a good idea (space vs time saving).
 -}
 
-data QName = QName !InternedURI URI T.Text
+data QName = QName !InternedURI URI LName
 
 -- | This is not total since it will fail if the input string is not a valid URI.
 instance IsString QName where
   fromString s = 
-      maybe (error ("Unable to convert '" ++ s ++ "' into a QName"))
-      qnameFromURI (parseURIReference s)
+      fromMaybe (error ("QName conversion given an invalid URI: " ++ s))
+      (parseURIReference s >>= qnameFromURI)
 
 -- | Equality is determined by a case sensitive comparison of the               
 -- URI.
@@ -139,34 +174,27 @@ instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
 
 {-
-Should this be clever and ensure that local doesn't
-contain /, say?
-
-We could also me more clever, and safer, when constructing
-the overall uri.
+The assumption in QName is that the validation done in creating
+the local name is sufficient to ensure that the combined 
+URI is syntactically valid. Is this in fact true?
 -}
 
 -- | Create a new qualified name with an explicit local component.
+--
 newQName ::
-    URI        -- ^ Namespace
-    -> T.Text  -- ^ Local component
+    URI            -- ^ Namespace
+    -> LName       -- ^ Local component
     -> QName
-newQName ns local = 
-  let l   = T.unpack local
-      uristr = show ns ++ l
-      uri = fromMaybe (error ("Unable to parse URI from: '" ++ show ns ++ "' + '" ++ l ++ "'")) (parseURIReference uristr)
+newQName ns l@(LName local) = 
+  -- Until profiling shows that this is a time/space issue, we use
+  -- the following code rather than trying to deconstruct the URI
+  -- directly
+  let lstr   = T.unpack local
+      uristr = show ns ++ lstr
+  in case parseURIReference uristr of
+       Just uri -> QName (intern uri) ns l
+       _ -> error $ "Unable to combine " ++ show ns ++ " with " ++ lstr
   
-  {- the following does not work since the semantics of relativeTo do not match the required
-     behavior here.  It may well be better to do something like the following, writing a replacement for
-     relativeTo, but leave that for a later date.
-  
-  let l   = T.unpack local
-      luri = fromMaybe (error ("Unable to parse local name as a URI reference: '" ++ l ++ "'")) (parseRelativeReference l)
-      uri = fromMaybe (error ("Unable to combine " ++ show ns ++ " with " ++ l)) $ luri `relativeTo` ns
-  -}
-      
-  in QName (intern uri) ns local
-
 {-
 
 old behavior
@@ -183,21 +211,24 @@ with the first option.
 -- | Create a new qualified name.
 qnameFromURI :: 
     URI      -- ^ The URI will be deconstructed to find if it contains a local component.
-    -> QName
+    -> Maybe QName -- ^ The failure case may be removed.
 qnameFromURI uri =
   let uf = uriFragment uri
       up = uriPath uri
-      q0 = QName iuri uri ""
+      q0 = Just $ QName iuri uri emptyLName
       iuri = intern uri
   in case uf of
-    "#"    -> q0
-    '#':xs -> QName iuri (uri { uriFragment = "#" }) (T.pack xs)
-    ""     -> case break (=='/') (reverse up) of
-      ("",_) -> q0 -- path ends in / or is empty
-      (_,"") -> q0 -- path contains no /
-      (rlname,rpath) -> QName iuri (uri {uriPath = reverse rpath}) (T.pack (reverse rlname))
-      
-    e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
+       "#"    -> q0
+       '#':xs -> newLName (T.pack xs) >>= return . QName iuri (uri {uriFragment = "#"})
+       ""     -> case break (=='/') (reverse up) of
+                   ("",_) -> q0 -- path ends in / or is empty
+                   (_,"") -> q0 -- path contains no /
+                   (rlname,rpath) -> 
+                       newLName (T.pack (reverse rlname)) >>=
+                       return . QName iuri (uri {uriPath = reverse rpath}) 
+
+       -- e -> error $ "Unexpected: uri=" ++ show uri ++ " has fragment='" ++ show e ++ "'" 
+       _ -> Nothing
 
 -- | Return the URI of the namespace stored in the QName.
 -- This does not contain the local component.
@@ -206,7 +237,7 @@ getNamespace :: QName -> URI
 getNamespace (QName _ ns _) = ns
 
 -- | Return the local component of the QName.
-getLocalName :: QName -> T.Text
+getLocalName :: QName -> LName
 getLocalName (QName _ _ l) = l
 
 -- | Returns the full URI of the QName (ie the combination of the
@@ -257,31 +288,18 @@ ghci> System.Directory.canonicalizePath "/Users/dburke/haskell/swish-text/"
 
 -}
 
--- since we build up the URI manually we could
--- create the QName directly, but leave that 
--- for now.
-
 qnameFromFilePath :: FilePath -> IO QName
-qnameFromFilePath = fmap qnameFromURI . filePathToURI
-  
+qnameFromFilePath fname = do
+  ipath <- canonicalizePath fname
+  let (dname, lname) = splitFileName ipath
+      nsuri = URI "file:" emptyAuth dname "" ""
+      uri = URI "file:" emptyAuth ipath "" ""
+  case lname of
+    "" -> return $ QName (intern nsuri) nsuri emptyLName
+    _  -> return $ QName (intern uri) nsuri (LName (T.pack lname))
+
 emptyAuth :: Maybe URIAuth
 emptyAuth = Just $ URIAuth "" "" ""
-
-filePathToURI :: FilePath -> IO URI
-filePathToURI fname = do
-  ipath <- canonicalizePath fname
-  
-  {-
-  let paths = splitDirectories ipath
-      txt = intercalate "/" $ case paths of
-        "/":rs -> rs
-        _      -> paths
-  -}
-  
-  -- Is manually creating the URI sensible?
-  -- return $ fromJust $ parseURI $ "file:///" ++ txt
-  -- return $ URI "file:" emptyAuth txt "" ""
-  return $ URI "file:" emptyAuth ipath "" ""
 
 --------------------------------------------------------------------------------
 --

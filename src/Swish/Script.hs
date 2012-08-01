@@ -489,7 +489,7 @@ ssReadGraph :: Maybe URI -> SwishStateIO (Either String RDFGraph)
 ssReadGraph muri = 
   let gf inp = case inp of
         Left  es -> Left es
-        Right is -> parseN3 is (fmap qnameFromURI muri)
+        Right is -> parseN3 is (muri >>= qnameFromURI)
         
   in gf `liftM` getResourceData muri
 

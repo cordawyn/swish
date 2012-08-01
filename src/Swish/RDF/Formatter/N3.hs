@@ -61,6 +61,7 @@ where
 
 import Swish.GraphClass (Arc(..))
 import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
+import Swish.QName (getLName)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..),
@@ -735,7 +736,7 @@ formatLabel _ lab@(Res sn) =
     Nothing -> do
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
-          local  = getScopeLocal sn
+          local  = getLName $ getScopeLocal sn
           premap = reverseLookupMap pr :: RevNamespaceMap
           prefix = mapFindMaybe nsuri premap
           

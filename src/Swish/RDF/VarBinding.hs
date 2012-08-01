@@ -40,7 +40,6 @@ import Swish.RDF.Graph
     , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
     , isDatatyped, isMemberProp, isUri, isBlank
     )
-
 import Swish.RDF.Vocabulary (swishName)
 
 import Data.LookupMap (LookupMap(..))

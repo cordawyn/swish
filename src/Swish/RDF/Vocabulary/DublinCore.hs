@@ -184,6 +184,7 @@ module Swish.RDF.Vocabulary.DublinCore
     ) where
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (parseURI)
@@ -217,16 +218,10 @@ namespaceDCTYPE = toNS "dctype" "http://purl.org/dc/dcmitype/"
 --  Terms
 ------------------------------------------------------------
 
-toDCT :: T.Text -> ScopedName
+toDCT, toDCE, toDCAM, toDCTYPE :: LName -> ScopedName
 toDCT = makeNSScopedName namespaceDCTERMS
-
-toDCE :: T.Text -> ScopedName
 toDCE = makeNSScopedName namespaceDCELEM
-
-toDCAM :: T.Text -> ScopedName
 toDCAM = makeNSScopedName namespaceDCAM
-
-toDCTYPE :: T.Text -> ScopedName
 toDCTYPE = makeNSScopedName namespaceDCTYPE
 
 -- Classes

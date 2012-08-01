@@ -180,7 +180,7 @@ import Swish.GraphClass (LDGraph(..), Label (..), Arc(..), Selector)
 import Swish.GraphClass (arc, arcLabels)
 import Swish.GraphMatch (LabelMap, ScopedLabel(..))
 import Swish.GraphMatch (graphMatch)
-import Swish.QName (QName)
+import Swish.QName (QName, getLName)
 
 import Control.Applicative (Applicative, liftA, (<$>), (<*>))
 
@@ -317,7 +317,7 @@ instance Label RDFLabel where
 
     getLocal   (Blank loc)  = loc
     getLocal   (Var   loc)  = '?':loc
-    getLocal   (Res   sn)   = "Res_" ++ T.unpack (getScopeLocal sn)
+    getLocal   (Res   sn)   = "Res_" ++ (T.unpack . getLName . getScopeLocal) sn
     getLocal   (NoNode)     = "None"
     getLocal   _            = "Lit_"
 
@@ -954,7 +954,7 @@ isDatatyped _  _               = False
 isMemberProp :: RDFLabel -> Bool
 isMemberProp (Res sn) =
   getScopeNamespace sn == namespaceRDF &&
-  case T.uncons (getScopeLocal sn) of
+  case T.uncons (getLName (getScopeLocal sn)) of
     Just ('_', t) -> T.all isDigit t
     _ -> False
 isMemberProp _        = False

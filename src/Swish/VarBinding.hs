@@ -41,6 +41,7 @@ module Swish.VarBinding
 where
 
 import Swish.Namespace (ScopedName, getScopeLocal)
+import Swish.QName (newLName, getLName)
 
 import Swish.RDF.Vocabulary (swishName)
 
@@ -50,8 +51,6 @@ import Data.List (find, intersect, union, (\\), foldl', permutations)
 import Data.LookupMap (LookupEntryClass(..), makeLookupMap, mapFindMaybe)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 import Data.Monoid (mconcat)
-
--- import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Query variable bindings
@@ -314,7 +313,7 @@ vbmCompose
     (VarBindingModify nam1 app1 voc1 use1)
     (VarBindingModify nam2 app2 voc2 use2)
     | not (null use12) = Just VarBindingModify
-        { vbmName  = swishName $ mconcat ["_", getScopeLocal nam1, "_", getScopeLocal nam2, "_"]
+        { vbmName  = name
         , vbmApply = app2 . app1
         , vbmVocab = voc1 `union` voc2
         , vbmUsage = use12
@@ -322,6 +321,10 @@ vbmCompose
     | otherwise = Nothing
     where
         use12 = compatibleUsage voc1 use1 use2
+        getName = getLName . getScopeLocal
+        -- since _ is a valid LName component then we know the mconcat output
+        -- is a valid LName and so can use fromJust
+        name = swishName $ fromJust $ newLName $ mconcat ["_", getName nam1, "_", getName nam2, "_"]
 
 -- |Determine compatible ways in which variable binding modifiers may
 --  be combined.

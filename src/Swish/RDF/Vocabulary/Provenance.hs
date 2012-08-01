@@ -73,11 +73,10 @@ module Swish.RDF.Vocabulary.Provenance
 where
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -94,7 +93,7 @@ namespacePROV = makeNamespace (Just "prov") provURI
 --  Terms
 ------------------------------------------------------------
 
-toS :: T.Text -> ScopedName
+toS :: LName -> ScopedName
 toS  = makeNSScopedName namespacePROV
 
 -- Classes

@@ -38,6 +38,7 @@ import Swish.Datatype
 
 import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (namespaceToBuilder, makeNSScopedName)
+import Swish.QName (LName)
 import Swish.Ruleset (makeRuleset)
 import Swish.VarBinding (VarBinding(..), VarBindingModify(..))
 import Swish.VarBinding (addVarBinding)
@@ -68,7 +69,7 @@ import qualified Data.Text.Lazy.Builder as B
 ------------------------------------------------------------
 
 --  Local name for Integer datatype
-nameXsdString :: T.Text
+nameXsdString :: LName
 nameXsdString = "string"
 
 -- | Type name for @xsd:string@ datatype
@@ -120,7 +121,7 @@ relXsdString =
     ]
 
 mkStrRel2 ::
-    T.Text -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
+    LName -> DatatypeRelPr T.Text -> UnaryFnTable T.Text
     -> DatatypeRel T.Text
 mkStrRel2 nam pr fns = 
   DatatypeRel
@@ -177,7 +178,7 @@ modXsdStringEq = modXsdStringCompare "eq" (==)
 modXsdStringNe = modXsdStringCompare "ne" (/=)
 
 modXsdStringCompare ::
-    T.Text -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
+    LName -> (T.Text->T.Text->Bool) -> RDFDatatypeMod T.Text
 modXsdStringCompare nam rel = DatatypeMod
     { dmName = makeNSScopedName namespaceXsdString nam
     , dmModf = [ f0 ]
@@ -209,7 +210,7 @@ prefixXsdString =
   , mkPrefix namespaceXsdString
   ]
   
-mkAxiom :: T.Text -> B.Builder -> RDFFormula
+mkAxiom :: LName -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdString local (prefixXsdString `mappend` gr)
 

@@ -25,6 +25,7 @@ module Swish.RDF.ProofContext ( rulesetRDF
 
 import Swish.Datatype (typeMkCanonicalForm)
 import Swish.Namespace (Namespace, makeNSScopedName)
+import Swish.QName (LName)
 import Swish.Ruleset (makeRuleset)
 import Swish.VarBinding (VarBindingModify(..))
 import Swish.VarBinding (applyVarBinding, addVarBinding, makeVarFilterModify, varFilterDisjunction)
@@ -65,14 +66,13 @@ import Swish.RDF.Vocabulary
 
 import Data.Monoid (Monoid(..))
 
-import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Define query binding filter auxiliaries
 ------------------------------------------------------------
 
-makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
+makeFormula :: Namespace -> LName -> B.Builder -> RDFFormula
 makeFormula = makeRDFFormula
 
 requireAny :: [RDFVarBindingFilter] -> RDFVarBindingFilter

@@ -50,6 +50,7 @@ import Swish.Datatype
     )
 import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (namespaceToBuilder, makeNSScopedName)
+import Swish.QName (LName)
 import Swish.Ruleset (makeRuleset)
 
 import Swish.RDF.Datatype (RDFDatatype, RDFDatatypeVal, RDFDatatypeMod)
@@ -71,15 +72,14 @@ import Swish.RDF.Vocabulary
 
 import Data.Monoid(Monoid(..))
 
-import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
 --  Misc values
 ------------------------------------------------------------
 
-nameXsdDecimal :: T.Text
-nameXsdDecimal      = "decimal"
+nameXsdDecimal :: LName
+nameXsdDecimal = "decimal"
 
 -- |Type name for @xsd:decimal@ datatype.
 typeNameXsdDecimal :: ScopedName
@@ -137,7 +137,7 @@ relXsdDecimal =
     ]
 
 mkDecRel2 ::
-    T.Text -> DatatypeRelPr Double -> UnaryFnTable Double
+    LName -> DatatypeRelPr Double -> UnaryFnTable Double
     -> DatatypeRel Double
 mkDecRel2 nam pr fns = DatatypeRel
     { dtRelName = makeNSScopedName namespaceXsdDecimal nam
@@ -145,7 +145,7 @@ mkDecRel2 nam pr fns = DatatypeRel
     }
 
 mkDecRel3 ::
-    T.Text -> DatatypeRelPr Double -> BinaryFnTable Double
+    LName -> DatatypeRelPr Double -> BinaryFnTable Double
     -> DatatypeRel Double
 mkDecRel3 nam pr fns = DatatypeRel
     { dtRelName = makeNSScopedName namespaceXsdDecimal nam
@@ -345,7 +345,7 @@ modXsdDecimalGt = modXsdDecimalCompare "gt" (>)
 modXsdDecimalGe = modXsdDecimalCompare "ge" (>=)
 
 modXsdDecimalCompare ::
-    T.Text -> (Double->Double->Bool) -> RDFDatatypeMod Double
+    LName -> (Double->Double->Bool) -> RDFDatatypeMod Double
 modXsdDecimalCompare nam rel = DatatypeMod
     { dmName = makeNSScopedName namespaceXsdDecimal nam
     , dmModf = [ f0 ]
@@ -377,7 +377,7 @@ prefixXsdDecimal =
               , namespaceXsdDecimal
               ]
 
-mkAxiom :: T.Text -> B.Builder -> RDFFormula
+mkAxiom :: LName -> B.Builder -> RDFFormula
 mkAxiom local gr =
     makeRDFFormula namespaceXsdDecimal local (prefixXsdDecimal `mappend` gr)
 

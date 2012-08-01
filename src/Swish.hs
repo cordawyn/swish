@@ -260,7 +260,7 @@ swishCommand (SA (_,act)) = act
 validateBase :: String -> Maybe String -> Either (String, SwishStatus) SwishAction
 validateBase arg Nothing  = Right $ SA (arg, swishBase Nothing)
 validateBase arg (Just b) =
-  case fmap qnameFromURI (parseURI b) of
+  case parseURI b >>= qnameFromURI of
     j@(Just _) -> Right $ SA (arg, swishBase j)
     _      -> Left ("Invalid base URI <" ++ b ++ ">", SwishArgumentError)
   

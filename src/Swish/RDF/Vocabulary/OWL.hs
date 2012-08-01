@@ -49,12 +49,11 @@ module Swish.RDF.Vocabulary.OWL
     )
 where
 
-import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, ScopedName, makeNamespace, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -71,7 +70,7 @@ namespaceOWL = makeNamespace (Just "owl") owlURI
 --  Terms
 ------------------------------------------------------------
 
-toO :: T.Text -> ScopedName
+toO :: LName -> ScopedName
 toO = makeNSScopedName namespaceOWL
 
 -- | @owl:sameAs@.

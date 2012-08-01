@@ -21,7 +21,7 @@
 module Main where
 
 import Swish.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
-
+import Swish.QName (LName)
 import Swish.Rule (Formula(..), Rule(..), fwdCheckInference )
 import Swish.Ruleset (makeRuleset, getRulesetNamespace, getRulesetAxioms)
 import Swish.Ruleset (getRulesetRules, getRulesetAxiom, getRulesetRule)
@@ -267,7 +267,7 @@ testRulesetSuite =
 scopeex :: Namespace
 scopeex = toNS (Just "ex") "http://id.ninebynine.org/wip/2003/RDFProofCheck#"
 
-makeFormula :: Namespace -> T.Text -> B.Builder -> RDFFormula
+makeFormula :: Namespace -> LName -> B.Builder -> RDFFormula
 makeFormula scope local gr =
     makeRDFFormula scope local $ prefix `mappend` gr
 

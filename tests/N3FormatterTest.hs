@@ -20,6 +20,7 @@ module Main where
 
 import Swish.GraphClass (Arc, arc)
 import Swish.Namespace (Namespace, makeNamespace, makeNSScopedName, namespaceToBuilder)
+import Swish.QName (LName)
 
 import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
 import Swish.RDF.Parser.N3 (parseN3)
@@ -74,7 +75,7 @@ toURI = fromJust . parseURI
 toNS :: T.Text -> String -> Namespace
 toNS p = makeNamespace (Just p) . toURI
 
-toRes :: Namespace -> T.Text -> RDFLabel
+toRes :: Namespace -> LName -> RDFLabel
 toRes ns = Res . makeNSScopedName ns
 
 base1, base2, base3, base4, basef, baseu, basem :: Namespace

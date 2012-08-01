@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# Language OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
@@ -102,8 +102,9 @@ module Swish.RDF.Vocabulary.RDF
 where
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.QName (LName, newLName)
 
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 import Network.URI (URI, parseURI)
 
 import qualified Data.Text as T
@@ -128,7 +129,7 @@ namespaceRDFS = makeNamespace (Just "rdfs") rdfsURI
 --  Terms
 ------------------------------------------------------------
 
-toRDF, toRDFS :: T.Text -> ScopedName
+toRDF, toRDFS :: LName -> ScopedName
 toRDF  = makeNSScopedName namespaceRDF
 toRDFS = makeNSScopedName namespaceRDFS
 
@@ -170,7 +171,7 @@ rdfNodeID = toRDF "nodeID"
 
 -- | Create a @rdf:_n@ entity.
 rdfn :: Int -> ScopedName
-rdfn = toRDF . T.pack . ("_" ++) . show
+rdfn = toRDF . fromJust . newLName . T.pack . ("_" ++) . show
 
 -- | @rdf:_1@.
 rdf1 :: ScopedName

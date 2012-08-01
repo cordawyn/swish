@@ -113,11 +113,10 @@ module Swish.RDF.Vocabulary.FOAF
 where
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.QName (LName)
 
 import Data.Maybe (fromMaybe)
 import Network.URI (URI, parseURI)
-
-import qualified Data.Text as T
 
 ------------------------------------------------------------
 --  Namespace
@@ -134,7 +133,7 @@ namespaceFOAF = makeNamespace (Just "foaf") foafURI
 --  Terms
 ------------------------------------------------------------
 
-toF :: T.Text -> ScopedName
+toF :: LName -> ScopedName
 toF  = makeNSScopedName namespaceFOAF
 
 -- Classes

@@ -63,7 +63,8 @@ module Swish.RDF.Vocabulary
     )
 where
 
-import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
+import Swish.Namespace (Namespace, ScopedName, makeNamespace, makeNSScopedName)
+import Swish.QName (LName, getLName)
 
 import Swish.RDF.Vocabulary.RDF
 import Swish.RDF.Vocabulary.OWL
@@ -73,7 +74,7 @@ import Data.Char (isDigit, isAsciiLower)
 import Data.List (isPrefixOf)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Monoid (mappend, mconcat)
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.String (IsString(..))
 
 import Network.URI (URI, parseURI)
@@ -97,12 +98,14 @@ toNSU p = makeNamespace (Just p)
 
 -- | Create a namespace for the datatype family schema used by Swish.
 namespaceXsdType ::
-  T.Text  -- ^ lbl
+  LName        -- ^ local name
   -> Namespace 
   -- ^ Namespace has prefix @xsd_lbl@ and
   -- URI of @http:\/\/id.ninebynine.org\/2003\/XMLSchema\/lbl#@.
-namespaceXsdType dtn = toNS ("xsd_" `mappend` dtn)
-                       (mconcat ["http://id.ninebynine.org/2003/XMLSchema/", dtn, "#"])
+namespaceXsdType lbl = 
+    let dtn = getLName lbl
+    in toNS ("xsd_" `mappend` dtn)
+           (mconcat ["http://id.ninebynine.org/2003/XMLSchema/", dtn, "#"])
 
 -- | Maps @rdfd@ to @http:\/\/id.ninebynine.org\/2003\/rdfext\/rdfd#@.
 namespaceRDFD :: Namespace
@@ -141,7 +144,7 @@ namespaceSwishURI = tU "http://id.ninebynine.org/2003/Swish/"
 namespaceDefaultURI = tU "http://id.ninebynine.org/default/"
 
 -- | Convert a local name to a scoped name in the @swish@ namespace (`namespaceSwish`).
-swishName :: T.Text -> ScopedName
+swishName :: LName -> ScopedName
 swishName = makeNSScopedName namespaceSwish
 
 -----------------------------------------------------------
@@ -271,7 +274,7 @@ scopeRDFD = toNS "rs_rdfd"  "http://id.ninebynine.org/2003/Ruleset/rdfd#"
 --  Define some common vocabulary terms
 ------------------------------------------------------------
 
-toRDFD :: T.Text -> ScopedName
+toRDFD :: LName -> ScopedName
 toRDFD = makeNSScopedName namespaceRDFD
 
 -- | @rdfd:GeneralRestriction@.

@@ -158,7 +158,7 @@ base3 = toNS "base3" "http://id.ninebynine.org/wip/2003/test/graph3/node"
 base4 = toNS "base4" "http://id.ninebynine.org/wip/2003/test/graph3/nodebase"
 
 qn1s1 :: QName
-qn1s1 = qnameFromURI $ toURI $ base1Str ++ "s1"
+qn1s1 = fromJust $ qnameFromURI $ toURI $ base1Str ++ "s1"
 
 qu1s1 :: URI
 qu1s1 = toURI $ base1Str ++ "s1"
