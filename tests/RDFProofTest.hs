@@ -43,7 +43,7 @@ import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingModify)
 
 import Swish.RDF.Graph
     ( Label(..), RDFLabel(..), RDFGraph
-    , add, allLabels, allNodes )
+    , addGraphs, allLabels, allNodes )
 
 import Test.HUnit ( Test(TestList) )
 
@@ -136,7 +136,7 @@ fwd11 :: [RDFGraph]
 fwd11 = fwdApply rul11 [graph1]
 
 bwd11 :: [[RDFGraph]]
-bwd11 = bwdApply rul11 (add result11b result11c)
+bwd11 = bwdApply rul11 (addGraphs result11b result11c)
 
 test1 :: Test
 test1 = 

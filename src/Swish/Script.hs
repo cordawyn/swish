@@ -96,9 +96,8 @@ import Swish.RDF.GraphShowLines ()
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
     , NamespaceMap
-    , emptyRDFGraph
     , setNamespaces
-    , merge, add
+    , merge, addGraphs
     )
 
 import Swish.RDF.Parser.Utils (whiteSpace, lexeme, symbol, eoln, manyTill)
@@ -689,7 +688,7 @@ ssDefineConstraints  sn cgfs dtns =
             ; let ecgs = sequence cges  :: Either String [RDFGraph]
             ; let ecgr = case ecgs of
                     Left er   -> Left er
-                    Right []  -> Right emptyRDFGraph
+                    Right []  -> Right mempty
                     Right grs -> Right $ foldl1 merge grs
             ; edtf <- mapM ssFindDatatype dtns
                                         -- [Either String RDFDatatype]
@@ -816,8 +815,8 @@ ssFwdChain sn rn agfs cn prefs =
                         modGraphs (mapReplaceOrAdd (NamedGraph cn [cg]))
                         where
                             cg = case fwdApply rl ags of
-                                []  -> emptyRDFGraph
-                                grs -> setNamespaces prefs $ foldl1 add grs
+                                []  -> mempty
+                                grs -> setNamespaces prefs $ foldl1 addGraphs grs
             ; modify fcr
             }
 
@@ -862,8 +861,8 @@ ssBwdChain sn rn cgf an prefs =
                         where
                             ags  = map mergegr (bwdApply rl cg)
                             mergegr grs = case grs of
-                                [] -> emptyRDFGraph
-                                _  -> setNamespaces prefs $ foldl1 add grs
+                                [] -> mempty
+                                _  -> setNamespaces prefs $ foldl1 addGraphs grs
             ; modify fcr
             }
 

@@ -37,7 +37,7 @@ import Swish.Rule (Expression(..), Rule(..))
 import Swish.VarBinding (makeVarBinding)
 
 import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
-import Swish.RDF.Graph (merge, allLabels, remapLabelList, emptyRDFGraph)
+import Swish.RDF.Graph (merge, allLabels, remapLabelList)
 import Swish.RDF.Query (rdfQueryInstance, rdfQuerySubs)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
@@ -45,6 +45,7 @@ import Swish.Utils.ListHelpers (subset, flist)
 
 import Data.List (subsequences)
 import Data.LookupMap (makeLookupMap, mapFind)
+import Data.Monoid (Monoid(..))
 
 ------------------------------------------------------------
 --  Type instantiation of Proof framework for RDFGraph data
@@ -161,7 +162,7 @@ rdfInstanceEntailFwdApply vocab ante =
     let
         --  Merge antecedents to single graph, renaming bnodes if needed.
         --  (Null test and using 'foldl1' to avoid merging if possible.)
-        mergeGraph  = if null ante then emptyRDFGraph
+        mergeGraph  = if null ante then mempty
                         else foldl1 merge ante
         --  Obtain lists of variable and non-variable nodes
         --  (was: nonvarNodes = allLabels (not . labelIsVar) mergeGraph)
@@ -203,7 +204,7 @@ rdfInstanceEntailBwdApply vocab cons =
 rdfInstanceEntailCheckInference :: [RDFGraph] -> RDFGraph -> Bool
 rdfInstanceEntailCheckInference ante cons =
     let
-        mante = if null ante then emptyRDFGraph -- merged antecedents
+        mante = if null ante then mempty        -- merged antecedents
                     else foldl1 merge ante
         qvars = rdfQueryInstance cons mante     -- all query matches
         bsubs = rdfQuerySubs qvars cons         -- all back substitutions
@@ -293,7 +294,7 @@ rdfSubgraphEntailFwdApply ante =
     let
         --  Merge antecedents to single graph, renaming bnodes if needed.
         --  (Null test and using 'foldl1' to avoid merging if possible.)
-        mergeGraph  = if null ante then emptyRDFGraph
+        mergeGraph  = if null ante then mempty
                         else foldl1 merge ante
     in
         --  Return all subgraphs of the full graph constructed above
@@ -308,8 +309,8 @@ rdfSubgraphEntailCheckInference ante cons =
     let
         --  Combine antecedents to single graph, renaming bnodes if needed.
         --  (Null test and using 'foldl1' to avoid merging if possible.)
-        fullGraph  = if null ante then emptyRDFGraph
-                        else foldl1 add ante
+        fullGraph  = if null ante then mempty
+                        else foldl1 addGraphs ante
     in
         --  Check each consequent graph arc is in the antecedent graph
         getArcs cons `subset` getArcs fullGraph
@@ -340,9 +341,8 @@ makeRdfSimpleEntailmentRule name = newrule
 --
 rdfSimpleEntailCheckInference :: [RDFGraph] -> RDFGraph -> Bool
 rdfSimpleEntailCheckInference ante cons =
-    let agr = if null ante then emptyRDFGraph else foldl1 add ante
-    in
-        not $ null $ rdfQueryInstance cons agr
+    let agr = if null ante then mempty else foldl1 addGraphs ante
+    in not $ null $ rdfQueryInstance cons agr
 
 {- original..
         not $ null $ rdfQueryInstance cons (foldl1 merge ante)

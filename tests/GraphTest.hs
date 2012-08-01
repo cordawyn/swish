@@ -271,12 +271,12 @@ gr1a, gr2a, gr3a, gr4a, gr4b, gr4c, gr4d, gr4e,
 gr1a = setArcsT ga1 gr1
 gr2a = setArcsT ga2 gr2
 gr3a = setArcsT ga3 gr3
-gr4a = add gr2a gr3a
-gr4b = add gr3a gr2a
+gr4a = addGraphs gr2a gr3a
+gr4b = addGraphs gr3a gr2a
 gr4c = delete gr2a gr4a
 gr4d = delete gr3a gr4a
 gr4e = extract gs4 gr4a
-gr4g = add gr2a gr4a
+gr4g = addGraphs gr2a gr4a
 
 gl4f :: [LabelMem]
 gl4f = labels gr4a

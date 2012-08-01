@@ -26,8 +26,8 @@
 
 module Swish.GraphMem
     ( GraphMem(..)
-    , setArcs, getArcs, add, delete, extract, labels
     , LabelMem(..)
+    , setArcs, getArcs, addGraphs, delete, extract, labels
     , labelIsVar, labelHash
       -- For debug/test:
     , matchGraphMem
@@ -37,6 +37,7 @@ import Swish.GraphClass
 import Swish.GraphMatch
 
 import Data.Hashable (Hashable(..), combine)
+import Data.Monoid (Monoid(..))
 import Data.Ord (comparing)
 
 import qualified Data.Foldable as F
@@ -48,15 +49,19 @@ data GraphMem lb = GraphMem { arcs :: [Arc lb] }
                    deriving (Functor, F.Foldable, T.Traversable)
                             
 instance (Label lb) => LDGraph GraphMem lb where
+    emptyGraph   = GraphMem []
     getArcs      = arcs
     setArcs g as = g { arcs=as }
-    -- gmap f g = g { arcs = (map $ fmap f) (arcs g) }
 
 instance (Label lb) => Eq (GraphMem lb) where
     (==) = graphEq
 
 instance (Label lb) => Show (GraphMem lb) where
     show = graphShow
+
+instance (Label lb) => Monoid (GraphMem lb) where
+    mempty  = emptyGraph
+    mappend = addGraphs
 
 graphShow   :: (Label lb) => GraphMem lb -> String
 graphShow g = "Graph:" ++ foldr ((++) . ("\n    " ++) . show) "" (arcs g)

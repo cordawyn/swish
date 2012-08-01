@@ -63,7 +63,7 @@ import Swish.RDF.Graph
     ( RDFLabel(..), RDFGraph
     , makeBlank, newNodes
     , merge, allLabels
-    , toRDFGraph, emptyRDFGraph )
+    , toRDFGraph)
 
 import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingModify)
 import Swish.RDF.Parser.N3 (parseN3)
@@ -108,7 +108,7 @@ type RDFRulesetMap  = RulesetMap RDFGraph
 nullRDFFormula :: Formula RDFGraph
 nullRDFFormula = Formula
     { formName = nullSN "nullRDFGraph"
-    , formExpr = emptyRDFGraph
+    , formExpr = mempty
     }
 
 ------------------------------------------------------------
@@ -165,7 +165,7 @@ graphClosureFwdApply ::
   -> [RDFGraph] 
   -> [RDFGraph]
 graphClosureFwdApply grc grs =
-    let gr   = if null grs then emptyRDFGraph else foldl1 add grs
+    let gr   = if null grs then mempty else foldl1 addGraphs grs
         vars = queryFind (ruleAnt grc) gr
         varm = vbmApply (ruleModify grc) vars
         cons = querySubs varm (ruleCon grc)
@@ -180,7 +180,7 @@ graphClosureFwdApply grc grs =
         -}
         --  Return null list or single result graph that is the union
         --  (not merge) of individual results:
-        if null cons then [] else [foldl1 add cons]
+        if null cons then [] else [foldl1 addGraphs cons]
         -- cons {- don't merge results -}
 
 -- | Backward chaining function based on RDF graph closure description

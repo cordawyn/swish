@@ -1,6 +1,9 @@
 
 Some things I want to/should do (not in order)
 
+- Could we use fold1 addGraphs logic for mconcat of NSGraph instance?
+  (there's also a check for empty). See some of the Proof/Rules code.
+
 - Rename modules. Version 0.7 provided a hopefully more-structured
   form but they are still in the Swish namespace rather than
   Data (or some other sanctioned top-level name).

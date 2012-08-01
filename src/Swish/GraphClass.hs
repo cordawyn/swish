@@ -34,12 +34,11 @@ module Swish.GraphClass
     )
 where
 
+import Data.Hashable (Hashable(..))
+import Data.List (foldl', union, (\\))
+
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
-
-import Data.Hashable (Hashable(..))
-
-import Data.List (foldl', union, (\\))
 
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
 --  the constraint on the label type seems to prevent that.
@@ -49,13 +48,12 @@ import Data.List (foldl', union, (\\))
 {-|
 Labelled Directed Graph class.
 
-Minimum required implementation:  `setArcs` and `getArcs`.
+Minimum required implementation: 
+'emptyGraph', 'setArcs', and 'getArcs'.
 -}
-class (Eq (lg lb), Eq lb ) => LDGraph lg lb
-    where
-    --  empty graph
-    --  emptyGr     :: lg lb    [[[TODO?]]]
-    --  component-level operations
+class (Eq (lg lb), Eq lb ) => LDGraph lg lb where
+    -- | Create the empty graph.
+    emptyGraph  :: lg lb
       
     -- | Replace the existing arcs in the graph.
     setArcs     :: lg lb -> [Arc lb] -> lg lb
@@ -68,8 +66,8 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     extract sel = update (filter sel)
     
     -- | Add the two graphs
-    add         :: lg lb -> lg lb -> lg lb
-    add    addg = update (union (getArcs addg))
+    addGraphs         :: lg lb -> lg lb -> lg lb
+    addGraphs    addg = update (union (getArcs addg))
     
     -- | Remove those arcs in the first graph from the second
     -- graph
@@ -93,14 +91,6 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb
     -- | Update the arcs in a graph using a supplied function.
     update      :: ([Arc lb] -> [Arc lb]) -> lg lb -> lg lb
     update f g  = setArcs g ( f (getArcs g) )
-
-{-
-TODO:
-  add a Monoid instance for LDGraph, so that we can remove the
-  NSGraph instance in RDFGraph
-
-  This means adding the emptyGr function to the interface
--}
 
 -- | Label class
 --

@@ -75,7 +75,8 @@ Description:
   @Swish.RDF.RDFGraph@; use @arcSubj@, @arcPred@ or @arcObj@ instead.
   .
   * Removed un-used @containedIn@ element of the @LDGraph@ type class.
-  The arguments to @setArcs@ have been flipped and @replaceArcs@ removed.
+  The arguments to @setArcs@ have been flipped, @replaceArcs@ removed,
+  @add@ renamed to @addGraphs@, and @emptyGraph@ added.
   .
   * Removed un-used exports from @Swish.Utils.PartOrderedCollection@: 
   @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and

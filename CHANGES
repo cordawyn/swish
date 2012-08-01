@@ -33,8 +33,9 @@
     rather than xsd:double.
 
   - Removed the containedIn element of the LDGraph type class as it
-    was un-used. The arguments to setArcs have been flipped and
-    replaceArcs removed.
+    was un-used. The arguments to setArcs have been flipped,
+    replaceArcs removed, add renamed to addGraphs, and emptyGraph
+    added.
 
   - Removed various exported symbols from a range of modules as they were
     un-used.

@@ -62,7 +62,7 @@ import Swish.RDF.Graph
     , isDatatyped, isBlank, isQueryVar
     , getLiteralText, makeBlank
     , RDFTriple
-    , RDFGraph, emptyRDFGraph
+    , RDFGraph
     , allLabels, remapLabels
     , resRdfFirst
     , resRdfRest
@@ -78,16 +78,14 @@ import Swish.RDF.Vocabulary (xsdInteger, xsdNonNegInteger)
 
 import Swish.Utils.ListHelpers (flist)
 
-import qualified Data.Traversable as Traversable
-
 import Control.Monad (when)
 import Control.Monad.State (State, runState, modify)
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
+import Data.Monoid (Monoid(..))
 
 import qualified Data.Set as S
-
--- import qualified Data.Text as T
+import qualified Data.Traversable as Traversable
 
 ------------------------------------------------------------
 --  Primitive RDF graph queries
@@ -407,7 +405,7 @@ rdfQueryBackSubsBlank varss gr = [ rdfQuerySubsBlank v gr | v <- varss ]
 --
 --  Adding an empty graph forces elimination of duplicate arcs.
 rdfQuerySubs2 :: RDFVarBinding -> RDFGraph -> (RDFGraph,[RDFLabel])
-rdfQuerySubs2 varb gr = (add emptyRDFGraph g, S.toList vs)
+rdfQuerySubs2 varb gr = (addGraphs mempty g, S.toList vs)
     where
         (g,vs) = runState ( Traversable.traverse (mapNode varb) gr ) S.empty
 

@@ -1136,14 +1136,16 @@ data NSGraph lb = NSGraph
     , statements :: [Arc lb]        -- ^ the statements in the graph
     }
 
-instance (Label lb) => Monoid (NSGraph lb) where
-  mempty = NSGraph emptyNamespaceMap (LookupMap []) []
-  mappend = merge
-  
 instance (Label lb) => LDGraph NSGraph lb where
+    emptyGraph   = NSGraph emptyNamespaceMap (LookupMap []) []
     getArcs      = statements 
     setArcs g as = g { statements=as }
 
+-- | The 'mappend' operation uses 'merge' rather than 'addGraphs'.
+instance (Label lb) => Monoid (NSGraph lb) where
+    mempty  = emptyGraph
+    mappend = merge
+  
 instance Functor NSGraph where
   fmap f (NSGraph ns fml stmts) =
     NSGraph ns (formulaeMap f fml) ((map $ fmap f) stmts)
@@ -1245,13 +1247,11 @@ grMatchMap g1 g2 =
 --        
 merge :: (Label lb) => NSGraph lb -> NSGraph lb -> NSGraph lb
 merge gr1 gr2 =
-    let
-        bn1   = allLabels labelIsVar gr1
+    let bn1   = allLabels labelIsVar gr1
         bn2   = allLabels labelIsVar gr2
         dupbn = intersect bn1 bn2
         allbn = union bn1 bn2
-    in
-        add gr1 (remapLabels dupbn allbn id gr2)
+    in addGraphs gr1 (remapLabels dupbn allbn id gr2)
 
 -- |Return list of all labels (including properties) in the graph
 --  satisfying a supplied filter predicate. This routine
