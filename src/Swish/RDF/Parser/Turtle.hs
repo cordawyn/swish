@@ -12,19 +12,22 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a Turtle parser (see [1]), returning a
+--  This Module implements a Turtle parser, returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
 --  the supplied input string, or an error indication.
 --
 -- REFERENCES:
 --
--- 1 <http://www.w3.org/TR/turtle/>
---     Turtle, Terse RDF Triple Language
---     W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
+--  - \"Turtle, Terse RDF Triple Language\",
+--    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>),
+--    <http://www.w3.org/TR/turtle/>
 --
 -- Notes:
 --
 -- At present there is a lot of overlap with the N3 Parser.
+--
+-- The parser needs to be updated to the latest working draft (10 July 2012,
+-- <http://www.w3.org/TR/2012/WD-turtle-20120710/#sec-changelog>).
 --
 --------------------------------------------------------------------------------
 

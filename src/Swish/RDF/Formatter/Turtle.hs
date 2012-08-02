@@ -13,10 +13,13 @@
 --  Portability :  OverloadedStrings
 --
 --  This Module implements a Turtle formatter 
---  for an RDFGraph value. See
---  <http://www.w3.org/TR/turtle/>
---  \"Turtle, Terse RDF Triple Language\",
---  W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
+--  for an 'RDFGraph' value.
+--
+--  REFERENCES:
+--
+--  - \"Turtle, Terse RDF Triple Language\",
+--    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
+--    <http://www.w3.org/TR/turtle/>
 --
 --------------------------------------------------------------------------------
 

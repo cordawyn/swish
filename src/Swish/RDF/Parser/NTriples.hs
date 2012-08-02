@@ -11,22 +11,21 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  This Module implements a NTriples parser (see [1]), returning a
+--  This Module implements a NTriples parser, returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
 --  the supplied NTriples input string, or an error indication.
 --
 -- REFERENCES:
 --
--- 1 <http://www.w3.org/TR/rdf-testcases/#ntriples>
---     RDF Test Cases
---     W3C Recommendation 10 February 2004
+--  - \"RDF Test Cases\",
+--    W3C Recommendation 10 February 2004,
+--    <http://www.w3.org/TR/rdf-testcases/#ntriples>
 --
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Parser.NTriples
     ( ParseResult
     , parseNT      
-    , parsefromString
     )
 where
 
@@ -103,14 +102,7 @@ test = either error id . parseNT
 
 -- | Function to supply initial context and parse supplied term.
 --
-parsefromString :: 
-    NTParser a      -- ^ parser to apply
-    -> String       -- ^ input to be parsed
-    -> Either String a
-parsefromString parser = parsefromText parser . L.pack
-
--- | Function to supply initial context and parse supplied term.
---
+--  Used for debugging.
 parsefromText :: 
     NTParser a      -- ^ parser to apply
     -> L.Text       -- ^ input to be parsed

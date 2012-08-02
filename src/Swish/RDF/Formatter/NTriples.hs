@@ -11,10 +11,13 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a NTriples formatter
---  (RDF Test Cases, W3C Recommendation 10 February 2004,
---  <http://www.w3.org/TR/rdf-testcases/#ntriples>)
---  for an 'RDFGraph'.
+--  This Module implements a NTriples formatter for an 'RDFGraph'.
+--
+--  REFERENCES:
+--
+--  - \"RDF Test Cases\",
+--     W3C Recommendation 10 February 2004,
+--     <http://www.w3.org/TR/rdf-testcases/#ntriples>
 --
 --------------------------------------------------------------------------------
 

@@ -12,20 +12,20 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a Notation 3 formatter (see [1], [2] and [3]),
---  for an RDFGraph value.
+--  This Module implements a Notation 3 formatter
+--  for an 'RDFGraph' value.
 --
 -- REFERENCES:
 --
--- (1) <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
---     Notation3 (N3): A readable RDF syntax,
---     W3C Team Submission 14 January 2008
+--  - \"Notation3 (N3): A readable RDF syntax\",
+--     W3C Team Submission 14 January 2008,
+--     <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
 --
--- (2) <http://www.w3.org/DesignIssues/Notation3.html>
---     Tim Berners-Lee's design issues series notes and description
+--  - Tim Berners-Lee's design issues series notes and description,
+--     <http://www.w3.org/DesignIssues/Notation3.html>
 --
--- (2) <http://www.w3.org/2000/10/swap/Primer.html>
---     Notation 3 Primer by Sean Palmer
+--  - Notation 3 Primer by Sean Palmer,
+--      <http://www.w3.org/2000/10/swap/Primer.html>
 --
 --  TODO:
 --

@@ -12,22 +12,22 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a Notation 3 parser (see [1], [2], [3]), returning a
+--  This Module implements a Notation 3 parser, returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
 --  the supplied N3 input string, or an error indication.
 --
 -- REFERENCES:
 --
--- 1 <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
---     Notation3 (N3): A readable RDF syntax,
---     W3C Team Submission 14 January 2008
+-- - \"Notation3 (N3): A readable RDF syntax\",
+--      W3C Team Submission 14 January 2008,
+--      <http://www.w3.org/TeamSubmission/2008/SUBM-n3-20080114/>
 --
--- 2 <http://www.w3.org/DesignIssues/Notation3.html>
---     Tim Berners-Lee's design issues series notes and description
+-- - Tim Berners-Lee's design issues series notes and description,
+--      <http://www.w3.org/DesignIssues/Notation3.html>
 --
--- 3 <http://www.w3.org/2000/10/swap/Primer.html>
---     Notation 3 Primer by Sean Palmer
---
+-- - Notation 3 Primer by Sean Palmer,
+--      <http://www.w3.org/2000/10/swap/Primer.html>
+--    
 -- NOTES:
 --
 --  UTF-8 handling is not really tested.
