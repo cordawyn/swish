@@ -460,7 +460,7 @@ ssAddGraph nam gf =
             ; let egs = sequence esg    -- Either String [RDFGraph]
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
-                    Right gs -> modGraphs (flip mapReplace (NamedGraph nam gs))
+                    Right gs -> modGraphs (`mapReplace` NamedGraph nam gs)
             ; modify fgs
             }
 
@@ -547,7 +547,7 @@ ssMerge nam gfs =
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
                     Right [] -> setError  (errmsg++"No graphs to merge")
-                    Right gs -> modGraphs (flip mapReplace (NamedGraph nam [g]))
+                    Right gs -> modGraphs (`mapReplace` NamedGraph nam [g])
                             where g = foldl1 merge gs
             ; modify fgs
             }
@@ -629,7 +629,7 @@ ssDefineRule rn agfs cgf vmds =
                             newRule = makeRDFClosureRule rn agrs cgr
                         in
                         case composeSequence vbms of
-                            Just vm -> modRules (flip mapReplace (newRule vm))
+                            Just vm -> modRules (`mapReplace` newRule vm)
                             Nothing -> setError errmsg4
             ; modify frl
             }
@@ -662,7 +662,7 @@ ssDefineRuleset sn ans rns =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right ags,Right rls) ->
-                        modRulesets (flip mapReplace rs)
+                        modRulesets (`mapReplace` rs)
                         where
                             rs = makeRuleset (getScopeNamespace sn) ags rls
             ; modify frs
@@ -697,7 +697,7 @@ ssDefineConstraints  sn cgfs dtns =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right cgr,Right dts) ->
-                        modRulesets (flip mapReplace rs)
+                        modRulesets (`mapReplace` rs)
                         where
                             rs  = makeRuleset (getScopeNamespace sn) [] rls
                             rls = concatMap (`typeMkRules` cgr) dts
@@ -812,7 +812,7 @@ ssFwdChain sn rn agfs cn prefs =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right rl,Right ags) ->
-                        modGraphs (flip mapReplace (NamedGraph cn [cg]))
+                        modGraphs (`mapReplace` NamedGraph cn [cg])
                         where
                             cg = case fwdApply rl ags of
                                 []  -> mempty
@@ -857,7 +857,7 @@ ssBwdChain sn rn cgf an prefs =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right rl,Right cg) ->
-                        modGraphs (flip mapReplace (NamedGraph an ags))
+                        modGraphs (`mapReplace` NamedGraph an ags)
                         where
                             ags  = map mergegr (bwdApply rl cg)
                             mergegr grs = case grs of
