@@ -63,6 +63,7 @@ import qualified Data.Text.Lazy.Builder as B
 
 data Namespace = Namespace (Maybe T.Text) URI
 -- data Namespace = Namespace (Maybe T.Text) !URI
+-- TODO: look at interning the URI
                  
 -- | Returns the prefix stored in the name space.                 
 getNamespacePrefix :: Namespace -> Maybe T.Text
