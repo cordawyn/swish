@@ -39,12 +39,14 @@ module Data.LookupMap
     , mapReplace, mapReplaceAll, mapReplaceMap
     , mapAdd, mapAddIfNew
     , mapDelete, mapDeleteAll
-    , mapApplyToAll, mapTranslate
+    , mapApplyToAll
     , mapEq, mapKeys, mapVals
     , mapMerge
+      
+    , mapTranslate
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
-
+      
     )
     where
 
@@ -357,8 +359,7 @@ mapVals = L.nub . gLM . fmap entryVal
 --
 mapMerge :: (LookupEntryClass a k v, Eq a, Show a, Ord k) =>
     LookupMap a -> LookupMap a -> LookupMap a
-mapMerge (LookupMap s1) (LookupMap s2) =
-    LookupMap $ merge (L.sortBy keyOrder s1) (L.sortBy keyOrder s2)
+mapMerge a b = LookupMap $ on merge (L.sortBy keyOrder . gLM) a b
     where
         merge es1 [] = es1
         merge [] es2 = es2
