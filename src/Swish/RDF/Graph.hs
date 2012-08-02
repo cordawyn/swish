@@ -246,9 +246,9 @@ swap (a,b) = (b,a)
 --
 data RDFLabel =
       Res ScopedName                    -- ^ resource
-    | Lit T.Text                        -- ^ a plain literal
-    | LangLit T.Text LanguageTag        -- ^ a literal with an associated language
-    | TypedLit T.Text ScopedName        -- ^ a literal with an associated data type
+    | Lit T.Text                        -- ^ plain literal (<http://www.w3.org/TR/rdf-concepts/#dfn-plain-literal>)
+    | LangLit T.Text LanguageTag        -- ^ plain literal
+    | TypedLit T.Text ScopedName        -- ^ typed literal (<http://www.w3.org/TR/rdf-concepts/#dfn-typed-literal>)
     | Blank String                      -- ^ blank node
     | Var String                        -- ^ variable (not used in ordinary graphs)
     | NoNode                            -- ^ no node  (not used in ordinary graphs)
@@ -341,9 +341,9 @@ The conversion for XSD types attempts to use the
 canonical form described in section 2.3.1 of
 <http://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#lexical-space>.
   
-Note that this is very similar to
-'Swish.RDF.RDFDatatype.toRDFLabel' and should be moved into
-a @Swish.RDF.Datatype@ module.
+Note that this is similar to
+'Swish.RDF.Datatype.toRDFLabel';
+the code should probably be combined at some point.
 -}
 
 class ToRDFLabel a where
@@ -371,9 +371,9 @@ types (out-of-band values result in @Nothing@):
 
  - @xsd:date@ to @Day@
 
-Note that this is very similar to
-'Swish.RDF.RDFDatatype.fromRDFLabel' and should be moved into
-a @Swish.RDF.Datatype@ module.
+Note that this is similar to
+'Swish.RDF.Datatype.fromRDFLabel'; 
+the code should probably be combined at some point.
 -}
 
 class FromRDFLabel a where

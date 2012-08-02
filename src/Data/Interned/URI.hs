@@ -29,7 +29,10 @@ import Data.Maybe (fromMaybe)
 
 import Network.URI
 
--- Could look at adding UNPACK statements before each component
+-- Could look at adding UNPACK statements before the Int component
+
+-- | An interned URI. The hashing is based on the
+-- reversed URI (as a string).
 data InternedURI = InternedURI !Int !URI
 
 instance IsString InternedURI where
@@ -54,7 +57,7 @@ instance Interned InternedURI where
   identify = InternedURI
 #if MIN_VERSION_intern(0,9,0)
 #else
-  identity (InternedURI i _) = i -- this is not needed in version 0.9 of identify
+  identity (InternedURI i _) = i
 #endif
   cache = iuCache
 
