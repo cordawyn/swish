@@ -135,7 +135,7 @@ import Control.Monad (forM_, foldM)
 
 import Data.Char (isSpace, isDigit, ord, isAsciiLower) 
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (mapFind, mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
+import Data.LookupMap (mapFind, mapFindMaybe, mapAdd, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Word (Word32)
 
@@ -166,13 +166,13 @@ data N3State = N3State
 setPrefix :: Maybe T.Text -> URI -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
-        p' = mapReplaceOrAdd (makeNamespace pre uri) (prefixUris st)
+        p' = mapReplace (prefixUris st) (makeNamespace pre uri) 
 
 -- | Set name for special syntax element
 setSName :: String -> ScopedName -> N3State -> N3State
 setSName nam snam st =  st { syntaxUris=s' }
     where
-        s' = mapReplaceOrAdd (nam,snam) (syntaxUris st)
+        s' = mapReplace (syntaxUris st) (nam,snam)
 
 setSUri :: String -> URI -> N3State -> N3State
 setSUri nam = setSName nam . makeURIScopedName
@@ -392,7 +392,7 @@ TODO:
   - could we use the reverse lookupmap functionality to
     find if the given namespace URI is in the namespace
     list? If it is, use it's key otherwise do a
-    mapReplaceOrAdd for the input namespace.
+    mapReplace for the input namespace.
     
 -}
 operatorLabel :: ScopedName -> N3Parser RDFLabel
@@ -436,7 +436,7 @@ addStatement s p o@(TypedLit _ dtype) | dtype `elem` [xsdBoolean, xsdInteger, xs
   let stmt = arc s p o
       oldp = prefixUris ost
       ogs = graphState ost
-      newp = mapReplaceOrAdd (getScopeNamespace dtype) oldp
+      newp = mapReplace oldp (getScopeNamespace dtype)
   stUpdate $ \st -> st { prefixUris = newp, graphState = addArc stmt ogs }
 addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 

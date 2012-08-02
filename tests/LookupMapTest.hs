@@ -22,12 +22,12 @@ import Data.LookupMap
     , makeLookupMap
     , reverseLookupMap
     , mapFind, mapContains
-    , mapReplace, mapReplaceOrAdd, mapReplaceAll, mapReplaceMap
+    , mapReplace, mapReplaceAll, mapReplaceMap
     , mapAdd, mapAddIfNew
     , mapDelete, mapDeleteAll
     , mapApplyToAll, mapTranslate
     , mapEq, mapKeys, mapVals
-    , mapSelect, mapMerge
+    , mapMerge
     , mapTranslateKeys, mapTranslateVals
     , mapTranslateEntries, mapTranslateEntriesM
     )
@@ -124,8 +124,8 @@ lm21 = mapReplaceMap lm05 $ newMap []
 lm22 = mapReplaceMap lm05 $ newMap [(9,"zzz22"),(1,"aaa22")]
 lm33 = mapAddIfNew lm22 $ newEntry (1,"aaa33")
 lm34 = mapAddIfNew lm22 $ newEntry (4,"ddd34")
-lm35 = mapReplaceOrAdd (newEntry (1,"aaa35")) lm22
-lm36 = mapReplaceOrAdd (newEntry (4,"ddd36")) lm22
+lm35 = mapReplace lm22 (newEntry (1,"aaa35"))
+lm36 = mapReplace lm22 (newEntry (4,"ddd36"))
 
 testLookupMapSuite :: Test
 testLookupMapSuite = 
@@ -347,19 +347,16 @@ testMapEqSuite = TestList
 
 lm101, lm102, lm103, lm104 :: TestMap
 lm101 = mapAdd lm03 $ newEntry (4,"ddd")
+{-
 lm102 = mapSelect lm101 [1,3]
 lm103 = mapSelect lm101 [2,4]
 lm104 = mapSelect lm101 [2,3]
+-}
 
-mapSelectSuite :: Test
-mapSelectSuite = 
-  TestList
-  [ testLookupMap "101" lm101 [(4,"ddd"),(3,"ccc"),(2,"bbb"),(1,"aaa")]
-  , testLookupMap "102" lm102 [(3,"ccc"),(1,"aaa")]
-  , testLookupMap "103" lm103 [(4,"ddd"),(2,"bbb")]
-  , testLookupMap "104" lm104 [(3,"ccc"),(2,"bbb")]
-  ]
-  
+lm102 = mapAdd (mapAdd (newMap []) (newEntry (1,"aaa"))) $ newEntry (3,"ccc")
+lm103 = mapAdd (mapAdd (newMap []) (newEntry (2,"bbb"))) $ newEntry (4,"ddd")
+lm104 = mapAdd (mapAdd (newMap []) (newEntry (2,"bbb"))) $ newEntry (3,"ccc")
+
 lm105, lm106, lm107, lm108 :: TestMap
 lm105 = mapMerge lm102 lm103
 lm106 = mapMerge lm102 lm104
@@ -369,7 +366,8 @@ lm108 = mapMerge lm101 lm102
 mapMergeSuite :: Test
 mapMergeSuite =
   TestList
-  [ testLookupMap "105" lm105 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
+  [ testLookupMap "101" lm101 [(4,"ddd"),(3,"ccc"),(2,"bbb"),(1,"aaa")]
+  , testLookupMap "105" lm105 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
   , testLookupMap "106" lm106 [(1,"aaa"),(2,"bbb"),(3,"ccc")]
   , testLookupMap "107" lm107 [(2,"bbb"),(3,"ccc"),(4,"ddd")]
   , testLookupMap "108" lm108 [(1,"aaa"),(2,"bbb"),(3,"ccc"),(4,"ddd")]
@@ -455,7 +453,6 @@ allTests = TestList
   , testMapKeysSuite
   , testMapValsSuite
   , testMapEqSuite
-  , mapSelectSuite
   , mapMergeSuite
   , mapTranslateSuite
   ]

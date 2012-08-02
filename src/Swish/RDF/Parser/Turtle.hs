@@ -102,7 +102,7 @@ import Control.Monad (foldM)
 
 import Data.Char (ord, isAsciiLower, isAsciiUpper, isDigit) 
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (mapFindMaybe, mapReplaceOrAdd, mapAdd, mapReplace)
+import Data.LookupMap (mapFindMaybe, mapAdd, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Word (Word32)
 
@@ -130,7 +130,7 @@ data TurtleState = TurtleState
 setPrefix :: Maybe T.Text -> URI -> TurtleState -> TurtleState
 setPrefix pre uri st =  st { prefixUris=p' }
     where
-        p' = mapReplaceOrAdd (makeNamespace pre uri) (prefixUris st)
+        p' = mapReplace (prefixUris st) (makeNamespace pre uri) 
 
 -- | Change the base
 setBase :: URI -> TurtleState -> TurtleState
@@ -268,7 +268,7 @@ addStatement s p o@(TypedLit _ dtype) | dtype `elem` [xsdBoolean, xsdInteger, xs
   let stmt = arc s p o
       oldp = prefixUris ost
       ogs = graphState ost
-      newp = mapReplaceOrAdd (getScopeNamespace dtype) oldp
+      newp = mapReplace oldp (getScopeNamespace dtype)
   stUpdate $ \st -> st { prefixUris = newp, graphState = addArc stmt ogs }
 addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 
@@ -303,7 +303,7 @@ TODO:
   - could we use the reverse lookupmap functionality to
     find if the given namespace URI is in the namespace
     list? If it is, use it's key otherwise do a
-    mapReplaceOrAdd for the input namespace.
+    mapReplace for the input namespace.
     
 -}
 operatorLabel :: ScopedName -> TurtleParser RDFLabel

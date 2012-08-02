@@ -91,6 +91,10 @@ Description:
   * Use @Word32@ rather than @Int@ for label indexes (@Swish.GraphMatch.LabelIndex@)
   and in the bnode counts when formatting to N3/Turtle.
   .
+  * Minor clean up of the @LookupMap@ module: @mergeReplaceOrAdd@ and @mergeReplace@
+  are now combined into @mergeReplace@; @mapSelect@ has been removed; documentation
+  slightly improved, and a few minor internal clean ups.
+  .
   * Clarified that @Swish.RDF.RDFDatatypeXsdDecimal@ is for @xsd:decimal@ rather
   than @xsd:double@.
   .

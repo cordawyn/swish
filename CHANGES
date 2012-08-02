@@ -44,6 +44,10 @@
     (Swish.GraphMatch.LabelIndex) and in the bnode counts when formatting
     to N3/Turtle.
 
+  - Minor clean up of the LookupMap module: mergeReplaceOrAdd and mergeReplace
+    are now combined into mergeReplace; mapSelect has been removed; documentation
+    slightly improved, and a few minor internal clean ups.
+
   - Bump the upper constraint on the containers package to include
     version 0.5.
 

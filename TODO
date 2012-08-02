@@ -3,6 +3,9 @@ Some things I want to/should do (not in order)
 
 - Look at using an interned URI in Namespace.
 
+- Can LookupMap be replaced by Map? This would require removing the
+  LookupEntryClass constraint which could cause troublesome.
+
 - Rename modules. Version 0.7 provided a hopefully more-structured
   form but they are still in the Swish namespace rather than
   Data (or some other sanctioned top-level name).
@@ -44,9 +47,6 @@ Some things I want to/should do (not in order)
   flags)
 
 - improve test coverage (-fhpc cabal flag)
-
-- how much of the support code - e.g. Swish.Utils.LookupMap - can now
-  be replaced with packages from hackage?
 
 - can we improve the processing of the commands, so that they
   exit on error immediately, with a single error message.

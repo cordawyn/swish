@@ -192,7 +192,7 @@ import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, foldl')
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplaceOrAdd, mapAddIfNew, mapVals, mapKeys )
+import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplace, mapAddIfNew, mapVals, mapKeys )
 import Data.Ord (comparing)
 import Data.Word (Word32)
 
@@ -1186,7 +1186,7 @@ getFormula g l = mapFindMaybe l (formulae g)
 
 -- | Add (or replace) a formula.
 setFormula     :: (Label lb) => Formula lb -> NSGraph lb -> NSGraph lb
-setFormula f g = g { formulae=mapReplaceOrAdd f (formulae g) }
+setFormula f g = g { formulae=mapReplace (formulae g) f }
 
 {-|
 Add an arc to the graph. It does not relabel any blank nodes in the input arc,
