@@ -1029,10 +1029,10 @@ fromRDFTriple (Arc s p o) =
 -- | A 'LookupMap' for name spaces.
 type NamespaceMap = LookupMap Namespace
 
--- | A 'LookupMap' for 'reversed' name spaces.
+-- | A 'LookupMap' for reversed name spaces.
 type RevNamespaceMap = LookupMap RevNamespace
 
--- | Support for 'reversed' name spaces in a 'LookupMap'.
+-- | Support for reversed name spaces in a 'LookupMap'.
 data RevNamespace = RevNamespace Namespace
 
 instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
@@ -1385,7 +1385,7 @@ trybnodes (nr,nx) = [ makeLabel (nr++show n) | n <- iterate (+1) nx ]
 
 type RDFGraph = NSGraph RDFLabel
 
--- |Create a new RDF graph from a supplied list of arcs
+-- |Create a new RDF graph from a supplied list of arcs.
 --
 -- This version will attempt to fill up the namespace map
 -- of the graph based on the input labels (including datatypes
@@ -1397,8 +1397,11 @@ type RDFGraph = NSGraph RDFLabel
 -- which is how this routine was defined in version @0.3.1.1@
 -- and earlier.
 --
-toRDFGraph :: [RDFTriple] -> RDFGraph
--- toRDFGraph arcs = emptyRDFGraph { statements = arcs }
+toRDFGraph :: 
+    [RDFTriple] -- ^ There is no check to remove repeated statements in this list,
+                -- so it is suggested that you use 'Data.List.nub', or convert via 'Data.Set.Set',
+                -- if your input may contain such elements.
+    -> RDFGraph
 toRDFGraph arcs = 
   let lbls = concatMap arcLabels arcs
       
@@ -1411,10 +1414,7 @@ toRDFGraph arcs =
   
   in mempty { namespaces = nsmap, statements = arcs }
 
--- |Create a new, empty RDF graph.
---
--- This uses `mempty` from the `Monoid` instance
--- of `NSGraph`.
+-- |Create a new, empty RDF graph (it is just 'mempty').
 --
 emptyRDFGraph :: RDFGraph
 emptyRDFGraph = mempty 
