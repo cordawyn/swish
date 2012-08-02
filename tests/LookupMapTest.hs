@@ -25,11 +25,8 @@ import Data.LookupMap
     , mapReplace, mapReplaceAll, mapReplaceMap
     , mapAdd, mapAddIfNew
     , mapDelete, mapDeleteAll
-    , mapApplyToAll, mapTranslate
     , mapEq, mapKeys, mapVals
     , mapMerge
-    , mapTranslateKeys, mapTranslateVals
-    , mapTranslateEntries, mapTranslateEntriesM
     )
 
 import Data.List ( sort )
@@ -109,15 +106,6 @@ lm07 = mapReplace lm06 $ newEntry (2,"bbb")
 lm08 = mapDelete lm07 3
 lm09 = mapDeleteAll lm08 2
 
-la10 :: [String]
-la10 = mapApplyToAll lm03 (`replicate` '*')
-
-lt11, lt12, lt13, lt14 :: String
-lt11 = mapTranslate lm03 la10 1 "****"
-lt12 = mapTranslate lm03 la10 2 "****"
-lt13 = mapTranslate lm03 la10 3 "****"
-lt14 = mapTranslate lm03 la10 4 "****"
-
 lm20, lm21, lm22, lm33, lm34, lm35, lm36 :: TestMap
 lm20 = mapReplaceMap lm05 $ newMap [(2,"bbb20"),(3,"ccc20")]
 lm21 = mapReplaceMap lm05 $ newMap []
@@ -151,11 +139,6 @@ testLookupMapSuite =
   , testLookupMapFind "08" lm08 2 "bbb"
   , testLookupMap     "09" lm09 [(1,"aaa")]
   , testLookupMapFind "09" lm09 2 ""
-  , testeq "LookupMapApplyToAll10" ["***","**","*"] la10
-  , testeq "LookupMapTranslate11" "*"   lt11
-  , testeq "LookupMapTranslate12" "**"  lt12
-  , testeq "LookupMapTranslate13" "***" lt13
-  , testeq "LookupMapTranslate14" "****" lt14
   , testLookupMap     "20" lm20 [(2,"bbb20"),(3,"ccc20"),(2,"bbb20"),(1,"aaa")]
   , testLookupMapFind "20" lm20 2 "bbb20"
   , testLookupMap     "21" lm21 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa")]
@@ -374,75 +357,6 @@ mapMergeSuite =
   ] 
   
 ------------------------------------------------------------
---  Tranlation tests
-------------------------------------------------------------
-
--- Rather late in the day, generic versions of the testing functions used earlier
-type TestMapG a b = LookupMap (GenMapEntry a b)
-
-newMapG :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> TestMapG a b
-newMapG es = makeLookupMap (map newEntry es)
-
-testLookupMapG :: (Eq a, Show a, Eq b, Show b) => String -> TestMapG a b -> [(a,b)] -> Test
-testLookupMapG lab m1 m2 = testeq ("LookupMapG"++lab ) (newMapG m2) m1
-testLookupMapM ::
-    (Eq a, Show a, Eq b, Show b, Monad m,
-     Eq (m (TestMapG a b)), Show (m (TestMapG a b)))
-    => String -> m (TestMapG a b) -> m (TestMapG a b) -> Test
-testLookupMapM lab m1 m2 = testeq ("LookupMapM"++lab ) m2 m1
-
-tm101 :: TestMap
-tm101 = newMap [(1,"a"),(2,"bb"),(3,"ccc"),(4,"dddd")]
-
-tf102 :: Int -> String
-tf102 = flip replicate '*'
-
-tm102 :: StrTestMap
-tm102 = mapTranslateKeys tf102 tm101
-
-tm103 :: RevTestMap
-tm103 = mapTranslateVals length tm102
-
-tf104 :: (LookupEntryClass a Int [b],
-          LookupEntryClass c String Int) =>
-         a -> c
-tf104 e = newEntry (replicate k '#', 5 - length v) where (k,v) = keyVal e
-
-tm104 :: RevTestMap
-tm104 = mapTranslateEntries tf104 tm101
-
--- Test monadic translation, using Maybe monad
--- (Note that if Nothing is generated at any step,
--- it propagates to the result)
---
-tf105 :: (LookupEntryClass a Int [b],
-          LookupEntryClass c String Int) =>
-         a -> Maybe c
-tf105 e = Just $ tf104 e
-
-tm105 :: MayTestMap
-tm105 = mapTranslateEntriesM tf105 tm101
-
-tf106 :: (LookupEntryClass a Int [b],
-          LookupEntryClass c String Int) =>
-         a -> Maybe c
-tf106 e = if k == 2 then Nothing else tf105 e where (k,_) = keyVal e
-
-tm106 :: MayTestMap
-tm106 = mapTranslateEntriesM tf106 tm101
-
-mapTranslateSuite :: Test
-mapTranslateSuite = 
-  TestList
-  [ testLookupMapG "tm101" tm101 [(1,"a"),(2,"bb"),(3,"ccc"),(4,"dddd")]
-  , testLookupMapG "tm102" tm102 [("*","a"),("**","bb"),("***","ccc"),("****","dddd")]
-  , testLookupMapG "tm103" tm103 [("*",1),("**",2),("***",3),("****",4)]
-  , testLookupMapG "tm104" tm104 [("#",4),("##",3),("###",2),("####",1)]
-  , testLookupMapM "tm105" tm105 (Just tm104)
-  , testLookupMapM "tm106" tm106 Nothing
-  ] 
-  
-------------------------------------------------------------
 --  All tests
 ------------------------------------------------------------
 
@@ -454,7 +368,6 @@ allTests = TestList
   , testMapValsSuite
   , testMapEqSuite
   , mapMergeSuite
-  , mapTranslateSuite
   ]
 
 main :: IO ()

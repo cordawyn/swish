@@ -39,14 +39,8 @@ module Data.LookupMap
     , mapReplace, mapReplaceAll, mapReplaceMap
     , mapAdd, mapAddIfNew
     , mapDelete, mapDeleteAll
-    , mapApplyToAll
     , mapEq, mapKeys, mapVals
     , mapMerge
-      
-    , mapTranslate
-    , mapTranslateKeys, mapTranslateVals
-    , mapTranslateEntries, mapTranslateEntriesM
-      
     )
     where
 
@@ -303,30 +297,6 @@ mapDeleteAll (LookupMap (e:es)) k =
     let more = mapDeleteAll (LookupMap es) k
     in if entryKey e == k then more else mapAdd more e
         
--- |Return a list of values obtained by applying a function to each key
---  in the map.  Creates an alternative set of values that can be
---  retrieved using 'mapTranslate'.
---
-mapApplyToAll :: (LookupEntryClass a k v) =>
-    LookupMap a -> (k -> w) -> [w]
-mapApplyToAll es f = gLM $ fmap (f . entryKey) es
-
--- |Find a node in a lookup map list, and returns the
---  corresponding value from a supplied list.  The appropriate ordering
---  of the list is not specified here, but an appropriately ordered list
---  may be obtained by 'mapApplyToAll'.
---
-mapTranslate :: (LookupEntryClass a k v) =>
-    LookupMap a  -- ^ Used to provide a list of keys.
-    -> [w]       -- ^ Value to use when key is found.
-    -> k         -- ^ Key to search for
-    -> w         -- ^ The default value if the key does not exist.
-    -> w
-mapTranslate (LookupMap (e:es)) (w:ws) k def
-    | k == entryKey e   = w
-    | otherwise         = mapTranslate (LookupMap es) ws k def
-mapTranslate _ _ _ def = def
-
 -- |Compare two lookup maps for equality.
 --
 --  Two maps are equal if they have the same set of keys, and if
@@ -371,42 +341,6 @@ mapMerge a b = LookupMap $ on merge (L.sortBy keyOrder . gLM) a b
                         then error ("mapMerge key conflict: " ++ show e1
                                     ++ " with " ++ show e2)
                         else e1 : merge et1 et2
-
--- |An fmap-like function that returns a new lookup map that is a
---  copy of the supplied map with entry keys replaced according to
---  a supplied function.
---
-mapTranslateKeys :: (LookupEntryClass a1 k1 v, LookupEntryClass a2 k2 v) =>
-    (k1 -> k2) -> LookupMap a1 -> LookupMap a2
-mapTranslateKeys f = fmap (kmap f)
-
--- |An fmap-like function that returns a new lookup map that is a
---  copy of the supplied map with entry values replaced according to
---  a supplied function.
---
-mapTranslateVals :: (LookupEntryClass a1 k v1, LookupEntryClass a2 k v2) =>
-    (v1 -> v2) -> LookupMap a1 -> LookupMap a2
-mapTranslateVals f = fmap (vmap f)
-
--- |A function that returns a new lookup map that is a copy of the
---  supplied map with complete entries replaced according to
---  a supplied function.
---
-mapTranslateEntries :: (a1 -> a2) -> LookupMap a1 -> LookupMap a2
-mapTranslateEntries = fmap
-
--- |A monadic form of `mapTranslateEntries` which is
--- the same as `Data.Traversable.mapM`.
---
-mapTranslateEntriesM :: (Monad m)
-    => (a1 -> m a2) -> LookupMap a1 -> m (LookupMap a2)
-mapTranslateEntriesM = T.mapM 
-{-
-mapTranslateEntriesM f (LookupMap es) =
-    do  { m2 <- mapM f es
-        ; return $ LookupMap m2
-        }
--}
 
 --------------------------------------------------------------------------------
 --
