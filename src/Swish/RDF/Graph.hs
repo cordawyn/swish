@@ -905,7 +905,9 @@ resRdf2 :: RDFLabel
 resRdf2 = Res rdf2
 
 -- | Create a @rdf:_n@ entity.
-resRdfn :: Int -> RDFLabel
+--
+-- There is no check that the argument is not @0@.
+resRdfn :: Word32 -> RDFLabel
 resRdfn = Res . rdfn
 
 ---------------------------------------------------------

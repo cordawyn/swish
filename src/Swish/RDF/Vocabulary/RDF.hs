@@ -105,6 +105,8 @@ import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 import Swish.QName (LName, newLName)
 
 import Data.Maybe (fromMaybe, fromJust)
+import Data.Word (Word32)
+
 import Network.URI (URI, parseURI)
 
 import qualified Data.Text as T
@@ -170,7 +172,12 @@ rdfNodeID :: ScopedName
 rdfNodeID = toRDF "nodeID"
 
 -- | Create a @rdf:_n@ entity.
-rdfn :: Int -> ScopedName
+--
+-- There is no check that the argument is not 0, so it is
+-- possible to create the un-defined label @rdf:_0@.
+rdfn :: 
+    Word32
+    -> ScopedName
 rdfn = toRDF . fromJust . newLName . T.pack . ("_" ++) . show
 
 -- | @rdf:_1@.
