@@ -46,6 +46,17 @@ Description:
   .
   Changes in version @0.7.0.0@:
   .
+  For code that uses the Swish script language, the main change is to import @Swish@ rather
+  than @Swish.RDF.SwishMain@, and to note that the other @Swish.RDF.Swish*@ modules are
+  now called @Swish.*@.
+  .
+  For code that uses the graph library, the main changes are that @Swish.RDF.RDFGraph@
+  is now called @Swish.RDF.Graph@, the @Lit@ constructor of the @RDFLabel@ has been split
+  into three (@Lit@, @LangLit@, and @TypedLit@) and a new @LanguageTag@ type introduced,
+  local names now use the @LName@ type (previously they were just @Text@ values), and the
+  parsers and formatters have renamed to
+  @Swish.RDF.Parser.*@ and @Swish.RDF.Formatter.*@.
+  .
   * Moved a number of modules around: generic code directly into @Swish@
   and the @Swish.RDF.RDF*@ forms renamed to @Swish.RDF.*@. Some modules
   have been moved out of the @Swish.Utils.*@ namespace. Generic modules
