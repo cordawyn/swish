@@ -44,7 +44,7 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
-  Changes in version @0.7.0.0@:
+  Changes in version @0.7.0.1@:
   .
   * Internal changes to parsing of URI values for NTriples, Turtle, and N3
   parsers (error messages will be slightly different when IRIs are used).
