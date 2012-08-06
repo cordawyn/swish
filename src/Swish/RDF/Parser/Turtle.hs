@@ -22,12 +22,19 @@
 --    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>),
 --    <http://www.w3.org/TR/turtle/>
 --
--- Notes:
+-- NOTES:
 --
--- At present there is a lot of overlap with the N3 Parser.
+--  - At present there is a lot of overlap with the N3 Parser.
 --
--- The parser needs to be updated to the latest working draft (10 July 2012,
--- <http://www.w3.org/TR/2012/WD-turtle-20120710/#sec-changelog>).
+--  - The parser needs to be updated to the latest working draft (10 July 2012,
+--    <http://www.w3.org/TR/2012/WD-turtle-20120710/#sec-changelog>).
+--
+--  - Strings with no language tag are converted to a 'LitTag' not a
+--    'TypedLitTag' with a type of @xsd:string@ (e.g. see
+--    <http://www.w3.org/TR/2011/WD-turtle-20110809/#terms>).
+--
+--  - If the URI is actually an IRI (Internationalized Resource Identifiers)
+--    then the parser will fail since 'Network.URI.parseURI' fails.
 --
 --------------------------------------------------------------------------------
 
@@ -103,7 +110,7 @@ import Swish.RDF.Parser.Utils
 import Control.Applicative
 import Control.Monad (foldM)
 
-import Data.Char (ord, isAsciiLower, isAsciiUpper, isDigit) 
+import Data.Char (chr, ord, isAsciiLower, isAsciiUpper, isDigit) 
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
 import Data.LookupMap (mapFindMaybe, mapAdd, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
@@ -680,20 +687,25 @@ Read [#0000- ] as [#x00-#x20] from
 http://lists.w3.org/Archives/Public/public-rdf-comments/2011Aug/0011.html
 
 Unlike N3, whitespace is significant within the surrounding <>.
-
-At present relying on Network.URI to define what characters are valid
-in a URI. This is not necessarily ideal.
 -}
 
 _iriRef :: TurtleParser URI
 _iriRef = do
-  utxt <- bracket (char '<') (char '>') $ manySatisfy (/= '>') -- TODO: fix
-  let ustr = L.unpack utxt
+  ignore $ char '<'
+  ustr <- manyFinally' iriRefChar (char '>')
   case parseURIReference ustr of
-    Nothing -> fail $ "Unable to convert <" ++ ustr ++ "> to a URI"
+    Nothing -> failBad $ "Invalid URI: <" ++ ustr ++ ">"
     Just uref -> do
       s <- stGet
       either fail return $ appendURIs (baseUri s) uref
+
+iriRefChar :: TurtleParser Char
+iriRefChar = satisfy notIRIChar <|> _uchar
+
+notIRIChar :: Char -> Bool
+notIRIChar c = c >= chr 0x20
+               && 
+               c `notElem` "^<>\"{}|^`\\"
 
 {-
 [71s] <PNAME_NS> ::= (PN_PREFIX)? ":" 

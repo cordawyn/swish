@@ -30,11 +30,15 @@
 --    
 -- NOTES:
 --
---  UTF-8 handling is not really tested.
+--  - The parser needs to be updated to the latest version
+--    (\"W3C Team Submission 28 March 2011\",
+--    <http://www.w3.org/TeamSubmission/2011/SUBM-n3-20110328/>)
 --
---  No performance testing has been applied.
+--  - UTF-8 handling is not really tested.
 --
---  Not all N3 grammar elements are supported, including:
+--  - No performance testing has been applied.
+--
+--  - Not all N3 grammar elements are supported, including:
 --
 --    - @\@forSome@ (we read it in but ignore the arguments)
 --
@@ -680,15 +684,10 @@ Note: white space is to be ignored within <>
 
 explicitURI :: N3Parser URI
 explicitURI = do
-  let lb = char '<'
-      rb = char '>'
-  
-  -- TODO: do the whitespace definitions match?
-  ustr <- between lb rb $ many (satisfy (/= '>'))
-  let uclean = filter (not . isSpace) ustr
-  
-  case parseURIReference uclean of
-    Nothing -> fail $ "Unable to convert <" ++ uclean ++ "> to a URI"
+  ignore $ char '<'
+  ustr <- manyFinally' ((satisfy isSpace *> next) <|> next) (char '>')
+  case parseURIReference ustr of
+    Nothing -> failBad $ "Invalid URI: <" ++ ustr ++ ">"
     Just uref -> do
       s <- stGet
       let base = getSUri s "base"

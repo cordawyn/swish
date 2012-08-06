@@ -21,6 +21,11 @@
 --    W3C Recommendation 10 February 2004,
 --    <http://www.w3.org/TR/rdf-testcases/#ntriples>
 --
+-- NOTES:
+--
+--  - If the URI is actually an IRI (Internationalized Resource Identifiers)
+--    then the parser will fail since 'Network.URI.parseURI' fails.
+--    
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Parser.NTriples
@@ -220,22 +225,10 @@ triple	::=	subject ws+ predicate ws+ object ws* '.' ws*
 
 triple :: NTParser ()
 triple = 
-  {- tryin to be fancy but addStatement is a Parser not a pure function
-  addStatement 
-  <$> (subject <* skip1WS)
-  <*> (predicate <* skip1WS)
-  <*> (object <* (skipWS *> fullStop *> skipWS))
-  -}
-  
   do
-    s <- subject
-    skip1WS
-    p <- predicate
-    skip1WS
-    o <- object
-    skipWS
-    fullStop
-    skipWS
+    s <- subject <* skip1WS
+    p <- predicate <* skip1WS
+    o <- object <* (skipWS >> fullStop >> skipWS)
     addStatement s p o
 
 {-
@@ -255,20 +248,20 @@ object = urirefLbl <|> nodeID <|> literal
 
 {-
 uriref	::=	'<' absoluteURI '>'	
-absoluteURI	::=	character+ with escapes as defined in section URI References	
+absoluteURI	::=	character+ with escapes as defined below (from section 'URI References')	
+
+The absoluteURI production encodes a Unicode string representing an RDF URI references as specified in
+[RDF-CONCEPTS]. These are encoded in N-Triples using the escapes described in section Strings.
 
 -}
 
 uriref :: NTParser ScopedName
 uriref = do
-  -- not ideal, as want to reject invalid characters immediately rather than via parseURI
-  ustr <- L.unpack <$> bracket (char '<') (char '>') (many1Satisfy (/= '>'))
-  -- ustr <- bracket (char '<') (char '>') $ many1 character -- looks like need to exclude > from character
-  -- ustr <- char '<' *> manyTill character (char '>')
-  
-  maybe (failBad ("Invalid URI: <" ++ ustr ++ ">"))
+  ignore $ char '<'
+  uri <- manyFinally' character (char '>')
+  maybe (failBad ("Invalid URI: <" ++ uri ++ ">"))
     (return . makeURIScopedName)
-    (parseURI ustr)
+    (parseURI uri)
 
 urirefLbl :: NTParser RDFLabel
 urirefLbl = Res <$> uriref

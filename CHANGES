@@ -1,3 +1,10 @@
+0.7.0.1:
+
+  URI parsing has changed slightly. The only user-visible change is that
+  error messages will be slightly different, in particular when
+  given an IRI in Turtle or NTriples format. Unfortunately IRIs are
+  still not supported.
+
 0.7.0.0:
 
   For code that uses the Swish script language, the main change is to

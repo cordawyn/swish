@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.7.0.0
+Version:            0.7.0.1
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -43,6 +43,12 @@ Description:
   * RDF formal semantics entailment rule implementation.
   .
   * Complete, ready-to-run, command-line and script-driven programs.
+  .
+  Changes in version @0.7.0.0@:
+  .
+  * Internal changes to parsing of URI values for NTriples, Turtle, and N3
+  parsers (error messages will be slightly different when IRIs are used).
+  Unfortunately IRIs are still not supported. 
   .
   Changes in version @0.7.0.0@:
   .
