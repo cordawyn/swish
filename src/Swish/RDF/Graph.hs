@@ -62,7 +62,7 @@ module Swish.RDF.Graph
     --                                
     -- | The 'ToRDFLabel' instance of 'ScopedName' can also be used                                     
     -- to easily construct 'RDFLabel' versions of the terms defined
-    -- in `Swish.RDF.Vocabulary`.
+    -- in "Swish.RDF.Vocabulary".
     
     -- ** RDF terms                                          
     --                                          
