@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.7.0.1
+Version:            0.7.0.2
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -43,6 +43,12 @@ Description:
   * RDF formal semantics entailment rule implementation.
   .
   * Complete, ready-to-run, command-line and script-driven programs.
+  .
+  Changes in version @0.7.0.2@:
+  .
+  * The @Swish.QName.LName@ type now requires all characters to be
+  ASCII. This avoids downstream errors when trying to convert a
+  @QName@ to a @URI@.
   .
   Changes in version @0.7.0.1@:
   .
@@ -469,6 +475,22 @@ Test-Suite test-qname
  -- we do not have the data files to run this test
  Executable         SwishTest
    Main-Is:        tests/SwishTest.hs
+
+ -- How can we include data files that are only used for
+ -- benchmark/tests and do not get installed?
+ Benchmark            bench-ntriples
+   Type:             exitcode-stdio-1.0
+   Hs-Source-Dirs:   bench/
+   Other-Modules:    Paths_swish
+   Main-Is:          NTriples.hs
+   Build-Depends:    base,
+                     criterion,
+                     deepseq,
+                     network,
+                     swish,
+                     text
+
+   ghc-options:      -Wall -fno-warn-orphans
 
 Executable         Swish
    Main-Is:        SwishApp.hs

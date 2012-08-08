@@ -12,7 +12,12 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This module defines an algebraic datatype for qualified names (QNames).
+--  This module defines an algebraic datatype for qualified names (QNames),
+--  which represents a 'URI' as the combination of a namespace 'URI'
+--  and a local component ('LName'), which can be empty.
+--
+--  Although RDF supports using IRIs, the use of 'URI' here precludes this.
+--  There is currently no attempt to convert from an IRI into a URI.
 --
 --------------------------------------------------------------------------------
 
@@ -37,10 +42,11 @@ module Swish.QName
 
 import Control.Monad (liftM)
 
-import Data.String (IsString(..))
+import Data.Char (isAscii)
 import Data.Maybe (fromMaybe)
 import Data.Interned (intern, unintern)
 import Data.Interned.URI (InternedURI)
+import Data.String (IsString(..))
 
 import Network.URI (URI(..), URIAuth(..), parseURIReference)
 
@@ -63,6 +69,8 @@ import qualified Data.Text as T
 At present, the local name can not 
 contain spaces or the \'#\', \':\', or \'/\' characters. This restriction is
 experimental.
+
+The additional restriction of 'Data.Char.isAscii' was added in version @0.7.0.2@.
 -}
 newtype LName = LName T.Text
     deriving (Eq, Ord)
@@ -83,7 +91,8 @@ emptyLName = LName ""
 
 -- | Create a local name.
 newLName :: T.Text -> Maybe LName
-newLName l = if T.any (`elem` " #:/") l then Nothing else Just (LName l)
+-- newLName l = if T.any (`elem` " #:/") l then Nothing else Just (LName l)
+newLName l = if T.any (\c -> c `elem` " #:/" || not (isAscii c)) l then Nothing else Just (LName l)
 
 -- | Extract the local name.
 getLName :: LName -> T.Text

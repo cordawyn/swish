@@ -1,3 +1,8 @@
+0.7.0.2:
+
+  Swish.QName.LName now requires all characters to be ASCII. This
+  avoids downstream later when trying to convert a QName to a URI.
+
 0.7.0.1:
 
   URI parsing has changed slightly. The only user-visible change is that

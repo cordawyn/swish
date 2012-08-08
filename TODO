@@ -1,6 +1,13 @@
 
 Some things I want to/should do (not in order)
 
+- Replace list be a set for NSGraph (fairly invasive change and
+  needs bench marking). See issue #12
+  https://bitbucket.org/doug_burke/swish/issue/12/
+
+- Support IRI rather than URI. See issue #13
+  https://bitbucket.org/doug_burke/swish/issue/13/
+
 - Look at using an interned URI in Namespace.
 
 - Can LookupMap be replaced by Map? This would require removing the
@@ -23,12 +30,17 @@ Some things I want to/should do (not in order)
   since this is closer to the RDF semantics, and may make some operations
   a bit easier?
 
-- add RDF/XML parser and formatter.
+  Note that there is a possibility that Lit x is going to be
+  considered to be TypedLit x xsd:string - see issue #14
+  https://bitbucket.org/doug_burke/swish/issue/14/
+
+- add RDF/XML parser and formatter. See issue #7
+  https://bitbucket.org/doug_burke/swish/issue/7/
 
 - Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?
 
-- can items be moved out of Swidh.RDF.RDFGraph (e.g. the RDFlabel
+- can items be moved out of Swish.RDF.RDFGraph (e.g. the RDFlabel
   re-exports)?
 
 - do we need to export rdfQuerySubs2 from Swish.RDF.RDFQuery (since this
