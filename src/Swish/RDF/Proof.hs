@@ -65,7 +65,8 @@ import Data.Monoid (Monoid(..))
 --  @Expression@ class, for which proofs can be constructed.
 --  The empty RDF graph is always @True@ (other enduring
 --  truths are asserted as axioms).
-instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
+-- instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
+instance (Label lb, LDGraph lg lb, Eq (lg lb)) => Expression (lg lb) where
     isValid = null . getArcs 
 
 ------------------------------------------------------------

@@ -38,6 +38,7 @@ import Data.Hashable (Hashable(..))
 import Data.List (foldl', union, (\\))
 
 import qualified Data.Foldable as F
+import qualified Data.Set as S
 import qualified Data.Traversable as T
 
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
@@ -51,14 +52,22 @@ Labelled Directed Graph class.
 Minimum required implementation: 
 'emptyGraph', 'setArcs', and 'getArcs'.
 -}
-class (Eq (lg lb), Eq lb ) => LDGraph lg lb where
+-- We do not need the Eq (lg lb) constraint to compile this module,
+-- but if we take it out then need to add if to the Expression (lg lb)
+-- instance in Swish.RDF.Proof.
+--
+-- class (Eq (lg lb), Eq lb ) => LDGraph lg lb where
+class (Eq lb) => LDGraph lg lb where
+
     -- | Create the empty graph.
     emptyGraph  :: lg lb
       
     -- | Replace the existing arcs in the graph.
+    -- setArcs     :: lg lb -> S.Set (Arc lb) -> lg lb
     setArcs     :: lg lb -> [Arc lb] -> lg lb
     
     -- | Extract all the arcs from a graph
+    -- getArcs     :: lg lb -> S.Set (Arc lb)
     getArcs     :: lg lb -> [Arc lb]
     
     -- | Extract those arcs that match the given `Selector`.
