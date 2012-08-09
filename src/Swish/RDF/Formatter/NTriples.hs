@@ -43,6 +43,8 @@ import Data.Char (ord, intToDigit, toUpper)
 import Data.LookupMap (LookupMap, emptyLookupMap, mapFind, mapAdd)
 import Data.Monoid
 
+import qualified Data.Set as S
+
 -- it strikes me that using Lazy Text here is likely to be
 -- wrong; however I have done no profiling to back this
 -- assumption up!
@@ -91,7 +93,7 @@ formatGraphAsBuilder gr = fst $ runState (formatGraph gr) emptyNTFS
 ----------------------------------------------------------------------
 
 formatGraph :: RDFGraph -> Formatter B.Builder
-formatGraph gr = mconcat <$> mapM formatArc (getArcs gr)
+formatGraph gr = mconcat <$> mapM formatArc (S.toList (getArcs gr))
 
 -- TODO: this reverses the contents but may be faster?
 --       that is if I've got the order right in the mappend call

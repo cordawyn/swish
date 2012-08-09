@@ -215,7 +215,7 @@ vbm3 = VarBindingModify
 
 sumBinding :: String -> String -> String -> [VarBinding String Int]
     -> [VarBinding String Int]
-sumBinding va vb vc vbinds = concatMap abSumc vbinds
+sumBinding va vb vc = concatMap abSumc
     where
         abSumc :: VarBinding String Int -> [VarBinding String Int]
         abSumc vbind =

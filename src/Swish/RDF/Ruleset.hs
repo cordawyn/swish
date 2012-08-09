@@ -60,7 +60,7 @@ import Swish.RDF.Query
     )
 
 import Swish.RDF.Graph
-    ( RDFLabel(..), RDFGraph
+    ( RDFLabel(..), RDFGraph, RDFTriple
     , makeBlank, newNodes
     , merge, allLabels
     , toRDFGraph)
@@ -76,6 +76,7 @@ import Data.List (nub)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
 
+import qualified Data.Set as S
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -213,17 +214,20 @@ graphClosureBwdApply grc gr =
 --  RDF graph query and substitution support functions
 ------------------------------------------------------------
 
-queryFind :: [Arc RDFLabel] -> RDFGraph -> [RDFVarBinding]
-queryFind qas = rdfQueryFind (toRDFGraph qas)
+toGr :: [RDFTriple] -> RDFGraph
+toGr = toRDFGraph . S.fromList
 
-queryBack :: [Arc RDFLabel] -> RDFGraph -> [[RDFVarBinding]]
-queryBack qas = rdfQueryBack (toRDFGraph qas)
+queryFind :: [RDFTriple] -> RDFGraph -> [RDFVarBinding]
+queryFind qas = rdfQueryFind (toGr qas)
 
-querySubs :: [RDFVarBinding] -> [Arc RDFLabel] -> [RDFGraph]
-querySubs vars = rdfQuerySubs vars . toRDFGraph
+queryBack :: [RDFTriple] -> RDFGraph -> [[RDFVarBinding]]
+queryBack qas = rdfQueryBack (toGr qas)
 
-querySubsBlank :: [RDFVarBinding] -> [Arc RDFLabel] -> [RDFGraph]
-querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
+querySubs :: [RDFVarBinding] -> [RDFTriple] -> [RDFGraph]
+querySubs vars = rdfQuerySubs vars . toGr
+
+querySubsBlank :: [RDFVarBinding] -> [RDFTriple] -> [RDFGraph]
+querySubsBlank vars = rdfQuerySubsBlank vars . toGr
 
 ------------------------------------------------------------
 --  Method for creating an RDF formula value from N3 text
@@ -293,8 +297,8 @@ makeRDFClosureRule ::
 makeRDFClosureRule sname antgrs congr vmod = makeGraphClosureRule
     GraphClosure
         { nameGraphRule = sname
-        , ruleAnt       = concatMap getArcs antgrs
-        , ruleCon       = getArcs congr
+        , ruleAnt       = concatMap (S.toList . getArcs) antgrs -- TODO: improve
+        , ruleCon       = S.toList $ getArcs congr
         , ruleModify    = vmod
         }
 
@@ -429,7 +433,7 @@ makeN3ClosureAllocatorRule scope local ant con vflt aloc =
     where
         antgr = makeRDFGraphFromN3Builder ant
         congr = makeRDFGraphFromN3Builder con
-        vmod  = aloc (allLabels labelIsVar antgr)
+        vmod  = aloc $ S.toList (allLabels labelIsVar antgr)
         modc  = fromMaybe varBindingId $ vbmCompose vmod vflt
 
 ------------------------------------------------------------

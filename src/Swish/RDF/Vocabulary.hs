@@ -203,6 +203,9 @@ instance IsString LanguageTag where
 instance Eq LanguageTag where
     LanguageTag _ t1 == LanguageTag _ t2 = t1 == t2
 
+instance Ord LanguageTag where
+    LanguageTag _ t1 `compare` LanguageTag _ t2 = t1 `compare` t2
+
 -- | Create a 'LanguageTag' element from the label.
 -- 
 -- Valid tags follow the ABNF from RCF 3066, which is

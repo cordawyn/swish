@@ -203,7 +203,7 @@ testPartQNameSuite =
 ------------------------------------------------------------
 
 testMaybeQNameEq :: String -> Bool -> Maybe QName -> Maybe QName -> Test
-testMaybeQNameEq lbl eq n1 n2 = testCompareEq "MaybeQName" lbl eq n1 n2
+testMaybeQNameEq = testCompareEq "MaybeQName"
 
 testMaybeQNameEqSuite :: Test
 testMaybeQNameEqSuite = 

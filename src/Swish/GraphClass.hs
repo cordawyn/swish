@@ -31,11 +31,12 @@ module Swish.GraphClass
     , Selector
     , arc, arcToTriple, arcFromTriple
     , hasLabel, arcLabels -- , arcNodes
+    , getComponents
     )
 where
 
 import Data.Hashable (Hashable(..))
-import Data.List (foldl', union, (\\))
+import Data.List (foldl')
 
 import qualified Data.Foldable as F
 import qualified Data.Set as S
@@ -52,54 +53,56 @@ Labelled Directed Graph class.
 Minimum required implementation: 
 'emptyGraph', 'setArcs', and 'getArcs'.
 -}
--- We do not need the Eq (lg lb) constraint to compile this module,
--- but if we take it out then need to add if to the Expression (lg lb)
--- instance in Swish.RDF.Proof.
---
--- class (Eq (lg lb), Eq lb ) => LDGraph lg lb where
-class (Eq lb) => LDGraph lg lb where
+
+class LDGraph lg lb where
 
     -- | Create the empty graph.
     emptyGraph  :: lg lb
       
     -- | Replace the existing arcs in the graph.
-    -- setArcs     :: lg lb -> S.Set (Arc lb) -> lg lb
-    setArcs     :: lg lb -> [Arc lb] -> lg lb
+    setArcs     :: lg lb -> S.Set (Arc lb) -> lg lb
     
     -- | Extract all the arcs from a graph
-    -- getArcs     :: lg lb -> S.Set (Arc lb)
-    getArcs     :: lg lb -> [Arc lb]
+    getArcs     :: lg lb -> S.Set (Arc lb)
     
     -- | Extract those arcs that match the given `Selector`.
-    extract     :: Selector lb -> lg lb -> lg lb
-    extract sel = update (filter sel)
+    extract     :: (Ord lb) => Selector lb -> lg lb -> lg lb
+    extract sel = update (S.filter sel)
     
     -- | Add the two graphs
-    addGraphs         :: lg lb -> lg lb -> lg lb
-    addGraphs    addg = update (union (getArcs addg))
+    addGraphs         :: (Ord lb) => lg lb -> lg lb -> lg lb
+    addGraphs    addg = update (S.union (getArcs addg))
     
     -- | Remove those arcs in the first graph from the second
     -- graph
-    delete :: lg lb  -- ^ g1
-              -> lg lb -- ^ g2
-              -> lg lb -- ^ g2 - g1 -> g3
-    delete delg = update (\\ getArcs delg)
+    delete :: 
+        (Ord lb) =>
+        lg lb    -- ^ g1
+        -> lg lb -- ^ g2
+        -> lg lb -- ^ g2 - g1 -> g3
+    delete g1 g2 = setArcs g2 (getArcs g2 `S.difference` getArcs g1)
     
     -- | Enumerate the distinct labels contained in a graph;
     -- that is, any label that appears in the subject,
     -- predicate or object position of an `Arc`.
-    labels      :: lg lb -> [lb]
-    labels g    = foldl' union [] (map arcLabels (getArcs g))
+    labels      :: (Ord lb) => lg lb -> S.Set lb
+    labels = getComponents arcLabels . getArcs
     
     -- | Enumerate the distinct nodes contained in a graph;
     -- that is, any label that appears in the subject
     -- or object position of an `Arc`.
-    nodes       :: lg lb -> [lb]
-    nodes g     = foldl' union [] (map arcNodes (getArcs g))
+    nodes       :: (Ord lb) => lg lb -> S.Set lb
+    nodes = getComponents arcNodes . getArcs
     
     -- | Update the arcs in a graph using a supplied function.
-    update      :: ([Arc lb] -> [Arc lb]) -> lg lb -> lg lb
+    update      :: (S.Set (Arc lb) -> S.Set (Arc lb)) -> lg lb -> lg lb
     update f g  = setArcs g ( f (getArcs g) )
+
+-- | Extract components from a set.
+getComponents :: (Ord a, Ord b) => (a -> [b]) -> S.Set a -> S.Set b
+getComponents f = 
+    let ins sgr = foldl' (flip S.insert) sgr . f
+    in S.foldl' ins S.empty 
 
 -- | Label class
 --
@@ -133,9 +136,6 @@ class (Eq lb, Show lb, Ord lb) => Label lb where
   -- | Make a label value from a local id.  
   makeLabel   :: String -> lb
     
-  -- compare     :: lb -> lb -> Ordering
-  -- compare l1 l2 = compare (show l1) (show l2)
-
 -- | Arc type.
 --
 -- Prior to @0.7.0.0@ you could also use @asubj@, @apred@ and @aobj@

@@ -34,7 +34,7 @@ module Swish.GraphMatch
       ) where
 
 import Swish.GraphClass (Arc(..), Label(..))
-import Swish.GraphClass (arcLabels, hasLabel, arcToTriple)
+import Swish.GraphClass (getComponents, arcLabels, hasLabel, arcToTriple)
 
 import Swish.Utils.ListHelpers (equiv)
 
@@ -42,7 +42,7 @@ import Control.Exception.Base (assert)
 import Control.Arrow (second)
 
 import Data.Ord (comparing)
-import Data.List (foldl', nub, sortBy, groupBy, partition)
+import Data.List (foldl', sortBy, groupBy, partition)
 import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Data.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
                        mapAddIfNew, mapReplaceMap, mapMerge)
@@ -51,6 +51,7 @@ import Data.Hashable (combine)
 import Data.Word
 
 import qualified Data.List as L
+import qualified Data.Set as S
 
 --------------------------
 --  Label index value type
@@ -218,6 +219,8 @@ instance (Label lb) => Ord (ScopedLabel lb) where
 
 -- QUS: why doesn't this return Maybe (LabelMap (ScopedLabel lb)) ?
 
+-- TODO: Should this use Set (Arc lb) instead of [Arc lb]?
+
 -- | Graph matching function accepting two lists of arcs and
 --  returning a node map if successful
 --
@@ -245,8 +248,8 @@ graphMatch matchable gs1 gs2 =
                   newGenerationMap $
                   assignLabelMap ls1 $
                   assignLabelMap ls2 emptyMap
-        ec1     = {- traceShow "ec1 " $ -} equivalenceClasses lmap ls1
-        ec2     = {- traceShow "ec2 " $ -} equivalenceClasses lmap ls2
+        ec1     = {- traceShow "ec1 " $ -} equivalenceClasses lmap $ S.toList ls1 -- TODO: use sets rather than lists
+        ec2     = {- traceShow "ec2 " $ -} equivalenceClasses lmap $ S.toList ls2
         ecpairs = zip (pairSort ec1) (pairSort ec2)
         matchableScoped (ScopedLabel _ l1) (ScopedLabel _ l2) = matchable l1 l2
         match   = graphMatch1 False matchableScoped sgs1 sgs2 lmap ecpairs
@@ -468,8 +471,8 @@ newGenerationMap (LabelMap g lvs) = LabelMap (g+1) lvs
 --  All variable node labels are assigned the same initial
 --  value, as they may be matched with each other.
 --
-assignLabelMap :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
-assignLabelMap ns lmap = foldl' (flip assignLabelMap1) lmap ns
+assignLabelMap :: (Label lb) => S.Set lb -> LabelMap lb -> LabelMap lb
+assignLabelMap ns lmap = S.foldl' (flip assignLabelMap1) lmap ns
 
 assignLabelMap1 :: (Label lb) => lb -> LabelMap lb -> LabelMap lb
 assignLabelMap1 lab (LabelMap g lvs) = LabelMap g lvs'
@@ -596,11 +599,10 @@ select f (e1:l1) (e2:l2)
     | otherwise = select f l1 l2
 select _ _ _    = error "select supplied with different length lists"
 
+-- | Return the set of distinct labels used in the graph.
 
--- | Return list of distinct labels used in a graph
-
-graphLabels :: (Label lb) => [Arc lb] -> [lb]
-graphLabels = nub . concatMap arcLabels
+graphLabels :: (Label lb) => [Arc lb] -> S.Set lb
+graphLabels = getComponents arcLabels . S.fromList
 
 -- TODO: worry about overflow?
 

@@ -48,6 +48,8 @@ module Swish.RDF.Graph
     , newNode, newNodes
     , setNamespaces, getNamespaces
     , setFormulae, getFormulae, setFormula, getFormula
+    , fmapNSGraph
+    , traverseNSGraph
       
     -- * Re-export from GraphClass
     --
@@ -161,28 +163,29 @@ import Swish.Namespace
     , nullScopedName
     )
 
-import Swish.RDF.Vocabulary
-{-    
-    ( namespaceRDF
-    , langTag, isLang
-    , rdfType
-    , rdfFirst, rdfRest, rdfNil, rdfXMLLiteral
-    , rdfsMember
-    , rdfdGeneralRestriction
-    , rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
-    , owlSameAs, logImplies
-    , xsdBoolean, xsdDecimal, xsdFloat, xsdDouble, xsdInteger
-    , xsdDateTime, xsdDate                                                
-    )
--}
+import Swish.RDF.Vocabulary (LanguageTag)
+import Swish.RDF.Vocabulary (fromLangTag, xsdBoolean, xsdDate, xsdDateTime, xsdDecimal, xsdDouble, xsdFloat, xsdInteger
+                            , rdfType, rdfList, rdfFirst, rdfRest, rdfNil
+                            , rdfsMember, rdfdGeneralRestriction, rdfdOnProperties, rdfdConstraint, rdfdMaxCardinality
+                            , rdfsSeeAlso, rdfValue, rdfsLabel, rdfsComment, rdfProperty
+                            , rdfsSubPropertyOf, rdfsSubClassOf, rdfsClass, rdfsLiteral
+                            , rdfsDatatype, rdfXMLLiteral, rdfsRange, rdfsDomain, rdfsContainer
+                            , rdfBag, rdfSeq, rdfAlt
+                            , rdfsContainerMembershipProperty, rdfsIsDefinedBy
+                            , rdfsResource, rdfStatement, rdfSubject, rdfPredicate, rdfObject
+                            , rdfRDF, rdfDescription, rdfID, rdfAbout, rdfParseType
+                            , rdfResource, rdfLi, rdfNodeID, rdfDatatype, rdfXMLLiteral
+                            , rdf1, rdf2, rdfn
+                            , owlSameAs, logImplies, namespaceRDF
+                            )
 
 import Swish.GraphClass (LDGraph(..), Label (..), Arc(..), Selector)
-import Swish.GraphClass (arc, arcLabels)
+import Swish.GraphClass (arc, arcLabels, getComponents)
 import Swish.GraphMatch (LabelMap, ScopedLabel(..))
 import Swish.GraphMatch (graphMatch)
 import Swish.QName (QName, getLName)
 
-import Control.Applicative (Applicative, liftA, (<$>), (<*>))
+import Control.Applicative (Applicative(pure), (<$>), (<*>))
 
 import Network.URI (URI)
 
@@ -193,7 +196,7 @@ import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, foldl')
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
 import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplace, mapAddIfNew, mapVals, mapKeys )
-import Data.Ord (comparing)
+-- import Data.Ord (comparing)
 import Data.Word (Word32)
 
 import Data.String (IsString(..))
@@ -203,15 +206,11 @@ import System.Locale (defaultTimeLocale)
 
 import Text.Printf
 
-import qualified Data.Foldable as Foldable
-import qualified Data.Traversable as Traversable
+import qualified Data.Set as S
 
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
--- import qualified Data.Text.Lazy as L
--- import Data.Text.Format (format)
--- import Data.Text.Buildable
--- import Data.Text.Format.Types (Only(..))
+import qualified Data.Traversable as Traversable
 
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
 import Data.Tuple (swap)
@@ -290,26 +289,35 @@ instance Show RDFLabel where
     show NoNode             = "<NoNode>"
 
 instance Ord RDFLabel where
-    -- Optimize some common cases..
-    compare (Res sn1)      (Res sn2)      = compare sn1 sn2
-    compare (Blank ln1)    (Blank ln2)    = compare ln1 ln2
-    compare (Res _)        (Blank _)      = LT
-    compare (Blank _)      (Res _)        = GT
+    -- Order, from lowest to highest is
+    --    Res, Lit, LangLit, TypedLit, Blank, Var, NoNode
+    --
+    compare (Res sn1)        (Res sn2)        = compare sn1 sn2
+    compare (Res _)          _                = LT
+    compare _                (Res _)          = GT
 
-    compare (Lit s1)       (Lit s2)       = compare s1 s2
+    compare (Lit s1)         (Lit s2)         = compare s1 s2
+    compare (Lit _)          _                = LT
+    compare _                (Lit _)          = GT
 
-    -- .. else use show string comparison
-    compare l1 l2 = comparing show l1 l2
-    
-    {- <= is not used if compare is provided
-    -- Similarly for <=
-    (Res qn1)   <= (Res qn2)      = qn1 <= qn2
-    (Blank ln1) <= (Blank ln2)    = ln1 <= ln2
-    (Res _)     <= (Blank _)      = True
-    (Blank _)   <= (Res _)        = False
-    l1 <= l2                      = show l1 <= show l2
-    -}
-    
+    compare (LangLit s1 l1)  (LangLit s2 l2)  = compare (s1,l1) (s2,l2)
+    compare (LangLit _ _)    _                = LT
+    compare _                (LangLit _ _)    = GT
+
+    compare (TypedLit s1 t1) (TypedLit s2 t2) = compare (s1,t1) (s2,t2)
+    compare (TypedLit _ _)   _                = LT
+    compare _                (TypedLit _ _)   = GT
+
+    compare (Blank ln1)      (Blank ln2)      = compare ln1 ln2
+    compare (Blank _)        _                = LT
+    compare _                (Blank _)        = GT
+
+    compare (Var ln1)        (Var ln2)        = compare ln1 ln2
+    compare (Var _)          NoNode           = LT
+    compare _                (Var _)          = GT
+
+    compare NoNode           NoNode           = EQ
+
 instance Label RDFLabel where
     labelIsVar (Blank _)    = True
     labelIsVar (Var _)      = True
@@ -1056,6 +1064,10 @@ instance (Eq lb, Eq gr) => Eq (LookupFormula lb gr) where
     f1 == f2 = formLabel f1 == formLabel f2 &&
                formGraph f1 == formGraph f2
 
+instance (Ord lb, Ord gr) => Ord (LookupFormula lb gr) where
+    (Formula a1 b1) `compare` (Formula a2 b2) =
+        (a1,b1) `compare` (a2,b2)
+
 instance (Label lb)
     => LookupEntryClass (LookupFormula lb (NSGraph lb)) lb (NSGraph lb)
     where
@@ -1076,30 +1088,21 @@ type FormulaMap lb = LookupMap (LookupFormula lb (NSGraph lb))
 emptyFormulaMap :: FormulaMap RDFLabel
 emptyFormulaMap = LookupMap []
 
-{-  given up on trying to do Functor for formulae...
-instance Functor (LookupFormula (NSGraph lb)) where
-    fmap f fm = mapTranslateEntries (mapFormulaEntry f) fm
--}
+fmapFormulaMap :: (Ord a, Ord b) => (a -> b) -> FormulaMap a -> FormulaMap b
+fmapFormulaMap f = fmap (fmapFormula f)
 
-formulaeMap :: (lb -> l2) -> FormulaMap lb -> FormulaMap l2
-formulaeMap f = fmap (formulaEntryMap f) 
+fmapFormula :: (Ord a, Ord b) => (a -> b) -> Formula a -> Formula b
+fmapFormula f (Formula k gr) = Formula (f k) (fmapNSGraph f gr)
 
-formulaEntryMap ::
-    (lb -> l2)
-    -> Formula lb
-    -> Formula l2
-formulaEntryMap f (Formula k gr) = Formula (f k) (fmap f gr)
+traverseFormulaMap :: 
+    (Applicative f, Ord a, Ord b) 
+    => (a -> f b) -> FormulaMap a -> f (FormulaMap b)
+traverseFormulaMap f = Traversable.traverse (traverseFormula f)
 
-formulaeMapA :: Applicative f => (lb -> f l2) -> 
-                FormulaMap lb -> f (FormulaMap l2)
-formulaeMapA f = Traversable.traverse (formulaEntryMapA f)
-
-formulaEntryMapA ::
-  (Applicative f) => 
-  (lb -> f l2)
-  -> Formula lb
-  -> f (Formula l2)
-formulaEntryMapA f (Formula k gr) = Formula `liftA` f k <*> Traversable.traverse f gr
+traverseFormula :: 
+    (Applicative f, Ord a, Ord b)
+    => (a -> f b) -> Formula a -> f (Formula b)
+traverseFormula f (Formula k gr) = Formula <$> f k <*> traverseNSGraph f gr
 
 {-
 formulaeMapM ::
@@ -1133,13 +1136,13 @@ are:
 
 -}
 data NSGraph lb = NSGraph
-    { namespaces :: NamespaceMap    -- ^ the namespaces to use
-    , formulae   :: FormulaMap lb   -- ^ any associated formulae (a.k.a. sub- or named- graps)
-    , statements :: [Arc lb]        -- ^ the statements in the graph
+    { namespaces :: NamespaceMap      -- ^ the namespaces to use
+    , formulae   :: FormulaMap lb     -- ^ any associated formulae (a.k.a. sub- or named- graps)
+    , statements :: S.Set (Arc lb)    -- ^ the statements in the graph
     }
 
 instance (Label lb) => LDGraph NSGraph lb where
-    emptyGraph   = NSGraph emptyNamespaceMap (LookupMap []) []
+    emptyGraph   = NSGraph emptyNamespaceMap (LookupMap []) S.empty
     getArcs      = statements 
     setArcs g as = g { statements=as }
 
@@ -1148,19 +1151,29 @@ instance (Label lb) => Monoid (NSGraph lb) where
     mempty  = emptyGraph
     mappend = merge
   
-instance Functor NSGraph where
-  fmap f (NSGraph ns fml stmts) =
-    NSGraph ns (formulaeMap f fml) ((map $ fmap f) stmts)
+fmapNSGraph :: (Ord lb1, Ord lb2) => (lb1 -> lb2) -> NSGraph lb1 -> NSGraph lb2
+fmapNSGraph f (NSGraph ns fml stmts) = 
+    NSGraph ns (fmapFormulaMap f fml) ((S.map $ fmap f) stmts)
 
-instance Foldable.Foldable NSGraph where
-  foldMap = Traversable.foldMapDefault
+traverseNSGraph :: 
+    (Applicative f, Ord a, Ord b) 
+    => (a -> f b) -> NSGraph a -> f (NSGraph b)
+traverseNSGraph f (NSGraph ns fml stmts) = 
+    NSGraph ns <$> traverseFormulaMap f fml <*> (traverseSet $ Traversable.traverse f) stmts
 
-instance Traversable.Traversable NSGraph where
-  traverse f (NSGraph ns fml stmts) = 
-    NSGraph ns <$> formulaeMapA f fml <*> (Traversable.traverse $ Traversable.traverse f) stmts
-  
+traverseSet ::
+    (Applicative f, Ord a, Ord b)
+    => (a -> f b) -> S.Set a -> f (S.Set b)
+traverseSet f = S.foldr cons (pure S.empty)
+    where
+      cons x s = S.insert <$> f x <*> s
+
 instance (Label lb) => Eq (NSGraph lb) where
     (==) = grEq
+
+instance (Label lb) => Ord (NSGraph lb) where
+    (NSGraph ns1 fml1 stmts1) `compare` (NSGraph ns2 fml2 stmts2) =
+        (ns1,fml1,stmts1) `compare` (ns2,fml2,stmts2)
 
 instance (Label lb) => Show (NSGraph lb) where
     show     = grShow ""
@@ -1196,12 +1209,7 @@ nor does it change the namespace map,
 but it does ensure that the arc is unknown before adding it.
 -}
 addArc :: (Label lb) => Arc lb -> NSGraph lb -> NSGraph lb
-addArc ar gr = gr { statements=addSetElem ar (statements gr) }
-
--- |Add element to the set.
-
-addSetElem :: (Eq a) => a -> [a] -> [a]
-addSetElem e es = if e `elem` es then es else e:es
+addArc ar = update (S.insert ar)
 
 grShowList :: (Label lb) => String -> [NSGraph lb] -> String -> String
 grShowList _ []     = showString "[no graphs]"
@@ -1221,7 +1229,7 @@ grShow p g =
         pp = "\n    " ++ p
 
 showArcs :: (Label lb) => String -> NSGraph lb -> String
-showArcs p g = foldr ((++) . (pp ++) . show) "" (getArcs g)
+showArcs p g = S.foldr ((++) . (pp ++) . show) "" (getArcs g)
     where
         pp = "\n    " ++ p
 
@@ -1235,8 +1243,9 @@ grEq g1 = fst . grMatchMap g1
 grMatchMap :: (Label lb) =>
     NSGraph lb -> NSGraph lb -> (Bool, LabelMap (ScopedLabel lb))
 grMatchMap g1 g2 =
-    graphMatch matchable (getArcs g1) (getArcs g2)
+    graphMatch matchable (ga g1) (ga g2)
     where
+        ga = S.toList . getArcs
         matchable l1 l2 = mapFormula g1 l1 == mapFormula g2 l2
         mapFormula g l  = mapFindMaybe l (getFormulae g)
 
@@ -1249,8 +1258,8 @@ grMatchMap g1 g2 =
 --        
 merge :: (Label lb) => NSGraph lb -> NSGraph lb -> NSGraph lb
 merge gr1 gr2 =
-    let bn1   = allLabels labelIsVar gr1
-        bn2   = allLabels labelIsVar gr2
+    let bn1   = S.toList $ allLabels labelIsVar gr1
+        bn2   = S.toList $ allLabels labelIsVar gr2
         dupbn = intersect bn1 bn2
         allbn = union bn1 bn2
     in addGraphs gr1 (remapLabels dupbn allbn id gr2)
@@ -1258,19 +1267,19 @@ merge gr1 gr2 =
 -- |Return list of all labels (including properties) in the graph
 --  satisfying a supplied filter predicate. This routine
 --  includes the labels in any formulae.
-allLabels :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
-allLabels p gr = filter p (unionNodes p (formulaNodes p gr) (labels gr) ) 
+allLabels :: (Label lb) => (lb -> Bool) -> NSGraph lb -> S.Set lb
+allLabels p gr = S.filter p (unionNodes p (formulaNodes p gr) (labels gr) ) 
                  
 {- TODO: is the leading 'filter p' needed in allLabels?
 -}
 
 -- |Return list of all subjects and objects in the graph
 --  satisfying a supplied filter predicate.
-allNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
-allNodes p = unionNodes p [] . nodes
+allNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> S.Set lb
+allNodes p = unionNodes p S.empty . nodes
 
 -- | List all nodes in graph formulae satisfying a supplied predicate
-formulaNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> [lb]
+formulaNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> S.Set lb
 formulaNodes p gr = foldl' (unionNodes p) fkeys (map (allLabels p) fvals)
     where
         -- fm :: (Label lb) => FormulaMap lb
@@ -1279,11 +1288,13 @@ formulaNodes p gr = foldl' (unionNodes p) fkeys (map (allLabels p) fvals)
         -- fvals :: (Label lb) => [NSGraph lb]
         fvals = mapVals fm
         -- fkeys :: (Label lb) => [lb]
-        fkeys = filter p $ mapKeys fm
+        fkeys = S.filter p $ S.fromList $ mapKeys fm
 
 -- | Helper to filter variable nodes and merge with those found so far
-unionNodes :: (Label lb) => (lb -> Bool) -> [lb] -> [lb] -> [lb]
-unionNodes p ls1 ls2 = ls1 `union` filter p ls2
+unionNodes :: (Label lb) => (lb -> Bool) -> S.Set lb -> S.Set lb -> S.Set lb
+unionNodes p ls1 ls2 = ls1 `S.union` S.filter p ls2
+
+-- TODO: use S.Set lb rather than [lb] in the following
 
 -- |Remap selected nodes in graph.
 --
@@ -1300,7 +1311,9 @@ remapLabels ::
     -- RDF query nodes into RDF blank nodes.
     -> NSGraph lb -- ^ graph in which nodes are to be renamed
     -> NSGraph lb
-remapLabels dupbn allbn cnvbn = fmap (mapnode dupbn allbn cnvbn)
+
+remapLabels dupbn allbn cnvbn =
+    fmapNSGraph (mapnode dupbn allbn cnvbn)
 
 -- |Externally callable function to construct a list of (old,new)
 --  values to be used for graph label remapping.
@@ -1387,7 +1400,7 @@ trybnodes (nr,nx) = [ makeLabel (nr++show n) | n <- iterate (+1) nx ]
 
 type RDFGraph = NSGraph RDFLabel
 
--- |Create a new RDF graph from a supplied list of arcs.
+-- |Create a new RDF graph from a supplied set of arcs.
 --
 -- This version will attempt to fill up the namespace map
 -- of the graph based on the input labels (including datatypes
@@ -1400,18 +1413,16 @@ type RDFGraph = NSGraph RDFLabel
 -- and earlier.
 --
 toRDFGraph :: 
-    [RDFTriple] -- ^ There is no check to remove repeated statements in this list,
-                -- so it is suggested that you use 'Data.List.nub', or convert via 'Data.Set.Set',
-                -- if your input may contain such elements.
+    S.Set RDFTriple
     -> RDFGraph
 toRDFGraph arcs = 
-  let lbls = concatMap arcLabels arcs
+  let lbls = getComponents arcLabels arcs
       
       getNS (Res s) = Just s
       getNS (TypedLit _ dt) = Just dt
       getNS _ = Nothing
 
-      ns = mapMaybe (fmap getScopeNamespace . getNS) lbls
+      ns = mapMaybe (fmap getScopeNamespace . getNS) $ S.toList lbls
       nsmap = foldl' mapAddIfNew emptyNamespaceMap ns
   
   in mempty { namespaces = nsmap, statements = arcs }

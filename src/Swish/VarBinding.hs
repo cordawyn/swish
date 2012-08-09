@@ -45,18 +45,19 @@ import Swish.QName (newLName, getLName)
 
 import Swish.RDF.Vocabulary (swishName)
 
-import Swish.Utils.ListHelpers (equiv, subset, flist)
+import Swish.Utils.ListHelpers (flist)
 
+import Data.Function (on)
 import Data.List (find, intersect, union, (\\), foldl', permutations)
 import Data.LookupMap (LookupEntryClass(..), makeLookupMap, mapFindMaybe)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
-import Data.Monoid (mconcat)
+import Data.Monoid (Monoid(..), mconcat)
+
+import qualified Data.Set as S
 
 ------------------------------------------------------------
 --  Query variable bindings
 ------------------------------------------------------------
-
--- TODO: is it worth making a Monoid instance of VarBinding?
 
 -- |VarBinding is the type of an arbitrary variable bindings
 --  value, where the type of the bound values is not specified.
@@ -67,19 +68,31 @@ data VarBinding a b = VarBinding
     , vbNull :: Bool
     }
 
--- |VarBinding is an instance of class Eq, so that variable
---  bindings can be compared for equivalence
+-- | The Eq instance is defined as the set equivalence of the
+--   pairs of variables in the binding.
 --
-instance (Eq a, Eq b) => Eq (VarBinding a b) where
-    vb1 == vb2 = vbEnum vb1 `equiv` vbEnum vb2
+instance (Ord a, Ord b) => Eq (VarBinding a b) where
+    (==) = (==) `on` (S.fromList . vbEnum)
 
--- |VarBinding is an instance of class Show, so that variable
---  bindings can be displayed
+-- | The Ord instance is defined only on the pairs of
+--   variables in the binding.
+instance (Ord a, Ord b) => Ord (VarBinding a b) where
+    compare = compare `on` vbEnum
+
+-- | When combining instances, if there is an overlapping binding then
+--   the  value from the first instance is used.
+instance (Eq a) => Monoid (VarBinding a b) where
+    mempty = nullVarBinding
+    mappend = joinVarBindings
+
+-- | The Show instance only displays the pairs of variables
+--    in the binding.
 --
 instance (Show a, Show b) => Show (VarBinding a b) where
     show = show . vbEnum
 
--- | maps no query variables.
+-- | The null, or empry, binding maps no query variables.
+--   This is the 'mempty' instance of the Monoid.
 --
 nullVarBinding :: VarBinding a b
 nullVarBinding = VarBinding
@@ -97,8 +110,8 @@ boundVars = map fst . vbEnum
 --  is a subset of another;  i.e. every query variable mapping defined
 --  by one is also defined by the other.
 --
-subBinding :: (Eq a, Eq b) => VarBinding a b -> VarBinding a b -> Bool
-subBinding vb1 vb2 = vbEnum vb1 `subset` vbEnum vb2
+subBinding :: (Ord a, Ord b) => VarBinding a b -> VarBinding a b -> Bool
+subBinding = S.isSubsetOf `on` (S.fromList . vbEnum)
 
 -- |Function to make a variable binding from a list of
 --  pairs of variable and corresponding assigned value.
@@ -122,7 +135,7 @@ applyVarBinding vbind v = fromMaybe v (vbMap vbind v)
 -- |Join a pair of query bindings, returning a new binding that
 --  maps all variables recognized by either of the input bindings.
 --  If the bindings should overlap, such overlap is not detected and
---  the value from the first binding provided is used arbitrarily.
+--  the value from the first binding provided is used.
 --
 joinVarBindings :: (Eq a) => VarBinding a b -> VarBinding a b -> VarBinding a b
 joinVarBindings vb1 vb2

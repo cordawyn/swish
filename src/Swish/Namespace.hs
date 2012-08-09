@@ -62,6 +62,7 @@ import qualified Data.Text.Lazy.Builder as B
 --
 
 data Namespace = Namespace (Maybe T.Text) URI
+
 -- data Namespace = Namespace (Maybe T.Text) !URI
 -- TODO: look at interning the URI
                  
@@ -82,6 +83,11 @@ getNamespaceTuple (Namespace p u) = (p, u)
 -- considered to be equal).
 instance Eq Namespace where
   (Namespace _ u1) == (Namespace _ u2) = u1 == u2
+
+instance Ord Namespace where
+    -- using show for the URI is wasteful
+    (Namespace a1 b1) `compare` (Namespace a2 b2) =
+        (a1, show b1) `compare` (a2, show b2)
 
 instance Show Namespace where
     show (Namespace (Just p) u) = show p ++ ":<" ++ show u ++ ">"

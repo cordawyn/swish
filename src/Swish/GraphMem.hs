@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -14,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  DeriveFoldable, DeriveFunctor, DeriveTraversable, FlexibleInstances, MultiParamTypeClasses
+--  Portability :  FlexibleInstances, MultiParamTypeClasses
 --
 --  This module defines a simple memory-based graph instance.
 --
@@ -40,16 +37,14 @@ import Data.Hashable (Hashable(..), combine)
 import Data.Monoid (Monoid(..))
 import Data.Ord (comparing)
 
-import qualified Data.Foldable as F
-import qualified Data.Traversable as T
+import qualified Data.Set as S
 
 -- | Simple memory-based graph type. 
 
-data GraphMem lb = GraphMem { arcs :: [Arc lb] }
-                   deriving (Functor, F.Foldable, T.Traversable)
-                            
+data GraphMem lb = GraphMem { arcs :: S.Set (Arc lb) }
+
 instance (Label lb) => LDGraph GraphMem lb where
-    emptyGraph   = GraphMem []
+    emptyGraph   = GraphMem S.empty
     getArcs      = arcs
     setArcs g as = g { arcs=as }
 
@@ -64,7 +59,7 @@ instance (Label lb) => Monoid (GraphMem lb) where
     mappend = addGraphs
 
 graphShow   :: (Label lb) => GraphMem lb -> String
-graphShow g = "Graph:" ++ foldr ((++) . ("\n    " ++) . show) "" (arcs g)
+graphShow g = "Graph:" ++ S.foldr ((++) . ("\n    " ++) . show) "" (arcs g)
 
 {-
 toGraph :: (Label lb) => [Arc lb] -> GraphMem lb
@@ -90,8 +85,8 @@ matchGraphMem ::
   --
 matchGraphMem g1 g2 =
     let
-        gs1     = arcs g1
-        gs2     = arcs g2
+        gs1     = S.toList $ arcs g1
+        gs2     = S.toList $ arcs g2
         matchable l1 l2
             | labelIsVar l1 && labelIsVar l2 = True
             | labelIsVar l1 || labelIsVar l2 = False

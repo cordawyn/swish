@@ -693,24 +693,24 @@ result44a, result44b :: B.Builder
 result44a = 
   mconcat
   [ prefix4
-  , "pers:Pa2 rel:son ?m       . \n"
-  , "?m       rel:son pers:Ro4 . \n"
-  , "?c rel:daughter ?n . \n"
-  , "?n rel:son      ?d . \n"
-  ]
-
-result44b = 
-  mconcat
-  [ prefix4
   , "?a rel:son      ?m . \n"
   , "?m rel:son      ?b . \n"
   , "pers:Pa2 rel:daughter ?n .       \n"
   , "?n       rel:son      pers:Ro4 . \n"
   ]
   
+result44b = 
+  mconcat
+  [ prefix4
+  , "pers:Pa2 rel:son ?m       . \n"
+  , "?m       rel:son pers:Ro4 . \n"
+  , "?c rel:daughter ?n . \n"
+  , "?n rel:son      ?d . \n"
+  ]
+
 unbound44a, unbound44b :: [RDFLabel]
-unbound44a = [Var "m", Var "c", Var "n", Var "d"]
-unbound44b = [Var "a", Var "m", Var "b", Var "n"]
+unbound44a = [Var "a", Var "b", Var "m", Var "n"]
+unbound44b = [Var "c", Var "d", Var "m", Var "n"]
 
 var44 :: [[RDFVarBinding]]
 var44 = rdfQueryBack query44 graph44
@@ -796,15 +796,15 @@ result46a, result46b :: B.Builder
 result46a = 
   mconcat
   [ prefix4
-  , "?a rel:son     pers:St3 . \n"
-  , "?a rel:stepson pers:Gr3 . \n"
+  , "?a rel:son     pers:Gr3 . \n"
+  , "?a rel:stepson pers:St3 . \n"
   ]
   
 result46b = 
   mconcat
   [ prefix4
-  , "?a rel:son     pers:Gr3 . \n"
-  , "?a rel:stepson pers:St3 . \n"
+  , "?a rel:son     pers:St3 . \n"
+  , "?a rel:stepson pers:Gr3 . \n"
   ]
   
 unbound46a, unbound46b :: [RDFLabel]

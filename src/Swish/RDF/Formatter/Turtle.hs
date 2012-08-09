@@ -75,11 +75,13 @@ import Control.Monad (liftM, when)
 import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
-import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
+import Data.List (foldl', delete, groupBy, partition, intersperse)
 import Data.LookupMap (LookupEntryClass(..), LookupMap)
 import Data.LookupMap (emptyLookupMap, reverseLookupMap, listLookupMap, mapFind, mapFindMaybe, mapAdd, mapMerge)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
+
+import qualified Data.Set as S
 
 -- it strikes me that using Lazy Text here is likely to be
 -- wrong; however I have done no profiling to back this
@@ -777,8 +779,8 @@ showScopedName = quoteB True . show
 
 newtype SortedArcs lb = SA [Arc lb]
 
-sortArcs :: (Ord lb) => [Arc lb] -> SortedArcs lb
-sortArcs = SA . sort
+sortArcs :: S.Set (Arc lb) -> SortedArcs lb
+sortArcs = SA . S.toAscList
 
 --  Rearrange a list of arcs into a tree of pairs which group together
 --  all statements for a single subject, and similarly for multiple
@@ -805,7 +807,7 @@ commonFstEq f ps =
         fstEq (f1,_) (f2,_) = f1 == f2
 
 findMaxBnode :: RDFGraph -> Word32
-findMaxBnode = maximum . map getAutoBnodeIndex . labels
+findMaxBnode = S.findMax . S.map getAutoBnodeIndex . labels
 
 getAutoBnodeIndex   :: RDFLabel -> Word32
 getAutoBnodeIndex (Blank ('_':lns)) = res where

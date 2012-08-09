@@ -1,3 +1,19 @@
+0.8.0.0:
+
+  The LDGraph class now uses Set (Arc lb), rather than [Arc lb], for
+  setArcs, getArcs, and update. The NSGraph instance now uses a set
+  rather than a list internally. There are a number of API tweaks -
+  e.g. the addition of Ord constraints and the removal of Functor,
+  Foldable, and Traversable instances. Not all list of Arcs have been
+  converted since a review is needed to see where it makes sense and
+  where it does not. This definitely speeds up some operations but
+  a full analysis has not been attempted.
+
+  A few other minor changes have been made: the removal of subset from
+  Swish.Utils.ListHelpers; the ordering used for RDFLabel values has
+  changed; added a Monoid instance for VarBinding; added Ord instances
+  for a number of containers.
+
 0.7.0.2:
 
   Swish.QName.LName now requires all characters to be ASCII. This

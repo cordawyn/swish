@@ -58,12 +58,13 @@ import Swish.RDF.Vocabulary (namespaceRDFD)
 
 import Control.Monad (liftM)
 
-import Data.List (delete, nub, (\\), subsequences)
+import Data.List (delete, nub, subsequences)
 import Data.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
 import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.Monoid (Monoid (..))
 import Data.Ord.Partial (minima, maxima, partCompareEq, partComparePair, partCompareListMaybe, partCompareListSubset)
 
+import qualified Data.Set as S
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -229,9 +230,9 @@ fwdApplyRestriction1 restriction ci props cs antgr =
         nts :: [[RDFLabel]]
         nts = mapMaybe sequence sts
         --  Make new graph from results, including only newly generated arcs
-        newarcs = nub [Arc ci p v | vs <- nts, (p,v) <- zip props vs ]
-                  \\ getArcs antgr
-        newgrs  = if null newarcs then [] else [toRDFGraph newarcs]
+        newarcs = S.fromList [Arc ci p v | vs <- nts, (p,v) <- zip props vs ]
+                  `S.difference` getArcs antgr
+        newgrs  = if S.null newarcs then [] else [toRDFGraph newarcs]
 
 --  Backward apply class restriction.
 --
@@ -289,11 +290,14 @@ bwdApplyRestriction1 restriction cls ci props cs congr =
         --  Make new graphs for all alternatives
         grss :: [[RDFGraph]]
         grss = map ( makeGraphs . newArcs ) ftss
+
         --  Collect arcs for one alternative
         newArcs dts =
             [ Arc ci p v | mvs <- dts, (p,Just v) <- zip props mvs ]
+
         --  Make graphs for one alternative
-        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci resRdfType cls :)
+        --  TODO: convert to sets
+        makeGraphs = map (toRDFGraph . S.fromList . (:[])) . (Arc ci resRdfType cls :)
 
 --  Helper function to select sub-tuples from which some of a set of
 --  values can be derived using a class restriction.

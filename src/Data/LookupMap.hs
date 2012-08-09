@@ -112,6 +112,9 @@ instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
 data LookupMap a = LookupMap [a]
   deriving (Functor, F.Foldable, T.Traversable)
 
+instance (Ord a) => Ord (LookupMap a) where
+    compare = compare `on` gLM
+
 {-
 
 To allow this Monoid instance, we would need UndecidableInstances.

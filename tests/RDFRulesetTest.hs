@@ -64,10 +64,11 @@ import Test.HUnit
 import Network.URI (URI, parseURI)
 
 import Data.Monoid (Monoid(..))
-import Data.List (nub, sort)
+import Data.List (sort)
 import Data.Maybe (isJust, fromJust)
+import Data.Text (Text)
 
-import qualified Data.Text as T
+import qualified Data.Set as S
 import qualified Data.Text.Lazy.Builder as B
 
 import TestHelpers (runTestSuite
@@ -77,7 +78,8 @@ import TestHelpers (runTestSuite
                    , testCompareEq
                    , testMaker
                    )
-import qualified TestHelpers as T
+
+import qualified TestHelpers as TH
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -85,60 +87,21 @@ import qualified TestHelpers as T
 
 testVal :: (Eq a, Show a) => String -> a -> a -> Test
 testVal = testCompare "testVal:"
-{-
-testVal lab a1 a2 =
-    TestCase ( assertEqual ("testVal:"++lab) a1 a2 )
--}
 
 testEq :: (Eq a, Show a) => String -> Bool -> a -> a -> Test
 testEq = testCompareEq "testIsEq:"
-{-
-testEq lab eq a1 a2 =
-    TestCase ( assertEqual ("testEq:"++lab) eq (a1==a2) )
--}
 
 testEqual :: (Eq a, Show a) => String -> a -> a -> Test
-testEqual = T.testEq
-{-
-testEqual lab a1 a2 =
-    TestCase ( assertEqual ("testEq:"++lab) a1 a2 )
--}
-
-{-
-testLe :: (Ord a, Show a) => String -> Bool -> a -> a -> Test
-testLe lab eq a1 a2 =
-    TestCase ( assertEqual ("testLe:"++lab) eq (a1<=a2) )
--}
+testEqual = TH.testEq
 
 testStringEq :: String -> String -> String -> Test
 testStringEq = testCompare "testStringEq:"
-{-
-testStringEq lab s1 s2 =
-    TestCase ( assertEqual ("testStringEq:"++lab) s1 s2 )
--}
 
 testSameNamespace :: String -> Namespace -> Namespace -> Test
 testSameNamespace = testMaker getNamespaceTuple "testSameNamespace:"
-{-
-testSameNamespace lab n1 n2 =
-    TestCase ( assertBool ("testSameNamespace:"++lab) ((p1==p2)&&(u1==u2)) )
-    where
-      (p1, u1) = getNamespaceTuple n1
-      (p2, u2) = getNamespaceTuple n2
--}
 
 testScopedNameEq :: String -> Bool -> ScopedName -> ScopedName -> Test
 testScopedNameEq = testCompareEq "testScopedNameEq:"
-{-
-testScopedNameEq lab eq n1 n2 =
-    TestCase ( assertEqual ("testScopedNameEq:"++lab) eq (n1==n2) )
--}
-
-{-
-testQNameEq :: String -> Bool -> QName -> QName -> Test
-testQNameEq lab eq n1 n2 =
-    TestCase ( assertEqual ("testQNameEq:"++lab) eq (n1==n2) )
--}
 
 testSameAs :: (Ord a) => String -> String -> [a] -> [a] -> Test
 testSameAs l1 l2 x y =
@@ -162,7 +125,7 @@ pref_owl = getNamespaceURI namespaceOWL
 toURI :: String -> URI
 toURI = fromJust . parseURI
 
-toNS :: Maybe T.Text -> String -> Namespace
+toNS :: Maybe Text -> String -> Namespace
 toNS p = makeNamespace p . toURI
 
 ------------------------------------------------------------
@@ -278,7 +241,7 @@ isXMLLit :: String -> RDFVarBindingFilter
 isXMLLit = rdfVarBindingXMLLiteral . Var
 
 queryBack :: [Arc RDFLabel] -> RDFGraph -> [[RDFVarBinding]]
-queryBack qas = rdfQueryBack (toRDFGraph qas) 
+queryBack qas = rdfQueryBack (toRDFGraph (S.fromList qas))
 
 -- Backward chaining rdf:r2
 
@@ -287,7 +250,7 @@ rdfr2ant  = makeRDFGraphFromN3Builder "?x ?a ?l . "
 rdfr2con  = makeRDFGraphFromN3Builder "?x ?a ?b . ?b rdf:type rdf:XMLLiteral ."
 
 rdfr2modv :: RDFVarBindingModify
-rdfr2modv = allocateTo "b" "l" $ allLabels labelIsVar rdfr2ant
+rdfr2modv = allocateTo "b" "l" $ S.toList $ allLabels labelIsVar rdfr2ant
 
 rdfr2modc :: Maybe RDFVarBindingModify
 rdfr2modc = vbmCompose (makeVarFilterModify $ isXMLLit "l") rdfr2modv
@@ -295,8 +258,8 @@ rdfr2modc = vbmCompose (makeVarFilterModify $ isXMLLit "l") rdfr2modv
 rdfr2grc :: RDFClosure 
 rdfr2grc = GraphClosure
             { nameGraphRule = makeNSScopedName scopeRDF "r2"
-            , ruleAnt       = getArcs rdfr2ant
-            , ruleCon       = getArcs rdfr2con
+            , ruleAnt       = S.toList $ getArcs rdfr2ant
+            , ruleCon       = S.toList $ getArcs rdfr2con
             , ruleModify    = fromJust rdfr2modc
             }
 
@@ -334,45 +297,52 @@ b_l1, b_l2 :: RDFLabel
 b_l1  = Blank "l1"
 b_l2  = Blank "l2"
 
-rdfr2v1, rdfr2b1, rdfr2v2, rdfr2v3 :: [[RDFVarBinding]]
+-- could look at S.Set (S.Set RDFVarBinding) which would make
+-- comparison easier to write
+--
+rdfr2v1, rdfr2b1, rdfr2v2 :: [[RDFVarBinding]]
 rdfr2v1 = queryBack (ruleCon rdfr2grc) con03
 
-rdfr2b1 = [ [ makeVarBinding [ (v_x,u_s), (v_a,u_p1),  (v_b,b_l1) ]
-            , makeVarBinding [ (v_x,u_s), (v_a,u_p2a), (v_b,b_l2) ]
+rdfr2b1 = [ [ makeVarBinding [ (v_b,b_l2) ]
+            , makeVarBinding [ (v_b,b_l1) ]
             , makeVarBinding [ (v_x,u_s), (v_a,u_p2b), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s), (v_a,u_p2a), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s), (v_a,u_p1),  (v_b,b_l1) ]
+            ]
+          , [ makeVarBinding [ (v_x,b_l2), (v_a,u_rt),  (v_b,u_rx) ]
             , makeVarBinding [ (v_b,b_l1) ]
-            , makeVarBinding [ (v_b,b_l2) ]
-            ]
-          , [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
-            , makeVarBinding [ (v_x,u_s),  (v_a,u_p2a), (v_b,b_l2) ]
             , makeVarBinding [ (v_x,u_s),  (v_a,u_p2b), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s),  (v_a,u_p2a), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
+            ]
+          , [ makeVarBinding [ (v_b,b_l2) ]
             , makeVarBinding [ (v_x,b_l1), (v_a,u_rt),  (v_b,u_rx) ]
-            , makeVarBinding [ (v_b,b_l2) ]
-            ]
-          , [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
-            , makeVarBinding [ (v_x,u_s),  (v_a,u_p2a), (v_b,b_l2) ]
             , makeVarBinding [ (v_x,u_s),  (v_a,u_p2b), (v_b,b_l2) ]
-            , makeVarBinding [ (v_b,b_l1) ]
-            , makeVarBinding [ (v_x,b_l2), (v_a,u_rt),  (v_b,u_rx) ]
-            ]
-          , [ makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
             , makeVarBinding [ (v_x,u_s),  (v_a,u_p2a), (v_b,b_l2) ]
-            , makeVarBinding [ (v_x,u_s),  (v_a,u_p2b), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
+            ]
+          , [ makeVarBinding [ (v_x,b_l2), (v_a,u_rt),  (v_b,u_rx) ]
             , makeVarBinding [ (v_x,b_l1), (v_a,u_rt),  (v_b,u_rx) ]
-            , makeVarBinding [ (v_x,b_l2), (v_a,u_rt),  (v_b,u_rx) ]
+            , makeVarBinding [ (v_x,u_s),  (v_a,u_p2b), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s),  (v_a,u_p2a), (v_b,b_l2) ]
+            , makeVarBinding [ (v_x,u_s),  (v_a,u_p1),  (v_b,b_l1) ]
             ]
           ]
 
 rdfr2v2 = rdfQueryBackModify (ruleModify rdfr2grc) rdfr2v1
-rdfr2v3 = map nub rdfr2v2
+
+-- as rdfr2v2 is empty no point in the following
+
+-- rdfr2v3 :: [[RDFVarBinding]]
+-- rdfr2v3 = map nub rdfr2v2
 
 testRDFSuite :: Test
 testRDFSuite = 
   TestList
-  [ test    "testRDF01" $ isJust rdfr2modc
+  [ test    "testRDF01" (isJust rdfr2modc)
   , testVal "testRDF02" rdfr2b1 rdfr2v1
-  , testVal "testRDF03" [] rdfr2v2
-  , testVal "testRDF04" [] rdfr2v3
+  , test "testRDF03" $ rdfr2v2 == []
+  -- , test "testRDF04" $ rdfr2v3 == []
   , testEq "testRDF09" True [] $ bwdApply rdfr2rul con03
   ]
 
