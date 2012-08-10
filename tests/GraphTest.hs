@@ -595,7 +595,7 @@ t20 = arc s1 p1 b3
 t21 = arc b3 p2 b4
 t22 = arc b4 p3 o1
 
-as1, as2, as4, as5, as6 :: S.Set (Statement)
+as1, as2, as4, as5, as6 :: S.Set Statement
 as1 = S.singleton t01
 as2 = S.fromList [t01,t02,t03,t04,t05,t06]
 as4 = S.fromList [t01,t02,t03,t04,t05,t06,t10,t11,t12]

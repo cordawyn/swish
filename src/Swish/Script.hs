@@ -572,7 +572,7 @@ ssAssertEq n1 n2 comment =
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
                 (_,Left er) -> modify $ setError (comment++er1++"\n  "++er)
                 (Right gr1,Right gr2) -> 
-                    unless ((S.fromList gr1) == (S.fromList gr2)) $ modify $
+                    when (S.fromList gr1 /= S.fromList gr2) $ modify $
                       setError (comment++":\n  Graph "++show n1
                                 ++" differs from "++show n2++".")
             }

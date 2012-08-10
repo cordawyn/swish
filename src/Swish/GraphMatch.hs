@@ -32,7 +32,7 @@ module Swish.GraphMatch
         graphMatch1, graphMatch2, equivalenceClasses, reclassify
       ) where
 
-import Swish.GraphClass (Arc(..), Label(..))
+import Swish.GraphClass (Arc(..), ArcSet, Label(..))
 import Swish.GraphClass (getComponents, arcLabels, hasLabel, arcToTriple)
 
 import Control.Exception.Base (assert)
@@ -231,8 +231,8 @@ graphMatch :: (Label lb) =>
     --   of nodes.  Returns `True` if the supplied nodes may be
     --   matched.  (Used in RDF graph matching for checking
     --   that formula assignments are compatible.)
-    -> S.Set (Arc lb) -- ^ the first graph to be compared
-    -> S.Set (Arc lb) -- ^ the second graph to be compared
+    -> ArcSet lb -- ^ the first graph to be compared
+    -> ArcSet lb -- ^ the second graph to be compared
     -> (Bool, LabelMap (ScopedLabel lb))
     -- ^ If the first element is `True` then the second element maps each label
     --   to an equivalence class identifier, otherwise it is just
@@ -284,10 +284,10 @@ graphMatch1 ::
   -- ^ Test for additional constraints that may prevent the matching
   --  of a supplied pair of nodes.  Returns `True` if the supplied
   --  nodes may be matched.
-  -> S.Set (Arc lb) 
+  -> ArcSet lb 
   -- ^ (@gs1@ argument)
   --   first of two lists of arcs (triples) to be compared
-  -> S.Set (Arc lb)
+  -> ArcSet lb
   -- ^ (@gs2@ argument)
   --   secind of two lists of arcs (triples) to be compared
   -> LabelMap lb
@@ -373,8 +373,8 @@ graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
 --  original equivalence class value, but with a new NodeVal generation number.
 
 graphMatch2 :: (Label lb) => (lb -> lb -> Bool)
-    -> S.Set (Arc lb)
-    -> S.Set (Arc lb)
+    -> ArcSet lb
+    -> ArcSet lb
     -> LabelMap lb 
     -> [(EquivalenceClass lb,EquivalenceClass lb)]
     -> (Bool,LabelMap lb)
@@ -516,11 +516,11 @@ equivalenceClasses lmap ls =
 --
 reclassify :: 
   (Label lb) 
-  => S.Set (Arc lb) 
+  => ArcSet lb 
   -- ^ (the @gs1@ argument) the first of two sets of arcs to perform a
   --   basis for reclassifying the labels in the first equivalence
   --   class in each pair of @ecpairs@.
-  -> S.Set (Arc lb)
+  -> ArcSet lb
   -- ^ (the @gs2@ argument) the second of two sets of arcs to perform a
   --   basis for reclassifying the labels in the second equivalence
   --   class in each pair of the @ecpairs@ argument
@@ -574,7 +574,7 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
 --
 remapLabels :: 
   (Label lb) 
-  => S.Set (Arc lb) -- ^ arcs used for adjacency calculations when remapping
+  => ArcSet lb -- ^ arcs used for adjacency calculations when remapping
   -> LabelMap lb -- ^ the current label index values
   -> [lb] -- ^ the graph labels for which new mappings are to be created
   -> LabelMap lb
@@ -607,7 +607,7 @@ select _ _ _    = error "select supplied with different length lists"
 
 -- | Return the set of distinct labels used in the graph.
 
-graphLabels :: (Label lb) => S.Set (Arc lb) -> S.Set lb
+graphLabels :: (Label lb) => ArcSet lb -> S.Set lb
 graphLabels = getComponents arcLabels
 
 -- TODO: worry about overflow?
@@ -649,7 +649,7 @@ arcSignatures lmap =
 graphMap ::
     (Label lb)
     => LabelMap lb
-    -> S.Set (Arc lb)
+    -> ArcSet lb
     -> S.Set (Arc LabelIndex)
 graphMap = S.map . fmap . mapLabelIndex
 
@@ -665,8 +665,9 @@ graphMap = S.map . fmap . mapLabelIndex
 graphMapEq ::
     (Label lb) 
     => LabelMap lb
-    -> S.Set (Arc lb)
-    -> S.Set (Arc lb) -> Bool
+    -> ArcSet lb
+    -> ArcSet lb 
+    -> Bool
 graphMapEq lmap = (==) `on` (graphMap lmap)
 
 --------------------------------------------------------------------------------
