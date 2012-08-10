@@ -62,10 +62,10 @@ class LDGraph lg lb where
     emptyGraph  :: lg lb
       
     -- | Replace the existing arcs in the graph.
-    setArcs     :: lg lb -> S.Set (Arc lb) -> lg lb
+    setArcs     :: lg lb -> ArcSet lb -> lg lb
     
     -- | Extract all the arcs from a graph
-    getArcs     :: lg lb -> S.Set (Arc lb)
+    getArcs     :: lg lb -> ArcSet lb
     
     -- | Extract those arcs that match the given `Selector`.
     extract     :: (Ord lb) => Selector lb -> lg lb -> lg lb
@@ -97,7 +97,7 @@ class LDGraph lg lb where
     nodes = getComponents arcNodes . getArcs
     
     -- | Update the arcs in a graph using a supplied function.
-    update      :: (S.Set (Arc lb) -> S.Set (Arc lb)) -> lg lb -> lg lb
+    update      :: (ArcSet lb -> ArcSet lb) -> lg lb -> lg lb
     update f g  = setArcs g ( f (getArcs g) )
 
 -- | Extract components from a set.

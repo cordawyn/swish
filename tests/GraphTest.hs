@@ -22,7 +22,7 @@ import Test.HUnit
       ( Test(TestCase,TestList,TestLabel),
         assertEqual, assertBool )
 
-import Swish.GraphClass (Arc(..), LDGraph(..), Label(..))
+import Swish.GraphClass (Arc(..), ArcSet, LDGraph(..), Label(..))
 import Swish.GraphClass (arc, arcFromTriple, arcToTriple)
 import Swish.GraphMem
 import Swish.GraphMatch
@@ -602,7 +602,7 @@ as4 = S.fromList [t01,t02,t03,t04,t05,t06,t10,t11,t12]
 as5 = S.fromList [t01,t02,t03,t04,t05,t06,t20,t21,t22]
 as6 = S.fromList [t01,t02,t03,t04,t05,t06,t10,t11,t12,t20,t21,t22]
 
--- graphLabels :: (Label lb) => S.Set (Arc lb) -> S.Set lb
+-- graphLabels :: (Label lb) => ArcSet lb -> S.Set lb
 
 -- not clear both the 'raw' and 'string' versions are still needed.
 
@@ -832,7 +832,7 @@ t22_2 = makeScopedArc 2 t22
 
 -- Compare graph as6 with self, in steps
 
-as61, as62 :: S.Set (Arc (ScopedLabel LabelMem))
+as61, as62 :: ArcSet (ScopedLabel LabelMem)
 as61 = S.map (makeScopedArc 1) as6
 as62 = S.map (makeScopedArc 2) as6
 
@@ -933,7 +933,7 @@ testEqNewLabelMap07 = testEq "EqNewLabelMap07" eq1ltst'' eq1lmap''
 
 -- Repeat same tests for as4...
 
-as41, as42 :: S.Set (Arc (ScopedLabel LabelMem))
+as41, as42 :: ArcSet (ScopedLabel LabelMem)
 as41 = S.map (makeScopedArc 1) as4
 as42 = S.map (makeScopedArc 2) as4
 
@@ -1024,11 +1024,11 @@ testEqNewLabelMap27 = testEq "EqNewLabelMap27" eq2ltst'' eq2lmap''
 
 -- Compare as1 with as2, in steps
 
-as11, as22 :: S.Set (Arc (ScopedLabel LabelMem))
+as11, as22 :: ArcSet (ScopedLabel LabelMem)
 as11 = S.map (makeScopedArc 1) as1
 as22 = S.map (makeScopedArc 2) as2
 
-eq3hs1, eq3hs2 :: S.Set (Arc (ScopedLabel LabelMem))
+eq3hs1, eq3hs2 :: ArcSet (ScopedLabel LabelMem)
 eq3hs1   = S.singleton t01_1
 eq3hs2   = S.fromList [t01_2,t02_2,t03_2,t04_2,t05_2,t06_2]
 

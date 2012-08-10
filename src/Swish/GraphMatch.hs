@@ -650,7 +650,7 @@ graphMap ::
     (Label lb)
     => LabelMap lb
     -> ArcSet lb
-    -> S.Set (Arc LabelIndex)
+    -> ArcSet LabelIndex
 graphMap = S.map . fmap . mapLabelIndex
 
 -- | Compare a pair of graphs for equivalence under a given mapping

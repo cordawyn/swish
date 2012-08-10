@@ -41,7 +41,7 @@ import qualified Data.Set as S
 
 -- | Simple memory-based graph type. 
 
-data GraphMem lb = GraphMem { arcs :: S.Set (Arc lb) }
+data GraphMem lb = GraphMem { arcs :: ArcSet lb }
 
 instance (Label lb) => LDGraph GraphMem lb where
     emptyGraph   = GraphMem S.empty

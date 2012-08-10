@@ -59,7 +59,7 @@ module Swish.RDF.Formatter.N3
     )
 where
 
-import Swish.GraphClass (Arc(..))
+import Swish.GraphClass (Arc(..), ArcSet)
 import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 import Swish.QName (getLName)
 
@@ -829,7 +829,7 @@ showScopedName = quoteB True . show
 
 newtype SortedArcs lb = SA [Arc lb]
 
-sortArcs :: (Ord lb) => S.Set (Arc lb) -> SortedArcs lb
+sortArcs :: (Ord lb) => ArcSet lb -> SortedArcs lb
 sortArcs = SA . S.toAscList
 
 --  Rearrange a list of arcs into a tree of pairs which group together
