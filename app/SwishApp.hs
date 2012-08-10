@@ -20,7 +20,7 @@ import Paths_swish (version)
 import Data.Version (showVersion)
 
 import System.Environment (getArgs)
-import System.Exit (ExitCode(ExitSuccess,ExitFailure), exitWith, exitSuccess)
+import System.Exit (ExitCode(ExitFailure), exitWith, exitSuccess)
 
 import Control.Monad (unless)
 
