@@ -56,15 +56,15 @@ import Swish.RDF.Graph (RDFGraph, RDFLabel(..), merge)
 import Swish.RDF.Vocabulary (namespaceRDF, toLangTag, swishName, rdfType, rdfXMLLiteral)
 import Swish.RDF.Parser.N3 (parseN3)
 
-import Test.HUnit ( Test(TestList) )
-
-import qualified Data.Text.Lazy.Builder as B
-
-import Network.URI (URI, parseURI)
-
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust)
 
+import Network.URI (URI, parseURI)
+
+import qualified Data.Set as S
+import qualified Data.Text.Lazy.Builder as B
+
+import Test.HUnit ( Test(TestList) )
 import TestHelpers (runTestSuite
                    , test
                    , testEq
@@ -75,9 +75,6 @@ import TestHelpers (runTestSuite
 ------------------------------------------------------------
 --  misc helpers
 ------------------------------------------------------------
-
-testLs :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testLs = testEqv
 
 testGr :: String -> B.Builder -> [RDFGraph] -> Test
 testGr lab e = testElem lab (graphFromBuilder mempty e)
@@ -1050,41 +1047,41 @@ test4 =
   , testEq "testQuery41a" 1 (length var41)
   , testEq "testResult41" 1 (length res41)
   , testGr "testResult41a" result41a (fst $ unzip $ head res41)
-  , testLs "testUnbound41a" [] (snd $ head $ head res41)
+  , testEqv "testUnbound41a" [] (snd $ head $ head res41)
   , test "testQuery42" (not $ null var42)
   , testEq "testQuery42a" 1 (length var42)
   , testEq "testResult42" 1 (length res42)
   , testGr "testResult42a" result42a (fst $ unzip $ head res42)
-  , testLs "testUnbound42a" [Var "b"] (snd $ head $ head res42)
+  , testEqv "testUnbound42a" [Var "b"] (snd $ head $ head res42)
   , test "testQuery43" (not $ null var43)
   , testEq "testQuery43a" 1 (length var43)
   , testEq "testResult43" 1 (length res43)
   , testGr "testResult43a" result43a (fst $ unzip $ head res43)
-  , testLs "testUnbound43a" [Var "a"] (snd $ head $ head res43)
+  , testEqv "testUnbound43a" [Var "a"] (snd $ head $ head res43)
   , test "testQuery44" (not $ null var44)
   , testEq "testQuery44a"   2 (length var44)
   , testEq "testResult44"   2 (length res44)
   , testGr "testResult44a"  result44a  (fst $ unzip res44_2)
-  , testLs "testUnbound44a" unbound44a (snd $ head res44_2)
+  , testEqv "testUnbound44a" unbound44a (snd $ head res44_2)
   , testGr "testResult44b"  result44b  (fst $ unzip res44_1)
-  , testLs "testUnbound44b" unbound44b (snd $ head res44_1)
+  , testEqv "testUnbound44b" unbound44b (snd $ head res44_1)
   , test "testQuery45" (not $ null var45)
   , testEq "testQuery45a"   1 (length var45)
   , testEq "testResult45"   1 (length res45)
   , testEq "testResult45_1" 2 (length res45_1)
   , testGr "testResult45a1"  result45a1  [fst res45_11]
-  , testLs "testUnbound45a1" unbound45a1 (snd res45_11)
+  , testEqv "testUnbound45a1" unbound45a1 (snd res45_11)
   , testGr "testResult45a2"  result45a2  [fst res45_12]
-  , testLs "testUnbound45a2" unbound45a2 (snd res45_12)
+  , testEqv "testUnbound45a2" unbound45a2 (snd res45_12)
   , test "testQuery46" (not $ null var46)
   , testEq "testQuery46a"   2 (length var46)
   , testEq "testResult46"   2 (length res46)
   , testEq "testResult46_1" 1 (length res46_1)
   , testEq "testResult46_2" 1 (length res46_2)
   , testGr "testResult46a"  result46a  [fst res46_11]
-  , testLs "testUnbound46a" unbound46a (snd res46_11)
+  , testEqv "testUnbound46a" unbound46a (snd res46_11)
   , testGr "testResult46b"  result46b  [fst res46_21]
-  , testLs "testUnbound46b" unbound46b (snd res46_21)
+  , testEqv "testUnbound46b" unbound46b (snd res46_21)
   , test "testQuery47" (not $ null var47)
   , testEq "testQuery47a"   4 (length var47)
   , testEq "testResult47"   4 (length res47)
@@ -1093,30 +1090,30 @@ test4 =
   , testEq "testResult47_3" 2 (length res47_3)
   , testEq "testResult47_4" 2 (length res47_4)
   , testGr "testResult47a1"  result47a1  [fst res47_11]
-  , testLs "testUnbound47a1" unbound47a1 (snd res47_11)
+  , testEqv "testUnbound47a1" unbound47a1 (snd res47_11)
   , testGr "testResult47a2"  result47a2  [fst res47_12]
-  , testLs "testUnbound47a2" unbound47a2 (snd res47_12)
+  , testEqv "testUnbound47a2" unbound47a2 (snd res47_12)
   , testGr "testResult47b1"  result47b1  [fst res47_21]
-  , testLs "testUnbound47b1" unbound47b1 (snd res47_21)
+  , testEqv "testUnbound47b1" unbound47b1 (snd res47_21)
   , testGr "testResult47b2"  result47b2  [fst res47_22]
-  , testLs "testUnbound47b2" unbound47b2 (snd res47_22)
+  , testEqv "testUnbound47b2" unbound47b2 (snd res47_22)
   , testGr "testResult47c1"  result47c1  [fst res47_31]
-  , testLs "testUnbound47c1" unbound47c1 (snd res47_31)
+  , testEqv "testUnbound47c1" unbound47c1 (snd res47_31)
   , testGr "testResult47c2"  result47c2  [fst res47_32]
-  , testLs "testUnbound47c2" unbound47c2 (snd res47_32)
+  , testEqv "testUnbound47c2" unbound47c2 (snd res47_32)
   , testGr "testResult47d1"  result47d1  [fst res47_41]
-  , testLs "testUnbound47d1" unbound47d1 (snd res47_41)
+  , testEqv "testUnbound47d1" unbound47d1 (snd res47_41)
   , testGr "testResult47d2"  result47d2  [fst res47_42]
-  , testLs "testUnbound47d2" unbound47d2 (snd res47_42)
+  , testEqv "testUnbound47d2" unbound47d2 (snd res47_42)
   , test "testQuery48" (not $ null var48)
   , testEq "testQuery48a"   2 (length var48)
   , testEq "testResult48"   2 (length res48)
   , testEq "testResult48_1" 1 (length res48_1)
   , testEq "testResult48_2" 1 (length res48_2)
   , testGr "testResult48a"  result48a  [fst res48_11]
-  , testLs "testUnbound48a" unbound48a (snd res48_11)
+  , testEqv "testUnbound48a" unbound48a (snd res48_11)
   , testGr "testResult48b"  result48b  [fst res48_21]
-  , testLs "testUnbound48b" unbound48b (snd res48_21)
+  , testEqv "testUnbound48b" unbound48b (snd res48_21)
   , test "testQuery49" (null var49)
   , testEq "testQuery49a"   0 (length var49)
   , testEq "testResult49"   0 (length res49)
@@ -1126,9 +1123,9 @@ test4 =
   , testEq "testResult50_1" 1 (length res50_1)
   , testEq "testResult50_2" 1 (length res50_2)
   , testGr "testResult50a"  result50a  [fst res50_11]
-  , testLs "testUnbound50a" unbound50a (snd res50_11)
+  , testEqv "testUnbound50a" unbound50a (snd res50_11)
   , testGr "testResult50b"  result50b  [fst res50_21]
-  , testLs "testUnbound50b" unbound50b (snd res50_21)
+  , testEqv "testUnbound50b" unbound50b (snd res50_21)
   , testEq "testResult50F" 0 (length res50F)
   ]
 
@@ -1233,7 +1230,7 @@ test6 =
   , testGr "testResult63a" result63a [res63a]
   , test   "testQuery64" (not $ null var64)
   , testEq "testQuery64a" 1 (length var64)
-  , test   "testQuery64b" (null $ vbEnum var64a)
+  , test   "testQuery64b" (S.null $ vbEnum var64a)
   ]    
 
 ------------------------------------------------------------

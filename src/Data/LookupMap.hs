@@ -73,7 +73,7 @@ swap (a,b) = (b,a)
 --
 --  Minimal definition: @newEntry@ and @keyVal@
 --
-class (Eq k, Show k) => LookupEntryClass a k v | a -> k, a -> v
+class (Eq k) => LookupEntryClass a k v | a -> k, a -> v
     where
         newEntry    :: (k,v) -> a
         keyVal      :: a -> (k,v)
@@ -87,7 +87,7 @@ class (Eq k, Show k) => LookupEntryClass a k v | a -> k, a -> v
         entryEq     :: (Eq v) => a -> a -> Bool
         entryEq e1 e2 = keyVal e1 == keyVal e2
         
-        entryShow   :: (Show v) => a -> String
+        entryShow   :: (Show k, Show v) => a -> String
         entryShow e = show k ++ ":" ++ show v where (k,v) = keyVal e
                                                     
         kmap :: (LookupEntryClass a2 k2 v) => (k -> k2) -> a -> a2
@@ -99,7 +99,7 @@ class (Eq k, Show k) => LookupEntryClass a k v | a -> k, a -> v
 -- |Predefine a pair of appropriate values as a valid lookup table entry
 --  (i.e. an instance of LookupEntryClass).
 --
-instance (Eq k, Show k) => LookupEntryClass (k,v) k v where
+instance (Eq k) => LookupEntryClass (k,v) k v where
     newEntry = id
     keyVal   = id
 
@@ -114,7 +114,7 @@ data LookupMap a = LookupMap [a]
   deriving (Functor, F.Foldable, T.Traversable)
 
 instance (Ord a) => Ord (LookupMap a) where
-    compare = compare `on` gLM
+    compare = comparing gLM
 
 {-
 

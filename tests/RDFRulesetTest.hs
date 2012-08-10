@@ -48,7 +48,7 @@ import Swish.RDF.VarBinding
 
 import Swish.RDF.Graph
     ( Label (..), RDFLabel(..), RDFGraph
-    , Arc(..)
+    , RDFArcSet
     , getArcs
     , allLabels
     , toRDFGraph
@@ -240,8 +240,8 @@ allocateTo bv av = makeNodeAllocTo (Var bv) (Var av)
 isXMLLit :: String -> RDFVarBindingFilter
 isXMLLit = rdfVarBindingXMLLiteral . Var
 
-queryBack :: [Arc RDFLabel] -> RDFGraph -> [[RDFVarBinding]]
-queryBack qas = rdfQueryBack (toRDFGraph (S.fromList qas))
+queryBack :: RDFArcSet -> RDFGraph -> [[RDFVarBinding]]
+queryBack qas = rdfQueryBack (toRDFGraph qas)
 
 -- Backward chaining rdf:r2
 
@@ -258,8 +258,8 @@ rdfr2modc = vbmCompose (makeVarFilterModify $ isXMLLit "l") rdfr2modv
 rdfr2grc :: RDFClosure 
 rdfr2grc = GraphClosure
             { nameGraphRule = makeNSScopedName scopeRDF "r2"
-            , ruleAnt       = S.toList $ getArcs rdfr2ant
-            , ruleCon       = S.toList $ getArcs rdfr2con
+            , ruleAnt       = getArcs rdfr2ant
+            , ruleCon       = getArcs rdfr2con
             , ruleModify    = fromJust rdfr2modc
             }
 

@@ -28,6 +28,7 @@ module Swish.GraphClass
     ( LDGraph(..)
     , Label(..)
     , Arc(..)
+    , ArcSet
     , Selector
     , arc, arcToTriple, arcFromTriple
     , hasLabel, arcLabels -- , arcNodes
@@ -37,6 +38,7 @@ where
 
 import Data.Hashable (Hashable(..))
 import Data.List (foldl')
+import Data.Ord (comparing)
 
 import qualified Data.Foldable as F
 import qualified Data.Set as S
@@ -148,6 +150,9 @@ data Arc lb = Arc
               }
             deriving (Eq, Functor, F.Foldable, T.Traversable)
 
+-- | A set - or graph - of arcs.
+type ArcSet lb = S.Set (Arc lb)
+
 instance (Hashable lb) => Hashable (Arc lb) where
   hash (Arc s p o) = hash s `hashWithSalt` p `hashWithSalt` o
   hashWithSalt salt (Arc s p o) = salt `hashWithSalt` s `hashWithSalt` p `hashWithSalt` o
@@ -168,21 +173,7 @@ arcFromTriple :: (lb,lb,lb) -> Arc lb
 arcFromTriple (s,p,o) = Arc s p o
 
 instance Ord lb => Ord (Arc lb) where
-  compare (Arc s1 p1 o1) (Arc s2 p2 o2)
-    | cs /= EQ = cs
-    | cp /= EQ = cp
-    | otherwise = co
-    where
-      cs = compare s1 s2
-      cp = compare p1 p2
-      co = compare o1 o2
-
-  {- not needed
-  (Arc s1 p1 o1) <= (Arc s2 p2 o2)
-    | s1 /= s2 = s1 <= s2
-    | p1 /= p2 = p1 <= p2
-    | otherwise = o1 <= o2
-  -}
+    compare = comparing arcToTriple
 
 instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =

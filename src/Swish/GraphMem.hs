@@ -51,6 +51,9 @@ instance (Label lb) => LDGraph GraphMem lb where
 instance (Label lb) => Eq (GraphMem lb) where
     (==) = graphEq
 
+instance (Label lb) => Ord (GraphMem lb) where
+    compare = comparing getArcs
+
 instance (Label lb) => Show (GraphMem lb) where
     show = graphShow
 
@@ -60,11 +63,6 @@ instance (Label lb) => Monoid (GraphMem lb) where
 
 graphShow   :: (Label lb) => GraphMem lb -> String
 graphShow g = "Graph:" ++ S.foldr ((++) . ("\n    " ++) . show) "" (arcs g)
-
-{-
-toGraph :: (Label lb) => [Arc lb] -> GraphMem lb
-toGraph as = GraphMem { arcs=nub as }
--}
 
 -- |  Return Boolean graph equality
 
@@ -134,12 +132,15 @@ instance Eq LabelMem where
     (LV l1) == (LV l2)  = l1 == l2
     _ == _              = False
 
+instance Ord LabelMem where
+    (LF l1) `compare` (LF l2) = l1 `compare` l2
+    (LV l1) `compare` (LV l2) = l1 `compare` l2
+    (LF _)  `compare` _       = LT
+    _       `compare` (LF _)  = GT
+
 instance Show LabelMem where
     show (LF l1)        = '!' : l1
     show (LV l2)        = '?' : l2
-
-instance Ord LabelMem where
-    compare = comparing show 
 
 --------------------------------------------------------------------------------
 --

@@ -23,8 +23,6 @@ import Swish.QName (QName, qnameFromURI)
 
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..), mapFindMaybe)
 
-import Swish.Utils.ListHelpers (equiv)
-
 import Swish.GraphClass (Label(..), arc {- , arcToTriple -} )
 
 import Swish.RDF.Graph
@@ -77,9 +75,10 @@ import Test.HUnit
     , assertBool, assertEqual )
 
 import TestHelpers ( runTestSuite
-                     , testEq
-                     , testCompare
-                     , testCompareEq)
+                   , testEq
+                   , testEqv
+                   , testCompare
+                   , testCompareEq)
 
 ------------------------------------------------------------
 --  Test language tag comparisons
@@ -1337,9 +1336,6 @@ assertGrEq :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEq lbl gg1 gg2 = 
   assertGrHelper lbl gg1 gg2 $ gg1 == gg2
 
-testEquiv :: (Eq a) => String -> [a] -> [a] -> Test
-testEquiv lab l1s l2s = TestCase $ assertBool lab (l1s `equiv` l2s)
-
 tm01, tm02, tm03, tm04, tm05, tm06, tm07, tm08, tm09,
   tm10, tm11, tm12, tm13, tm14 :: RDFTriple
 tm01 = arc s1  p1 b1
@@ -1559,7 +1555,7 @@ testMergeSuite = TestList
               (mappend gm4 (mappend gm5 gm6))
               (mappend (mappend gm4 gm5) gm6))
   , testGraphEq "Remap07" True gm82 gm82a
-  , testEquiv "testRemapList07" gm82b2 gm82b1
+  , testEqv "testRemapList07" gm82b2 gm82b1
   , testGraphEq "Remap08" True gm83 gm83a
   , testGraphEq "Remap09" True gm85 gm85a
   , testGraphEq "Remap10" True gm86 gm86a

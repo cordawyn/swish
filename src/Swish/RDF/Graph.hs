@@ -35,6 +35,7 @@ module Swish.RDF.Graph
     , quoteT
       
       -- * RDF Graphs
+    , RDFArcSet
     , RDFTriple
     , toRDFTriple, fromRDFTriple
     , NSGraph(..)
@@ -179,7 +180,7 @@ import Swish.RDF.Vocabulary (fromLangTag, xsdBoolean, xsdDate, xsdDateTime, xsdD
                             , owlSameAs, logImplies, namespaceRDF
                             )
 
-import Swish.GraphClass (LDGraph(..), Label (..), Arc(..), Selector)
+import Swish.GraphClass (LDGraph(..), Label (..), Arc(..), ArcSet, Selector)
 import Swish.GraphClass (arc, arcLabels, getComponents)
 import Swish.GraphMatch (LabelMap, ScopedLabel(..))
 import Swish.GraphMatch (graphMatch)
@@ -1010,6 +1011,9 @@ makeBlank  lb           = lb
 --
 type RDFTriple = Arc RDFLabel
 
+-- | A set of RDF triples.
+type RDFArcSet = ArcSet RDFLabel
+
 -- | Convert 3 RDF labels to a RDF triple.
 --
 --   See also @Swish.RDF.GraphClass.arcFromTriple@.
@@ -1138,7 +1142,7 @@ are:
 data NSGraph lb = NSGraph
     { namespaces :: NamespaceMap      -- ^ the namespaces to use
     , formulae   :: FormulaMap lb     -- ^ any associated formulae (a.k.a. sub- or named- graps)
-    , statements :: S.Set (Arc lb)    -- ^ the statements in the graph
+    , statements :: ArcSet lb         -- ^ the statements in the graph
     }
 
 instance (Label lb) => LDGraph NSGraph lb where
@@ -1171,9 +1175,13 @@ traverseSet f = S.foldr cons (pure S.empty)
 instance (Label lb) => Eq (NSGraph lb) where
     (==) = grEq
 
+-- The namespaces are not used in the ordering since this could
+-- lead to identical graphs not being considered the same when
+-- ordering.
+--
 instance (Label lb) => Ord (NSGraph lb) where
-    (NSGraph ns1 fml1 stmts1) `compare` (NSGraph ns2 fml2 stmts2) =
-        (ns1,fml1,stmts1) `compare` (ns2,fml2,stmts2)
+    (NSGraph _ fml1 stmts1) `compare` (NSGraph _ fml2 stmts2) =
+        (fml1,stmts1) `compare` (fml2,stmts2)
 
 instance (Label lb) => Show (NSGraph lb) where
     show     = grShow ""
@@ -1412,7 +1420,7 @@ type RDFGraph = NSGraph RDFLabel
 -- and earlier.
 --
 toRDFGraph :: 
-    S.Set RDFTriple
+    RDFArcSet
     -> RDFGraph
 toRDFGraph arcs = 
   let lbls = getComponents arcLabels arcs

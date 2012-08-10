@@ -417,7 +417,7 @@ dmAppf dtmod (dmName dtmod)
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod11inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod11inv :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod11inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -456,7 +456,7 @@ makeVmod11inv _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod11 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod11 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod11 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -501,7 +501,7 @@ makeVmod11 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod21inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod21inv :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod21inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -542,7 +542,7 @@ makeVmod21inv _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod21 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod21 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod21 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -618,7 +618,7 @@ makeVmod20 _ _ _ =
 --  NOTE: this might be generalized to allow one of @w@ or @x@ to be
 --  specified, and return null if it doesn't match the calculated value.
 --
-makeVmod22 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod22 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod22 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -658,7 +658,7 @@ makeVmod22 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmodN1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmodN1 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmodN1 nam [f0,f1] lbs@(~(lb1:_)) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -685,7 +685,7 @@ makeVmodN1 _ _ _ =
 
 --  Add value to variable variable binding, if value is singleton list,
 --  otherwise return empty list.
-addv :: (Eq lb, Show lb, Eq vt, Show vt)
+addv :: (Ord lb, Ord vt)
     => lb -> [vt] -> VarBinding lb vt
     -> [VarBinding lb vt]
 addv lb [val] vbind = [addVarBinding lb val vbind]
@@ -693,7 +693,7 @@ addv _  _     _     = []
 
 --  Add two entries to variable variable binding, if value supplied is
 --  a doubleton list, otherwise return empty list.
-addv2 :: (Eq lb, Show lb, Eq vt, Show vt)
+addv2 :: (Ord lb, Ord vt)
     => lb -> lb -> [vt] -> VarBinding lb vt
     -> [VarBinding lb vt]
 addv2 lb1 lb2 [val1,val2] vbind = [addVarBinding lb1 val1 $

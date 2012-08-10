@@ -35,13 +35,12 @@ import Swish.VarBinding
 
 import Swish.RDF.Vocabulary (swishName)
 
-import Test.HUnit (Test(TestList))
-
 import Data.List (union, intersect)
 import Data.Maybe (isJust, isNothing, fromJust)
 
--- import qualified Data.Text as T
+import qualified Data.Set as S
 
+import Test.HUnit (Test(TestList))
 import TestHelpers (runTestSuite
                     , test
                     , testEq 
@@ -63,7 +62,7 @@ vb2 :: VarBinding Int String
 vb2    = makeVarBinding [(3,"c"),(2,"b"),(1,"a")]
 
 vb2str :: String
-vb2str = "[(3,\"c\"),(2,\"b\"),(1,\"a\")]"
+vb2str = vb1str
 
 vb3 :: VarBinding Int String
 vb3    = makeVarBinding [(1,"a"),(2,"b"),(3,"c"),(4,"d"),(5,"e")]
@@ -111,9 +110,9 @@ testVarBindingSuite =
   , testEq "testVarBinding04" vb1str  $ show vb1
   , testEq "testVarBinding05" vb2str  $ show vb2
   , testEq "testVarBinding06" vb4str  $ show vb4
-  , testEq "testVarBinding10" [1,2,3] $ boundVars vb1
-  , testEq "testVarBinding11" [3,2,1] $ boundVars vb2
-  , testEq "testVarBinding12" []      $ boundVars vb4
+  , testEq "testVarBinding10" (S.fromList [1,2,3]) $ boundVars vb1
+  , testEq "testVarBinding11" (S.fromList [3,2,1]) $ boundVars vb2
+  , testEq "testVarBinding12" S.empty              $ boundVars vb4
   , test   "testVarBinding20" (subBinding vb1 vb2)
   , test   "testVarBinding21" (subBinding vb1 vb3)
   , test   "testVarBinding22" $ not (subBinding vb1 vb4)
@@ -181,12 +180,15 @@ vb9m    = makeVarBinding [("i",9)]
 
 -- Add new bindings per vb9m
 vbm1 :: VarBindingModify String Int
-vbm1 = VarBindingModify
-    { vbmName  = swishName "vbm1"
-    , vbmApply = map (`joinVarBindings` vb9m)
-    , vbmVocab = boundVars vb9m
-    , vbmUsage = [boundVars vb9m]
-    }
+vbm1 = 
+    let vcb = S.toList (boundVars vb9m)
+    in VarBindingModify
+           { vbmName  = swishName "vbm1"
+           , vbmApply = map (`joinVarBindings` vb9m)
+           , vbmVocab = vcb
+           , vbmUsage = [vcb]
+           }
+
 
 vb1m1, vb2m1 :: VarBinding String Int
 [vb1m1] = vbmApply vbm1 [vb1m]
@@ -347,7 +349,6 @@ vbcd    = makeVarBinding [("c",3),("d",4)]
 
 vbabcd :: VarBinding String Int
 vbabcd    = makeVarBinding [("a",1),("b",2),("c",3),("d",4)]
-
 
 -- [[[need test for incompatible composition]]] --
 --  Three ways to be incompatible:

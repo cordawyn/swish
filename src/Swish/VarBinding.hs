@@ -52,6 +52,7 @@ import Data.List (find, intersect, union, (\\), foldl', permutations)
 import Data.LookupMap (LookupEntryClass(..), makeLookupMap, mapFindMaybe)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 import Data.Monoid (Monoid(..), mconcat)
+import Data.Ord (comparing)
 
 import qualified Data.Set as S
 
@@ -64,7 +65,7 @@ import qualified Data.Set as S
 --
 data VarBinding a b = VarBinding
     { vbMap  :: a -> Maybe b
-    , vbEnum :: [(a,b)]
+    , vbEnum :: S.Set (a,b)
     , vbNull :: Bool
     }
 
@@ -72,16 +73,16 @@ data VarBinding a b = VarBinding
 --   pairs of variables in the binding.
 --
 instance (Ord a, Ord b) => Eq (VarBinding a b) where
-    (==) = (==) `on` (S.fromList . vbEnum)
+    (==) = (==) `on` vbEnum
 
 -- | The Ord instance is defined only on the pairs of
 --   variables in the binding.
 instance (Ord a, Ord b) => Ord (VarBinding a b) where
-    compare = compare `on` vbEnum
+    compare = comparing vbEnum
 
 -- | When combining instances, if there is an overlapping binding then
 --   the  value from the first instance is used.
-instance (Eq a) => Monoid (VarBinding a b) where
+instance (Ord a, Ord b) => Monoid (VarBinding a b) where
     mempty = nullVarBinding
     mappend = joinVarBindings
 
@@ -89,7 +90,7 @@ instance (Eq a) => Monoid (VarBinding a b) where
 --    in the binding.
 --
 instance (Show a, Show b) => Show (VarBinding a b) where
-    show = show . vbEnum
+    show = show . S.toList . vbEnum
 
 -- | The null, or empry, binding maps no query variables.
 --   This is the 'mempty' instance of the Monoid.
@@ -97,32 +98,32 @@ instance (Show a, Show b) => Show (VarBinding a b) where
 nullVarBinding :: VarBinding a b
 nullVarBinding = VarBinding
     { vbMap  = const Nothing
-    , vbEnum = []
+    , vbEnum = S.empty
     , vbNull = True
     }
 
 -- |Return a list of the variables bound by a supplied variable binding
 --
-boundVars :: VarBinding a b -> [a]
-boundVars = map fst . vbEnum
+boundVars :: (Ord a, Ord b) => VarBinding a b -> S.Set a
+boundVars = S.map fst . vbEnum
 
 -- |VarBinding subset function, tests to see if one query binding
 --  is a subset of another;  i.e. every query variable mapping defined
 --  by one is also defined by the other.
 --
 subBinding :: (Ord a, Ord b) => VarBinding a b -> VarBinding a b -> Bool
-subBinding = S.isSubsetOf `on` (S.fromList . vbEnum)
+subBinding = S.isSubsetOf `on` vbEnum
 
 -- |Function to make a variable binding from a list of
 --  pairs of variable and corresponding assigned value.
 --
-makeVarBinding :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> VarBinding a b
+makeVarBinding :: (Ord a, Ord b) => [(a,b)] -> VarBinding a b
 makeVarBinding [] = nullVarBinding
 makeVarBinding vrbs =
     let selectFrom = flip mapFindMaybe . makeLookupMap
     in VarBinding
            { vbMap  = selectFrom vrbs
-           , vbEnum = vrbs
+           , vbEnum = S.fromList vrbs
            , vbNull = False
            }
 
@@ -137,18 +138,18 @@ applyVarBinding vbind v = fromMaybe v (vbMap vbind v)
 --  If the bindings should overlap, such overlap is not detected and
 --  the value from the first binding provided is used.
 --
-joinVarBindings :: (Eq a) => VarBinding a b -> VarBinding a b -> VarBinding a b
+joinVarBindings :: (Ord a, Ord b) => VarBinding a b -> VarBinding a b -> VarBinding a b
 joinVarBindings vb1 vb2
     | vbNull vb1 = vb2
     | vbNull vb2 = vb1
     | otherwise  = VarBinding
         { vbMap  = mv12
-        , vbEnum = map (\v -> (v,fromJust (mv12 v))) bv12
+        , vbEnum = S.map (\v -> (v,fromJust (mv12 v))) bv12
         , vbNull = False
         }
     where
         mv12 = headOrNothing . filter isJust . flist [ vbMap vb1, vbMap vb2 ]
-        bv12 = boundVars vb1 `union` boundVars vb2
+        bv12 = boundVars vb1 `S.union` boundVars vb2
 
 -- |Return head of a list of @Maybe@'s, or @Nothing@ if list is empty
 --
@@ -162,7 +163,11 @@ headOrNothing (a:_) = a
 -- |Add a single new value to a variable binding and return the resulting
 --  new variable binding.
 --
-addVarBinding :: (Eq a, Show a, Eq b, Show b) => a -> b -> VarBinding a b
+addVarBinding :: 
+    (Ord a, Ord b) 
+    => a 
+    -> b 
+    -> VarBinding a b
     -> VarBinding a b
 addVarBinding lb val vbind = joinVarBindings vbind $ makeVarBinding [(lb,val)]
 

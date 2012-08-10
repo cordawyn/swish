@@ -33,10 +33,7 @@ import Data.List ( sort )
 
 import Test.HUnit ( Test(TestList) )
 
-import TestHelpers (runTestSuite
-                    , testEq
-                    , testEqv
-                    )
+import TestHelpers (runTestSuite, testEq)
   
 ------------------------------------------------------------
 --  Declare lookup entry for testing
@@ -63,24 +60,6 @@ type MayTestMap = Maybe RevTestMap
 type StrTestMap = LookupMap (GenMapEntry String String)
 
 ------------------------------------------------------------
---  Test class helper
-------------------------------------------------------------
-
-testeq :: (Show a, Eq a) => String -> a -> a -> Test
-testeq = testEq
-{-
-testeq lab req got =
-    TestCase ( assertEqual ("test"++lab) req got )
--}
-
-testeqv :: (Show a, Eq a) => String -> [a] -> [a] -> Test
-testeqv = testEqv
-{-
-testeqv lab req got =
-    TestCase ( assertEqual ("test"++lab) True (req `equiv` got) )
--}
-
-------------------------------------------------------------
 --  LookupMap functions
 ------------------------------------------------------------
 
@@ -88,11 +67,11 @@ newMap :: [(Int,String)] -> TestMap
 newMap es = makeLookupMap (map newEntry es)
 
 testLookupMap :: String -> TestMap -> [(Int,String)] -> Test
-testLookupMap lab m1 m2 = testeq ("LookupMap"++lab ) (newMap m2) m1
+testLookupMap lab m1 m2 = testEq ("LookupMap"++lab ) (newMap m2) m1
 
 testLookupMapFind :: String -> TestMap -> Int -> String -> Test
 testLookupMapFind lab lm k res =
-    testeq ("LookupMapFind"++lab ) res (mapFind "" k lm)
+    testEq ("LookupMapFind"++lab ) res (mapFind "" k lm)
 
 lm00, lm01, lm02, lm03, lm04, lm05, lm06, lm07, lm08, lm09 :: TestMap
 lm00 = newMap []
@@ -145,8 +124,8 @@ testLookupMapSuite =
   , testLookupMapFind "21" lm21 2 "bbb1"
   , testLookupMap     "22" lm22 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
   , testLookupMapFind "22" lm22 1 "aaa22"
-  , testeq "LookupContains31" True  (mapContains lm22 2)
-  , testeq "LookupContains32" False (mapContains lm22 9)
+  , testEq "LookupContains31" True  (mapContains lm22 2)
+  , testEq "LookupContains32" False (mapContains lm22 9)
   , testLookupMap      "33" lm33 [(2,"bbb1"),(3,"ccc"),(2,"bbb1"),(1,"aaa22")]
   , testLookupMapFind "33a" lm33 1 "aaa22"
   , testLookupMapFind "33b" lm33 4 ""
@@ -173,11 +152,11 @@ newRevMap es = makeLookupMap (map newEntry es)
 
 testRevLookupMap :: String -> RevTestMap -> [(String,Int)] -> Test
 testRevLookupMap lab m1 m2 =
-    testeq ("RevLookupMap"++lab) (newRevMap m2) m1
+    testEq ("RevLookupMap"++lab) (newRevMap m2) m1
 
 testRevLookupMapFind :: String -> RevTestMap -> String -> Int -> Test
 testRevLookupMapFind lab lm k res =
-    testeq ("RevLookupMapFind"++lab) res (mapFind revdef k lm)
+    testEq ("RevLookupMapFind"++lab) res (mapFind revdef k lm)
 
 rlm00 :: RevTestMap
 rlm00 = reverseLookupMap lm00
@@ -242,7 +221,7 @@ testRevLookupMapSuite =
 
 testMapKeys :: String -> TestMap -> [Int] -> Test
 testMapKeys lab m1 mk =
-    testeq ("testMapKeys:"++lab) mk (sort $ mapKeys m1)
+    testEq ("testMapKeys:"++lab) mk (sort $ mapKeys m1)
 
 testMapKeysSuite :: Test
 testMapKeysSuite = 
@@ -265,7 +244,7 @@ testMapKeysSuite =
 
 testMapVals :: String -> TestMap -> [String] -> Test
 testMapVals lab m1 mv =
-    testeq ("MapVals:"++lab) mv (sort $ mapVals m1)
+    testEq ("MapVals:"++lab) mv (sort $ mapVals m1)
 
 testMapValsSuite :: Test
 testMapValsSuite =
@@ -312,7 +291,7 @@ mapeqlist =
 
 testMapEq :: String -> Bool -> TestMap -> TestMap -> Test
 testMapEq lab eq m1 m2 =
-    testeq ("testMapEq:"++lab) eq (mapEq m1 m2)
+    testEq ("testMapEq:"++lab) eq (mapEq m1 m2)
 
 testMapEqSuite :: Test
 testMapEqSuite = TestList

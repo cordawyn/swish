@@ -48,7 +48,7 @@ import Swish.QName (LName)
 import Swish.Rule (Formula(..), Rule(..), RuleMap)
 import Swish.Rule (fwdCheckInference, nullSN)
 import Swish.Ruleset (Ruleset(..), RulesetMap)
-import Swish.GraphClass (Label(..), Arc(..), LDGraph(..))
+import Swish.GraphClass (Label(..), ArcSet, LDGraph(..))
 import Swish.VarBinding (VarBindingModify(..))
 import Swish.VarBinding (makeVarBinding, applyVarBinding, joinVarBindings, vbmCompose, varBindingId)
 
@@ -60,7 +60,7 @@ import Swish.RDF.Query
     )
 
 import Swish.RDF.Graph
-    ( RDFLabel(..), RDFGraph, RDFTriple
+    ( RDFLabel(..), RDFGraph, RDFArcSet
     , makeBlank, newNodes
     , merge, allLabels
     , toRDFGraph)
@@ -70,7 +70,7 @@ import Swish.RDF.Parser.N3 (parseN3)
 
 import Swish.RDF.Vocabulary (swishName, namespaceRDF, namespaceRDFS)
 
-import Swish.Utils.ListHelpers (equiv, flist)
+import Swish.Utils.ListHelpers (flist)
 
 import Data.List (nub)
 import Data.Maybe (fromMaybe)
@@ -119,9 +119,9 @@ nullRDFFormula = Formula
 -- |Datatype for constructing a graph closure rule
 data GraphClosure lb = GraphClosure
     { nameGraphRule :: ScopedName   -- ^ Name of rule for proof display
-    , ruleAnt       :: [Arc lb]     -- ^ Antecedent triples pattern
+    , ruleAnt       :: ArcSet lb    -- ^ Antecedent triples pattern
                                     --   (may include variable nodes)
-    , ruleCon       :: [Arc lb]     -- ^ Consequent triples pattern
+    , ruleCon       :: ArcSet lb    -- ^ Consequent triples pattern
                                     --   (may include variable nodes)
     , ruleModify    :: VarBindingModify lb lb
                                     -- ^ Structure that defines additional
@@ -134,10 +134,12 @@ data GraphClosure lb = GraphClosure
                                     --   arising from graph queries.
     }
 
+-- | Equality is based on the closure rule, anrecedents and
+--   consequents.
 instance (Label lb) => Eq (GraphClosure lb) where
     c1 == c2 = nameGraphRule c1 == nameGraphRule c2 &&
-               ruleAnt c1 `equiv` ruleAnt c2 &&
-               ruleCon c1 `equiv` ruleCon c2
+               ruleAnt c1 == ruleAnt c2 &&
+               ruleCon c1 == ruleCon c2
 
 instance (Label lb) => Show (GraphClosure lb) where
     show c = "GraphClosure " ++ show (nameGraphRule c)
@@ -214,20 +216,17 @@ graphClosureBwdApply grc gr =
 --  RDF graph query and substitution support functions
 ------------------------------------------------------------
 
-toGr :: [RDFTriple] -> RDFGraph
-toGr = toRDFGraph . S.fromList
+queryFind :: RDFArcSet -> RDFGraph -> [RDFVarBinding]
+queryFind qas = rdfQueryFind (toRDFGraph qas)
 
-queryFind :: [RDFTriple] -> RDFGraph -> [RDFVarBinding]
-queryFind qas = rdfQueryFind (toGr qas)
+queryBack :: RDFArcSet -> RDFGraph -> [[RDFVarBinding]]
+queryBack qas = rdfQueryBack (toRDFGraph qas)
 
-queryBack :: [RDFTriple] -> RDFGraph -> [[RDFVarBinding]]
-queryBack qas = rdfQueryBack (toGr qas)
+querySubs :: [RDFVarBinding] -> RDFArcSet -> [RDFGraph]
+querySubs vars = rdfQuerySubs vars . toRDFGraph
 
-querySubs :: [RDFVarBinding] -> [RDFTriple] -> [RDFGraph]
-querySubs vars = rdfQuerySubs vars . toGr
-
-querySubsBlank :: [RDFVarBinding] -> [RDFTriple] -> [RDFGraph]
-querySubsBlank vars = rdfQuerySubsBlank vars . toGr
+querySubsBlank :: [RDFVarBinding] -> RDFArcSet -> [RDFGraph]
+querySubsBlank vars = rdfQuerySubsBlank vars . toRDFGraph
 
 ------------------------------------------------------------
 --  Method for creating an RDF formula value from N3 text
@@ -297,8 +296,8 @@ makeRDFClosureRule ::
 makeRDFClosureRule sname antgrs congr vmod = makeGraphClosureRule
     GraphClosure
         { nameGraphRule = sname
-        , ruleAnt       = concatMap (S.toList . getArcs) antgrs -- TODO: improve
-        , ruleCon       = S.toList $ getArcs congr
+        , ruleAnt       = S.unions $ map getArcs antgrs
+        , ruleCon       = getArcs congr
         , ruleModify    = vmod
         }
 

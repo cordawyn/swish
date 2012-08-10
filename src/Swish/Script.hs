@@ -119,11 +119,8 @@ import Swish.QName (QName, qnameFromURI)
 
 import Swish.RDF.Formatter.N3 (formatGraphAsBuilder)
 
-import Swish.Utils.ListHelpers (equiv, flist)
+import Swish.Utils.ListHelpers (flist)
 
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.Builder as B
-import qualified Data.Text.Lazy.IO as LIO
 import Text.ParserCombinators.Poly.StateText
 
 import Control.Monad (unless, when, liftM, void)
@@ -134,8 +131,12 @@ import Data.Monoid (Monoid(..))
 
 import Network.URI (URI(..))
 
-import qualified System.IO.Error as IO
 import qualified Control.Exception as CE
+import qualified Data.Set as S
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+import qualified Data.Text.Lazy.IO as LIO
+import qualified System.IO.Error as IO
 
 ------------------------------------------------------------
 --
@@ -571,7 +572,7 @@ ssAssertEq n1 n2 comment =
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
                 (_,Left er) -> modify $ setError (comment++er1++"\n  "++er)
                 (Right gr1,Right gr2) -> 
-                    unless (equiv gr1 gr2) $ modify $
+                    unless ((S.fromList gr1) == (S.fromList gr2)) $ modify $
                       setError (comment++":\n  Graph "++show n1
                                 ++" differs from "++show n2++".")
             }
