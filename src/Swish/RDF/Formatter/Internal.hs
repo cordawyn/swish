@@ -66,11 +66,6 @@ emptyNgs = Ngs
     , nodeGen   = 0
     }
 
--- list has a length of 1
-len1 :: [a] -> Bool
-len1 (_:[]) = True
-len1 _ = False
-
 {-|
 Removes the first occurrence of the item from the
 association list, returning it's contents and the rest
@@ -110,16 +105,10 @@ getCollection subjList lbl = go subjList lbl ([],[])
       go sl l (cs,ss) | l == resRdfNil = Just (sl, reverse cs, ss)
                       | otherwise = do
         (pList1, sl') <- removeItem sl l
-        (pFirst, pList2) <- removeItem pList1 resRdfFirst
-        (pNext, pList3) <- removeItem pList2 resRdfRest
+        ([pFirst], pList2) <- removeItem pList1 resRdfFirst
+        ([pNext], []) <- removeItem pList2 resRdfRest
 
-        -- QUS: could I include these checks implicitly in the pattern matches above?
-        -- ie instrad of (pFirst, pos1) <- ..
-        -- have ([content], pos1) <- ...
-        -- ?
-        if len1 pFirst && len1 pNext && null pList3
-          then go sl' (head pNext) (head pFirst : cs, l : ss)
-          else Nothing
+        go sl' pNext (pFirst : cs, l : ss)
 
 ----------------------------------------------------------------------
 --  Graph-related helper functions
