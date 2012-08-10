@@ -47,6 +47,8 @@ import Swish.RDF.Vocabulary (swishName)
 
 import Swish.Utils.ListHelpers (flist)
 
+import Control.Applicative ((<$>), (<*>))
+
 import Data.Function (on)
 import Data.List (find, intersect, union, (\\), foldl', permutations)
 import Data.LookupMap (LookupEntryClass(..))
@@ -225,7 +227,7 @@ data VarBindingModify a b = VarBindingModify
                             --  variables in @vbmVocab@ are supplied.
     }
 
--- |Allow a VarBindingModify value to be accessed using a 'LookupMap'.
+-- |Allow a @VarBindingModify@ value to be accessed using a 'LookupMap'.
 --
 instance LookupEntryClass
     (VarBindingModify a b) ScopedName (VarBindingModify a b)
@@ -251,7 +253,7 @@ type OpenVarBindingModify lb vn = [lb] -> VarBindingModify lb vn
 openVbmName :: OpenVarBindingModify lb vn -> ScopedName
 openVbmName ovbm = vbmName (ovbm (error "Undefined labels in variable binding"))
 
--- |Allow an @OpenVarBindingModify@ value to be accessed using a @LookupMap@.
+-- |Allow an @OpenVarBindingModify@ value to be accessed using a 'LookupMap'.
 --
 instance LookupEntryClass
     (OpenVarBindingModify a b) ScopedName (OpenVarBindingModify a b)
@@ -259,8 +261,7 @@ instance LookupEntryClass
         keyVal   ovbm     = (openVbmName ovbm,ovbm)
         newEntry (_,ovbm) = ovbm
 
--- |Allow an OpenVarBindingModify value to be accessed using a LookupMap.
---
+-- | Displays the name of the modifier.
 instance Show (OpenVarBindingModify a b)
     where
         show = show . openVbmName
@@ -467,9 +468,7 @@ makeVarTestFilter ::
 makeVarTestFilter nam vtest var = VarBindingFilter
     { vbfName   = nam
     , vbfVocab  = [var]
-    , vbfTest   = \vb -> case vbMap vb var of
-                    Just val  -> vtest val
-                    _         -> False
+    , vbfTest   = \vb -> maybe False vtest (vbMap vb var)
     }
 
 -- |Make a variable comparison filter for named variables using
@@ -479,9 +478,7 @@ makeVarCompareFilter ::
 makeVarCompareFilter nam vcomp v1 v2 = VarBindingFilter
     { vbfName   = nam
     , vbfVocab  = [v1,v2]
-    , vbfTest   = \vb -> case (vbMap vb v1,vbMap vb v2) of
-                    (Just val1, Just val2) -> vcomp val1 val2
-                    _                      -> False
+    , vbfTest   = \vb -> maybe False id (vcomp <$> vbMap vb v1 <*> vbMap vb v2)
     }
 
 ------------------------------------------------------------
