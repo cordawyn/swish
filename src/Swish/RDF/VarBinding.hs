@@ -32,6 +32,7 @@ module Swish.RDF.VarBinding
     )
 where
 
+import Swish.Namespace (ScopedName)
 import Swish.VarBinding (VarBinding(..), VarBindingModify(..), OpenVarBindingModify, VarBindingFilter(..))
 import Swish.VarBinding (nullVarBinding, applyVarBinding, makeVarTestFilter)
 
@@ -42,7 +43,7 @@ import Swish.RDF.Graph
     )
 import Swish.RDF.Vocabulary (swishName)
 
-import Data.LookupMap (LookupMap(..))
+import qualified Data.Map as M
 
 ------------------------------------------------------------
 --  Types for RDF query variable bindings and modifiers
@@ -64,7 +65,7 @@ type RDFVarBindingModify = VarBindingModify RDFLabel RDFLabel
 type RDFOpenVarBindingModify = OpenVarBindingModify RDFLabel RDFLabel
 
 -- |Define type for lookup map of open query binding modifiers
-type RDFOpenVarBindingModifyMap = LookupMap RDFOpenVarBindingModify
+type RDFOpenVarBindingModifyMap = M.Map ScopedName RDFOpenVarBindingModify
 
 -- |@RDFVarBindingFilter@ is a function type that tests to see if
 --  a query binding satisfies some criterion, and is used to
