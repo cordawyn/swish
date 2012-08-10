@@ -89,7 +89,7 @@ type RDFFormula     = Formula RDFGraph
 -- | A named inference rule expressed in RDF.
 type RDFRule        = Rule RDFGraph
 
--- | A 'LookupMap' for 'RDFRule' rules.
+-- | A map for 'RDFRule' rules.
 type RDFRuleMap     = RuleMap RDFGraph
 
 -- | A 'GraphClosure' for RDF statements.
@@ -98,7 +98,7 @@ type RDFClosure     = GraphClosure RDFLabel
 -- | A 'Ruleset' for RDF.
 type RDFRuleset     = Ruleset RDFGraph
 
--- | 'LookupMap' for 'RDFRuleset'.
+-- | A map for 'RDFRuleset'.
 type RDFRulesetMap  = RulesetMap RDFGraph
 
 ------------------------------------------------------------
