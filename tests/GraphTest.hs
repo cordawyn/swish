@@ -26,7 +26,7 @@ import Swish.GraphClass (Arc(..), ArcSet, LDGraph(..), Label(..))
 import Swish.GraphClass (arc, arcFromTriple, arcToTriple)
 import Swish.GraphMem
 import Swish.GraphMatch
-      ( LabelMap, GenLabelMap(..), LabelEntry, 
+      ( LabelMap, GenLabelMap(..), 
         EquivalenceClass,
         ScopedLabel(..), makeScopedLabel, makeScopedArc,
         LabelIndex, nullLabelVal, emptyMap,
@@ -38,8 +38,6 @@ import Swish.GraphMatch
 
 -- import Swish.Utils.ListHelpers (subset)
 
-import Data.LookupMap (LookupEntryClass(..), makeLookupMap)
-
 import TestHelpers (runTestSuite, testEq)
 
 import Data.List (sort, elemIndex)
@@ -47,6 +45,7 @@ import Data.Maybe (fromJust)
 import Data.Ord (comparing)
 import Data.Word (Word32)
 
+import qualified Data.Map as M
 import qualified Data.Set as S
 
 default ( Int )
@@ -81,10 +80,7 @@ getArcsT g = S.map arcToTriple $ getArcs g
 ------------------------------------------------------------
 
 tstLabelMap :: (Label lb) => Word32 -> [(lb,LabelIndex)] -> LabelMap lb
-tstLabelMap gen lvs = LabelMap gen (makeLookupMap $ makeEntries lvs)
-
-makeEntries :: (Label lb) => [(lb,LabelIndex)] -> [LabelEntry lb]
-makeEntries = map newEntry
+tstLabelMap gen = LabelMap gen . M.fromList
 
 ------------------------------------------------------------
 --  Graph helper function tests
@@ -507,25 +503,25 @@ testShowLabelMap :: Test
 testShowLabelMap = testEq "showLabelMap" showMap (show lmap)
     where
         showMap = "LabelMap gen=5, map=\n"++
-                  "    !s1:(1,1)\n"++
-                  "    !s2:(2,2)\n"++
-                  "    !s3:(3,3)\n"++
-                  "    !:(4,4)\n"++
-                  "    !o1:(1,1)\n"++
-                  "    !o2:(2,2)\n"++
-                  "    !o3:(3,3)"
+                  "    (!,(4,4))\n"++
+                  "    (!o1,(1,1))\n"++
+                  "    (!o2,(2,2))\n"++
+                  "    (!o3,(3,3))\n"++
+                  "    (!s1,(1,1))\n"++
+                  "    (!s2,(2,2))\n"++
+                  "    (!s3,(3,3))"
 
 testMapLabelHash00 :: Test
 testMapLabelHash00 = testEq "mapLabelHash00" showMap (show lmap1)
     where
         showMap = "LabelMap gen=5, map=\n"++
-                  "    !s1:(1,1)\n"++
-                  "    !s2:(5,22)\n"++
-                  "    !s3:(3,3)\n"++
-                  "    !:(4,4)\n"++
-                  "    !o1:(1,1)\n"++
-                  "    !o2:(2,2)\n"++
-                  "    !o3:(3,3)"
+                  "    (!,(4,4))\n"++
+                  "    (!o1,(1,1))\n"++
+                  "    (!o2,(2,2))\n"++
+                  "    (!o3,(3,3))\n"++
+                  "    (!s1,(1,1))\n"++
+                  "    (!s2,(5,22))\n"++
+                  "    (!s3,(3,3))"
 
 -- mapLabelIndex :: (Label lb) => LabelMap lb -> lb -> LabelIndex
 

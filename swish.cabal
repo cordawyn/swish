@@ -61,6 +61,8 @@ Description:
   changed; added a @Monoid@ instance for @VarBinding@; added @Ord@
   instances for a number of containers; removed some un-needed constraints.
   .
+  * Bumped the minimum containers requirement to @0.5@.
+  .
   Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
   .
   References:
@@ -92,7 +94,7 @@ Library
    Build-Depends:
       base >=3 && < 5,
       binary == 0.5.*,
-      containers >= 0.3 && < 0.6,
+      containers == 0.5.*,
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,

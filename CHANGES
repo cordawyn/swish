@@ -15,6 +15,8 @@
   Ord instances for a number of containers; removed some un-needed
   constraints.
 
+  Bumped the minimum containers requirement to 0.5.
+
 0.7.0.2:
 
   Swish.QName.LName now requires all characters to be ASCII. This

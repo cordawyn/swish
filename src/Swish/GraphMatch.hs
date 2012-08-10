@@ -41,13 +41,12 @@ import Control.Arrow (second)
 import Data.Function (on)
 import Data.Hashable (combine)
 import Data.List (foldl', sortBy, groupBy, partition)
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Data.LookupMap (makeLookupMap, listLookupMap, setLookupMap, mapFind, mapReplaceAll,
-                       mapAddIfNew, mapReplaceMap, mapMerge)
+import Data.LookupMap (LookupEntryClass(..))
 import Data.Ord (comparing)
 import Data.Word
 
 import qualified Data.List as L
+import qualified Data.Map as M
 import qualified Data.Set as S
 
 --------------------------
@@ -97,7 +96,7 @@ instance (Label lb, Show lv, Ord lv) => Ord (GenLabelEntry lb lv) where
 
 -- | Type for label->index lookup table
 data (Label lb, Eq lv, Show lv) => GenLabelMap lb lv =
-    LabelMap Word32 (LookupMap (GenLabelEntry lb lv))
+    LabelMap Word32 (M.Map lb lv)
 
 -- | A label lookup table specialized to 'LabelIndex' indices.
 type LabelMap lb = GenLabelMap lb LabelIndex
@@ -107,11 +106,11 @@ instance (Label lb) => Show (LabelMap lb) where
 
 instance (Label lb) => Eq (LabelMap lb) where
     LabelMap gen1 lmap1 == LabelMap gen2 lmap2 =
-      (gen1, setLookupMap lmap1) == (gen2, setLookupMap lmap2)
+      (gen1, lmap1) == (gen2, lmap2)
 
 -- | The empty label map table.
 emptyMap :: (Label lb) => LabelMap lb
-emptyMap = LabelMap 1 $ makeLookupMap []
+emptyMap = LabelMap 1 M.empty
 
 --------------------------
 --  Equivalence class type
@@ -421,13 +420,13 @@ showLabelMap (LabelMap gn lmap) =
     "LabelMap gen="++ Prelude.show gn ++", map="++
     foldl' (++) "" (map (("\n    "++) . Prelude.show) es)
     where
-        es = listLookupMap lmap
+        es = M.toList lmap
 
 -- | Map a label to its corresponding label index value in the
 --   supplied LabelMap.
 --
 mapLabelIndex :: (Label lb) => LabelMap lb -> lb -> LabelIndex
-mapLabelIndex (LabelMap _ lxms) lb = mapFind nullLabelVal lb lxms
+mapLabelIndex (LabelMap _ lxms) lb = M.findWithDefault nullLabelVal lb lxms
 
 -- | Confirm that a given pair of labels are matchable, and are
 --  mapped to the same value by the supplied label map
@@ -454,7 +453,7 @@ newLabelMap lmap (lv:lvs) = setLabelHash (newLabelMap lmap lvs) lv
 setLabelHash :: (Label lb)
     => LabelMap lb -> (lb, Word32) -> LabelMap lb
 setLabelHash  (LabelMap g lmap) (lb,lh) =
-    LabelMap g ( mapReplaceAll lmap $ newEntry (lb,(g,lh)) )
+    LabelMap g $ M.insert lb (g,lh) lmap
 
 -- | Increment the generation of the label map.
 --
@@ -478,9 +477,8 @@ assignLabelMap :: (Label lb) => S.Set lb -> LabelMap lb -> LabelMap lb
 assignLabelMap ns lmap = S.foldl' (flip assignLabelMap1) lmap ns
 
 assignLabelMap1 :: (Label lb) => lb -> LabelMap lb -> LabelMap lb
-assignLabelMap1 lab (LabelMap g lvs) = LabelMap g lvs'
-    where
-        lvs' = mapAddIfNew lvs $ newEntry (lab,(g,initVal lab))
+assignLabelMap1 lab (LabelMap g lvs) = 
+    LabelMap g $ M.insertWith (flip const) lab (g, initVal lab) lvs
 
 --  Calculate initial value for a node
 
@@ -554,7 +552,10 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
             remapLabels gs1 lmap $ foldl1 (++) $ map (ecLabels . fst) ecpairs
         LabelMap gen2 lm2 =
             remapLabels gs2 lmap $ foldl1 (++) $ map (ecLabels . snd) ecpairs
-        lm' = mapReplaceMap lm $ mapMerge lm1 lm2
+
+        -- replace values in lm with those from (lm1+lm2), but do not copy
+        -- over new keys from (lm1+lm2)
+        lm' = M.mergeWithKey (\_ _ v -> Just v) id (const M.empty) lm $ M.union lm1 lm2
         
         tmap f (a,b) = (f a, f b)
         
@@ -567,7 +568,7 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         pairEq = uncurry (==)
         pairG1 (p1,p2) = p1 > 1 || p2 > 1
         remapEc = pairGroup . map (newIndex lm') . pairUngroup 
-        newIndex x (_,lab) = (mapFind nullLabelVal lab x,lab)
+        newIndex x (_,lab) = (M.findWithDefault nullLabelVal lab x,lab)
 
 -- | Calculate a new index value for a supplied set of labels based on the
 --  supplied label map and adjacency calculations in the supplied graph
@@ -582,10 +583,10 @@ remapLabels ::
   -- for the given graph labels. The label map generation number is
   -- incremented by 1.
 remapLabels gs lmap@(LabelMap gen _) ls =
-    LabelMap gen' (LookupMap newEntries)
+    LabelMap gen' $ M.fromList newEntries
     where
         gen'                = gen+1
-        newEntries          = [ newEntry (l, (gen', fromIntegral (newIndex l))) | l <- ls ]
+        newEntries          = [ (l, (gen', fromIntegral (newIndex l))) | l <- ls ]
         newIndex l
             | labelIsVar l  = mapAdjacent l                 -- adjacency classifies variable labels
             | otherwise     = hashVal (fromIntegral gen) l  -- otherwise rehash (to disentangle collisions)
