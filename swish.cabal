@@ -110,6 +110,7 @@ Library
       Build-Depends:   intern >= 0.8 && < 1.0
 
    Hs-Source-Dirs: src/
+   Other-Modules:  Swish.RDF.Formatter.Internal
 
    Exposed-Modules:
       Data.Interned.URI
@@ -427,7 +428,7 @@ Test-Suite test-qname
 
  -- How can we include data files that are only used for
  -- benchmark/tests and do not get installed?
-Benchmark            bench-ntriples
+ Benchmark            bench-ntriples
    Type:             exitcode-stdio-1.0
    Hs-Source-Dirs:   bench/
    Other-Modules:    Paths_swish
