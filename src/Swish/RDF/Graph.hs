@@ -1243,9 +1243,8 @@ grEq g1 = fst . grMatchMap g1
 grMatchMap :: (Label lb) =>
     NSGraph lb -> NSGraph lb -> (Bool, LabelMap (ScopedLabel lb))
 grMatchMap g1 g2 =
-    graphMatch matchable (ga g1) (ga g2)
+    graphMatch matchable (getArcs g1) (getArcs g2)
     where
-        ga = S.toList . getArcs
         matchable l1 l2 = mapFormula g1 l1 == mapFormula g2 l2
         mapFormula g l  = mapFindMaybe l (getFormulae g)
 

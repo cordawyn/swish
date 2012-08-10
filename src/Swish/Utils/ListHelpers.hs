@@ -18,7 +18,7 @@
 
 module Swish.Utils.ListHelpers
        ( -- list of modules the routine is used in
-         equiv -- GraphMatch, RDF.Ruleset, Script, VarBinding, Data.LookupMap
+         equiv -- GraphMatch, RDF.Ruleset, Script, VarBinding
                -- tests: GraphPartitionTest, RDFGraphTest, TestHelpers
        , flist -- Datatype, RDF.Proof, RDF.Ruleset, Script, VarBinding, ...
         

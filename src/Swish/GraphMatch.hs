@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 --------------------------------------------------------------------------------
@@ -12,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses
+--  Portability :  FlexibleInstances, MultiParamTypeClasses
 --
 --  This module contains graph-matching logic.
 --
@@ -36,18 +35,16 @@ module Swish.GraphMatch
 import Swish.GraphClass (Arc(..), Label(..))
 import Swish.GraphClass (getComponents, arcLabels, hasLabel, arcToTriple)
 
-import Swish.Utils.ListHelpers (equiv)
-
 import Control.Exception.Base (assert)
 import Control.Arrow (second)
 
-import Data.Ord (comparing)
+import Data.Function (on)
+import Data.Hashable (combine)
 import Data.List (foldl', sortBy, groupBy, partition)
 import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Data.LookupMap (makeLookupMap, listLookupMap, mapFind, mapReplaceAll,
+import Data.LookupMap (makeLookupMap, listLookupMap, setLookupMap, mapFind, mapReplaceAll,
                        mapAddIfNew, mapReplaceMap, mapMerge)
-import Data.Function (on)  
-import Data.Hashable (combine)
+import Data.Ord (comparing)
 import Data.Word
 
 import qualified Data.List as L
@@ -77,7 +74,7 @@ nullLabelVal = (0, 0)
 -- | A Mapping between a label and a value (e.g. an index
 -- value).
 data (Label lb) => GenLabelEntry lb lv = LabelEntry lb lv
-
+    
 -- | A label associated with a 'LabelIndex'
 type LabelEntry lb = GenLabelEntry lb LabelIndex
 
@@ -86,13 +83,17 @@ instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
     keyVal   (LabelEntry k v) = (k,v)
     newEntry (k,v)            = LabelEntry k v
 
-instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
+instance (Label lb, Eq lv, Show lv)
     => Show (GenLabelEntry lb lv) where
     show = entryShow
 
-instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
+instance (Label lb, Eq lv, Show lv)
     => Eq (GenLabelEntry lb lv) where
     (==) = entryEq
+
+instance (Label lb, Show lv, Ord lv) => Ord (GenLabelEntry lb lv) where
+    (LabelEntry lb1 lv1) `compare` (LabelEntry lb2 lv2) =
+        (lb1, lv1) `compare` (lb2, lv2)
 
 -- | Type for label->index lookup table
 data (Label lb, Eq lv, Show lv) => GenLabelMap lb lv =
@@ -106,10 +107,7 @@ instance (Label lb) => Show (LabelMap lb) where
 
 instance (Label lb) => Eq (LabelMap lb) where
     LabelMap gen1 lmap1 == LabelMap gen2 lmap2 =
-        gen1 == gen2 && es1 `equiv` es2
-        where
-            es1 = listLookupMap lmap1
-            es2 = listLookupMap lmap2
+      (gen1, setLookupMap lmap1) == (gen2, setLookupMap lmap2)
 
 -- | The empty label map table.
 emptyMap :: (Label lb) => LabelMap lb
@@ -160,6 +158,8 @@ pairUngroup (a,bs) = [ (a,b) | b <- bs ]
 -- | Order the pairs based on the first argument.
 pairSort :: (Ord a) => [(a,b)] -> [(a,b)]
 pairSort = sortBy (comparing fst)
+
+-- TODO: use set on input
 
 -- | Group the pairs based on the first argument.
 pairGroup :: (Ord a) => [(a,b)] -> [(a,[b])]
@@ -231,8 +231,8 @@ graphMatch :: (Label lb) =>
     --   of nodes.  Returns `True` if the supplied nodes may be
     --   matched.  (Used in RDF graph matching for checking
     --   that formula assignments are compatible.)
-    -> [Arc lb] -- ^ the first graph to be compared, as a list of arcs
-    -> [Arc lb] -- ^ the second graph to be compared, as a list of arcs
+    -> S.Set (Arc lb) -- ^ the first graph to be compared
+    -> S.Set (Arc lb) -- ^ the second graph to be compared
     -> (Bool, LabelMap (ScopedLabel lb))
     -- ^ If the first element is `True` then the second element maps each label
     --   to an equivalence class identifier, otherwise it is just
@@ -240,16 +240,16 @@ graphMatch :: (Label lb) =>
     --
 graphMatch matchable gs1 gs2 =
     let
-        sgs1    = {- trace "sgs1 " $ -} map (makeScopedArc 1) gs1
-        sgs2    = {- trace "sgs2 " $ -} map (makeScopedArc 2) gs2
+        sgs1    = {- trace "sgs1 " $ -} S.map (makeScopedArc 1) gs1
+        sgs2    = {- trace "sgs2 " $ -} S.map (makeScopedArc 2) gs2
         ls1     = {- traceShow "ls1 " $ -} graphLabels sgs1
         ls2     = {- traceShow "ls2 " $ -} graphLabels sgs2
         lmap    = {- traceShow "lmap " $ -}
                   newGenerationMap $
                   assignLabelMap ls1 $
                   assignLabelMap ls2 emptyMap
-        ec1     = {- traceShow "ec1 " $ -} equivalenceClasses lmap $ S.toList ls1 -- TODO: use sets rather than lists
-        ec2     = {- traceShow "ec2 " $ -} equivalenceClasses lmap $ S.toList ls2
+        ec1     = {- traceShow "ec1 " $ -} equivalenceClasses lmap ls1
+        ec2     = {- traceShow "ec2 " $ -} equivalenceClasses lmap ls2
         ecpairs = zip (pairSort ec1) (pairSort ec2)
         matchableScoped (ScopedLabel _ l1) (ScopedLabel _ l2) = matchable l1 l2
         match   = graphMatch1 False matchableScoped sgs1 sgs2 lmap ecpairs
@@ -284,10 +284,10 @@ graphMatch1 ::
   -- ^ Test for additional constraints that may prevent the matching
   --  of a supplied pair of nodes.  Returns `True` if the supplied
   --  nodes may be matched.
-  -> [Arc lb] 
+  -> S.Set (Arc lb) 
   -- ^ (@gs1@ argument)
   --   first of two lists of arcs (triples) to be compared
-  -> [Arc lb]
+  -> S.Set (Arc lb)
   -- ^ (@gs2@ argument)
   --   secind of two lists of arcs (triples) to be compared
   -> LabelMap lb
@@ -373,8 +373,10 @@ graphMatch1 guessed matchable gs1 gs2 lmap ecpairs =
 --  original equivalence class value, but with a new NodeVal generation number.
 
 graphMatch2 :: (Label lb) => (lb -> lb -> Bool)
-    -> [Arc lb] -> [Arc lb]
-    -> LabelMap lb -> [(EquivalenceClass lb,EquivalenceClass lb)]
+    -> S.Set (Arc lb)
+    -> S.Set (Arc lb)
+    -> LabelMap lb 
+    -> [(EquivalenceClass lb,EquivalenceClass lb)]
     -> (Bool,LabelMap lb)
 graphMatch2 _         _   _   _    [] = error "graphMatch2 sent an empty list" -- To keep -Wall happy
 graphMatch2 matchable gs1 gs2 lmap ((ec1@(ev1,ls1),ec2@(ev2,ls2)):ecpairs) =
@@ -421,7 +423,8 @@ showLabelMap (LabelMap gn lmap) =
     where
         es = listLookupMap lmap
 
--- | Map a label to its corresponding label index value in the supplied LabelMap
+-- | Map a label to its corresponding label index value in the
+--   supplied LabelMap.
 --
 mapLabelIndex :: (Label lb) => LabelMap lb -> lb -> LabelIndex
 mapLabelIndex (LabelMap _ lxms) lb = mapFind nullLabelVal lb lxms
@@ -493,11 +496,11 @@ hashVal seed lab =
 -- using the label map.
 equivalenceClasses :: 
   (Label lb) 
-  => LabelMap lb -- ^ label map
-  -> [lb]        -- ^ list of nodes to be reclassified
+  => LabelMap lb     -- ^ label map
+  -> S.Set lb        -- ^ nodes to be reclassified
   -> [EquivalenceClass lb]
 equivalenceClasses lmap ls =
-    pairGroup $ map labelPair ls
+    pairGroup $ S.toList $ S.map labelPair ls
     where
         labelPair l = (mapLabelIndex lmap l,l)
 
@@ -513,12 +516,12 @@ equivalenceClasses lmap ls =
 --
 reclassify :: 
   (Label lb) 
-  => [Arc lb] 
-  -- ^ (the @gs1@ argument) the first of two lists of arcs (triples) to perform a
+  => S.Set (Arc lb) 
+  -- ^ (the @gs1@ argument) the first of two sets of arcs to perform a
   --   basis for reclassifying the labels in the first equivalence
   --   class in each pair of @ecpairs@.
-  -> [Arc lb]
-  -- ^ (the @gs2@ argument) the second of two lists of arcs (triples) to perform a
+  -> S.Set (Arc lb)
+  -- ^ (the @gs2@ argument) the second of two sets of arcs to perform a
   --   basis for reclassifying the labels in the second equivalence
   --   class in each pair of the @ecpairs@ argument
   -> LabelMap lb 
@@ -566,12 +569,12 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         remapEc = pairGroup . map (newIndex lm') . pairUngroup 
         newIndex x (_,lab) = (mapFind nullLabelVal lab x,lab)
 
--- | Calculate a new index value for a supplied list of labels based on the
+-- | Calculate a new index value for a supplied set of labels based on the
 --  supplied label map and adjacency calculations in the supplied graph
 --
 remapLabels :: 
   (Label lb) 
-  => [Arc lb] -- ^ arcs used for adjacency calculations when remapping
+  => S.Set (Arc lb) -- ^ arcs used for adjacency calculations when remapping
   -> LabelMap lb -- ^ the current label index values
   -> [lb] -- ^ the graph labels for which new mappings are to be created
   -> LabelMap lb
@@ -588,7 +591,10 @@ remapLabels gs lmap@(LabelMap gen _) ls =
             | otherwise     = hashVal (fromIntegral gen) l  -- otherwise rehash (to disentangle collisions)
         -- mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
         mapAdjacent l       = sum (sigsOver l) `combine` hashModulus -- is this a sensible replacement for `rem` MH.hashModulus        
-        sigsOver l          = select (hasLabel l) gs (arcSignatures lmap gs)
+
+        gls = S.toList gs
+
+        sigsOver l          = select (hasLabel l) gls (arcSignatures lmap gls)
 
 -- |Select is like filter, except that it tests one list to select
 --  elements from a second list.
@@ -601,14 +607,18 @@ select _ _ _    = error "select supplied with different length lists"
 
 -- | Return the set of distinct labels used in the graph.
 
-graphLabels :: (Label lb) => [Arc lb] -> S.Set lb
-graphLabels = getComponents arcLabels . S.fromList
+graphLabels :: (Label lb) => S.Set (Arc lb) -> S.Set lb
+graphLabels = getComponents arcLabels
 
 -- TODO: worry about overflow?
 
--- | Calculate a signature value for each arc that can be used in constructing an
---   adjacency based value for a node.  The adjacancy value for a label is obtained
---   by summing the signatures of all statements containing that label.
+-- TODO: should probably return a Set of (Int, Arc lb) or something, 
+-- as may be useful for the calling code
+
+-- | Calculate a signature value for each arc that can be used in 
+--   constructing an adjacency based value for a node.  The adjacancy
+--   value for a label is obtained by summing the signatures of all
+--   statements containing that label.
 --
 arcSignatures :: 
   (Label lb) 
@@ -634,10 +644,14 @@ arcSignatures lmap =
 --  Used for testing for graph equivalence under a supplied
 --  label mapping;  e.g.
 --
---  >  if ( graphMap nodeMap gs1 ) `equiv` ( graphMap nodeMap gs2 ) then (same)
+--  >  if ( graphMap nodeMap gs1 ) == ( graphMap nodeMap gs2 ) then (same)
 --
-graphMap :: (Label lb) => LabelMap lb -> [Arc lb] -> [Arc LabelIndex]
-graphMap = map . fmap . mapLabelIndex  -- graphMapStmt
+graphMap ::
+    (Label lb)
+    => LabelMap lb
+    -> S.Set (Arc lb)
+    -> S.Set (Arc LabelIndex)
+graphMap = S.map . fmap . mapLabelIndex
 
 -- | Compare a pair of graphs for equivalence under a given mapping
 --   function.
@@ -648,8 +662,12 @@ graphMap = map . fmap . mapLabelIndex  -- graphMapStmt
 --  the required singleton equivalence classes, but does not fully
 --  reflect the topology of the graphs.
 
-graphMapEq :: (Label lb) => LabelMap lb -> [Arc lb] -> [Arc lb] -> Bool
-graphMapEq lmap gs1 gs2 = graphMap lmap gs1 `equiv` graphMap lmap gs2
+graphMapEq ::
+    (Label lb) 
+    => LabelMap lb
+    -> S.Set (Arc lb)
+    -> S.Set (Arc lb) -> Bool
+graphMapEq lmap = (==) `on` (graphMap lmap)
 
 --------------------------------------------------------------------------------
 --

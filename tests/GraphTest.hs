@@ -595,14 +595,14 @@ t20 = arc s1 p1 b3
 t21 = arc b3 p2 b4
 t22 = arc b4 p3 o1
 
-as1, as2, as4, as5, as6 :: [Statement]
-as1 = [t01]
-as2 = [t01,t02,t03,t04,t05,t06]
-as4 = [t01,t02,t03,t04,t05,t06,t10,t11,t12]
-as5 = [t01,t02,t03,t04,t05,t06,t20,t21,t22]
-as6 = [t01,t02,t03,t04,t05,t06,t10,t11,t12,t20,t21,t22]
+as1, as2, as4, as5, as6 :: S.Set (Statement)
+as1 = S.singleton t01
+as2 = S.fromList [t01,t02,t03,t04,t05,t06]
+as4 = S.fromList [t01,t02,t03,t04,t05,t06,t10,t11,t12]
+as5 = S.fromList [t01,t02,t03,t04,t05,t06,t20,t21,t22]
+as6 = S.fromList [t01,t02,t03,t04,t05,t06,t10,t11,t12,t20,t21,t22]
 
--- graphLabels :: (Label lb) => [Arc lb] -> S.Set lb
+-- graphLabels :: (Label lb) => S.Set (Arc lb) -> S.Set lb
 
 -- not clear both the 'raw' and 'string' versions are still needed.
 
@@ -832,9 +832,9 @@ t22_2 = makeScopedArc 2 t22
 
 -- Compare graph as6 with self, in steps
 
-as61, as62 :: [Arc (ScopedLabel LabelMem)]
-as61 = map (makeScopedArc 1) as6
-as62 = map (makeScopedArc 2) as6
+as61, as62 :: S.Set (Arc (ScopedLabel LabelMem))
+as61 = S.map (makeScopedArc 1) as6
+as62 = S.map (makeScopedArc 2) as6
 
 eq1lmap :: LabelMap (ScopedLabel LabelMem)
 eq1lmap     = newGenerationMap $
@@ -933,9 +933,9 @@ testEqNewLabelMap07 = testEq "EqNewLabelMap07" eq1ltst'' eq1lmap''
 
 -- Repeat same tests for as4...
 
-as41, as42 :: [Arc (ScopedLabel LabelMem)]
-as41 = map (makeScopedArc 1) as4
-as42 = map (makeScopedArc 2) as4
+as41, as42 :: S.Set (Arc (ScopedLabel LabelMem))
+as41 = S.map (makeScopedArc 1) as4
+as42 = S.map (makeScopedArc 2) as4
 
 eq2lmap :: LabelMap (ScopedLabel LabelMem)
 eq2lmap     = newGenerationMap $
@@ -1024,13 +1024,13 @@ testEqNewLabelMap27 = testEq "EqNewLabelMap27" eq2ltst'' eq2lmap''
 
 -- Compare as1 with as2, in steps
 
-as11, as22 :: [Arc (ScopedLabel LabelMem)]
-as11 = map (makeScopedArc 1) as1
-as22 = map (makeScopedArc 2) as2
+as11, as22 :: S.Set (Arc (ScopedLabel LabelMem))
+as11 = S.map (makeScopedArc 1) as1
+as22 = S.map (makeScopedArc 2) as2
 
-eq3hs1, eq3hs2 :: [Arc (ScopedLabel LabelMem)]
-eq3hs1   = [t01_1]
-eq3hs2   = [t01_2,t02_2,t03_2,t04_2,t05_2,t06_2]
+eq3hs1, eq3hs2 :: S.Set (Arc (ScopedLabel LabelMem))
+eq3hs1   = S.singleton t01_1
+eq3hs2   = S.fromList [t01_2,t02_2,t03_2,t04_2,t05_2,t06_2]
 
 testEqGraphMap31_1, testEqGraphMap31_2 :: Test
 testEqGraphMap31_1 = testEq "testEqGraphMap31_1" eq3hs1 as11
@@ -1066,7 +1066,7 @@ type EquivClass = EquivalenceClass (ScopedLabel LabelMem)
 type EquivArgs  = ((Word32, Word32), [ScopedLabel LabelMem])
 
 ec31 :: [EquivClass]
-ec31 = equivalenceClasses eq3lmap (S.toList $ graphLabels as11)
+ec31 = equivalenceClasses eq3lmap (graphLabels as11)
 
 ec31test :: [EquivArgs]
 ec31test =
@@ -1076,7 +1076,7 @@ ec31test =
     ]
 
 ec32 :: [EquivClass]
-ec32 = equivalenceClasses eq3lmap (S.toList $ graphLabels as22)
+ec32 = equivalenceClasses eq3lmap (graphLabels as22)
 
 ec32test :: [EquivArgs]
 ec32test =

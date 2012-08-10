@@ -85,8 +85,8 @@ matchGraphMem ::
   --
 matchGraphMem g1 g2 =
     let
-        gs1     = S.toList $ arcs g1
-        gs2     = S.toList $ arcs g2
+        gs1     = arcs g1
+        gs2     = arcs g2
         matchable l1 l2
             | labelIsVar l1 && labelIsVar l2 = True
             | labelIsVar l1 || labelIsVar l2 = False

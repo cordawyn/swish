@@ -32,7 +32,9 @@
 
 module Data.LookupMap
     ( LookupEntryClass(..), LookupMap(..)
-    , emptyLookupMap, makeLookupMap, listLookupMap
+    , emptyLookupMap, makeLookupMap
+    , listLookupMap
+    , setLookupMap
     , reverseLookupMap
     , keyOrder
     , mapFind, mapFindMaybe, mapContains
@@ -50,9 +52,8 @@ import Data.Maybe (fromMaybe)
 import Data.Function (on)
 import Data.Ord (comparing)
 
-import Swish.Utils.ListHelpers (equiv)
-
 import qualified Data.Foldable as F
+import qualified Data.Set as S
 import qualified Data.Traversable as T
 import qualified Data.List as L
 
@@ -172,6 +173,14 @@ makeLookupMap = LookupMap
 --
 listLookupMap :: (LookupEntryClass a k v) => LookupMap a -> [a]
 listLookupMap = gLM
+
+-- | Returns a set of lookup map entries.
+--
+setLookupMap ::
+    (LookupEntryClass a k v, Ord a)
+    => LookupMap a -> S.Set a
+setLookupMap = S.fromList . listLookupMap
+
 
 -- |Given a lookup map entry, return a new entry that can be used
 --  in the reverse direction of lookup.  This is used to construct
@@ -306,14 +315,15 @@ mapDeleteAll (LookupMap (e:es)) k =
 --  each key maps to an equivalent value. This is only guaranteed
 --  if the maps do not contain duplicate entries.
 --
-mapEq :: (LookupEntryClass a k v, Eq v) =>
+mapEq :: (LookupEntryClass a k v, Ord k, Eq v) =>
     LookupMap a -> LookupMap a -> Bool
 mapEq es1 es2 =
-    ks1 `equiv` ks2 &&
-    and [ mapFindMaybe k es1 == mapFindMaybe k es2 | k <- ks1 ]
-    where
-        ks1 = mapKeys es1
-        ks2 = mapKeys es2
+    ks1 == ks2 &&
+    and [ mapFindMaybe k es1 == mapFindMaybe k es2 | k <- S.toList ks1 ]
+    -- TODO: improve the above
+  where
+      ks1 = setKeys es1
+      ks2 = setKeys es2
 
 -- |Return the list of distinct keys in a supplied LookupMap
 --
@@ -321,11 +331,28 @@ mapKeys :: (LookupEntryClass a k v) =>
     LookupMap a -> [k]
 mapKeys = L.nub . gLM . fmap entryKey
 
+-- | Return the set of keys in the LookupMap.
+setKeys :: 
+    (LookupEntryClass a k v, Ord k)
+    => LookupMap a
+    -> S.Set k
+setKeys = S.fromList . gLM . fmap entryKey
+
 -- |Return list of distinct values in a supplied LookupMap
 --
 mapVals :: (Eq v, LookupEntryClass a k v) =>
     LookupMap a -> [v]
 mapVals = L.nub . gLM . fmap entryVal
+
+{-
+-- | Returns the set of values in the LookupMap.
+--
+setVals ::
+  (LookupEntryClass a k v, Ord v)
+  => LookupMap a
+  -> S.Set v
+setVals = S.fromList . gLM . fmap entryVal
+-}
 
 -- |Merge two lookup maps, ensuring that if the same key appears
 --  in both maps it is associated with the same value.
