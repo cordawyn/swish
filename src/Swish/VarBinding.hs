@@ -49,11 +49,12 @@ import Swish.Utils.ListHelpers (flist)
 
 import Data.Function (on)
 import Data.List (find, intersect, union, (\\), foldl', permutations)
-import Data.LookupMap (LookupEntryClass(..), makeLookupMap, mapFindMaybe)
+import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Ord (comparing)
 
+import qualified Data.Map as M
 import qualified Data.Set as S
 
 ------------------------------------------------------------
@@ -120,12 +121,11 @@ subBinding = S.isSubsetOf `on` vbEnum
 makeVarBinding :: (Ord a, Ord b) => [(a,b)] -> VarBinding a b
 makeVarBinding [] = nullVarBinding
 makeVarBinding vrbs =
-    let selectFrom = flip mapFindMaybe . makeLookupMap
-    in VarBinding
-           { vbMap  = selectFrom vrbs
-           , vbEnum = S.fromList vrbs
-           , vbNull = False
-           }
+    VarBinding
+    { vbMap  = flip M.lookup (M.fromList vrbs)
+    , vbEnum = S.fromList vrbs
+    , vbNull = False
+    }
 
 -- |Apply query binding to a supplied value, returning the value
 --  unchanged if no binding is defined
@@ -148,17 +148,8 @@ joinVarBindings vb1 vb2
         , vbNull = False
         }
     where
-        mv12 = headOrNothing . filter isJust . flist [ vbMap vb1, vbMap vb2 ]
+        mv12 n = maybe (vbMap vb2 n) Just (vbMap vb1 n) 
         bv12 = boundVars vb1 `S.union` boundVars vb2
-
--- |Return head of a list of @Maybe@'s, or @Nothing@ if list is empty
---
---  Use with @filter isJust@ to select a non-Nothing value from a
---  list when such a value is present.
---
-headOrNothing :: [Maybe a] -> Maybe a
-headOrNothing []    = Nothing
-headOrNothing (a:_) = a
 
 -- |Add a single new value to a variable binding and return the resulting
 --  new variable binding.

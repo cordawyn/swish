@@ -53,9 +53,9 @@ import Data.Function (on)
 import Data.Ord (comparing)
 
 import qualified Data.Foldable as F
+import qualified Data.List as L
 import qualified Data.Set as S
 import qualified Data.Traversable as T
-import qualified Data.List as L
 
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
 import Data.Tuple (swap)

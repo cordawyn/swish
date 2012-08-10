@@ -1,10 +1,6 @@
 
 Some things I want to/should do (not in order)
 
-- Replace list be a set for NSGraph (fairly invasive change and
-  needs bench marking). See issue #12
-  https://bitbucket.org/doug_burke/swish/issue/12/
-
 - Support IRI rather than URI. See issue #13
   https://bitbucket.org/doug_burke/swish/issue/13/
 
