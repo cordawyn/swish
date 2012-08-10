@@ -20,7 +20,6 @@
 module Swish.Monad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
     , SwishFormat(..)
-    , NamedGraph(..)
     , NamedGraphMap
     -- * Create and modify the Swish state
     , emptyState
@@ -54,8 +53,7 @@ import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (StateT(..), modify)
 
 import Data.List (nub)
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Data.LookupMap (emptyLookupMap, mapFindMaybe)
+-- import Data.LookupMap (LookupEntryClass(..))
 
 import System.IO (hPutStrLn, stderr)
 
@@ -119,7 +117,7 @@ emptyState = SwishState
     { format    = N3
     , base      = Nothing
     , graph     = emptyRDFGraph
-    , graphs    = emptyLookupMap
+    , graphs    = M.empty
     , rules     = M.empty
     , rulesets  = rdfRulesetMap
     , infomsg   = Nothing
@@ -146,7 +144,7 @@ modGraphs grmod state = state { graphs = grmod (graphs state) }
 
 -- | Find a named graph.
 findGraph :: ScopedName -> SwishState -> Maybe [RDFGraph]
-findGraph nam state = mapFindMaybe nam (graphs state)
+findGraph nam state = M.lookup nam (graphs state)
 
 -- | Find a formula. The search is first made in the named graphs
 -- and then, if not found, the rulesets.
@@ -211,6 +209,7 @@ setVerbose :: Bool -> SwishState -> SwishState
 setVerbose f state = state { banner = f }
 -}
 
+{-
 -- | The graphs dictionary contains named graphs and/or lists
 --  of graphs that are created and used by script statements.
 
@@ -224,8 +223,10 @@ instance LookupEntryClass NamedGraph ScopedName [RDFGraph]
         keyVal   (NamedGraph k v) = (k,v)
         newEntry (k,v)            = NamedGraph k v
 
+-}
+
 -- | A LookupMap for the graphs dictionary.
-type NamedGraphMap = LookupMap NamedGraph
+type NamedGraphMap = M.Map ScopedName [RDFGraph]
 
 -- | Report error and set exit status code
 

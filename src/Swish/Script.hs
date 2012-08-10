@@ -72,7 +72,7 @@ module Swish.Script
 where
 
 import Swish.Datatype (typeMkRules)
-import Swish.Monad ( SwishStateIO, SwishStatus(..), NamedGraph(..))
+import Swish.Monad ( SwishStateIO, SwishStatus(..))
 import Swish.Monad (modGraphs, findGraph, findFormula
                    , modRules, findRule
                    , modRulesets, findRuleset
@@ -126,7 +126,6 @@ import Text.ParserCombinators.Poly.StateText
 import Control.Monad (unless, when, liftM, void)
 import Control.Monad.State (modify, gets, lift)
 
-import Data.LookupMap (mapReplace)
 import Data.Monoid (Monoid(..))
 
 import Network.URI (URI(..))
@@ -462,7 +461,7 @@ ssAddGraph nam gf =
             ; let egs = sequence esg    -- Either String [RDFGraph]
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
-                    Right gs -> modGraphs (`mapReplace` NamedGraph nam gs)
+                    Right gs -> modGraphs (M.insert nam gs)
             ; modify fgs
             }
 
@@ -549,7 +548,7 @@ ssMerge nam gfs =
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
                     Right [] -> setError  (errmsg++"No graphs to merge")
-                    Right gs -> modGraphs (`mapReplace` NamedGraph nam [g])
+                    Right gs -> modGraphs (M.insert nam [g])
                             where g = foldl1 merge gs
             ; modify fgs
             }
@@ -814,7 +813,7 @@ ssFwdChain sn rn agfs cn prefs =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right rl,Right ags) ->
-                        modGraphs (`mapReplace` NamedGraph cn [cg])
+                        modGraphs (M.insert cn [cg])
                         where
                             cg = case fwdApply rl ags of
                                 []  -> mempty
@@ -859,7 +858,7 @@ ssBwdChain sn rn cgf an prefs =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right rl,Right cg) ->
-                        modGraphs (`mapReplace` NamedGraph an ags)
+                        modGraphs (M.insert an ags)
                         where
                             ags  = map mergegr (bwdApply rl cg)
                             mergegr grs = case grs of
