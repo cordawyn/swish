@@ -73,9 +73,10 @@ import Swish.Utils.ListHelpers (flist)
 
 import Control.Monad (join, liftM)
 
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..), mapFindMaybe)
+import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (isJust, catMaybes)
 
+import qualified Data.Map as M
 import qualified Data.Text as T
 
 ------------------------------------------------------------
@@ -241,13 +242,15 @@ instance ShowM ex => Show (DatatypeVal ex vt lb vn) where
 getDTRel ::
     ScopedName -> DatatypeVal ex vt lb vn -> Maybe (DatatypeRel vt)
 getDTRel nam dtv =
-    mapFindMaybe nam (LookupMap (tvalRel dtv))
+    let m = M.fromList $ map (\n -> (dtRelName n, n)) (tvalRel dtv)
+    in M.lookup nam m
 
 -- | Return the named datatype value modifier, if it exists.
 getDTMod ::
     ScopedName -> DatatypeVal ex vt lb vn -> Maybe (DatatypeMod vt lb vn)
 getDTMod nam dtv =
-    mapFindMaybe nam (LookupMap (tvalMod dtv))
+    let m = M.fromList $ map (\n -> (dmName n, n)) (tvalMod dtv)
+    in M.lookup nam m
 
 -- |Get the canonical form of a datatype value, or @Nothing@.
 --
