@@ -106,7 +106,7 @@ getComponents f =
     let ins sgr = foldl' (flip S.insert) sgr . f
     in S.foldl' ins S.empty 
 
--- | Label class
+-- | Label class.
 --
 --  A label may have a fixed binding, which means that the label identifies (is) a
 --  particular graph node, and different such labels are always distinct nodes.
@@ -119,8 +119,12 @@ getComponents f =
 --  are the same.  Variable labels may be matched with any other variable label.
 --  Our definition of isomorphism (for RDF graphs) does not match variable labels
 --  with fixed labels.
+--
 
-class (Eq lb, Show lb, Ord lb) => Label lb where
+-- We do not need Ord/Show constraints here, but it means we can just use
+-- Label as a short-form for Ord/Show in code
+
+class (Ord lb, Show lb) => Label lb where
   
   -- | Does this node have a variable binding?
   labelIsVar  :: lb -> Bool           
