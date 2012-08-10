@@ -44,9 +44,9 @@ import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 import Swish.Utils.ListHelpers (flist)
 
 import Data.List (subsequences)
-import Data.LookupMap (makeLookupMap, mapFind)
 import Data.Monoid (Monoid(..))
 
+import qualified Data.Map as M
 import qualified Data.Set as S
 
 ------------------------------------------------------------
@@ -174,7 +174,9 @@ rdfInstanceEntailFwdApply vocab ante =
         --  Obtain list of possible remappings for non-variable nodes
         mapList     = remapLabelList nonvarNodes varNodes
         mapSubLists = (tail . subsequences) mapList
-        mapGr ls = fmapNSGraph (\l -> mapFind l l (makeLookupMap ls))
+        mapGr ls = fmapNSGraph 
+	           (\l -> M.findWithDefault l l
+                          (M.fromList ls))
     in
         --  Return all remappings of the original merged graph
         flist (map mapGr mapSubLists) mergeGraph
