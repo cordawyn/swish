@@ -32,11 +32,13 @@ import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (makeNamespace, makeNSScopedName)
 import Swish.QName (LName)
 
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
+import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromJust)
 import Data.String.ShowLines (ShowLines(..))
 
 import Network.URI (URI, parseURI)
+
+import qualified Data.Map as M
 
 ------------------------------------------------------------
 --  Expressions
@@ -180,8 +182,8 @@ instance LookupEntryClass (Rule ex) ScopedName (Rule ex)
     newEntry (_,rule) = rule
     keyVal rule = (ruleName rule, rule)
 
--- | A 'LookupMap' for a 'Rule'.
-type RuleMap ex = LookupMap (Rule ex)
+-- | A set of rules labelled with their name.
+type RuleMap ex = M.Map ScopedName (Rule ex)
 
 -- | Checks that consequence is a result of
 -- applying the rule to the antecedants.

@@ -53,10 +53,13 @@ import Swish.RDF.BuiltIn (findRDFOpenVarBindingModifier, findRDFDatatype, rdfRul
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (StateT(..), modify)
 
+import Data.List (nub)
 import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Data.LookupMap (emptyLookupMap, mapFindMaybe, mapVals)
+import Data.LookupMap (emptyLookupMap, mapFindMaybe)
 
 import System.IO (hPutStrLn, stderr)
+
+import qualified Data.Map as M
 
 {-|
 The supported input and output formats.
@@ -117,7 +120,7 @@ emptyState = SwishState
     , base      = Nothing
     , graph     = emptyRDFGraph
     , graphs    = emptyLookupMap
-    , rules     = emptyLookupMap
+    , rules     = M.empty
     , rulesets  = rdfRulesetMap
     , infomsg   = Nothing
     , errormsg  = Nothing
@@ -149,7 +152,7 @@ findGraph nam state = mapFindMaybe nam (graphs state)
 -- and then, if not found, the rulesets.
 findFormula :: ScopedName -> SwishState -> Maybe RDFFormula
 findFormula nam state = case findGraph nam state of
-        Nothing  -> getMaybeContextAxiom nam (mapVals $ rulesets state)
+        Nothing  -> getMaybeContextAxiom nam (nub $ M.elems $ rulesets state)
         Just []  -> Just $ Formula nam emptyRDFGraph
         Just grs -> Just $ Formula nam (head grs)
 
@@ -161,8 +164,8 @@ modRules rlmod state = state { rules = rlmod (rules state) }
 -- | Find a named rule.
 findRule :: ScopedName -> SwishState -> Maybe RDFRule
 findRule nam state =
-    case mapFindMaybe nam (rules state) of
-      Nothing -> getMaybeContextRule nam $ mapVals $ rulesets state
+    case M.lookup nam (rules state) of
+      Nothing -> getMaybeContextRule nam $ nub $ M.elems $ rulesets state
       justlr  -> justlr
 
 -- | Modify the rule sets.
@@ -173,7 +176,7 @@ modRulesets rsmod state = state { rulesets = rsmod (rulesets state) }
 -- | Find a rule set.
 findRuleset ::
     ScopedName -> SwishState -> Maybe RDFRuleset
-findRuleset nam state = mapFindMaybe (getScopeNamespace nam) (rulesets state)
+findRuleset nam state = M.lookup (getScopeNamespace nam) (rulesets state)
 
 -- | Find a modify rule.
 findOpenVarModify :: ScopedName -> SwishState -> Maybe RDFOpenVarBindingModify

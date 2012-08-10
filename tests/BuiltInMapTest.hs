@@ -39,7 +39,7 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import Data.LookupMap (mapFindMaybe)
+import qualified Data.Map as M
 
 import Test.HUnit
     ( Test(TestCase,TestList)
@@ -99,7 +99,7 @@ testDatatypeSuite = TestList
 
 testRuleset01 :: Test
 testRuleset01 = testJust "testRuleset01" $
-    mapFindMaybe scopeRDF rdfRulesetMap
+    M.lookup scopeRDF rdfRulesetMap
 
 testRulesetSuite :: Test
 testRulesetSuite = TestList

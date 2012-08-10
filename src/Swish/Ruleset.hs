@@ -42,8 +42,10 @@ import Swish.Utils.ShowM (ShowM(..))
 import Data.List (intercalate)
 -}
 
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..), mapFindMaybe)
+import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
+
+import qualified Data.Map as M
 
 -- | A Rule set.
 
@@ -75,8 +77,8 @@ instance LookupEntryClass (Ruleset ex) Namespace (Ruleset ex)
         keyVal   r@(Ruleset k _ _) = (k,r)
         newEntry (_,r)             = r
 
--- | A 'LookupMap' for a 'Ruleset'.
-type RulesetMap ex = LookupMap (Ruleset ex)
+-- | A set of Rulesets labelled by their Namespace.
+type RulesetMap ex = M.Map Namespace (Ruleset ex)
 
 -- | Create a ruleset.
 makeRuleset :: Namespace -> [Formula ex] -> [Rule ex] -> Ruleset ex
@@ -101,14 +103,12 @@ getRulesetRules = rsRules
 -- | Find a named axiom in a ruleset.
 getRulesetAxiom :: ScopedName -> Ruleset ex -> Maybe (Formula ex)
 getRulesetAxiom nam rset =
-    mapFindMaybe nam (LookupMap (getRulesetAxioms rset))
-    -- listToMaybe $ filter ( (matchName nam) . formName ) $ getRulesetAxioms rset
+    M.lookup nam $ M.fromList $ map (\f -> (formName f, f)) (rsAxioms rset)
 
 -- | Find a named rule in a ruleset. 
 getRulesetRule :: ScopedName -> Ruleset ex -> Maybe (Rule ex)
 getRulesetRule nam rset =
-    mapFindMaybe nam (LookupMap (getRulesetRules rset))
-    -- listToMaybe $ filter ( (matchName nam) . ruleName ) $ getRulesetRules rset
+    M.lookup nam $ M.fromList $ map (\r -> (ruleName r, r)) (rsRules rset)
 
 -- | Find a named axiom in a proof context.
 getContextAxiom :: 
@@ -117,9 +117,6 @@ getContextAxiom ::
   -> [Ruleset ex] -- ^ Rulesets to search.
   -> Formula ex
 getContextAxiom nam def rsets = fromMaybe def (getMaybeContextAxiom nam rsets)
-    {-
-    foldr (flip fromMaybe) def $ map (getRulesetAxiom nam) rsets
-    -}
 
 -- | Find a named axiom in a proof context.
 getMaybeContextAxiom ::
@@ -136,9 +133,6 @@ getContextRule ::
   -> [Ruleset ex] -- ^ Rulesets to search.
   -> Rule ex
 getContextRule nam def rsets = fromMaybe def (getMaybeContextRule nam rsets)
-    {-
-    foldr (flip fromMaybe) def $ map (getRulesetRule nam) rsets
-    -}
 
 -- | Find a named rule in a proof context.
 getMaybeContextRule :: 

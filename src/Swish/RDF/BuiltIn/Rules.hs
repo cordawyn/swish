@@ -25,6 +25,7 @@ where
 
 import Swish.Datatype (typeRules, typeMkModifiers)
 import Swish.Namespace (ScopedName)
+import Swish.Ruleset (getRulesetNamespace)
 import Swish.VarBinding (nullVarBindingModify, makeVarFilterModify, varFilterEQ, varFilterNE)
 
 import Swish.RDF.BuiltIn.Datatypes (allDatatypes)
@@ -41,6 +42,8 @@ import Swish.RDF.VarBinding
     )
 
 import Data.LookupMap (LookupMap(..), mapFindMaybe)
+
+import qualified Data.Map as M
 
 ------------------------------------------------------------
 --  Declare variable binding filters list
@@ -112,7 +115,7 @@ findRDFOpenVarBindingModifier nam =
 
 -- | A 'LookupMap' of 'allRulesets'.
 rdfRulesetMap :: RDFRulesetMap
-rdfRulesetMap = LookupMap allRulesets
+rdfRulesetMap = M.fromList $ map (\r -> (getRulesetNamespace r, r)) allRulesets
 
 -- | All the rule sets known to Swish.
 allRulesets :: [RDFRuleset]

@@ -80,7 +80,7 @@ import Swish.Monad (modGraphs, findGraph, findFormula
                    , setInfo, setError, setStatus)
 import Swish.Proof (explainProof, showsProof)
 import Swish.Rule (Formula(..), Rule(..)) 
-import Swish.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
+import Swish.Ruleset (makeRuleset, getRulesetRule, getRulesetNamespace, getMaybeContextRule)
 import Swish.VarBinding (composeSequence)
 
 import Swish.RDF.Datatype (RDFDatatype)
@@ -132,6 +132,7 @@ import Data.Monoid (Monoid(..))
 import Network.URI (URI(..))
 
 import qualified Control.Exception as CE
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
@@ -630,7 +631,7 @@ ssDefineRule rn agfs cgf vmds =
                             newRule = makeRDFClosureRule rn agrs cgr
                         in
                         case composeSequence vbms of
-                            Just vm -> modRules (`mapReplace` newRule vm)
+                            Just vm -> let nr = newRule vm in modRules (M.insert (ruleName nr) nr)
                             Nothing -> setError errmsg4
             ; modify frl
             }
@@ -663,7 +664,7 @@ ssDefineRuleset sn ans rns =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right ags,Right rls) ->
-                        modRulesets (`mapReplace` rs)
+                        modRulesets (M.insert (getRulesetNamespace rs) rs)
                         where
                             rs = makeRuleset (getScopeNamespace sn) ags rls
             ; modify frs
@@ -698,7 +699,7 @@ ssDefineConstraints  sn cgfs dtns =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right cgr,Right dts) ->
-                        modRulesets (`mapReplace` rs)
+                        modRulesets (M.insert (getRulesetNamespace rs) rs)
                         where
                             rs  = makeRuleset (getScopeNamespace sn) [] rls
                             rls = concatMap (`typeMkRules` cgr) dts
