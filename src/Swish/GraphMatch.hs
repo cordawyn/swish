@@ -435,7 +435,7 @@ mapLabelIndex (LabelMap _ lxms) lb = mapFind nullLabelVal lb lxms
 labelMatch :: (Label lb)
     =>  (lb -> lb -> Bool) -> LabelMap lb -> lb -> lb -> Bool
 labelMatch matchable lmap l1 l2 =
-    matchable l1 l2 && (mapLabelIndex lmap l1 == mapLabelIndex lmap l1)
+    matchable l1 l2 && (mapLabelIndex lmap l1 == mapLabelIndex lmap l2)
 
 -- | Replace selected values in a label map with new values from the supplied
 --  list of labels and new label index values.  The generation number is
