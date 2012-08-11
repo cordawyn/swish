@@ -9,6 +9,14 @@ Some things I want to/should do (not in order)
 - Can LookupMap be replaced by Map? This would require removing the
   LookupEntryClass constraint which could cause troublesome.
 
+  There are a number of cases where we have
+
+    M.lookup key $ M.fromList $ map <somefunv> <list-of-vals>
+    mapFindMaybe key $ LookupMap <list-of-vals>
+
+  which can be optimised (no need to create the map since can stop once
+  the element has been found).
+
 - Rename modules. Version 0.7 provided a hopefully more-structured
   form but they are still in the Swish namespace rather than
   Data (or some other sanctioned top-level name).

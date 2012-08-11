@@ -59,11 +59,12 @@ import Swish.RDF.Vocabulary (namespaceRDFD)
 import Control.Monad (liftM)
 
 import Data.List (delete, nub, subsequences)
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
+import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.Monoid (Monoid (..))
 import Data.Ord.Partial (minima, maxima, partCompareEq, partComparePair, partCompareListMaybe, partCompareListSubset)
 
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text.Lazy.Builder as B
 
@@ -176,7 +177,9 @@ makeRestrictionRule1 crs gr vb =
         cs = filter (>0) $ map fromInteger $
              rdfFindPredInt c resRdfdMaxCardinality gr
         ps = rdfFindList gr p
-        rn = mapFindMaybe (getScopedName r) (LookupMap crs)
+
+        -- TODO: do not need to go via a map since looking through a list
+        rn = M.lookup (getScopedName r) $ M.fromList $ map (\cr -> (crName cr, cr)) crs
 
 makeRestrictionRule2 ::
     Maybe ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int]
