@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
@@ -9,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  OverloadedStrings
+--  Portability :  CPP, OverloadedStrings
 --
 --  Utility routines.
 --
@@ -25,6 +26,7 @@ module Swish.RDF.Formatter.Internal
     , findMaxBnode
     , getCollection
     , processArcs
+    , findPrefix
     )
 where
 
@@ -37,7 +39,21 @@ import Data.LookupMap (LookupMap)
 import Data.LookupMap (emptyLookupMap)
 import Data.Word
 
+import Network.URI (URI)
+import Network.URI.Ord ()
+
+import qualified Data.Map as M
 import qualified Data.Set as S
+
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
+import Data.Tuple (swap)
+#else
+swap :: (a,b) -> (b,a)
+swap (a,b) = (b,a)
+#endif
+
+findPrefix :: URI -> M.Map a URI -> Maybe a
+findPrefix u = M.lookup u . M.fromList . map swap . M.assocs
 
 -- | Node name generation state information that carries through
 --  and is updated by nested formulae.
@@ -61,7 +77,7 @@ data NodeGenState = Ngs
 
 emptyNgs :: NodeGenState
 emptyNgs = Ngs
-    { prefixes  = emptyLookupMap
+    { prefixes  = M.empty
     , nodeMap   = emptyLookupMap
     , nodeGen   = 0
     }

@@ -18,7 +18,7 @@
 
 module Main where
 
-import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
+import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, getNamespaceTuple, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.QName (QName, qnameFromURI)
 
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..), mapFindMaybe)
@@ -27,7 +27,7 @@ import Swish.GraphClass (Label(..), arc {- , arcToTriple -} )
 
 import Swish.RDF.Graph
   ( RDFTriple, toRDFTriple, fromRDFTriple
-  , RDFGraph 
+  , RDFGraph, NamespaceMap 
   , RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
   , NSGraph(..)
   , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
@@ -54,15 +54,19 @@ import Swish.RDF.Vocabulary
   , xsdDate
     )
 
-import Network.URI (URI, parseURI)
-import Data.Monoid (Monoid(..))
+import Control.Arrow (first)
+
 import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust, fromMaybe)
+import Data.Monoid (Monoid(..))
 import Data.Ord (comparing)
-
-import System.Locale (defaultTimeLocale)
 import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
 
+import Network.URI (URI, parseURI)
+
+import System.Locale (defaultTimeLocale)
+
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 
@@ -849,20 +853,11 @@ tt06 = arc st3 p1 l10
 makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = makeNamespace (Just pre) (getNamespaceURI ns)
 
-nslist :: LookupMap Namespace
-nslist = LookupMap $ map makeNewPrefixNamespace
-    [ ("base1",base1)
-    , ("base2",base2)
-    , ("base3",base3)
-    , ("base4",base4)
-    ]
+nslist :: NamespaceMap
+nslist = M.fromList $ map getNamespaceTuple [base1,base2,base3,base4]
 
-nslistalt :: LookupMap Namespace
-nslistalt = LookupMap $ map makeNewPrefixNamespace
-    [ ("altbase1",base1)
-    , ("altbase2",base2)
-    , ("altbase3",base3)
-    ]
+nslistalt :: NamespaceMap
+nslistalt = M.fromList $ map (first (fmap (T.append "alt")) . getNamespaceTuple) [base1,base2,base3]
 
 toGraph :: [RDFTriple] -> RDFGraph
 toGraph stmts = NSGraph

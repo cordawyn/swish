@@ -20,12 +20,11 @@ module Main where
 
 import Swish.GraphClass (Arc, arc) 
 import Swish.Namespace (
-  Namespace, makeNamespace, getNamespaceURI
+  Namespace, makeNamespace, getNamespaceURI, getNamespaceTuple
   , ScopedName
   , makeScopedName
   , makeNSScopedName
   , nullScopedName
-  -- , makeUriScopedName
   , namespaceToBuilder
   )
 import Swish.QName (QName, qnameFromURI)
@@ -39,7 +38,7 @@ import Swish.RDF.Parser.N3
     )
 
 import Swish.RDF.Graph
-    ( RDFGraph, RDFLabel(..), NSGraph(..)
+    ( RDFGraph, RDFLabel(..), NSGraph(..), NamespaceMap
     , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
@@ -66,6 +65,7 @@ import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust, fromMaybe)
 import Data.List (intercalate)
 
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -387,20 +387,9 @@ dg2 = toRDFGraph $ S.fromList
 dg3 = -- TODO: add in prefixes ?
   toRDFGraph $ S.singleton $ arc (Res "file:///home/swish/photos/myphoto") (Res "http://example.com/ns#photoOf") (Res "http://example.com/ns#me")
   
-nslist, xnslist :: LookupMap Namespace
-nslist = LookupMap $ map makeNewPrefixNamespace
-    [ ("base1",base1)
-    , ("base2",base2)
-    , ("base3",base3)
-    , ("base4",base4)
-    ]
-xnslist = LookupMap $ map makeNewPrefixNamespace
-    [ ("base1",base1)
-    , ("base2",base2)
-    , ("base3",base3)
-    , ("base4",base4)
-    , ("xsd", xsdNS)
-    ]
+nslist, xnslist :: NamespaceMap
+nslist = M.fromList $ map getNamespaceTuple [base1, base2, base3, base4]
+xnslist = (\(a,b) -> M.insert a b nslist) $ getNamespaceTuple xsdNS
 
 toGraph :: [Arc RDFLabel] -> RDFGraph
 toGraph stmts = mempty { namespaces = nslist

@@ -64,14 +64,15 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , NodeGenState(..), emptyNgs
                                     , findMaxBnode
                                     , getCollection
-                                    , processArcs)
+                                    , processArcs
+				    , findPrefix) 
 
 import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 import Swish.QName (getLName)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..),
-  NamespaceMap, RevNamespaceMap,
+  NamespaceMap,
   emptyNamespaceMap,
   FormulaMap, emptyFormulaMap,
   setNamespaces, getNamespaces,
@@ -95,9 +96,7 @@ import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
 import Data.List (partition, intersperse)
-import Data.LookupMap (LookupEntryClass(..))
-import Data.LookupMap (emptyLookupMap, reverseLookupMap, listLookupMap
-                      , mapFind, mapFindMaybe, mapAdd, mapDelete, mapMerge)
+import Data.LookupMap (mapFind, mapFindMaybe, mapAdd, mapDelete)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -105,6 +104,7 @@ import Data.Word (Word32)
 -- wrong; however I have done no profiling to back this
 -- assumption up!
 
+import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
@@ -314,7 +314,7 @@ formatGraphDiag ::
 formatGraphDiag indnt flag gr = 
   let fg  = formatGraph indnt " .\n" False flag gr
       ngs = emptyNgs {
-        prefixes = emptyLookupMap,
+        prefixes = M.empty,
         nodeGen  = findMaxBnode gr
         }
              
@@ -351,7 +351,7 @@ formatGraph ind end dobreak dopref gr = do
 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
 formatPrefixes pmap = do
-  let mls = map (pref . keyVal) (listLookupMap pmap)
+  let mls = map pref $ M.assocs pmap
   ls <- sequence mls
   return $ mconcat ls
     where
@@ -524,7 +524,7 @@ setGraph gr = do
   st <- get
 
   let ngs0 = nodeGenSt st
-      pre' = mapMerge (prefixes ngs0) (getNamespaces gr)
+      pre' = M.union (prefixes ngs0) (getNamespaces gr)
       ngs' = ngs0 { prefixes = pre' }
       (arcSubjs, bNodes) = processArcs gr
       nst  = st  { graph     = gr
@@ -657,8 +657,7 @@ formatLabel _ lab@(Res sn) =
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
           local  = getLName $ getScopeLocal sn
-          premap = reverseLookupMap pr :: RevNamespaceMap
-          prefix = mapFindMaybe nsuri premap
+	  prefix = findPrefix nsuri pr
           
           name   = case prefix of
                      Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames

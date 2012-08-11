@@ -196,7 +196,7 @@ import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, foldl')
 import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplace, mapAddIfNew, mapVals, mapKeys )
+import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplace, mapVals, mapKeys )
 -- import Data.Ord (comparing)
 import Data.Word (Word32)
 
@@ -207,8 +207,8 @@ import System.Locale (defaultTimeLocale)
 
 import Text.Printf
 
+import qualified Data.Map as M
 import qualified Data.Set as S
-
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
 import qualified Data.Traversable as Traversable
@@ -1040,11 +1040,11 @@ fromRDFTriple (Arc s p o) =
   
 -- | Namespace prefix list entry
 
--- | A 'LookupMap' for name spaces.
-type NamespaceMap = LookupMap Namespace
+-- | A map for name spaces (key is the prefix).
+type NamespaceMap = M.Map (Maybe T.Text) URI -- TODO: should val be URI or namespace?
 
--- | A 'LookupMap' for reversed name spaces.
-type RevNamespaceMap = LookupMap RevNamespace
+-- | A map for name spaces (key is the URI).
+type RevNamespaceMap = M.Map URI (Maybe T.Text)
 
 -- | Support for reversed name spaces in a 'LookupMap'.
 data RevNamespace = RevNamespace Namespace
@@ -1055,7 +1055,7 @@ instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
 
 -- | Create an empty namespace map.
 emptyNamespaceMap :: NamespaceMap
-emptyNamespaceMap = LookupMap []
+emptyNamespaceMap = M.empty
 
 -- | Graph formula entry
 
@@ -1432,7 +1432,10 @@ toRDFGraph arcs =
       getNS _ = Nothing
 
       ns = mapMaybe (fmap getScopeNamespace . getNS) $ S.toList lbls
-      nsmap = foldl' mapAddIfNew emptyNamespaceMap ns
+      nsmap = foldl'
+              (\m ins -> let (p,u) = getNamespaceTuple ins
+	                in M.insertWith (flip const) p u m)
+              emptyNamespaceMap ns
   
   in mempty { namespaces = nsmap, statements = arcs }
 

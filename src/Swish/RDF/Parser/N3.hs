@@ -77,6 +77,7 @@ import Swish.Namespace
     ( Namespace
     , ScopedName
     , makeNamespace
+    , getNamespaceTuple
     , getScopeNamespace
     , getScopedNameURI
     , getScopeNamespace
@@ -138,15 +139,17 @@ import Control.Applicative
 import Control.Monad (forM_, foldM)
 
 import Data.Char (isSpace, isDigit, ord, isAsciiLower) 
-import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (mapFind, mapFindMaybe, mapAdd, mapReplace)
+import Data.LookupMap (LookupMap(..))
+import Data.LookupMap (mapFind, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Word (Word32)
 
 import Network.URI (URI(..), parseURIReference)
+import Network.URI.Ord ()
 
 import Text.ParserCombinators.Poly.StateText
 
+import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
@@ -170,7 +173,7 @@ data N3State = N3State
 setPrefix :: Maybe T.Text -> URI -> N3State -> N3State
 setPrefix pre uri st =  st { prefixUris=p' }
     where
-        p' = mapReplace (prefixUris st) (makeNamespace pre uri) 
+        p' = M.insert pre uri (prefixUris st)
 
 -- | Set name for special syntax element
 setSName :: String -> ScopedName -> N3State -> N3State
@@ -197,7 +200,7 @@ getSUri st nam = getScopedNameURI $ getSName st nam
 
 --  Map prefix to URI
 getPrefixURI :: N3State -> Maybe T.Text -> Maybe URI
-getPrefixURI st pre = mapFindMaybe pre (prefixUris st)
+getPrefixURI st pre = M.lookup pre (prefixUris st)
 
 getKeywordsList :: N3State -> [T.Text]
 getKeywordsList = keywordsList
@@ -251,7 +254,7 @@ emptyState ::
   Maybe QName  -- ^ starting base for the graph
   -> N3State
 emptyState mbase = 
-  let pmap   = LookupMap [makeNamespace Nothing hashURI]
+  let pmap   = M.singleton Nothing hashURI
       muri   = fmap (makeQNameScopedName Nothing) mbase
       smap   = LookupMap $ specialTable muri
   in N3State
@@ -311,7 +314,10 @@ this routine is really for testing.
 -}
 
 addTestPrefixes :: N3Parser ()
-addTestPrefixes = stUpdate $ \st -> st { prefixUris = LookupMap prefixTable } -- should append to existing map
+addTestPrefixes = stUpdate $ \st -> st { prefixUris = 
+                                         M.fromList 
+                                          $ map getNamespaceTuple prefixTable 
+                                       } -- should append to existing map
 
 {-
 parsePrefixFromText :: L.Text -> Either String URI
@@ -402,14 +408,13 @@ TODO:
 operatorLabel :: ScopedName -> N3Parser RDFLabel
 operatorLabel snam = do
   st <- stGet
-  let sns = getScopeNamespace snam
+  let (pkey, pval) = getNamespaceTuple $ getScopeNamespace snam
       opmap = prefixUris st
-      pkey = entryKey sns
-      pval = entryVal sns
       
       rval = Res snam
       
-  -- the lookup and the replacement could be fused
+  -- TODO: the lookup and the replacement could be fused
+{-
   case mapFindMaybe pkey opmap of
     Just val | val == pval -> return rval
              | otherwise   -> do
@@ -418,6 +423,17 @@ operatorLabel snam = do
     
     _ -> do
       stUpdate $ \s -> s { prefixUris = mapAdd opmap sns }
+      return rval
+-}
+
+  case M.lookup pkey opmap of
+    Just val | val == pval -> return rval
+             | otherwise   -> do
+               stUpdate $ \s -> s { prefixUris = M.insert pkey pval opmap }
+               return rval
+    
+    _ -> do
+      stUpdate $ \s -> s { prefixUris = M.insert pkey pval opmap }
       return rval
         
 {-
@@ -440,7 +456,8 @@ addStatement s p o@(TypedLit _ dtype) | dtype `elem` [xsdBoolean, xsdInteger, xs
   let stmt = arc s p o
       oldp = prefixUris ost
       ogs = graphState ost
-      newp = mapReplace oldp (getScopeNamespace dtype)
+      (ns, uri) = getNamespaceTuple $ getScopeNamespace dtype
+      newp = M.insert ns uri oldp
   stUpdate $ \st -> st { prefixUris = newp, graphState = addArc stmt ogs }
 addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 
@@ -780,7 +797,7 @@ fullQName name = toName <$> findPrefix name <*> (n3Name <|> pure "")
 findPrefix :: T.Text -> N3Parser Namespace
 findPrefix pre = do
   st <- stGet
-  case mapFindMaybe (Just pre) (prefixUris st) of
+  case M.lookup (Just pre) (prefixUris st) of
     Just uri -> return $ makeNamespace (Just pre) uri
     Nothing  -> failBad $ "Prefix '" ++ T.unpack pre ++ ":' not bound."
   

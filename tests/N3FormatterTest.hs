@@ -19,7 +19,7 @@
 module Main where
 
 import Swish.GraphClass (Arc, arc)
-import Swish.Namespace (Namespace, makeNamespace, makeNSScopedName, namespaceToBuilder)
+import Swish.Namespace (Namespace, makeNamespace, getNamespaceTuple, makeNSScopedName, namespaceToBuilder)
 import Swish.QName (LName)
 
 import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
@@ -36,7 +36,7 @@ import Swish.RDF.Graph
     , resOwlSameAs
     )
 
-import Data.LookupMap (LookupMap(..), emptyLookupMap, makeLookupMap)
+import Data.LookupMap (LookupMap(..), emptyLookupMap)
 
 import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 
@@ -47,6 +47,7 @@ import Data.Maybe (fromJust)
 
 import Data.String (IsString(..))
 
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -184,7 +185,7 @@ t06 = arc s3 p1 l2
 t07 = arc s3 p2 l3
 
 nslist :: NamespaceMap
-nslist = makeLookupMap
+nslist = M.fromList $ map getNamespaceTuple
     [ base1
     , base2
     , base3
@@ -192,7 +193,8 @@ nslist = makeLookupMap
     ]
 
 g1np :: RDFGraph
-g1np = emptyRDFGraph { namespaces = makeLookupMap [base1], statements = S.singleton t01 }
+g1np = emptyRDFGraph { namespaces = uncurry M.singleton (getNamespaceTuple base1) 
+                     , statements = S.singleton t01 }
 
 toGraph :: [Arc RDFLabel] -> RDFGraph
 toGraph arcs = (toRDFGraph (S.fromList arcs)) {namespaces = nslist}
@@ -238,7 +240,9 @@ g1f3 = NSGraph
 g1fu1 :: RDFGraph
 g1fu1 =
   mempty
-  { namespaces = makeLookupMap [basem, makeNamespace Nothing (toURI "file:///home/swish/photos/")]
+  { namespaces = 
+      M.fromList $ map getNamespaceTuple
+        [basem, makeNamespace Nothing (toURI "file:///home/swish/photos/")]
   , statements = S.fromList [arc sf meDepicts meMe, arc sf meHasURN su]
   }
   
@@ -686,7 +690,10 @@ graph_l3 =
              ]
   {-             
       gtmp = toRDFGraph arcs
-  in gtmp { namespaces = mapAdd (namespaces gtmp) (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") }
+  in gtmp { namespaces = 
+           M.insert (Just "xsd") ("http://www.w3.org/2001/XMLSchema#")
+                    (namespaces gtmp)
+          }
   -}
   in toRDFGraph $ S.fromList arcs
    
@@ -832,8 +839,8 @@ simpleN3Graph_g1_10 =
 simpleN3Graph_g1_fu1 :: B.Builder
 simpleN3Graph_g1_fu1 =
   mconcat
-  [ "@prefix me: <http://example.com/ns#> .\n"
-  , "@prefix : <file:///home/swish/photos/> .\n"
+  [ "@prefix : <file:///home/swish/photos/> .\n"
+  , "@prefix me: <http://example.com/ns#> .\n"
   -- , ":me.png me:depicts me:me ;\n"
   , "<file:///home/swish/photos/me.png> me:depicts me:me ;\n"
   , "     me:hasURN <urn:one:two:3.14> .\n"
@@ -918,18 +925,18 @@ simpleN3Graph_b1rev =
 
 simpleN3Graph_b2 :: B.Builder
 simpleN3Graph_b2 =
-  commonPrefixesN [2,1,0] `mappend`
+  commonPrefixesN [0,1,2] `mappend`
   "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b2rev :: B.Builder
 simpleN3Graph_b2rev =
-  commonPrefixesN [2,1,0] `mappend`
+  commonPrefixesN [0,1,2] `mappend`
   "[\n base1:p1 base1:o1 ;\n     base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b3 :: B.Builder
 simpleN3Graph_b3 =
   mconcat
-  [ commonPrefixesN [2,1,0]
+  [ commonPrefixesN [0,1,2]
   , "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"", l2txt, "\"\"\"\n] ;\n"
   , "     base2:p2 [] .\n"
   , "base2:s2 base2:p2 base2:o2 .\n" ]
@@ -937,14 +944,14 @@ simpleN3Graph_b3 =
 simpleN3Graph_b4 :: B.Builder
 simpleN3Graph_b4 =
   mconcat
-  [ commonPrefixesN [4,1,0]
+  [ commonPrefixesN [0,1,4]
   , "[\n a base1:o1\n] .\n"
   , "[\n a base2:o2\n] .\n" ]
 
 simpleN3Graph_b5 :: B.Builder
 simpleN3Graph_b5 =
   mconcat
-  [ commonPrefixesN [4,2,1,0]
+  [ commonPrefixesN [0,1,2,4]
   , "[\n a base1:o1\n] .\n"
   , "[\n base2:p2 base2:o2\n] .\n"
   , "[\n a base3:o3\n] .\n" ]
@@ -966,7 +973,7 @@ simpleN3Graph_l2 =
 simpleN3Graph_l3 :: B.Builder
 simpleN3Graph_l3 =
   mconcat
-  [ commonPrefixesN [5,0]
+  [ commonPrefixesN [0, 5]
   , "\n" -- TODO: why do we need this newline?
   , "base1:s1 base1:p1 -2.304e-108,\n"
   , "     12,\n" 
