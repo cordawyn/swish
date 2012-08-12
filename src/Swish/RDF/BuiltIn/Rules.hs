@@ -26,7 +26,7 @@ where
 import Swish.Datatype (typeRules, typeMkModifiers)
 import Swish.Namespace (ScopedName)
 import Swish.Ruleset (getRulesetNamespace)
-import Swish.VarBinding (nullVarBindingModify, makeVarFilterModify, varFilterEQ, varFilterNE)
+import Swish.VarBinding (openVbmName, nullVarBindingModify, makeVarFilterModify, varFilterEQ, varFilterNE)
 
 import Swish.RDF.BuiltIn.Datatypes (allDatatypes)
 import Swish.RDF.Ruleset (RDFRuleset, RDFRulesetMap)
@@ -40,8 +40,6 @@ import Swish.RDF.VarBinding
     , rdfVarBindingXMLLiteral, rdfVarBindingDatatyped
     , rdfVarBindingMemberProp
     )
-
-import Data.LookupMap (LookupMap(..), mapFindMaybe)
 
 import qualified Data.Map as M
 
@@ -107,7 +105,8 @@ dtVarBindingModifiers dtval =
 -- | Find the named open variable binding modifier.
 findRDFOpenVarBindingModifier :: ScopedName -> Maybe RDFOpenVarBindingModify
 findRDFOpenVarBindingModifier nam =
-    mapFindMaybe nam (LookupMap allOpenVarBindingModify)
+    M.lookup nam $ M.fromList $ map (\ovbm -> (openVbmName ovbm, ovbm))
+                                allOpenVarBindingModify
 
 ------------------------------------------------------------
 --  Lookup map for built-in rulesets

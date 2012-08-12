@@ -29,6 +29,7 @@ module Swish.VarBinding
     , boundVars, subBinding, makeVarBinding
     , applyVarBinding, joinVarBindings, addVarBinding
     , VarBindingModify(..), OpenVarBindingModify
+    , openVbmName
     , vbmCompatibility, vbmCompose
     , composeSequence, findCompositions, findComposition
     , VarBindingFilter(..)
