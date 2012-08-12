@@ -3,7 +3,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Datatypes
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -19,6 +20,7 @@ module Swish.RDF.BuiltIn.Datatypes
        ( allDatatypes, findRDFDatatype )
     where
 
+import Swish.Datatype (typeName)
 import Swish.Namespace (ScopedName)
 
 import Swish.RDF.Datatype (RDFDatatype)
@@ -27,7 +29,7 @@ import Swish.RDF.Datatype.XSD.String (rdfDatatypeXsdString)
 import Swish.RDF.Datatype.XSD.Integer (rdfDatatypeXsdInteger)
 import Swish.RDF.Datatype.XSD.Decimal (rdfDatatypeXsdDecimal)
 
-import Data.LookupMap (LookupMap(..), mapFindMaybe)
+import qualified Data.Map as M
 
 ------------------------------------------------------------
 --  Declare datatype map
@@ -43,7 +45,8 @@ allDatatypes =
 
 -- | Look up a data type declaration.
 findRDFDatatype :: ScopedName -> Maybe RDFDatatype
-findRDFDatatype nam = mapFindMaybe nam (LookupMap allDatatypes)
+findRDFDatatype nam = M.lookup nam $
+                      M.fromList $ map (\dt -> (typeName dt, dt)) allDatatypes
 
 ------------------------------------------------------------
 --  Declare datatype subtypes map
