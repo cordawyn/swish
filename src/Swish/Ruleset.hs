@@ -1,5 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -10,7 +8,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses
+--  Portability :  H98
 --
 --  This module defines a ruleset data type, used to collect information
 --  about a ruleset that may contribute torwards inferences in RDF;
@@ -42,7 +40,6 @@ import Swish.Utils.ShowM (ShowM(..))
 import Data.List (intercalate)
 -}
 
-import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 
 import qualified Data.Map as M
@@ -71,11 +68,6 @@ instance (ShowM ex) => Show (Ruleset ex) where
 -- | Ruleset comparisons are based only on their namespace components.
 instance Eq (Ruleset ex) where
     r1 == r2 = rsNamespace r1 == rsNamespace r2
-
-instance LookupEntryClass (Ruleset ex) Namespace (Ruleset ex)
-    where
-        keyVal   r@(Ruleset k _ _) = (k,r)
-        newEntry (_,r)             = r
 
 -- | A set of Rulesets labelled by their Namespace.
 type RulesetMap ex = M.Map Namespace (Ruleset ex)
