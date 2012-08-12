@@ -1,19 +1,17 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Namespace
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances
+--  Portability :  OverloadedStrings
 --
 --  This module defines algebraic datatypes for namespaces and scoped names.
 --
@@ -44,7 +42,6 @@ module Swish.Namespace
 
 import Swish.QName (QName, LName, newQName, getLName, emptyLName, getQNameURI, getNamespace, getLocalName)
 
-import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
@@ -92,10 +89,6 @@ instance Ord Namespace where
 instance Show Namespace where
     show (Namespace (Just p) u) = show p ++ ":<" ++ show u ++ ">"
     show (Namespace _ u)        = "<" ++ show u ++ ">"
-
-instance LookupEntryClass Namespace (Maybe T.Text) URI where
-    keyVal   (Namespace pre uri) = (pre,uri)
-    newEntry (pre,uri)           = Namespace pre uri
 
 -- | Create a name space from a URI and an optional prefix label.
 makeNamespace :: 
