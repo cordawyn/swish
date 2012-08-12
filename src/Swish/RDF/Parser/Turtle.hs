@@ -315,7 +315,8 @@ TODO:
   - could we use the reverse lookupmap functionality to
     find if the given namespace URI is in the namespace
     list? If it is, use it's key otherwise do a
-    mapReplace for the input namespace.
+    mapReplace for the input namespace (updated to use the
+    Data.Map.Map representation).
     
 -}
 operatorLabel :: ScopedName -> TurtleParser RDFLabel
