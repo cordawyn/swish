@@ -329,13 +329,6 @@ operatorLabel snam = do
       
   -- TODO: the lookup and the replacement could be fused; it may not
   --       even make sense to separate now using a Map
-{-
-  case mapFindMaybe pkey opmap of
-    Just val | val == pval -> return rval
-             | otherwise   -> do
-               stUpdate $ \s -> s { prefixUris = mapReplace opmap sns }
-               return rval
--}
   case M.lookup pkey opmap of
     Just val | val == pval -> return rval
              | otherwise   -> do

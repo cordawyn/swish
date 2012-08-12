@@ -96,25 +96,6 @@ appendURIs base uri =
 -- | Type for special name lookup table
 type SpecialMap = M.Map String ScopedName
 
-{-
--- | Lookup prefix in table and return the matching URI.
---
---   If the prefix is unknown then we currently error
---   out (used to return 'prefix:' or ':' but now using
---   URIs I am changing this behavior). This may well be
---   backed out.
-mapPrefix :: NamespaceMap -> Maybe String -> URI
-mapPrefix pmap pfix = 
-  case mapFindMaybe pfix pmap of
-    Just uri -> uri
-    Nothing  -> error $ "Unable to find prefix: " ++ show pfix -- fromMaybe "" pfix ++ ":"
--}
-  
-{-
-mapPrefix ps p@(Just pre) = mapFind (pre++":") p ps
-mapPrefix ps _ = mapFind ":" Nothing ps
--}
-
 -- | Define default table of namespaces
 prefixTable :: [Namespace]
 prefixTable =   [ namespaceRDF
