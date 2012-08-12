@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
@@ -13,7 +12,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances
+--  Portability :  FlexibleInstances, OverloadedStrings, TypeSynonymInstances
 --
 --  This module defines functions for representing and manipulating query
 --  binding variable sets.  This is the key data that mediates between
@@ -52,7 +51,6 @@ import Control.Applicative ((<$>), (<*>))
 
 import Data.Function (on)
 import Data.List (find, intersect, union, (\\), foldl', permutations)
-import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Ord (comparing)
@@ -228,14 +226,6 @@ data VarBindingModify a b = VarBindingModify
                             --  variables in @vbmVocab@ are supplied.
     }
 
--- |Allow a @VarBindingModify@ value to be accessed using a 'LookupMap'.
---
-instance LookupEntryClass
-    (VarBindingModify a b) ScopedName (VarBindingModify a b)
-    where
-        keyVal   vbm     = (vbmName vbm,vbm)
-        newEntry (_,vbm) = vbm
-
 -- |Type for variable binding modifier that has yet to be instantiated
 --  with respect to the variables that it operates upon.
 --
@@ -253,14 +243,6 @@ type OpenVarBindingModify lb vn = [lb] -> VarBindingModify lb vn
 --
 openVbmName :: OpenVarBindingModify lb vn -> ScopedName
 openVbmName ovbm = vbmName (ovbm (error "Undefined labels in variable binding"))
-
--- |Allow an @OpenVarBindingModify@ value to be accessed using a 'LookupMap'.
---
-instance LookupEntryClass
-    (OpenVarBindingModify a b) ScopedName (OpenVarBindingModify a b)
-    where
-        keyVal   ovbm     = (openVbmName ovbm,ovbm)
-        newEntry (_,ovbm) = ovbm
 
 -- | Displays the name of the modifier.
 instance Show (OpenVarBindingModify a b)
