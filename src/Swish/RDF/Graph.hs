@@ -9,7 +9,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Graph
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -1085,36 +1086,15 @@ instance (Label lb) => Show (Formula lb)
         show (Formula l g) = show l ++ " :- { " ++ showArcs "    " g ++ " }"
 
 -- | A map for named formulae.
--- type FormulaMap lb = LookupMap (LookupFormula lb (NSGraph lb))
-
--- Not yet sure what we want the value to be.
---
--- Changing from (name, Formula key graph) to
---               (name, graph)
--- makes sense in many ways (done for other lookupmap conversions)
--- but need to think about how to traverse these new structures
--- 
 type FormulaMap lb = M.Map lb (NSGraph lb)
--- type FormulaMap lb = M.Map lb (Formula lb)
 
 -- | Create an empty formula map.
 emptyFormulaMap :: FormulaMap RDFLabel
 emptyFormulaMap = M.empty
 
--- TODO: should the keys be updated (especially now that the key is no-longer part of the value) when mapping over the formulamap ?
-
 -- fmapFormulaMap :: (Ord a, Ord b) => (a -> b) -> FormulaMap a -> FormulaMap b
 fmapFormulaMap :: (Ord a) => (a -> a) -> FormulaMap a -> FormulaMap a
--- fmapFormulaMap f = fmap (fmapFormula f)
-fmapFormulaMap f m = M.fromList $ map (\(k,g) -> (f k, fmapFormula f g)) $ M.assocs m
-
--- fmapFormula :: (Ord a, Ord b) => (a -> b) -> Formula a -> Formula b
-{-
-fmapFormula :: (Ord a) => (a -> a) -> Formula a -> Formula a
-fmapFormula f (Formula k gr) = Formula (f k) (fmapNSGraph f gr)
--}
-fmapFormula :: (Ord a) => (a -> a) -> NSGraph a -> NSGraph a
-fmapFormula = fmapNSGraph
+fmapFormulaMap f m = M.fromList $ map (\(k,g) -> (f k, fmapNSGraph f g)) $ M.assocs m
 
 -- TODO: how to traverse formulamaps now?
 
@@ -1143,6 +1123,13 @@ traverseFormula f (Formula k gr) = Formula <$> f k <*> traverseNSGraph f gr
 traverseFormula ::
     (Applicative f, Ord a)
     => (a -> f a) -> NSGraph a -> f (NSGraph a)
+
+{-
+traverseFormula ::
+    (Applicative f, Ord a, Ord b)
+    => (a -> f b) -> NSGraph a -> f (NSGraph b)
+-}
+
 traverseFormula = traverseNSGraph
 
 {-
