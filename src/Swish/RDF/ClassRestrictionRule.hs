@@ -1,4 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -6,12 +5,13 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ClassRestrictionRule
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses, OverloadedStrings
+--  Portability :  OverloadedStrings
 --
 --  This module implements an inference rule based on a restruction on class
 --  membership of one or more values.
@@ -59,7 +59,6 @@ import Swish.RDF.Vocabulary (namespaceRDFD)
 import Control.Monad (liftM)
 
 import Data.List (delete, nub, subsequences)
-import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.Monoid (Monoid (..))
 import Data.Ord.Partial (minima, maxima, partCompareEq, partComparePair, partCompareListMaybe, partCompareListSubset)
@@ -88,11 +87,6 @@ instance Eq ClassRestriction where
 
 instance Show ClassRestriction where
     show cr = "ClassRestriction:" ++ show (crName cr)
-
-instance LookupEntryClass ClassRestriction ScopedName ClassRestriction
-    where
-    newEntry (_,fn) = fn
-    keyVal cr = (crName cr, cr)
 
 ------------------------------------------------------------
 --  Instantiate a class restriction from a datatype relation
