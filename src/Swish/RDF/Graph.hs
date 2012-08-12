@@ -1,7 +1,5 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -15,7 +13,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  CPP, FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances, OverloadedStrings
+--  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings
 --
 --  This module defines a memory-based RDF graph instance.
 --
@@ -42,7 +40,7 @@ module Swish.RDF.Graph
     , NSGraph(..)
     , RDFGraph
     , toRDFGraph, emptyRDFGraph {-, updateRDFGraph-}
-    , NamespaceMap, RevNamespaceMap, RevNamespace
+    , NamespaceMap
     , emptyNamespaceMap
     , LookupFormula(..), Formula, FormulaMap, emptyFormulaMap
     , addArc, merge
@@ -155,7 +153,7 @@ module Swish.RDF.Graph
     where
 
 import Swish.Namespace
-    ( Namespace, makeNamespace, getNamespaceTuple
+    ( getNamespaceTuple
     , getScopedNameURI
     , ScopedName
     , getScopeLocal, getScopeNamespace
@@ -196,7 +194,6 @@ import Data.Maybe (mapMaybe)
 import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, foldl')
-import Data.LookupMap (LookupEntryClass(..))
 -- import Data.Ord (comparing)
 import Data.Word (Word32)
 
@@ -212,13 +209,6 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
 import qualified Data.Traversable as Traversable
-
-#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
-import Data.Tuple (swap)
-#else
-swap :: (a,b) -> (b,a)
-swap (a,b) = (b,a)
-#endif
 
 -- | RDF graph node values
 --
@@ -1043,16 +1033,6 @@ fromRDFTriple (Arc s p o) =
 -- | A map for name spaces (key is the prefix).
 type NamespaceMap = M.Map (Maybe T.Text) URI -- TODO: should val be URI or namespace?
 
--- | A map for name spaces (key is the URI).
-type RevNamespaceMap = M.Map URI (Maybe T.Text)
-
--- | Support for reversed name spaces in a 'LookupMap'.
-data RevNamespace = RevNamespace Namespace
-
-instance LookupEntryClass RevNamespace URI (Maybe T.Text) where
-    keyVal   (RevNamespace ns) = swap $ getNamespaceTuple ns
-    newEntry (uri,pre) = RevNamespace (makeNamespace pre uri)
-
 -- | Create an empty namespace map.
 emptyNamespaceMap :: NamespaceMap
 emptyNamespaceMap = M.empty
@@ -1074,12 +1054,6 @@ instance (Ord lb, Ord gr) => Ord (LookupFormula lb gr) where
 
 -- | A named formula.
 type Formula lb = LookupFormula lb (NSGraph lb)
-
-instance (Label lb)
-    => LookupEntryClass (Formula lb) lb (NSGraph lb)
-    where
-        keyVal fe      = (formLabel fe, formGraph fe)
-        newEntry (k,v) = Formula { formLabel=k, formGraph=v }
 
 instance (Label lb) => Show (Formula lb)
     where
