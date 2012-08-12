@@ -5,7 +5,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Internal
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -35,8 +36,6 @@ import Swish.RDF.Graph (RDFGraph, RDFLabel(..), NamespaceMap)
 import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil)
 
 import Data.List (delete, foldl', groupBy)
-import Data.LookupMap (LookupMap)
-import Data.LookupMap (emptyLookupMap)
 import Data.Word
 
 import Network.URI (URI)
@@ -57,7 +56,7 @@ findPrefix u = M.lookup u . M.fromList . map swap . M.assocs
 
 -- | Node name generation state information that carries through
 --  and is updated by nested formulae.
-type NodeGenLookupMap = LookupMap (RDFLabel, Word32)
+type NodeGenLookupMap = M.Map RDFLabel Word32
 
 type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
@@ -78,7 +77,7 @@ data NodeGenState = Ngs
 emptyNgs :: NodeGenState
 emptyNgs = Ngs
     { prefixes  = M.empty
-    , nodeMap   = emptyLookupMap
+    , nodeMap   = M.empty
     , nodeGen   = 0
     }
 

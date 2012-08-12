@@ -35,8 +35,6 @@ import Swish.RDF.Graph
     , resOwlSameAs
     )
 
-import Data.LookupMap (emptyLookupMap)
-
 import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 
 import Network.URI (URI, parseURI)
@@ -713,7 +711,7 @@ diagTest :: String -> RDFGraph -> L.Text -> Test
 diagTest lab gr out =
     TestList
       [ TestCase ( assertEqual ("diag:text:"++lab) out resTxt )
-      , TestCase ( assertEqual ("diag:map:"++lab) emptyLookupMap nmap )
+      , TestCase ( assertEqual ("diag:map:"++lab) M.empty nmap )
       , TestCase ( assertEqual ("diag:gen:"++lab) 0 ngen )
       , TestCase ( assertEqual ("diag:trc:"++lab) [] trc )
       ]

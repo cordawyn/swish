@@ -5,7 +5,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Turtle
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -77,7 +78,6 @@ import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
 import Data.List (partition, intersperse)
-import Data.LookupMap (mapFind, mapAdd)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -662,10 +662,10 @@ mapBlankNode lab = do
   ngs <- getNgs
   let cmap = nodeMap ngs
       cval = nodeGen ngs
-  nv <- case mapFind 0 lab cmap of
+  nv <- case M.findWithDefault 0 lab cmap of
     0 -> do 
       let nval = succ cval
-          nmap = mapAdd cmap (lab, nval)
+          nmap = M.insert lab nval cmap
       setNgs $ ngs { nodeGen = nval, nodeMap = nmap }
       return nval
       

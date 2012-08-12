@@ -4,7 +4,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  NTriples
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -28,6 +29,8 @@ module Swish.RDF.Formatter.NTriples
     )
 where
 
+import Swish.RDF.Formatter.Internal (NodeGenLookupMap)
+
 import Swish.GraphClass (Arc(..))
 import Swish.Namespace (ScopedName, getQName)
 
@@ -40,15 +43,15 @@ import Control.Monad.State
 import Control.Applicative ((<$>))
 
 import Data.Char (ord, intToDigit, toUpper)
-import Data.LookupMap (LookupMap, emptyLookupMap, mapFind, mapAdd)
 import Data.Monoid
-
-import qualified Data.Set as S
+import Data.Word (Word32)
 
 -- it strikes me that using Lazy Text here is likely to be
 -- wrong; however I have done no profiling to back this
 -- assumption up!
 
+import qualified Data.Map as M
+import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
@@ -59,18 +62,14 @@ import qualified Data.Text.Lazy.Builder as B
 --
 --  This is a lot simpler than other formatters.
 
---  | Node name generation state information that carries through
---  and is updated by nested formulae
-type NodeGenLookupMap = LookupMap (RDFLabel,Int)
-
 data NTFormatterState = NTFS { 
       ntfsNodeMap :: NodeGenLookupMap,
-      ntfsNodeGen :: Int
+      ntfsNodeGen :: Word32
     } deriving Show
 
 emptyNTFS :: NTFormatterState
 emptyNTFS = NTFS {
-              ntfsNodeMap = emptyLookupMap,
+              ntfsNodeMap = M.empty,
               ntfsNodeGen = 0
               }
 
@@ -148,10 +147,10 @@ mapBlankNode lab = do
   let cmap = ntfsNodeMap st
       cval = ntfsNodeGen st
 
-  nv <- case mapFind 0 lab cmap of
+  nv <- case M.findWithDefault 0 lab cmap of
             0 -> do
               let nval = succ cval
-                  nmap = mapAdd cmap (lab, nval)
+                  nmap = M.insert lab nval cmap
 
               put $ st { ntfsNodeMap = nmap, ntfsNodeGen = nval }
               return nval
