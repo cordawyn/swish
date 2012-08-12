@@ -39,7 +39,6 @@ import Swish.RDF.Parser.N3
 
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..), NSGraph(..), NamespaceMap
-    , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
     , resOwlSameAs, resLogImplies
@@ -54,8 +53,6 @@ import Swish.RDF.Vocabulary
     , xsdDecimal 
     , xsdDouble 
     )
-
-import Data.LookupMap (LookupMap(..))
 
 import Test.HUnit (Test(TestCase,TestList), assertEqual)
 
@@ -639,7 +636,7 @@ tx701 = arc b1 p2 f2
 x7 :: RDFGraph
 x7    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 g2]
+        , formulae   = M.singleton b1 g2 -- $ Formula b1 g2
         , statements = S.singleton tx701
         }
 
@@ -649,14 +646,14 @@ tx801 = arc f1 p2 f2
 x8 :: RDFGraph
 x8    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g2]
+        , formulae   = M.singleton f1 g2 -- $ Formula f1 g2
         , statements = S.singleton tx801
         }
 
 x9 :: RDFGraph
 x9    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g1]
+        , formulae   = M.singleton f1 g1 -- $ Formula f1 g1
         , statements = S.singleton tx801
         }
 
@@ -685,7 +682,7 @@ x12fg  = NSGraph
 x12 :: RDFGraph
 x12    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b2 x12fg]
+        , formulae   = M.singleton b2 x12fg -- $ Formula b2 x12fg
         , statements = S.fromList [tx1201,tx1202,tx1203,tx1204,tx1205]
         }
 

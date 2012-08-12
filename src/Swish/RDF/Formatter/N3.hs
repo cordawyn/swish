@@ -96,7 +96,7 @@ import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
 import Data.List (partition, intersperse)
-import Data.LookupMap (mapFind, mapFindMaybe, mapAdd, mapDelete)
+import Data.LookupMap (mapFind, mapAdd)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -212,11 +212,12 @@ queueFormula fn = do
   st <- get
   let fa = formAvail st
       newState fv = st {
-                      formAvail = mapDelete fa fn,
+                      formAvail = M.delete fn fa,
                       formQueue = (fn,fv) : formQueue st
                     }
-  case mapFindMaybe fn fa of
+  case M.lookup fn fa of
     Nothing -> return ()
+    -- Just v -> void $ put $ newState (formGraph v)
     Just v -> void $ put $ newState v
 
 {-
@@ -228,9 +229,10 @@ extractFormula :: RDFLabel -> Formatter (Maybe RDFGraph)
 extractFormula fn = do
   st <- get
   let fa = formAvail st
-      newState = st { formAvail=mapDelete fa fn }
-  case mapFindMaybe fn fa of
+      newState = st { formAvail = M.delete fn fa }
+  case M.lookup fn fa of
     Nothing -> return Nothing
+    -- Just fv -> put newState >> return (Just (formGraph fv))
     Just fv -> put newState >> return (Just fv)
 
 {-

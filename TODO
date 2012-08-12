@@ -1,6 +1,13 @@
 
 Some things I want to/should do (not in order)
 
+- the removal of LookupMap from formula/formulamap led to functor/
+  traversable instances to require (a -> a rather than (a -> b);
+  this does not seem to be a problem for the existing code, since
+  specialized to RDFLabel, but may want to revert if possible.
+
+  Need to look at the traversable code to see if really a traverse.
+
 - Support IRI rather than URI. See issue #13
   https://bitbucket.org/doug_burke/swish/issue/13/
 

@@ -195,8 +195,7 @@ import Data.Maybe (mapMaybe)
 import Data.Char (ord, isDigit)
 import Data.Hashable (hashWithSalt)
 import Data.List (intersect, union, foldl')
-import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (listLookupMap, mapFind, mapFindMaybe, mapReplace, mapVals, mapKeys )
+import Data.LookupMap (LookupEntryClass(..))
 -- import Data.Ord (comparing)
 import Data.Word (Word32)
 
@@ -1072,41 +1071,79 @@ instance (Ord lb, Ord gr) => Ord (LookupFormula lb gr) where
     (Formula a1 b1) `compare` (Formula a2 b2) =
         (a1,b1) `compare` (a2,b2)
 
+-- | A named formula.
+type Formula lb = LookupFormula lb (NSGraph lb)
+
 instance (Label lb)
-    => LookupEntryClass (LookupFormula lb (NSGraph lb)) lb (NSGraph lb)
+    => LookupEntryClass (Formula lb) lb (NSGraph lb)
     where
         keyVal fe      = (formLabel fe, formGraph fe)
         newEntry (k,v) = Formula { formLabel=k, formGraph=v }
 
-instance (Label lb) => Show (LookupFormula lb (NSGraph lb))
+instance (Label lb) => Show (Formula lb)
     where
         show (Formula l g) = show l ++ " :- { " ++ showArcs "    " g ++ " }"
 
--- | A named formula.
-type Formula lb = LookupFormula lb (NSGraph lb)
+-- | A map for named formulae.
+-- type FormulaMap lb = LookupMap (LookupFormula lb (NSGraph lb))
 
--- | A 'LookupMap' for named formulae.
-type FormulaMap lb = LookupMap (LookupFormula lb (NSGraph lb))
+-- Not yet sure what we want the value to be.
+--
+-- Changing from (name, Formula key graph) to
+--               (name, graph)
+-- makes sense in many ways (done for other lookupmap conversions)
+-- but need to think about how to traverse these new structures
+-- 
+type FormulaMap lb = M.Map lb (NSGraph lb)
+-- type FormulaMap lb = M.Map lb (Formula lb)
 
 -- | Create an empty formula map.
 emptyFormulaMap :: FormulaMap RDFLabel
-emptyFormulaMap = LookupMap []
+emptyFormulaMap = M.empty
 
-fmapFormulaMap :: (Ord a, Ord b) => (a -> b) -> FormulaMap a -> FormulaMap b
-fmapFormulaMap f = fmap (fmapFormula f)
+-- TODO: should the keys be updated (especially now that the key is no-longer part of the value) when mapping over the formulamap ?
 
-fmapFormula :: (Ord a, Ord b) => (a -> b) -> Formula a -> Formula b
+-- fmapFormulaMap :: (Ord a, Ord b) => (a -> b) -> FormulaMap a -> FormulaMap b
+fmapFormulaMap :: (Ord a) => (a -> a) -> FormulaMap a -> FormulaMap a
+-- fmapFormulaMap f = fmap (fmapFormula f)
+fmapFormulaMap f m = M.fromList $ map (\(k,g) -> (f k, fmapFormula f g)) $ M.assocs m
+
+-- fmapFormula :: (Ord a, Ord b) => (a -> b) -> Formula a -> Formula b
+{-
+fmapFormula :: (Ord a) => (a -> a) -> Formula a -> Formula a
 fmapFormula f (Formula k gr) = Formula (f k) (fmapNSGraph f gr)
+-}
+fmapFormula :: (Ord a) => (a -> a) -> NSGraph a -> NSGraph a
+fmapFormula = fmapNSGraph
 
+-- TODO: how to traverse formulamaps now?
+
+{-
 traverseFormulaMap :: 
     (Applicative f, Ord a, Ord b) 
     => (a -> f b) -> FormulaMap a -> f (FormulaMap b)
+-}
+traverseFormulaMap :: 
+    (Applicative f, Ord a) 
+    => (a -> f a) -> FormulaMap a -> f (FormulaMap a)
 traverseFormulaMap f = Traversable.traverse (traverseFormula f)
 
+{-
 traverseFormula :: 
     (Applicative f, Ord a, Ord b)
     => (a -> f b) -> Formula a -> f (Formula b)
+-}
+{-
+traverseFormula :: 
+    (Applicative f, Ord a)
+    => (a -> f a) -> Formula a -> f (Formula a)
 traverseFormula f (Formula k gr) = Formula <$> f k <*> traverseNSGraph f gr
+-}
+
+traverseFormula ::
+    (Applicative f, Ord a)
+    => (a -> f a) -> NSGraph a -> f (NSGraph a)
+traverseFormula = traverseNSGraph
 
 {-
 formulaeMapM ::
@@ -1141,12 +1178,13 @@ are:
 -}
 data NSGraph lb = NSGraph
     { namespaces :: NamespaceMap      -- ^ the namespaces to use
-    , formulae   :: FormulaMap lb     -- ^ any associated formulae (a.k.a. sub- or named- graps)
+    , formulae   :: FormulaMap lb     -- ^ any associated formulae 
+                                      --   (a.k.a. sub- or named- graps)
     , statements :: ArcSet lb         -- ^ the statements in the graph
     }
 
 instance (Label lb) => LDGraph NSGraph lb where
-    emptyGraph   = NSGraph emptyNamespaceMap (LookupMap []) S.empty
+    emptyGraph   = NSGraph emptyNamespaceMap M.empty S.empty
     getArcs      = statements 
     setArcs g as = g { statements=as }
 
@@ -1156,14 +1194,20 @@ instance (Label lb) => Monoid (NSGraph lb) where
     mappend = merge
   
 -- | 'fmap' for 'NSGraph' instances.
-fmapNSGraph :: (Ord lb1, Ord lb2) => (lb1 -> lb2) -> NSGraph lb1 -> NSGraph lb2
+-- fmapNSGraph :: (Ord lb1, Ord lb2) => (lb1 -> lb2) -> NSGraph lb1 -> NSGraph lb2
+fmapNSGraph :: (Ord lb) => (lb -> lb) -> NSGraph lb -> NSGraph lb
 fmapNSGraph f (NSGraph ns fml stmts) = 
     NSGraph ns (fmapFormulaMap f fml) ((S.map $ fmap f) stmts)
 
 -- | 'Data.Traversable.traverse' for 'NSGraph' instances.
+{-
 traverseNSGraph :: 
     (Applicative f, Ord a, Ord b) 
     => (a -> f b) -> NSGraph a -> f (NSGraph b)
+-}
+traverseNSGraph :: 
+    (Applicative f, Ord a) 
+    => (a -> f a) -> NSGraph a -> f (NSGraph a)
 traverseNSGraph f (NSGraph ns fml stmts) = 
     NSGraph ns <$> traverseFormulaMap f fml <*> (traverseSet $ Traversable.traverse f) stmts
 
@@ -1207,11 +1251,13 @@ setFormulae fs g = g { formulae=fs }
 
 -- | Find a formula in the graph, if it exists.
 getFormula     :: (Label lb) => NSGraph lb -> lb -> Maybe (NSGraph lb)
-getFormula g l = mapFindMaybe l (formulae g)
+-- getFormula g l = fmap formGraph $ M.lookup l (formulae g)
+getFormula g l = M.lookup l (formulae g)
 
 -- | Add (or replace) a formula.
 setFormula     :: (Label lb) => Formula lb -> NSGraph lb -> NSGraph lb
-setFormula f g = g { formulae=mapReplace (formulae g) f }
+-- setFormula f g = g { formulae = M.insert (formLabel f) f (formulae g) }
+setFormula (Formula fn fg) g = g { formulae = M.insert fn fg (formulae g) }
 
 {-|
 Add an arc to the graph. It does not relabel any blank nodes in the input arc,
@@ -1235,7 +1281,7 @@ grShow p g =
     p ++ "arcs: " ++ showArcs p g
     where
         showForm = foldr ((++) . (pp ++) . show) "" fml
-        fml = listLookupMap (getFormulae g)
+        fml = map (uncurry Formula) $ M.assocs (getFormulae g) -- NOTE: want to just show 'name :- graph'
         pp = "\n    " ++ p
 
 showArcs :: (Label lb) => String -> NSGraph lb -> String
@@ -1256,7 +1302,15 @@ grMatchMap g1 g2 =
     graphMatch matchable (getArcs g1) (getArcs g2)
     where
         matchable l1 l2 = mapFormula g1 l1 == mapFormula g2 l2
-        mapFormula g l  = mapFindMaybe l (getFormulae g)
+	-- hmmm, if we compare the formula, rather then graph,
+        -- a lot of tests fail (when the formulae are named by blank
+        -- nodes). Presumably because the quality check for Formula forces
+        -- the label to be identical, which it needn't be with bnodes
+        -- for the match to hold.
+        -- mapFormula g l  = M.lookup l (getFormulae g)
+        -- mapFormula g l  = fmap formGraph $ M.lookup l (getFormulae g)
+        -- the above discussion is hopefully moot now storing graph directly
+        mapFormula g l  = M.lookup l (getFormulae g)
 
 -- |Merge RDF graphs, renaming blank and query variable nodes as
 --  needed to neep variable nodes from the two graphs distinct in
@@ -1291,13 +1345,11 @@ allNodes p = unionNodes p S.empty . nodes
 formulaNodes :: (Label lb) => (lb -> Bool) -> NSGraph lb -> S.Set lb
 formulaNodes p gr = foldl' (unionNodes p) fkeys (map (allLabels p) fvals)
     where
-        -- fm :: (Label lb) => FormulaMap lb
-        --                     LookupMap LookupFormula (NSGraph lb) lb
         fm    = formulae gr
-        -- fvals :: (Label lb) => [NSGraph lb]
-        fvals = mapVals fm
-        -- fkeys :: (Label lb) => [lb]
-        fkeys = S.filter p $ S.fromList $ mapKeys fm
+        -- fvals = map formGraph $ M.elems fm
+        fvals = M.elems fm
+        -- TODO: can this conversion be improved?
+        fkeys = S.filter p $ S.fromList $ M.keys fm
 
 -- | Helper to filter variable nodes and merge with those found so far
 unionNodes :: (Label lb) => (lb -> Bool) -> S.Set lb -> S.Set lb -> S.Set lb
@@ -1341,7 +1393,7 @@ remapLabelList remap avoid = maplist remap avoid id []
 mapnode ::
     (Label lb) => [lb] -> [lb] -> (lb -> lb) -> lb -> lb
 mapnode dupbn allbn cnvbn nv =
-    mapFind nv nv (LookupMap (maplist dupbn allbn cnvbn []))
+    M.findWithDefault nv nv $ M.fromList $ maplist dupbn allbn cnvbn []
 
 -- | Construct a list of (oldnode,newnode) values to be used for
 --  graph label remapping.  The function operates recursively, adding

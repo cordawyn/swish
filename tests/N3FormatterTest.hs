@@ -30,13 +30,12 @@ import Swish.RDF.Graph
     , RDFLabel(..), ToRDFLabel
     , NSGraph(..)
     , NamespaceMap
-    , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph, toRDFTriple
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
     , resOwlSameAs
     )
 
-import Data.LookupMap (LookupMap(..), emptyLookupMap)
+import Data.LookupMap (emptyLookupMap)
 
 import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 
@@ -210,32 +209,25 @@ g1l2 = toGraph [arc s1 p1 l2]
 {-
 g1f1 = NSGraph
         { namespaces = nslist
-        , formulae   = formo1g1
+        , formulae   = M.singleton o1 (Formula o1g1)
         , statements = [f01]
         }
     where
         f01      = arc s1 p1 o1
-        formo1g1 = LookupMap [Formula o1 g1]
 -}
 
 g1f2, g1f3 :: RDFGraph
 g1f2 = NSGraph
         { namespaces = nslist
-        , formulae   = formb2g1
-        , statements = S.singleton f02
+        , formulae   = M.singleton b2 g1 -- $ Formula b2 g1
+        , statements = S.singleton $ arc s1 p1 b2
         }
-    where
-        f02 = arc s1 p1 b2
-        formb2g1 = LookupMap [Formula b2 g1]
 
 g1f3 = NSGraph
         { namespaces = nslist
-        , formulae   = formb3g1f2
-        , statements = S.singleton f02
+        , formulae   = M.singleton b3 g1f2 -- $ Formula b3 g1f2
+        , statements = S.singleton $ arc s1 p1 b3
         }
-    where
-        f02 = arc s1 p1 b3
-        formb3g1f2 = LookupMap [Formula b3 g1f2]
 
 g1fu1 :: RDFGraph
 g1fu1 =
@@ -445,21 +437,21 @@ x6 = toGraph [ arc s1 resRdfFirst o1
 x7 :: RDFGraph
 x7 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 g2]
+        , formulae   = M.singleton b1 g2 -- $ Formula b1 g2
         , statements = S.singleton $ arc b1 p2 f2
         }
 
 x8 :: RDFGraph
 x8 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g2]
+        , formulae   = M.singleton f1 g2 -- $ Formula f1 g2
         , statements = S.singleton $ arc f1 p2 f2
         }
 
 x9 :: RDFGraph
 x9 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g1]
+        , formulae   = M.singleton f1 g1 -- $ Formula f1 g1
         , statements = S.singleton $ arc f1 p2 f2
         }
         
@@ -468,7 +460,7 @@ x9 = NSGraph
 x12, x12fg :: RDFGraph
 x12    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b2 x12fg]
+        , formulae   = M.singleton b2 x12fg -- $ Formula b2 x12fg
         , statements = S.fromList 
 	  	       [ arc s1 p1 b1
                        , arc b1 p1 o1

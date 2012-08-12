@@ -21,13 +21,11 @@ module Main where
 import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, getNamespaceTuple, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.QName (QName, qnameFromURI)
 
-import Data.LookupMap (LookupMap(..), LookupEntryClass(..), mapFindMaybe)
-
 import Swish.GraphClass (Label(..), arc {- , arcToTriple -} )
 
 import Swish.RDF.Graph
   ( RDFTriple, toRDFTriple, fromRDFTriple
-  , RDFGraph, NamespaceMap 
+  , RDFGraph, NamespaceMap, Formula
   , RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
   , NSGraph(..)
   , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
@@ -1021,9 +1019,8 @@ testGraphFoldSuite = TestList
 testFormulaLookup ::
     String -> FormulaMap RDFLabel -> RDFLabel -> Maybe RDFGraph -> Test
 testFormulaLookup lab fs fl gr =
-  testCompare "testFormulaLookup:" lab gr jfg
-    where
-      jfg = mapFindMaybe fl fs
+  testCompare "testFormulaLookup:" lab gr $ M.lookup fl fs
+  -- testCompare "testFormulaLookup:" lab gr $ fmap formGraph $ M.lookup fl fs
 
 testMaybeEq :: (Eq a, Show a) => String -> Maybe a -> Maybe a -> Test
 testMaybeEq = testCompare "testMaybeEq:"
@@ -1036,6 +1033,7 @@ g1f4 = setFormulae fm4 g1f1
 g1f5 = setFormulae fm5 g1f1
 g1f6 = setFormulae fm6 g1f1
 g1f7 = setFormulae fm7 g1f1
+
 
 g1f1str, g1f2str :: String
 
@@ -1050,15 +1048,15 @@ g1f2str =
   "arcs: \n" ++
   "    (base1:s1,base1:p1,base1:o1)"
 
-lf11, lf22, lf23, lf24, lf25, lf27, lf33, lf36 :: LookupFormula RDFLabel RDFGraph
+lf11, lf22, lf23, lf24, lf25, lf27, lf33, lf36 :: Formula RDFLabel
 lf11 = Formula s1 g1
-lf22 = newEntry (s2,g2)
-lf23 = newEntry (s2,g3)
-lf24 = newEntry (s2,g4)
-lf25 = newEntry (s2,g5)
-lf27 = newEntry (s2,g7)
-lf33 = newEntry (s3,g3)
-lf36 = newEntry (s3,g6)
+lf22 = Formula s2 g2
+lf23 = Formula s2 g3
+lf24 = Formula s2 g4
+lf25 = Formula s2 g5
+lf27 = Formula s2 g7
+lf33 = Formula s3 g3
+lf36 = Formula s3 g6
 
 lf22str :: String
 lf22str =
@@ -1070,13 +1068,17 @@ lf22str =
   "        (base3:s3,base1:p1,base3:o3)\n" ++
   "        (base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral) }"
 
-fm2, fm3, fm4, fm5, fm6, fm7 :: LookupMap (LookupFormula RDFLabel RDFGraph)
-fm2  = LookupMap [lf22]
-fm3  = LookupMap [lf11, lf22, lf33]
-fm4  = LookupMap [lf11, lf23, lf33]
-fm5  = LookupMap [lf11, lf24, lf36]
-fm6  = LookupMap [lf11, lf25, lf36]
-fm7  = LookupMap [lf11, lf27, lf36]
+toFM :: [Formula RDFLabel] -> FormulaMap RDFLabel
+toFM = M.fromList . map (\fm -> (formLabel fm, formGraph fm))
+-- toFM = M.fromList . map (\fm -> (formLabel fm, fm))
+
+fm2, fm3, fm4, fm5, fm6, fm7 :: FormulaMap RDFLabel
+fm2  = toFM [lf22]
+fm3  = toFM [lf11, lf22, lf33]
+fm4  = toFM [lf11, lf23, lf33]
+fm5  = toFM [lf11, lf24, lf36]
+fm6  = toFM [lf11, lf25, lf36]
+fm7  = toFM [lf11, lf27, lf36]
 
 f1, f2, f3, f4, f5, f6, f7 :: FormulaMap RDFLabel
 f1   = getFormulae g1f1
@@ -1252,8 +1254,8 @@ ft5 = getFormulae gt2f2b
 ft6 = getFormulae gt2f3b
 
 ftm2, ftm3 :: FormulaMap RDFLabel
-ftm2   = LookupMap [Formula st2 gt2]
-ftm3   = LookupMap [Formula st1 gt1,Formula st2 gt2,Formula st3 gt3]
+ftm2   = toFM [Formula st2 gt2]
+ftm3   = toFM [Formula st1 gt1,Formula st2 gt2,Formula st3 gt3]
 
 -- Monadic translate tests, using Maybe Monad
 
@@ -1411,20 +1413,20 @@ gm44 = toGraph [tm01,tm04,tm41a,tm44a]
 gm5, gm55 :: RDFGraph
 gm5  = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm2]
+        , formulae   = toFM [Formula b1 gm2]
         , statements = S.fromList [tm01,tm02,tm03]
         }
 
 gm55 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm2,Formula b2 gm2f]
+        , formulae   = toFM [Formula b1 gm2,Formula b2 gm2f]
         , statements = S.fromList [tm01,tm02,tm03,tm41,tm42,tm43]
         }
 
 gm5s :: RDFGraph
 gm5s  = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm2]
+        , formulae   = toFM [Formula b1 gm2]
         , statements = S.fromList [tm01,tm02,tm03,
                         arc s1 p1 o1, arc o1 p2 s3, arc s2 p3 o4]
         }
@@ -1432,13 +1434,13 @@ gm5s  = NSGraph
 gm6, gm66 :: RDFGraph
 gm6 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula ba1 gm2,Formula bn3 gm3]
+        , formulae   = toFM [Formula ba1 gm2,Formula bn3 gm3]
         , statements = S.fromList [tm07,tm08,tm09,tm10,tm11,tm12,tm13,tm14]
         }
 
 gm66 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap
+        , formulae   = toFM
                        [Formula ba1 gm2,Formula bn3 gm3
                        ,Formula ba3 gm2f,Formula bn5 gm3f
                        ]
@@ -1450,8 +1452,8 @@ gm66 = NSGraph
 gm456 :: RDFGraph
 gm456 = NSGraph 
   { namespaces = nslist
-  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
-  , formulae   = LookupMap []
+  -- , formulae   = toFM [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = M.empty
   , statements = S.fromList [tm01, tm04,
                   tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
                   , arc s1 p1 b4
@@ -1463,8 +1465,8 @@ gm456 = NSGraph
 gm564 :: RDFGraph
 gm564 = NSGraph 
   { namespaces = nslist
-  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
-  , formulae   = LookupMap []
+  -- , formulae   = toFM [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = M.empty
   , statements = S.fromList [tm01, tm02, tm03
                   , arc b5 p2 b6
                   , tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
@@ -1475,8 +1477,8 @@ gm564 = NSGraph
 gm645 :: RDFGraph
 gm645 = NSGraph 
   { namespaces = nslist
-  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
-  , formulae   = LookupMap []
+  -- , formulae   = toFM [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = M.empty
   , statements = S.fromList [tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
                   , arc s1 p1 b4
                   , arc b4 p1 o2
@@ -1508,20 +1510,20 @@ gm83a  = remapLabels [v1,v2] [v1,v2,b1,b2] makeBlank gm81
 gm84, gm85, gm85a, gm86, gm86a :: RDFGraph
 gm84  = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm81,Formula v2 gm81]
+        , formulae   = toFM [Formula b1 gm81,Formula v2 gm81]
         , statements = S.fromList [tm81,tm82]
         }
 
 gm85 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm82,Formula v4 gm82]
+        , formulae   = toFM [Formula b1 gm82,Formula v4 gm82]
         , statements = S.fromList [tm811,tm821]
         }
 gm85a = remapLabels [v1,v2] [v1,v2,b1,b2] id gm84
 
 gm86 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm82,Formula vb4 gm82]
+        , formulae   = toFM [Formula b1 gm82,Formula vb4 gm82]
         , statements = S.fromList [tm812,tm822]
         }
 gm86a = remapLabels [v1,v2] [v1,v2,b1,b2] makeBlank gm84
