@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -7,12 +6,13 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Datatype
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings
+--  Portability :  ExistentialQuantification, OverloadedStrings
 --
 --  This module defines the structures used to represent and
 --  manipulate datatypes.  It is designed as a basis for handling datatyped
@@ -73,7 +73,6 @@ import Swish.Utils.ListHelpers (flist)
 
 import Control.Monad (join, liftM)
 
-import Data.LookupMap (LookupEntryClass(..))
 import Data.Maybe (isJust, catMaybes)
 
 import qualified Data.Map as M
@@ -88,12 +87,6 @@ import qualified Data.Text as T
 --  Users see just the datatype name and associated ruleset.
 --
 data Datatype ex lb vn = forall vt . Datatype (DatatypeVal ex vt lb vn)
-
-instance LookupEntryClass
-        (Datatype ex lb vn) ScopedName (Datatype ex lb vn)
-    where
-    newEntry (_,dt) = dt
-    keyVal dt       = (typeName dt, dt)
 
 -- |Get type name from Datatype value
 typeName :: Datatype ex lb vn -> ScopedName
@@ -313,11 +306,6 @@ data DatatypeRel vt = DatatypeRel
     , dtRelFunc :: DatatypeRelFn vt
     }
 
-instance LookupEntryClass (DatatypeRel vt) ScopedName (DatatypeRel vt)
-    where
-    newEntry (_,relf) = relf
-    keyVal dtrel = (dtRelName dtrel, dtrel)
-
 -- |Datatype value modifier functions type
 --
 --  Each function accepts a list of values and returns a list of values.
@@ -349,12 +337,6 @@ data DatatypeMod vt lb vn = DatatypeMod
     , dmModf :: [ModifierFn vt]
     , dmAppf :: ApplyModifier lb vn
     }
-
-instance LookupEntryClass
-        (DatatypeMod vt lb vn) ScopedName (DatatypeMod vt lb vn)
-    where
-    newEntry (_,dmod) = dmod
-    keyVal dmod = (dmName dmod, dmod)
 
 -- |Null datatype value modifier
 nullDatatypeMod :: DatatypeMod vt lb vn
