@@ -48,6 +48,7 @@ import Swish.RDF.Vocabulary (swishName)
 import Swish.Utils.ListHelpers (flist)
 
 import Control.Applicative ((<$>), (<*>))
+import Control.Monad (mplus)
 
 import Data.Function (on)
 import Data.List (find, intersect, union, (\\), foldl', permutations)
@@ -149,7 +150,7 @@ joinVarBindings vb1 vb2
         , vbNull = False
         }
     where
-        mv12 n = maybe (vbMap vb2 n) Just (vbMap vb1 n) 
+        mv12 n = vbMap vb1 n `mplus` vbMap vb2 n
         bv12 = boundVars vb1 `S.union` boundVars vb2
 
 -- |Add a single new value to a variable binding and return the resulting
@@ -461,7 +462,7 @@ makeVarCompareFilter ::
 makeVarCompareFilter nam vcomp v1 v2 = VarBindingFilter
     { vbfName   = nam
     , vbfVocab  = [v1,v2]
-    , vbfTest   = \vb -> maybe False id (vcomp <$> vbMap vb v1 <*> vbMap vb v2)
+    , vbfTest   = \vb -> fromMaybe False (vcomp <$> vbMap vb v1 <*> vbMap vb v2)
     }
 
 ------------------------------------------------------------
