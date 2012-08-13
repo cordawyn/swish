@@ -208,7 +208,7 @@ Test-Suite test-graphpartition
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       semigroups,
       swish
 
@@ -224,7 +224,7 @@ Test-Suite test-graph
    Build-Depends:
       base,
       containers, 
-      HUnit == 1.2.*,
+      HUnit,
       swish
 
 Test-Suite test-nt
@@ -239,7 +239,7 @@ Test-Suite test-nt
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       swish,
       text
 
@@ -255,7 +255,7 @@ Test-Suite test-n3parser
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -272,7 +272,7 @@ Test-Suite test-n3formatter
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -289,7 +289,7 @@ Test-Suite test-rdfdatatypexsdinteger
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -306,7 +306,7 @@ Test-Suite test-rdfgraph
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       old-locale,
       swish,
@@ -325,7 +325,7 @@ Test-Suite test-rdfproofcontext
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -342,7 +342,7 @@ Test-Suite test-rdfproof
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -359,7 +359,7 @@ Test-Suite test-rdfquery
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -376,7 +376,7 @@ Test-Suite test-rdfruleset
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
@@ -393,7 +393,7 @@ Test-Suite test-varbinding
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       swish
 
 Test-Suite test-qname
@@ -408,7 +408,7 @@ Test-Suite test-qname
    Build-Depends:
       base,
       containers,
-      HUnit == 1.2.*,
+      HUnit,
       network,
       swish,
       text
