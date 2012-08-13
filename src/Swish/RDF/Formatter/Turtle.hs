@@ -491,24 +491,23 @@ insertBnode _ lbl = do
 --  Formatting helpers
 ----------------------------------------------------------------------
 
+newState :: RDFGraph -> TurtleFormatterState -> TurtleFormatterState
+newState gr st = 
+    let ngs0 = nodeGenSt st
+        pre' = prefixes ngs0 `M.union` getNamespaces gr
+        ngs' = ngs0 { prefixes = pre' }
+        (arcSubjs, bNodes) = processArcs gr
+
+    in st  { graph     = gr
+           , subjs     = arcSubjs
+           , props     = []
+           , objs      = []
+           , nodeGenSt = ngs'
+           , bNodesCheck   = bNodes
+           }
+
 setGraph :: RDFGraph -> Formatter ()
-setGraph gr = do
-  st <- get
-
-  let ngs0 = nodeGenSt st
-      pre' = M.union (prefixes ngs0) (getNamespaces gr)
-      ngs' = ngs0 { prefixes = pre' }
-      (arcSubjs, bNodes) = processArcs gr
-      nst  = st  { graph     = gr
-                 , subjs     = arcSubjs
-                 , props     = []
-                 , objs      = []
-                 -- , formAvail = getFormulae gr
-                 , nodeGenSt = ngs'
-                 , bNodesCheck   = bNodes
-                 }
-
-  put nst
+setGraph = modify . newState
 
 hasMore :: (TurtleFormatterState -> [b]) -> Formatter Bool
 hasMore lens = (not . null . lens) `liftM` get
