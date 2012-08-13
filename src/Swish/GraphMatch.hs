@@ -41,7 +41,6 @@ import Control.Arrow (second)
 import Data.Function (on)
 import Data.Hashable (combine)
 import Data.List (foldl', sortBy, groupBy, partition)
-import Data.LookupMap (LookupEntryClass(..))
 import Data.Ord (comparing)
 import Data.Word
 
@@ -73,22 +72,15 @@ nullLabelVal = (0, 0)
 -- | A Mapping between a label and a value (e.g. an index
 -- value).
 data (Label lb) => GenLabelEntry lb lv = LabelEntry lb lv
-    
+
 -- | A label associated with a 'LabelIndex'
 type LabelEntry lb = GenLabelEntry lb LabelIndex
 
-instance (Label lb, Eq lb, Show lb, Eq lv, Show lv)
-    => LookupEntryClass (GenLabelEntry lb lv) lb lv where
-    keyVal   (LabelEntry k v) = (k,v)
-    newEntry (k,v)            = LabelEntry k v
+instance (Label lb, Show lv) => Show (GenLabelEntry lb lv) where
+    show (LabelEntry k v) = show k ++ ":" ++ show v
 
-instance (Label lb, Eq lv, Show lv)
-    => Show (GenLabelEntry lb lv) where
-    show = entryShow
-
-instance (Label lb, Eq lv, Show lv)
-    => Eq (GenLabelEntry lb lv) where
-    (==) = entryEq
+instance (Label lb, Eq lv) => Eq (GenLabelEntry lb lv) where
+    (LabelEntry k1 v1) == (LabelEntry k2 v2) = (k1,v1) == (k2,v2)
 
 instance (Label lb, Show lv, Ord lv) => Ord (GenLabelEntry lb lv) where
     (LabelEntry lb1 lv1) `compare` (LabelEntry lb2 lv2) =
