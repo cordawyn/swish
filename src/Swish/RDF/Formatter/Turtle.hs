@@ -189,51 +189,6 @@ addTrace tr = do
 -}
   
 {-
-queueFormula :: RDFLabel -> Formatter ()
-queueFormula fn = do
-  st <- get
-  let fa = formAvail st
-      newState fv = st {
-                      formAvail = mapDelete fa fn,
-                      formQueue = (fn,fv) : formQueue st
-                    }
-  case mapFindMaybe fn fa of
-    Nothing -> return ()
-    Just v -> put (newState v) >> return ()
--}
-
-{-
-Return the graph associated with the label and delete it
-from the store, if there is an association, otherwise
-return Nothing.
-
-extractFormula :: RDFLabel -> Formatter (Maybe RDFGraph)
-extractFormula fn = do
-  st <- get
-  let fa = formAvail st
-      newState = st { formAvail=mapDelete fa fn }
-  case mapFindMaybe fn fa of
-    Nothing -> return Nothing
-    Just fv -> put newState >> return (Just fv)
-
--}
-
-{-
-moreFormulae :: Formatter Bool
-moreFormulae =  do
-  st <- get
-  return $ not $ null (formQueue st)
-
-nextFormula :: Formatter (RDFLabel,RDFGraph)
-nextFormula = do
-  st <- get
-  let (nf : fq) = formQueue st
-  put $ st { formQueue = fq }
-  return nf
-
--}
-
-{-
 TODO:
 
 Should we change the preds/objs entries as well?

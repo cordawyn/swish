@@ -211,14 +211,13 @@ queueFormula :: RDFLabel -> Formatter ()
 queueFormula fn = do
   st <- get
   let fa = formAvail st
-      newState fv = st {
-                      formAvail = M.delete fn fa,
-                      formQueue = (fn,fv) : formQueue st
-                    }
+      _newState fv = st {
+                       formAvail = M.delete fn fa,
+                       formQueue = (fn,fv) : formQueue st
+                     }
   case M.lookup fn fa of
     Nothing -> return ()
-    -- Just v -> void $ put $ newState (formGraph v)
-    Just v -> void $ put $ newState v
+    Just v -> void $ put $ _newState v
 
 {-
 Return the graph associated with the label and delete it
@@ -228,12 +227,9 @@ return Nothing.
 extractFormula :: RDFLabel -> Formatter (Maybe RDFGraph)
 extractFormula fn = do
   st <- get
-  let fa = formAvail st
-      newState = st { formAvail = M.delete fn fa }
-  case M.lookup fn fa of
-    Nothing -> return Nothing
-    -- Just fv -> put newState >> return (Just (formGraph fv))
-    Just fv -> put newState >> return (Just fv)
+  let (rval, nform) = M.updateLookupWithKey (\_ _ -> Nothing) fn $ formAvail st
+  put $ st { formAvail = nform }
+  return rval
 
 {-
 moreFormulae :: Formatter Bool
