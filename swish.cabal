@@ -446,5 +446,5 @@ Executable         Swish
       ghc-prof-options: -auto-all
 
    Build-Depends:
-      base >=3 && < 5,
+      base,
       swish
