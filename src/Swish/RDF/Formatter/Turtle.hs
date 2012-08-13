@@ -52,9 +52,12 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , findMaxBnode
                                     , getCollection
                                     , processArcs
-				    , findPrefix)
+				    , findPrefix
+				    , quoteB
+				    , showScopedName
+				    )
 
-import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
+import Swish.Namespace (getScopeLocal, getScopeURI)
 import Swish.QName (getLName)
 
 import Swish.RDF.Graph (
@@ -62,7 +65,6 @@ import Swish.RDF.Graph (
   , NamespaceMap
   , getNamespaces
   , emptyRDFGraph
-  , quote
   , quoteT
   , resRdfFirst, resRdfRest
   )
@@ -89,10 +91,6 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
-
--- temporary conversion
-quoteB :: Bool -> String -> B.Builder
-quoteB f v = B.fromString $ quote f v
 
 ----------------------------------------------------------------------
 --  Graph formatting state monad
@@ -627,17 +625,6 @@ mapBlankNode lab = do
   
   -- TODO: is this what we want?
   return $ "_:swish" `mappend` B.fromString (show nv)
-
--- TODO: need to be a bit more clever with this than we did in NTriples
---       not sure the following counts as clever enough ...
---  
-showScopedName :: ScopedName -> B.Builder
-{-
-showScopedName (ScopedName n l) = 
-  let uri = nsURI n ++ l
-  in quote uri
--}
-showScopedName = quoteB True . show
 
 --------------------------------------------------------------------------------
 --

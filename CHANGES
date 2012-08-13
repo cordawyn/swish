@@ -1,3 +1,7 @@
+0.8.0.1:
+
+  Internal changes to Turtle/N3 formatting. No user-visible changes.
+
 0.8.0.0:
 
   The LDGraph class now uses Set (Arc lb), rather than [Arc lb], for

@@ -1,6 +1,8 @@
 
 Some things I want to/should do (not in order)
 
+- Move ListHelpers into an Internal module (do we export flist?)
+
 - Support IRI rather than URI. See issue #13
   https://bitbucket.org/doug_burke/swish/issue/13/
 

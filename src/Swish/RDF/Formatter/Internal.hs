@@ -29,12 +29,18 @@ module Swish.RDF.Formatter.Internal
     , getCollection
     , processArcs
     , findPrefix
+      -- N3-like formatting
+    , quoteB
+    , showScopedName
     )
 where
 
 import Swish.GraphClass (Arc(..), ArcSet)
+import Swish.Namespace (ScopedName)
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..), NamespaceMap)
-import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil)
+import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil
+                       , quote
+                       )
 
 import Data.List (delete, foldl', groupBy)
 import Data.Word
@@ -44,6 +50,8 @@ import Network.URI.Ord ()
 
 import qualified Data.Map as M
 import qualified Data.Set as S
+
+import qualified Data.Text.Lazy.Builder as B
 
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
 import Data.Tuple (swap)
@@ -226,6 +234,20 @@ countBnodes (SA as) = snd (foldl' ctr ([],[]) as)
       incP b _ = b
 
       ctr orig (Arc _ p o) = inc (incP orig p) o
+
+-- N3-like output
+
+-- temporary conversion
+quoteB :: Bool -> String -> B.Builder
+quoteB f v = B.fromString $ quote f v
+
+-- TODO: need to be a bit more clever with this than we did in NTriples
+--       not sure the following counts as clever enough ...
+--  
+showScopedName :: ScopedName -> B.Builder
+showScopedName = quoteB True . show
+
+
 
 --------------------------------------------------------------------------------
 --
