@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -11,7 +12,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses
+--  Portability :  CPP, FlexibleInstances, MultiParamTypeClasses
 --
 --  This module contains graph-matching logic.
 --
@@ -545,9 +546,7 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         LabelMap gen2 lm2 =
             remapLabels gs2 lmap $ foldl1 (++) $ map (ecLabels . snd) ecpairs
 
-        -- replace values in lm with those from (lm1+lm2), but do not copy
-        -- over new keys from (lm1+lm2)
-        lm' = M.mergeWithKey (\_ _ v -> Just v) id (const M.empty) lm $ M.union lm1 lm2
+        lm' = classifyCombine lm $ M.union lm1 lm2
         
         tmap f (a,b) = (f a, f b)
         
@@ -561,6 +560,16 @@ reclassify gs1 gs2 lmap@(LabelMap _ lm) ecpairs =
         pairG1 (p1,p2) = p1 > 1 || p2 > 1
         remapEc = pairGroup . map (newIndex lm') . pairUngroup 
         newIndex x (_,lab) = (M.findWithDefault nullLabelVal lab x,lab)
+
+-- Replace the values in lm1 with those from lm2, but do not copy over new
+-- keys from lm2
+classifyCombine :: (Ord a) => M.Map a b -> M.Map a b -> M.Map a b
+#if MIN_VERSION_containers(0,5,0)
+classifyCombine = M.mergeWithKey (\_ _ v -> Just v) id (const M.empty)
+#else
+-- rely on the left-biased nature of union
+classifyCombine lm1 lm2 = M.intersection lm2 lm1 `M.union` lm1
+#endif
 
 -- | Calculate a new index value for a supplied set of labels based on the
 --  supplied label map and adjacency calculations in the supplied graph

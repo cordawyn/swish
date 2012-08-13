@@ -65,7 +65,7 @@ Description:
   instances for a number of containers; removed some un-needed constraints;
   added @Network.URI.Ord@.
   .
-  * Bumped the minimum containers requirement to @0.5@.
+  * The containers upper limit has been increased to support version 0.5.
   .
   Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
   .
@@ -98,7 +98,7 @@ Library
    Build-Depends:
       base >=3 && < 5,
       binary == 0.5.*,
-      containers == 0.5.*,
+      containers >= 0.4 && < 0.6,
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
@@ -419,7 +419,7 @@ Test-Suite test-qname
 
  -- How can we include data files that are only used for
  -- benchmark/tests and do not get installed?
- Benchmark            bench-ntriples
+Benchmark            bench-ntriples
    Type:             exitcode-stdio-1.0
    Hs-Source-Dirs:   bench/
    Other-Modules:    Paths_swish

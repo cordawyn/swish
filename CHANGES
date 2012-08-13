@@ -18,7 +18,7 @@
   Ord instances for a number of containers; removed some un-needed
   constraints; added Network.URI.Ord.
 
-  Bumped the minimum containers requirement to 0.5.
+  The containers upper limit has been increased to support version 0.5.
 
 0.7.0.2:
 
