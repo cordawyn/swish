@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -9,12 +6,13 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphMem
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  DeriveFoldable, DeriveFunctor, DeriveTraversable, FlexibleInstances, MultiParamTypeClasses
+--  Portability :  FlexibleInstances, MultiParamTypeClasses
 --
 --  This module defines a simple memory-based graph instance.
 --
@@ -40,21 +38,22 @@ import Data.Hashable (Hashable(..), combine)
 import Data.Monoid (Monoid(..))
 import Data.Ord (comparing)
 
-import qualified Data.Foldable as F
-import qualified Data.Traversable as T
+import qualified Data.Set as S
 
 -- | Simple memory-based graph type. 
 
-data GraphMem lb = GraphMem { arcs :: [Arc lb] }
-                   deriving (Functor, F.Foldable, T.Traversable)
-                            
+data GraphMem lb = GraphMem { arcs :: ArcSet lb }
+
 instance (Label lb) => LDGraph GraphMem lb where
-    emptyGraph   = GraphMem []
+    emptyGraph   = GraphMem S.empty
     getArcs      = arcs
     setArcs g as = g { arcs=as }
 
 instance (Label lb) => Eq (GraphMem lb) where
     (==) = graphEq
+
+instance (Label lb) => Ord (GraphMem lb) where
+    compare = comparing getArcs
 
 instance (Label lb) => Show (GraphMem lb) where
     show = graphShow
@@ -64,12 +63,7 @@ instance (Label lb) => Monoid (GraphMem lb) where
     mappend = addGraphs
 
 graphShow   :: (Label lb) => GraphMem lb -> String
-graphShow g = "Graph:" ++ foldr ((++) . ("\n    " ++) . show) "" (arcs g)
-
-{-
-toGraph :: (Label lb) => [Arc lb] -> GraphMem lb
-toGraph as = GraphMem { arcs=nub as }
--}
+graphShow g = "Graph:" ++ S.foldr ((++) . ("\n    " ++) . show) "" (arcs g)
 
 -- |  Return Boolean graph equality
 
@@ -139,12 +133,15 @@ instance Eq LabelMem where
     (LV l1) == (LV l2)  = l1 == l2
     _ == _              = False
 
+instance Ord LabelMem where
+    (LF l1) `compare` (LF l2) = l1 `compare` l2
+    (LV l1) `compare` (LV l2) = l1 `compare` l2
+    (LF _)  `compare` _       = LT
+    _       `compare` (LF _)  = GT
+
 instance Show LabelMem where
     show (LF l1)        = '!' : l1
     show (LV l2)        = '?' : l2
-
-instance Ord LabelMem where
-    compare = comparing show 
 
 --------------------------------------------------------------------------------
 --

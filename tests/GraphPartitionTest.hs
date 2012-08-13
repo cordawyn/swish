@@ -25,58 +25,14 @@ import Swish.GraphPartition
 import Swish.GraphClass (Arc(..))
 import Swish.GraphMem (LabelMem(..))
 
-import Swish.Utils.ListHelpers (equiv)
-
 import Data.List.NonEmpty (fromList)
 
-import Test.HUnit (Test(TestCase, TestList),
-                   assertEqual, assertBool)
+import Test.HUnit (Test(TestList))
 
 import TestHelpers (runTestSuite
                     , testEq, testNe
+                   , testEqv, testNotEqv
                     )
-
-------------------------------------------------------------
---  Test case helpers
-------------------------------------------------------------
-
-{-
-testEq :: (Eq a, Show a) => String -> a -> a -> Test
-testEq lab a1 a2 =
-    TestCase ( assertEqual ("testEq:"++lab) a1 a2 )
-
-testNe :: (Eq a, Show a) => String -> a -> a -> Test
-testNe lab a1 a2 =
-    TestCase ( assertBool ("testNe:"++lab) (a1 /= a2) )
--}
-
--- Compare lists and lists of lists and Maybe lists for set equivalence:
-
-data ListTest a = ListTest [a]
-
-instance (Eq a) => Eq (ListTest a) where
-    (ListTest a1) == (ListTest a2) = a1 `equiv` a2
-
-instance (Show a) => Show (ListTest a) where
-    show (ListTest a) = show a
-
-data MaybeListTest a = MaybeListTest (Maybe [a])
-
-instance (Eq a) => Eq (MaybeListTest a) where
-    MaybeListTest (Just a1) == MaybeListTest (Just a2) = a1 `equiv` a2
-    MaybeListTest Nothing   == MaybeListTest Nothing   = True
-    _                       == _                       = False
-
-instance (Show a) => Show (MaybeListTest a) where
-    show (MaybeListTest a) = show a
-
-testEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testEqv lab a1 a2 =
-    TestCase ( assertEqual ("testEqv:"++lab) (ListTest a1) (ListTest a2) )
-
-testNotEqv :: (Eq a, Show a) => String -> [a] -> [a] -> Test
-testNotEqv lab a1 a2 =
-    TestCase ( assertBool ("testEqv:"++lab) (ListTest a1 /= ListTest a2) )
 
 ------------------------------------------------------------
 --  Basic GraphPartition tests

@@ -5,7 +5,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -59,22 +60,28 @@ module Swish.RDF.Formatter.N3
     )
 where
 
-import Swish.GraphClass (Arc(..))
+import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
+                                    , LabelContext(..)
+                                    , NodeGenState(..), emptyNgs
+                                    , findMaxBnode
+                                    , getCollection
+                                    , processArcs
+				    , findPrefix) 
+
 import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 import Swish.QName (getLName)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..),
-  NamespaceMap, RevNamespaceMap,
+  NamespaceMap,
   emptyNamespaceMap,
   FormulaMap, emptyFormulaMap,
-  getArcs, labels,
   setNamespaces, getNamespaces,
   getFormulae,
   emptyRDFGraph
   , quote
   , quoteT
-  , resRdfFirst, resRdfRest, resRdfNil
+  , resRdfFirst, resRdfRest
   )
 
 import Swish.RDF.Vocabulary (
@@ -89,10 +96,7 @@ import Control.Monad (liftM, when, void)
 import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
-import Data.List (foldl', delete, groupBy, partition, sort, intersperse)
-import Data.LookupMap (LookupEntryClass(..), LookupMap)
-import Data.LookupMap (emptyLookupMap, reverseLookupMap, listLookupMap
-                      , mapFind, mapFindMaybe, mapAdd, mapDelete, mapMerge)
+import Data.List (partition, intersperse)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -100,6 +104,7 @@ import Data.Word (Word32)
 -- wrong; however I have done no profiling to back this
 -- assumption up!
 
+import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
@@ -117,9 +122,6 @@ quoteB f v = B.fromString $ quote f v
 --  themselves be based upon and reflected in the state (e.g. if a
 --  decision is made to include a blank node inline, it can be removed
 --  from the graph state that remains to be formatted).
-
-type SubjTree lb = [(lb,PredTree lb)]
-type PredTree lb = [(lb,[lb])]
 
 data N3FormatterState = N3FS
     { indent    :: B.Builder
@@ -151,30 +153,6 @@ emptyN3FS ngs = N3FS
     , bNodesCheck   = []
     , traceBuf  = []
     }
-
--- | Node name generation state information that carries through
--- and is updated by nested formulae.
-type NodeGenLookupMap = LookupMap (RDFLabel, Word32)
-
-data NodeGenState = Ngs
-    { prefixes  :: NamespaceMap
-    , nodeMap   :: NodeGenLookupMap
-    , nodeGen   :: Word32
-    }
-
-emptyNgs :: NodeGenState
-emptyNgs = Ngs
-    { prefixes  = emptyLookupMap
-    , nodeMap   = emptyLookupMap
-    , nodeGen   = 0
-    }
-
--- simple context for label creation
--- (may be a temporary solution to the problem
---  of label creation)
---
-data LabelContext = SubjContext | PredContext | ObjContext
-                    deriving (Eq, Show)
 
 getIndent :: Formatter B.Builder
 getIndent = indent `liftM` get
@@ -233,13 +211,13 @@ queueFormula :: RDFLabel -> Formatter ()
 queueFormula fn = do
   st <- get
   let fa = formAvail st
-      newState fv = st {
-                      formAvail = mapDelete fa fn,
-                      formQueue = (fn,fv) : formQueue st
-                    }
-  case mapFindMaybe fn fa of
+      _newState fv = st {
+                       formAvail = M.delete fn fa,
+                       formQueue = (fn,fv) : formQueue st
+                     }
+  case M.lookup fn fa of
     Nothing -> return ()
-    Just v -> void $ put $ newState v
+    Just v -> void $ put $ _newState v
 
 {-
 Return the graph associated with the label and delete it
@@ -249,11 +227,9 @@ return Nothing.
 extractFormula :: RDFLabel -> Formatter (Maybe RDFGraph)
 extractFormula fn = do
   st <- get
-  let fa = formAvail st
-      newState = st { formAvail=mapDelete fa fn }
-  case mapFindMaybe fn fa of
-    Nothing -> return Nothing
-    Just fv -> put newState >> return (Just fv)
+  let (rval, nform) = M.updateLookupWithKey (\_ _ -> Nothing) fn $ formAvail st
+  put $ st { formAvail = nform }
+  return rval
 
 {-
 moreFormulae :: Formatter Bool
@@ -269,49 +245,6 @@ nextFormula = do
   return nf
 
 -}
-
--- list has a length of 1
-len1 :: [a] -> Bool
-len1 (_:[]) = True
-len1 _ = False
-
-{-|
-Given a set of statements and a label, return the details of the
-RDF collection referred to by label, or Nothing.
-
-For label to be considered as representing a collection we require the
-following conditions to hold (this is only to support the
-serialisation using the '(..)' syntax and does not make any statement
-about semantics of the statements with regard to RDF Collections):
-
-  - there must be one rdf_first and one rdfRest statement
-  - there must be no other predicates for the label
-
--} 
-getCollection ::          
-  SubjTree RDFLabel -- ^ statements organized by subject
-  -> RDFLabel -- ^ does this label represent a list?
-  -> Maybe (SubjTree RDFLabel, [RDFLabel], [RDFLabel])
-     -- ^ the statements with the elements removed; the
-     -- content elements of the collection (the objects of the rdf:first
-     -- predicate) and the nodes that represent the spine of the
-     -- collection (in reverse order, unlike the actual contents which are in
-     -- order).
-getCollection subjList lbl = go subjList lbl ([],[]) 
-    where
-      go sl l (cs,ss) | l == resRdfNil = Just (sl, reverse cs, ss)
-                      | otherwise = do
-        (pList1, sl') <- removeItem sl l
-        (pFirst, pList2) <- removeItem pList1 resRdfFirst
-        (pNext, pList3) <- removeItem pList2 resRdfRest
-
-        -- QUS: could I include these checks implicitly in the pattern matches above?
-        -- ie instrad of (pFirst, pos1) <- ..
-        -- have ([content], pos1) <- ...
-        -- ?
-        if and [len1 pFirst, len1 pNext, null pList3]
-          then go sl' (head pNext) (head pFirst : cs, l : ss)
-          else Nothing
 
 {-
 TODO:
@@ -344,18 +277,6 @@ extractList lctxt ln = do
 
     Nothing -> return Nothing
   
-{-|
-Removes the first occurrence of the item from the
-association list, returning it's contents and the rest
-of the list, if it exists.
--}
-removeItem :: (Eq a) => [(a,b)] -> a -> Maybe (b, [(a,b)])
-removeItem os x =
-  let (as, bs) = break (\a -> fst a == x) os
-  in case bs of
-    ((_,b):bbs) -> Just (b, as ++ bbs)
-    [] -> Nothing
-
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
 ----------------------------------------------------------------------
@@ -391,7 +312,7 @@ formatGraphDiag ::
 formatGraphDiag indnt flag gr = 
   let fg  = formatGraph indnt " .\n" False flag gr
       ngs = emptyNgs {
-        prefixes = emptyLookupMap,
+        prefixes = M.empty,
         nodeGen  = findMaxBnode gr
         }
              
@@ -428,7 +349,7 @@ formatGraph ind end dobreak dopref gr = do
 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
 formatPrefixes pmap = do
-  let mls = map (pref . keyVal) (listLookupMap pmap)
+  let mls = map pref $ M.assocs pmap
   ls <- sequence mls
   return $ mconcat ls
     where
@@ -596,39 +517,36 @@ insertBnode _ lbl = do
 --  Formatting helpers
 ----------------------------------------------------------------------
 
+newState :: RDFGraph -> N3FormatterState -> N3FormatterState
+newState gr st = 
+    let ngs0 = nodeGenSt st
+        pre' = prefixes ngs0 `M.union` getNamespaces gr
+        ngs' = ngs0 { prefixes = pre' }
+        (arcSubjs, bNodes) = processArcs gr
+
+    in st  { graph     = gr
+           , subjs     = arcSubjs
+           , props     = []
+           , objs      = []
+           , formAvail = getFormulae gr
+           , nodeGenSt = ngs'
+           , bNodesCheck   = bNodes
+           }
+
 setGraph :: RDFGraph -> Formatter ()
-setGraph gr = do
-  st <- get
-
-  let ngs0 = nodeGenSt st
-      pre' = mapMerge (prefixes ngs0) (getNamespaces gr)
-      ngs' = ngs0 { prefixes = pre' }
-      arcs = sortArcs $ getArcs gr
-      nst  = st  { graph     = gr
-                 , subjs     = arcTree arcs
-                 , props     = []
-                 , objs      = []
-                 , formAvail = getFormulae gr
-                 , nodeGenSt = ngs'
-                 , bNodesCheck   = countBnodes arcs
-                 }
-
-  put nst
+setGraph = modify . newState
 
 hasMore :: (N3FormatterState -> [b]) -> Formatter Bool
 hasMore lens = (not . null . lens) `liftM` get
 
 moreSubjects :: Formatter Bool
 moreSubjects = hasMore subjs
--- moreSubjects = (not . null . subjs) `liftM` get
 
 moreProperties :: Formatter Bool
 moreProperties = hasMore props
--- moreProperties = (not . null . props) `liftM` get
 
 moreObjects :: Formatter Bool
 moreObjects = hasMore objs
--- moreObjects = (not . null . objs) `liftM` get
 
 nextSubject :: Formatter RDFLabel
 nextSubject = do
@@ -737,8 +655,7 @@ formatLabel _ lab@(Res sn) =
       pr <- getPrefixes
       let nsuri  = getScopeURI sn
           local  = getLName $ getScopeLocal sn
-          premap = reverseLookupMap pr :: RevNamespaceMap
-          prefix = mapFindMaybe nsuri premap
+	  prefix = findPrefix nsuri pr
           
           name   = case prefix of
                      Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
@@ -798,10 +715,10 @@ mapBlankNode lab = do
   ngs <- getNgs
   let cmap = nodeMap ngs
       cval = nodeGen ngs
-  nv <- case mapFind 0 lab cmap of
+  nv <- case M.findWithDefault 0 lab cmap of
     0 -> do 
       let nval = succ cval
-          nmap = mapAdd cmap (lab, nval)
+          nmap = M.insert lab nval cmap
       setNgs $ ngs { nodeGen = nval, nodeMap = nmap }
       return nval
       
@@ -820,102 +737,6 @@ showScopedName (ScopedName n l) =
   in quote uri
 -}
 showScopedName = quoteB True . show
-
-----------------------------------------------------------------------
---  Graph-related helper functions
-----------------------------------------------------------------------
-
-newtype SortedArcs lb = SA [Arc lb]
-
-sortArcs :: (Ord lb) => [Arc lb] -> SortedArcs lb
-sortArcs = SA . sort
-
---  Rearrange a list of arcs into a tree of pairs which group together
---  all statements for a single subject, and similarly for multiple
---  objects of a common predicate.
---
-arcTree :: (Eq lb) => SortedArcs lb -> SubjTree lb
-arcTree (SA as) = commonFstEq (commonFstEq id) $ map spopair as
-    where
-        spopair (Arc s p o) = (s,(p,o))
-
-{-
-arcTree as = map spopair $ sort as
-    where
-        spopair (Arc s p o) = (s,[(p,[o])])
--}
-
---  Rearrange a list of pairs so that multiple occurrences of the first
---  are commoned up, and the supplied function is applied to each sublist
---  with common first elements to obtain the corresponding second value
-commonFstEq :: (Eq a) => ( [b] -> c ) -> [(a,b)] -> [(a,c)]
-commonFstEq f ps =
-    [ (fst $ head sps,f $ map snd sps) | sps <- groupBy fstEq ps ]
-    where
-        fstEq (f1,_) (f2,_) = f1 == f2
-
-{-
--- Diagnostic code for checking arcTree logic:
-testArcTree = (arcTree testArcTree1) == testArcTree2
-testArcTree1 =
-    [Arc "s1" "p11" "o111", Arc "s1" "p11" "o112"
-    ,Arc "s1" "p12" "o121", Arc "s1" "p12" "o122"
-    ,Arc "s2" "p21" "o211", Arc "s2" "p21" "o212"
-    ,Arc "s2" "p22" "o221", Arc "s2" "p22" "o222"
-    ]
-testArcTree2 =
-    [("s1",[("p11",["o111","o112"]),("p12",["o121","o122"])])
-    ,("s2",[("p21",["o211","o212"]),("p22",["o221","o222"])])
-    ]
--}
-
-
-findMaxBnode :: RDFGraph -> Word32
-findMaxBnode = maximum . map getAutoBnodeIndex . labels
-
-getAutoBnodeIndex   :: RDFLabel -> Word32
-getAutoBnodeIndex (Blank ('_':lns)) = res where
-    -- cf. prelude definition of read s ...
-    res = case [x | (x,t) <- reads lns, ("","") <- lex t] of
-            [x] -> x
-            _   -> 0
-getAutoBnodeIndex _                   = 0
-
-{-
-Find all blank nodes that occur
-  - any number of times as a subject
-  - 0 or 1 times as an object
-
-Such nodes can be output using the "[..]" syntax. To make it simpler
-to check we actually store those nodes that can not be expanded.
-
-Note that we do not try and expand any bNode that is used in
-a predicate position.
-
-Should probably be using the SubjTree RDFLabel structure but this
-is easier for now.
-
--}
-
-countBnodes :: SortedArcs RDFLabel -> [RDFLabel]
-countBnodes (SA as) = snd (foldl' ctr ([],[]) as)
-    where
-      -- first element of tuple are those blank nodes only seen once,
-      -- second element those blank nodes seen multiple times
-      --
-      inc b@(b1s,bms) l@(Blank _) | l `elem` bms = b
-                                  | l `elem` b1s = (delete l b1s, l:bms)
-                                  | otherwise    = (l:b1s, bms)
-      inc b _ = b
-
-      -- if the bNode appears as a predicate we instantly add it to the
-      -- list of nodes not to expand, even if only used once
-      incP b@(b1s,bms) l@(Blank _) | l `elem` bms = b
-                                   | l `elem` b1s = (delete l b1s, l:bms)
-           			   | otherwise    = (b1s, l:bms)
-      incP b _ = b
-
-      ctr orig (Arc _ p o) = inc (incP orig p) o
 
 --------------------------------------------------------------------------------
 --

@@ -18,20 +18,16 @@
 
 module Main where
 
-import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, ScopedName, makeNSScopedName, nullScopedName)
+import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, getNamespaceTuple, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.QName (QName, qnameFromURI)
 
-import Data.LookupMap (LookupMap(..), LookupEntryClass(..), mapFindMaybe)
-
-import Swish.Utils.ListHelpers (equiv)
-
-import Swish.GraphClass (Label(..), arc)
+import Swish.GraphClass (Label(..), arc {- , arcToTriple -} )
 
 import Swish.RDF.Graph
   ( RDFTriple, toRDFTriple, fromRDFTriple
-  , RDFGraph 
+  , RDFGraph, NamespaceMap, Formula
   , RDFLabel(..), ToRDFLabel(..), FromRDFLabel(..)
-  , NSGraph(..), Arc(..)
+  , NSGraph(..)
   , isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral
   , isDatatyped, isMemberProp
   , isUri, isBlank, isQueryVar, makeBlank
@@ -40,6 +36,7 @@ import Swish.RDF.Graph
   , getArcs, addArc
   , remapLabels, remapLabelList
   , setFormulae, getFormulae, setFormula, getFormula
+  , fmapNSGraph
   , newNode, newNodes )
 
 import Swish.RDF.Vocabulary
@@ -55,19 +52,24 @@ import Swish.RDF.Vocabulary
   , xsdDate
     )
 
-import qualified Data.Text as T
+import Control.Arrow (first)
 
-import qualified Data.Traversable as Traversable
-import qualified Data.Foldable as Foldable
-
-import Network.URI (URI, parseURI)
-import Data.Monoid (Monoid(..))
 import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust, fromMaybe)
+import Data.Monoid (Monoid(..))
 import Data.Ord (comparing)
+import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
+
+import Network.URI (URI, parseURI)
 
 import System.Locale (defaultTimeLocale)
-import Data.Time (UTCTime(..), Day, fromGregorian, buildTime)
+
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Text as T
+
+-- import qualified Data.Traversable as Traversable
+import qualified Data.Foldable as Foldable
 
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
@@ -75,9 +77,10 @@ import Test.HUnit
     , assertBool, assertEqual )
 
 import TestHelpers ( runTestSuite
-                     , testEq
-                     , testCompare
-                     , testCompareEq)
+                   , testEq
+                   , testEqv
+                   , testCompare
+                   , testCompareEq)
 
 ------------------------------------------------------------
 --  Test language tag comparisons
@@ -690,24 +693,25 @@ testLabelOrd lab order n1 n2 =
 nodeorder :: [String]
 nodeorder =
   [ 
-    -- literals
-    "l1"
-  , "l11", "l12", "l10"
-  , "l2", "l2gb", "l3"
-  , "l5", "l6", "l4", "l8", "l9", "l7"
-  -- URIs beginning with ':' and '<'  
-  , "es1"
-  , "us1"
-  -- variables
-  , "v1", "v2"
   -- URIs
+  "es1", "us1"
   , "o1", "p1", "s1"
   , "o2", "p2", "s2"
   , "s4", "o4", "s6", "s7"
   , "o3", "p3", "p4", "s3"
+    -- literals
+  , "l1"
+    -- language literals
+  , "l2", "l2gb", "l3"
+    -- typed literals (we have repeats)
+  , "l10", "l11", "l12"
+  , "l4", "l5", "l6"
+  , "l7", "l8", "l9"
   -- blank nodes
   , "b1", "b2", "b3", "b4"
   , "o5", "s5", "s8"
+  -- variables
+  , "v1", "v2"
   ]
 
 testNodeOrdSuite :: Test
@@ -847,26 +851,17 @@ tt06 = arc st3 p1 l10
 makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = makeNamespace (Just pre) (getNamespaceURI ns)
 
-nslist :: LookupMap Namespace
-nslist = LookupMap $ map makeNewPrefixNamespace
-    [ ("base1",base1)
-    , ("base2",base2)
-    , ("base3",base3)
-    , ("base4",base4)
-    ]
+nslist :: NamespaceMap
+nslist = M.fromList $ map getNamespaceTuple [base1,base2,base3,base4]
 
-nslistalt :: LookupMap Namespace
-nslistalt = LookupMap $ map makeNewPrefixNamespace
-    [ ("altbase1",base1)
-    , ("altbase2",base2)
-    , ("altbase3",base3)
-    ]
+nslistalt :: NamespaceMap
+nslistalt = M.fromList $ map (first (fmap (T.append "alt")) . getNamespaceTuple) [base1,base2,base3]
 
 toGraph :: [RDFTriple] -> RDFGraph
 toGraph stmts = NSGraph
         { namespaces = nslist
         , formulae   = emptyFormulaMap
-        , statements = stmts
+        , statements = S.fromList stmts
         }
 
 g1, gt1 :: RDFGraph
@@ -879,7 +874,7 @@ g1alt :: RDFGraph
 g1alt = NSGraph
         { namespaces = nslistalt
         , formulae   = emptyFormulaMap
-        , statements = [t01]
+        , statements = S.singleton t01
         }
 
 --  Construct version of g1 using just URIs
@@ -893,14 +888,14 @@ tu01 :: RDFTriple
 tu01  = toRDFTriple uris1 urip1 urio1
 
 g2arcs :: [String]
-g2arcs = [
-  "(base1:s1,base1:p1,base1:o1)", 
-  "(base2:s2,base1:p1,base2:o2)", 
-  "(base3:s3,base1:p1,base3:o3)", 
-  "(base1:s1,base1:p1,\"l1\")", 
-  "(base2:s2,base1:p1,\"l4\"^^base1:type1)", 
-  "(base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral)"
-  ]
+g2arcs = 
+    [ "(base1:s1,base1:p1,base1:o1)"
+    , "(base1:s1,base1:p1,\"l1\")"
+    , "(base2:s2,base1:p1,base2:o2)"
+    , "(base2:s2,base1:p1,\"l4\"^^base1:type1)" 
+    , "(base3:s3,base1:p1,base3:o3)"
+    , "(base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral)"
+    ]
   
 g2str :: String -> String
 g2str sp = 
@@ -985,9 +980,16 @@ testGraphEqSelSuite = TestList
   , testGraphEq "g10-g10a" True g10 g10a
   ]
 
+{-
 showLabel :: RDFLabel -> String
 showLabel = (" " ++) . show
+-}
 
+-- QUS: are these tests useful, since all they test os the Monoid instance
+-- of NSGraph (but maybe we do not explicitly test this elsewhere?)
+--
+-- The tests also used to check the Foldable instance of NSGraph but these
+-- have been removed with the move to Set, rather than list, storage.
 testGraphFoldSuite :: Test
 testGraphFoldSuite = TestList
   [ 
@@ -999,13 +1001,15 @@ testGraphFoldSuite = TestList
   , testEq "foldEg1"  g1                   (Foldable.fold [mempty,g1])
   , testEq "foldg1g2" fg1g2                (Foldable.fold [g1,g2])
   , testEq "foldg2g1" fg1g2                (Foldable.fold [g2,g1])
+{- TODO: reinstate?
   , testEq "foldMap0" ""                   (Foldable.foldMap showLabel (mempty::RDFGraph))
   , testEq "foldMapg1"                    
     (concatMap showLabel [s1,p1,o1])
     (Foldable.foldMap showLabel g1)
   , testEq "foldMapg1f2"                    
-    (concatMap showLabel $ s2 : concatMap (\(Arc s p o) -> [s,p,o]) g2Labels ++ [s1,p1,o1])
+    (concatMap showLabel $ s2 : concatMap arcToTriple g2Labels ++ [s1,p1,o1])
     (Foldable.foldMap showLabel g1f2)
+-}
   ]
   
 ------------------------------------------------------------
@@ -1015,9 +1019,8 @@ testGraphFoldSuite = TestList
 testFormulaLookup ::
     String -> FormulaMap RDFLabel -> RDFLabel -> Maybe RDFGraph -> Test
 testFormulaLookup lab fs fl gr =
-  testCompare "testFormulaLookup:" lab gr jfg
-    where
-      jfg = mapFindMaybe fl fs
+  testCompare "testFormulaLookup:" lab gr $ M.lookup fl fs
+  -- testCompare "testFormulaLookup:" lab gr $ fmap formGraph $ M.lookup fl fs
 
 testMaybeEq :: (Eq a, Show a) => String -> Maybe a -> Maybe a -> Test
 testMaybeEq = testCompare "testMaybeEq:"
@@ -1030,6 +1033,7 @@ g1f4 = setFormulae fm4 g1f1
 g1f5 = setFormulae fm5 g1f1
 g1f6 = setFormulae fm6 g1f1
 g1f7 = setFormulae fm7 g1f1
+
 
 g1f1str, g1f2str :: String
 
@@ -1044,33 +1048,37 @@ g1f2str =
   "arcs: \n" ++
   "    (base1:s1,base1:p1,base1:o1)"
 
-lf11, lf22, lf23, lf24, lf25, lf27, lf33, lf36 :: LookupFormula RDFLabel RDFGraph
+lf11, lf22, lf23, lf24, lf25, lf27, lf33, lf36 :: Formula RDFLabel
 lf11 = Formula s1 g1
-lf22 = newEntry (s2,g2)
-lf23 = newEntry (s2,g3)
-lf24 = newEntry (s2,g4)
-lf25 = newEntry (s2,g5)
-lf27 = newEntry (s2,g7)
-lf33 = newEntry (s3,g3)
-lf36 = newEntry (s3,g6)
+lf22 = Formula s2 g2
+lf23 = Formula s2 g3
+lf24 = Formula s2 g4
+lf25 = Formula s2 g5
+lf27 = Formula s2 g7
+lf33 = Formula s3 g3
+lf36 = Formula s3 g6
 
 lf22str :: String
 lf22str =
   "base2:s2 :- { \n" ++ 
   "        (base1:s1,base1:p1,base1:o1)\n" ++ 
-  "        (base2:s2,base1:p1,base2:o2)\n" ++ 
-  "        (base3:s3,base1:p1,base3:o3)\n" ++ 
   "        (base1:s1,base1:p1,\"l1\")\n" ++ 
+  "        (base2:s2,base1:p1,base2:o2)\n" ++ 
   "        (base2:s2,base1:p1,\"l4\"^^base1:type1)\n" ++ 
+  "        (base3:s3,base1:p1,base3:o3)\n" ++
   "        (base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral) }"
 
-fm2, fm3, fm4, fm5, fm6, fm7 :: LookupMap (LookupFormula RDFLabel RDFGraph)
-fm2  = LookupMap [lf22]
-fm3  = LookupMap [lf11, lf22, lf33]
-fm4  = LookupMap [lf11, lf23, lf33]
-fm5  = LookupMap [lf11, lf24, lf36]
-fm6  = LookupMap [lf11, lf25, lf36]
-fm7  = LookupMap [lf11, lf27, lf36]
+toFM :: [Formula RDFLabel] -> FormulaMap RDFLabel
+toFM = M.fromList . map (\fm -> (formLabel fm, formGraph fm))
+-- toFM = M.fromList . map (\fm -> (formLabel fm, fm))
+
+fm2, fm3, fm4, fm5, fm6, fm7 :: FormulaMap RDFLabel
+fm2  = toFM [lf22]
+fm3  = toFM [lf11, lf22, lf33]
+fm4  = toFM [lf11, lf23, lf33]
+fm5  = toFM [lf11, lf24, lf36]
+fm6  = toFM [lf11, lf25, lf36]
+fm7  = toFM [lf11, lf27, lf36]
 
 f1, f2, f3, f4, f5, f6, f7 :: FormulaMap RDFLabel
 f1   = getFormulae g1f1
@@ -1225,17 +1233,17 @@ gt1f1a, gt1f1b, gt1f2a, gt1f2b, gt1f3a, gt1f3b,
   gt2f1a, gt2f1b, gt2f2a, gt2f2b,
   gt2f3a, gt2f3b :: RDFGraph
 gt1f1a = gt1
-gt1f1b = fmap translate g1f1
+gt1f1b = fmapNSGraph translate g1f1
 gt1f2a = setFormulae ftm2 gt1
-gt1f2b = fmap translate g1f2
+gt1f2b = fmapNSGraph translate g1f2
 gt1f3a = setFormulae ftm3 gt1
-gt1f3b = fmap translate g1f3
+gt1f3b = fmapNSGraph translate g1f3
 gt2f1a = gt2
-gt2f1b = fmap translate g2f1
+gt2f1b = fmapNSGraph translate g2f1
 gt2f2a = setFormulae ftm2 gt2
-gt2f2b = fmap translate g2f2
+gt2f2b = fmapNSGraph translate g2f2
 gt2f3a = setFormulae ftm3 gt2
-gt2f3b = fmap translate g2f3
+gt2f3b = fmapNSGraph translate g2f3
 
 ft1, ft2, ft3, ft4, ft5, ft6 :: FormulaMap RDFLabel
 ft1 = getFormulae gt1f1b
@@ -1246,10 +1254,12 @@ ft5 = getFormulae gt2f2b
 ft6 = getFormulae gt2f3b
 
 ftm2, ftm3 :: FormulaMap RDFLabel
-ftm2   = LookupMap [Formula st2 gt2]
-ftm3   = LookupMap [Formula st1 gt1,Formula st2 gt2,Formula st3 gt3]
+ftm2   = toFM [Formula st2 gt2]
+ftm3   = toFM [Formula st1 gt1,Formula st2 gt2,Formula st3 gt3]
 
 -- Monadic translate tests, using Maybe Monad
+
+{- TODO: reinstate?
 
 gt1f1aM, gt1f1bM, gt1f2aM, gt1f2bM, gt1f5M :: Maybe RDFGraph
 gt1f1aM = Just gt1
@@ -1261,6 +1271,7 @@ gt1f5M = Traversable.mapM translateM g1f5
 ft1M, ft2M :: FormulaMap RDFLabel
 ft1M = getFormulae $ fromMaybe (error "Unexpected: gt1f1bM") gt1f1bM
 ft2M = getFormulae $ fromMaybe (error "Unexpected: gt1f2bM") gt1f2bM
+--}
 
 testGraphTranslateSuite :: Test
 testGraphTranslateSuite = TestLabel "TestTranslate" $ TestList
@@ -1289,17 +1300,17 @@ testGraphTranslateSuite = TestLabel "TestTranslate" $ TestList
   , testFormulaLookup "GraphTranslate06b" ft6 st1 (Just gt1)
   , testFormulaLookup "GraphTranslate06c" ft6 st2 (Just gt2)
   , testFormulaLookup "GraphTranslate06d" ft6 st3 (Just gt3)
-  , testGraphEqM "gt1f1aM-gt1f1bM" True gt1f1aM gt1f1bM
-  , testFormulaLookup "GraphTranslate07b" ft1M st1 Nothing
-  , testFormulaLookup "GraphTranslate07c" ft1M st2 Nothing
-  , testFormulaLookup "GraphTranslate07d" ft1M st3 Nothing
-  , testEq "gt1f1aM-gt1f1bM" gt1f1aM gt1f1bM
-  , testGraphEqM "gt1f2aM-gt1f2bM" True gt1f2aM gt1f2bM
-  , testFormulaLookup "GraphTranslate08b" ft2M st1 Nothing
-  , testFormulaLookup "GraphTranslate08c" ft2M st2 (Just gt2)
-  , testFormulaLookup "GraphTranslate08d" ft2M st3 Nothing
-  , testEq "gt1f2aM-gt1f2bM" gt1f2aM gt1f1bM
-  , testEq "GraphTranslate09a" Nothing gt1f5M
+--  , testGraphEqM "gt1f1aM-gt1f1bM" True gt1f1aM gt1f1bM      TODO: reinstate?
+--  , testFormulaLookup "GraphTranslate07b" ft1M st1 Nothing
+--  , testFormulaLookup "GraphTranslate07c" ft1M st2 Nothing
+--  , testFormulaLookup "GraphTranslate07d" ft1M st3 Nothing
+--  , testEq "gt1f1aM-gt1f1bM" gt1f1aM gt1f1bM
+--  , testGraphEqM "gt1f2aM-gt1f2bM" True gt1f2aM gt1f2bM
+--  , testFormulaLookup "GraphTranslate08b" ft2M st1 Nothing
+--  , testFormulaLookup "GraphTranslate08c" ft2M st2 (Just gt2)
+--  , testFormulaLookup "GraphTranslate08d" ft2M st3 Nothing
+--  , testEq "gt1f2aM-gt1f2bM" gt1f2aM gt1f1bM
+--  , testEq "GraphTranslate09a" Nothing gt1f5M
   ]
 
 ------------------------------------------------------------
@@ -1316,14 +1327,11 @@ assertGrHelper lbl gg1 gg2 = assertBool $
   
 assertGrEquiv :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEquiv lbl gg1 gg2 = 
-  assertGrHelper lbl gg1 gg2 $ getArcs gg1 `equiv` getArcs gg2
+  assertGrHelper lbl gg1 gg2 $ getArcs gg1 == getArcs gg2
 
 assertGrEq :: String -> RDFGraph -> RDFGraph -> Assertion
 assertGrEq lbl gg1 gg2 = 
   assertGrHelper lbl gg1 gg2 $ gg1 == gg2
-
-testEquiv :: (Eq a) => String -> [a] -> [a] -> Test
-testEquiv lab l1s l2s = TestCase $ assertBool lab (l1s `equiv` l2s)
 
 tm01, tm02, tm03, tm04, tm05, tm06, tm07, tm08, tm09,
   tm10, tm11, tm12, tm13, tm14 :: RDFTriple
@@ -1405,38 +1413,38 @@ gm44 = toGraph [tm01,tm04,tm41a,tm44a]
 gm5, gm55 :: RDFGraph
 gm5  = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm2]
-        , statements = [tm01,tm02,tm03]
+        , formulae   = toFM [Formula b1 gm2]
+        , statements = S.fromList [tm01,tm02,tm03]
         }
 
 gm55 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm2,Formula b2 gm2f]
-        , statements = [tm01,tm02,tm03,tm41,tm42,tm43]
+        , formulae   = toFM [Formula b1 gm2,Formula b2 gm2f]
+        , statements = S.fromList [tm01,tm02,tm03,tm41,tm42,tm43]
         }
 
 gm5s :: RDFGraph
 gm5s  = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm2]
-        , statements = [tm01,tm02,tm03,
+        , formulae   = toFM [Formula b1 gm2]
+        , statements = S.fromList [tm01,tm02,tm03,
                         arc s1 p1 o1, arc o1 p2 s3, arc s2 p3 o4]
         }
 
 gm6, gm66 :: RDFGraph
 gm6 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula ba1 gm2,Formula bn3 gm3]
-        , statements = [tm07,tm08,tm09,tm10,tm11,tm12,tm13,tm14]
+        , formulae   = toFM [Formula ba1 gm2,Formula bn3 gm3]
+        , statements = S.fromList [tm07,tm08,tm09,tm10,tm11,tm12,tm13,tm14]
         }
 
 gm66 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap
+        , formulae   = toFM
                        [Formula ba1 gm2,Formula bn3 gm3
                        ,Formula ba3 gm2f,Formula bn5 gm3f
                        ]
-        , statements = [tm07,tm08,tm09,tm10,tm11,tm12,tm13,tm14
+        , statements = S.fromList [tm07,tm08,tm09,tm10,tm11,tm12,tm13,tm14
                        ,tm67,tm68,tm69,tm70,tm71,tm72,tm73,tm74
                        ]
         }
@@ -1444,9 +1452,9 @@ gm66 = NSGraph
 gm456 :: RDFGraph
 gm456 = NSGraph 
   { namespaces = nslist
-  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
-  , formulae   = LookupMap []
-  , statements = [tm01, tm04,
+  -- , formulae   = toFM [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = M.empty
+  , statements = S.fromList [tm01, tm04,
                   tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
                   , arc s1 p1 b4
                   , arc b4 p1 o2
@@ -1457,9 +1465,9 @@ gm456 = NSGraph
 gm564 :: RDFGraph
 gm564 = NSGraph 
   { namespaces = nslist
-  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
-  , formulae   = LookupMap []
-  , statements = [tm01, tm02, tm03
+  -- , formulae   = toFM [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = M.empty
+  , statements = S.fromList [tm01, tm02, tm03
                   , arc b5 p2 b6
                   , tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
                   , arc s1 p1 b4
@@ -1469,9 +1477,9 @@ gm564 = NSGraph
 gm645 :: RDFGraph
 gm645 = NSGraph 
   { namespaces = nslist
-  -- , formulae   = LookupMap [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
-  , formulae   = LookupMap []
-  , statements = [tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
+  -- , formulae   = toFM [Formula b1 gm2, Formula ba1 gm2, Formula bn3 gm3]
+  , formulae   = M.empty
+  , statements = S.fromList [tm07, tm08, tm09, tm10, tm11, tm12, tm13, tm14
                   , arc s1 p1 b4
                   , arc b4 p1 o2
                   , arc b4 p1 o3
@@ -1502,21 +1510,21 @@ gm83a  = remapLabels [v1,v2] [v1,v2,b1,b2] makeBlank gm81
 gm84, gm85, gm85a, gm86, gm86a :: RDFGraph
 gm84  = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm81,Formula v2 gm81]
-        , statements = [tm81,tm82]
+        , formulae   = toFM [Formula b1 gm81,Formula v2 gm81]
+        , statements = S.fromList [tm81,tm82]
         }
 
 gm85 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm82,Formula v4 gm82]
-        , statements = [tm811,tm821]
+        , formulae   = toFM [Formula b1 gm82,Formula v4 gm82]
+        , statements = S.fromList [tm811,tm821]
         }
 gm85a = remapLabels [v1,v2] [v1,v2,b1,b2] id gm84
 
 gm86 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 gm82,Formula vb4 gm82]
-        , statements = [tm812,tm822]
+        , formulae   = toFM [Formula b1 gm82,Formula vb4 gm82]
+        , statements = S.fromList [tm812,tm822]
         }
 gm86a = remapLabels [v1,v2] [v1,v2,b1,b2] makeBlank gm84
 
@@ -1544,7 +1552,7 @@ testMergeSuite = TestList
               (mappend gm4 (mappend gm5 gm6))
               (mappend (mappend gm4 gm5) gm6))
   , testGraphEq "Remap07" True gm82 gm82a
-  , testEquiv "testRemapList07" gm82b2 gm82b1
+  , testEqv "testRemapList07" gm82b2 gm82b1
   , testGraphEq "Remap08" True gm83 gm83a
   , testGraphEq "Remap09" True gm85 gm85a
   , testGraphEq "Remap10" True gm86 gm86a

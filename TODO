@@ -1,17 +1,10 @@
 
 Some things I want to/should do (not in order)
 
-- Replace list be a set for NSGraph (fairly invasive change and
-  needs bench marking). See issue #12
-  https://bitbucket.org/doug_burke/swish/issue/12/
-
 - Support IRI rather than URI. See issue #13
   https://bitbucket.org/doug_burke/swish/issue/13/
 
 - Look at using an interned URI in Namespace.
-
-- Can LookupMap be replaced by Map? This would require removing the
-  LookupEntryClass constraint which could cause troublesome.
 
 - Rename modules. Version 0.7 provided a hopefully more-structured
   form but they are still in the Swish namespace rather than
@@ -36,6 +29,8 @@ Some things I want to/should do (not in order)
 
 - add RDF/XML parser and formatter. See issue #7
   https://bitbucket.org/doug_burke/swish/issue/7/
+
+  Ditto for JSON-LD/the various named-graph forms/...
 
 - Should there be a type-level constaint that an RDF Arc can only have
   a literal in the object position?

@@ -1,4 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -11,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses, OverloadedStrings
+--  Portability :  OverloadedStrings
 --
 --  This module defines a framework for defining inference rules
 --  over some expression form.  It is intended to be used with
@@ -32,11 +31,12 @@ import Swish.Namespace (Namespace, ScopedName)
 import Swish.Namespace (makeNamespace, makeNSScopedName)
 import Swish.QName (LName)
 
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
 import Data.Maybe (fromJust)
 import Data.String.ShowLines (ShowLines(..))
 
 import Network.URI (URI, parseURI)
+
+import qualified Data.Map as M
 
 ------------------------------------------------------------
 --  Expressions
@@ -66,11 +66,6 @@ instance Eq (Formula ex) where
 -- |Define ordering of formulae based on formula names
 instance Ord (Formula ex) where
     f1 <= f2 = formName f1 <= formName f2
-
-instance LookupEntryClass (Formula ex) ScopedName (Formula ex)
-    where
-    newEntry (_,form) = form
-    keyVal form = (formName form, form)
 
 -- | The namespace @http:\/\/id.ninebynine.org\/2003\/Ruleset\/null@ with the prefix @null:@.
 nullScope :: Namespace
@@ -175,13 +170,8 @@ instance Ord (Rule ex) where
 instance Show (Rule ex) where
     show rl = "Rule "++show (ruleName rl)
 
-instance LookupEntryClass (Rule ex) ScopedName (Rule ex)
-    where
-    newEntry (_,rule) = rule
-    keyVal rule = (ruleName rule, rule)
-
--- | A 'LookupMap' for a 'Rule'.
-type RuleMap ex = LookupMap (Rule ex)
+-- | A set of rules labelled with their name.
+type RuleMap ex = M.Map ScopedName (Rule ex)
 
 -- | Checks that consequence is a result of
 -- applying the rule to the antecedants.

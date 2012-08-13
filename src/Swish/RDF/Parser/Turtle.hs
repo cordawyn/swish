@@ -65,7 +65,8 @@ where
 
 import Swish.GraphClass (arc)
 import Swish.Namespace (Namespace, ScopedName)
-import Swish.Namespace (makeNamespace, getScopeNamespace, getScopedNameURI
+import Swish.Namespace (makeNamespace, getNamespaceTuple
+                       , getScopeNamespace, getScopedNameURI
                        , getScopeNamespace, makeURIScopedName, makeNSScopedName)
 import Swish.QName (newLName, emptyLName)
 
@@ -111,15 +112,15 @@ import Control.Applicative
 import Control.Monad (foldM)
 
 import Data.Char (chr, ord, isAsciiLower, isAsciiUpper, isDigit) 
-import Data.LookupMap (LookupMap(..), LookupEntryClass(..))
-import Data.LookupMap (mapFindMaybe, mapAdd, mapReplace)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Word (Word32)
 
 import Network.URI (URI(..), parseURIReference)
+import Network.URI.Ord ()
 
 import Text.ParserCombinators.Poly.StateText
 
+import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
@@ -140,7 +141,7 @@ data TurtleState = TurtleState
 setPrefix :: Maybe T.Text -> URI -> TurtleState -> TurtleState
 setPrefix pre uri st =  st { prefixUris=p' }
     where
-        p' = mapReplace (prefixUris st) (makeNamespace pre uri) 
+        p' = M.insert pre uri (prefixUris st)
 
 -- | Change the base
 setBase :: URI -> TurtleState -> TurtleState
@@ -158,7 +159,7 @@ getDefaultPrefix = do
 
 --  Map prefix to URI (naming needs a scrub here)
 getPrefixURI :: TurtleState -> Maybe T.Text -> Maybe URI
-getPrefixURI st pre = mapFindMaybe pre (prefixUris st)
+getPrefixURI st pre = M.lookup pre (prefixUris st)
 
 findPrefixNamespace :: Maybe L.Text -> TurtleParser Namespace
 findPrefixNamespace (Just p) = findPrefix (L.toStrict p)
@@ -204,7 +205,7 @@ emptyState ::
   Maybe URI  -- ^ starting base for the graph
   -> TurtleState
 emptyState mbase = 
-  let pmap   = LookupMap [makeNamespace Nothing hashURI]
+  let pmap   = M.singleton Nothing hashURI
       buri   = fromMaybe (getScopedNameURI defaultBase) mbase
   in TurtleState
      { graphState = emptyRDFGraph
@@ -278,7 +279,8 @@ addStatement s p o@(TypedLit _ dtype) | dtype `elem` [xsdBoolean, xsdInteger, xs
   let stmt = arc s p o
       oldp = prefixUris ost
       ogs = graphState ost
-      newp = mapReplace oldp (getScopeNamespace dtype)
+      (nspre, nsuri) = getNamespaceTuple $ getScopeNamespace dtype
+      newp = M.insert nspre nsuri oldp
   stUpdate $ \st -> st { prefixUris = newp, graphState = addArc stmt ogs }
 addStatement s p o = stUpdate (updateGraph (addArc (arc s p o) ))
 
@@ -313,34 +315,34 @@ TODO:
   - could we use the reverse lookupmap functionality to
     find if the given namespace URI is in the namespace
     list? If it is, use it's key otherwise do a
-    mapReplace for the input namespace.
+    mapReplace for the input namespace (updated to use the
+    Data.Map.Map representation).
     
 -}
 operatorLabel :: ScopedName -> TurtleParser RDFLabel
 operatorLabel snam = do
   st <- stGet
-  let sns = getScopeNamespace snam
+  let (pkey, pval) = getNamespaceTuple $ getScopeNamespace snam
       opmap = prefixUris st
-      pkey = entryKey sns
-      pval = entryVal sns
       
       rval = Res snam
       
-  -- the lookup and the replacement could be fused
-  case mapFindMaybe pkey opmap of
+  -- TODO: the lookup and the replacement could be fused; it may not
+  --       even make sense to separate now using a Map
+  case M.lookup pkey opmap of
     Just val | val == pval -> return rval
              | otherwise   -> do
-               stUpdate $ \s -> s { prefixUris = mapReplace opmap sns }
+               stUpdate $ \s -> s { prefixUris = M.insert pkey pval opmap }
                return rval
     
     _ -> do
-      stUpdate $ \s -> s { prefixUris = mapAdd opmap sns }
+      stUpdate $ \s -> s { prefixUris = M.insert pkey pval opmap }
       return rval
         
 findPrefix :: T.Text -> TurtleParser Namespace
 findPrefix pre = do
   st <- stGet
-  case mapFindMaybe (Just pre) (prefixUris st) of
+  case M.lookup (Just pre) (prefixUris st) of
     Just uri -> return $ makeNamespace (Just pre) uri
     Nothing  -> failBad $ "Undefined prefix '" ++ T.unpack pre ++ ":'."
 

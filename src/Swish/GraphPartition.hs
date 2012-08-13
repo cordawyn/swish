@@ -50,7 +50,7 @@ import qualified Data.List.NonEmpty as NE
 --    'PartObj' constructors.
 
 data PartitionedGraph lb = PartitionedGraph [GraphPartition lb]
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 -- | Returns all the arcs in the partitioned graph.
 getArcs :: PartitionedGraph lb -> [Arc lb]
@@ -87,6 +87,13 @@ instance (Label lb) => Eq (GraphPartition lb) where
     (PartObj o1)    == (PartObj o2)    = o1 == o2
     (PartSub s1 p1) == (PartSub s2 p2) = s1 == s2 && p1 == p2
     _               == _               = False
+
+-- Chose ordering to be "more information" first/smaller (arbitrary choice).
+instance (Label lb) => Ord (GraphPartition lb) where
+    (PartSub s1 p1) `compare` (PartSub s2 p2) = (s1,p1) `compare` (s2,p2)
+    (PartObj o1)    `compare` (PartObj o2)    = o1 `compare` o2
+    (PartSub _ _)   `compare` _               = LT
+    _               `compare` (PartSub _ _)   = GT
 
 instance (Label lb) => Show (GraphPartition lb) where
     show = partitionShow

@@ -52,6 +52,7 @@ import Network.URI (URI, parseURI)
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust)
 
+import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
@@ -630,14 +631,14 @@ graph4 = mkGr2
          , "         rel:daughter pers:Rh4 . \n"
          ]
          
-vocab4 :: [RDFLabel]
+vocab4 :: S.Set RDFLabel
 vocab4 = allNodes (not . labelIsVar) graph4
 
 name4 :: ScopedName
 name4 = makeNSScopedName scope4 "instance4"
 
 rule4 :: RDFRule
-rule4 = makeRdfInstanceEntailmentRule name4 vocab4
+rule4 = makeRdfInstanceEntailmentRule name4 (S.toList vocab4)
 
 fwd42a :: RDFGraph
 fwd42a = mkGr2    
@@ -777,7 +778,7 @@ test4 =
   [ 
     --  Check basics
     testEq "testRuleName41" name4 (ruleName rule4)
-  , testEq "testVocab41"    3     (length vocab4)
+  , testEq "testVocab41"    3     (S.size vocab4)
   , testEq "testFwdLength42" 7 (length fwdApply42)
   , testIn "testFwdApply42a"  fwd42a fwdApply42
   , testIn "testFwdApply42b"  fwd42b fwdApply42
@@ -997,7 +998,7 @@ var71 :: [RDFVarBinding]
 var71 = rdfQueryFind query71 graph7
 
 var71a :: [VarBinding RDFLabel RDFLabel]
-var71a = vbmApply (mod71 (allLabels labelIsVar graph7)) var71
+var71a = vbmApply (mod71 (S.toList (allLabels labelIsVar graph7))) var71
 
 var71_1 :: VarBinding RDFLabel RDFLabel
 var71_1 = head var71a

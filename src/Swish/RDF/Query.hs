@@ -67,6 +67,7 @@ import Swish.RDF.Graph
     , resRdfFirst
     , resRdfRest
     , resRdfNil
+    , traverseNSGraph
     )
 
 import Swish.RDF.VarBinding (RDFVarBinding, RDFVarBindingFilter)
@@ -85,11 +86,17 @@ import Data.Maybe (mapMaybe, isJust, fromJust)
 import Data.Monoid (Monoid(..))
 
 import qualified Data.Set as S
-import qualified Data.Traversable as Traversable
 
 ------------------------------------------------------------
 --  Primitive RDF graph queries
 ------------------------------------------------------------
+
+-- Get a list of arcs from a graph.
+-- 
+-- Can we update the routines to work with sets instead?
+
+getTriples :: RDFGraph -> [RDFTriple]
+getTriples = S.toList . getArcs
 
 -- | Basic graph-query function.
 --
@@ -106,7 +113,7 @@ rdfQueryFind ::
   -- ^ Each element represents a set of variable bindings that make the query graph a
   -- subgraph of the target graph. The list can be empty.
 rdfQueryFind =
-    rdfQueryPrim1 matchQueryVariable nullRDFVarBinding . getArcs
+    rdfQueryPrim1 matchQueryVariable nullRDFVarBinding . getTriples
 
 --  Helper function to match query against a graph.
 --  A node-query function is supplied to determine how query nodes
@@ -119,15 +126,13 @@ rdfQueryPrim1 ::
     -> [RDFVarBinding]
 rdfQueryPrim1 _     initv []       _  = [initv]
 rdfQueryPrim1 nodeq initv (qa:qas) tg =
-    let
-        qam  = fmap (applyVarBinding initv) qa      -- subst vars already bound
+    let qam  = fmap (applyVarBinding initv) qa      -- subst vars already bound
         newv = rdfQueryPrim2 nodeq qam tg           -- new bindings, or null
-    in
-        concat
-            [ rdfQueryPrim1 nodeq v2 qas tg
-            | v1 <- newv
-            , let v2 = joinVarBindings initv v1
-            ]
+    in concat
+           [ rdfQueryPrim1 nodeq v2 qas tg
+             | v1 <- newv
+           , let v2 = joinVarBindings initv v1
+           ]
 
 --  Match single query term against graph, and return any new sets
 --  of variable bindings thus defined, or [] if the query term
@@ -139,7 +144,7 @@ rdfQueryPrim2 ::
     -> RDFGraph
     -> [RDFVarBinding]
 rdfQueryPrim2 nodeq qa tg =
-        mapMaybe (getBinding nodeq qa) (getArcs tg)
+        mapMaybe (getBinding nodeq qa) (S.toList $ getArcs tg)
 
 -- |RDF query filter.
 --
@@ -195,9 +200,13 @@ rdfQueryFilter qbf = filter (vbfTest qbf)
 --  An empty outer list is returned if no combination of
 --  substitutions can infer the supplied target.
 --
-rdfQueryBack :: RDFGraph -> RDFGraph -> [[RDFVarBinding]]
+rdfQueryBack :: 
+    RDFGraph    -- ^ Query graph
+    -> RDFGraph -- ^ Target graph
+    -> [[RDFVarBinding]]
 rdfQueryBack qg tg =
-    rdfQueryBack1 matchQueryVariable [] (getArcs qg) (getArcs tg)
+    let ga = getTriples
+    in rdfQueryBack1 matchQueryVariable [] (ga qg) (ga tg)
 
 rdfQueryBack1 ::
     NodeQuery RDFLabel -> [RDFVarBinding] -> [Arc RDFLabel] -> [Arc RDFLabel]
@@ -281,7 +290,7 @@ rdfQueryBackModify1 qbm = mapM (vbmApply qbm . (:[]))
 --  has been concluded.
 rdfQueryInstance :: RDFGraph -> RDFGraph -> [RDFVarBinding]
 rdfQueryInstance =
-    rdfQueryPrim1 matchQueryBnode nullRDFVarBinding . getArcs
+    rdfQueryPrim1 matchQueryBnode nullRDFVarBinding . getTriples
 
 ------------------------------------------------------------
 --  Primitive RDF graph query support functions
@@ -382,7 +391,7 @@ rdfQuerySubsBlank vars gr =
     [ remapLabels vs bs makeBlank g
     | v <- vars
     , let (g,vs) = rdfQuerySubs2 v gr
-    , let bs     = allLabels isBlank g
+    , let bs     = S.toList $ allLabels isBlank g
     ]
 
 -- |Graph back-substitution function, replacing variables with bnodes.
@@ -404,10 +413,10 @@ rdfQueryBackSubsBlank varss gr = [ rdfQuerySubsBlank v gr | v <- varss ]
 --  unbound variables.
 --
 --  Adding an empty graph forces elimination of duplicate arcs.
-rdfQuerySubs2 :: RDFVarBinding -> RDFGraph -> (RDFGraph,[RDFLabel])
-rdfQuerySubs2 varb gr = (addGraphs mempty g, S.toList vs)
+rdfQuerySubs2 :: RDFVarBinding -> RDFGraph -> (RDFGraph, [RDFLabel])
+rdfQuerySubs2 varb gr = (addGraphs mempty g, S.toList vs) -- the addgraphs part is important, possibly just to remove duplicated entries
     where
-        (g,vs) = runState ( Traversable.traverse (mapNode varb) gr ) S.empty
+        (g,vs) = runState (traverseNSGraph (mapNode varb) gr) S.empty
 
 --  Auxiliary monad function for rdfQuerySubs2.
 --  This returns a state transformer Monad which in turn returns the
@@ -477,7 +486,7 @@ anyptest  = and [not anyptest0,anyptest1,anyptest2,anyptest3]
 --  Custom predicates can also be used.
 --
 rdfFindArcs :: (RDFTriple -> Bool) -> RDFGraph -> [RDFTriple]
-rdfFindArcs p = filter p . getArcs
+rdfFindArcs p = S.toList . S.filter p . getArcs
 
 -- |Test if statement has given subject
 rdfSubjEq :: RDFLabel -> RDFTriple -> Bool

@@ -36,16 +36,18 @@ import Swish.Proof (Proof(..), Step(..))
 import Swish.Rule (Expression(..), Rule(..))
 import Swish.VarBinding (makeVarBinding)
 
-import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
+import Swish.RDF.Graph (RDFLabel(..), RDFGraph, fmapNSGraph)
 import Swish.RDF.Graph (merge, allLabels, remapLabelList)
 import Swish.RDF.Query (rdfQueryInstance, rdfQuerySubs)
 import Swish.RDF.Ruleset (RDFFormula, RDFRule, RDFRuleset)
 
-import Swish.Utils.ListHelpers (subset, flist)
+import Swish.Utils.ListHelpers (flist)
 
 import Data.List (subsequences)
-import Data.LookupMap (makeLookupMap, mapFind)
 import Data.Monoid (Monoid(..))
+
+import qualified Data.Map as M
+import qualified Data.Set as S
 
 ------------------------------------------------------------
 --  Type instantiation of Proof framework for RDFGraph data
@@ -65,8 +67,9 @@ import Data.Monoid (Monoid(..))
 --  @Expression@ class, for which proofs can be constructed.
 --  The empty RDF graph is always @True@ (other enduring
 --  truths are asserted as axioms).
-instance (Label lb, LDGraph lg lb) => Expression (lg lb) where
-    isValid = null . getArcs 
+
+instance (Label lb, LDGraph lg lb, Eq (lg lb)) => Expression (lg lb) where
+    isValid = S.null . getArcs 
 
 ------------------------------------------------------------
 --  Define RDF-specific types for proof framework
@@ -167,11 +170,13 @@ rdfInstanceEntailFwdApply vocab ante =
         --  Obtain lists of variable and non-variable nodes
         --  (was: nonvarNodes = allLabels (not . labelIsVar) mergeGraph)
         nonvarNodes = vocab
-        varNodes    = allLabels labelIsVar mergeGraph
+        varNodes    = S.toList $ allLabels labelIsVar mergeGraph
         --  Obtain list of possible remappings for non-variable nodes
         mapList     = remapLabelList nonvarNodes varNodes
         mapSubLists = (tail . subsequences) mapList
-        mapGr ls = fmap (\l -> mapFind l l (makeLookupMap ls))
+        mapGr ls = fmapNSGraph 
+	           (\l -> M.findWithDefault l l
+                          (M.fromList ls))
     in
         --  Return all remappings of the original merged graph
         flist (map mapGr mapSubLists) mergeGraph
@@ -190,7 +195,7 @@ rdfInstanceEntailBwdApply :: [RDFLabel] -> RDFGraph -> [[RDFGraph]]
 rdfInstanceEntailBwdApply vocab cons =
     let
         --  Obtain list of variable nodes
-        varNodes     = allLabels labelIsVar cons
+        varNodes     = S.toList $ allLabels labelIsVar cons
         --  Generate a substitution for each combination of variable
         --  and vocabulary node.
         varBindings  = map (makeVarBinding . zip varNodes) vocSequences
@@ -298,7 +303,8 @@ rdfSubgraphEntailFwdApply ante =
                         else foldl1 merge ante
     in
         --  Return all subgraphs of the full graph constructed above
-        map (setArcs mergeGraph) (init $ tail $ subsequences $ getArcs mergeGraph)
+        -- TODO: update to use sets as appropriate
+        map (setArcs mergeGraph . S.fromList) (init $ tail $ subsequences $ S.toList $ getArcs mergeGraph)
 
 --  Subgraph entailment inference checker
 --
@@ -313,7 +319,7 @@ rdfSubgraphEntailCheckInference ante cons =
                         else foldl1 addGraphs ante
     in
         --  Check each consequent graph arc is in the antecedent graph
-        getArcs cons `subset` getArcs fullGraph
+        getArcs cons `S.isSubsetOf` getArcs fullGraph
 
 ------------------------------------------------------------
 --  RDF simple entailment inference rule

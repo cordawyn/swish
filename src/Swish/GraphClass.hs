@@ -8,7 +8,8 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphClass
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -28,16 +29,20 @@ module Swish.GraphClass
     ( LDGraph(..)
     , Label(..)
     , Arc(..)
+    , ArcSet
     , Selector
     , arc, arcToTriple, arcFromTriple
     , hasLabel, arcLabels -- , arcNodes
+    , getComponents
     )
 where
 
 import Data.Hashable (Hashable(..))
-import Data.List (foldl', union, (\\))
+import Data.List (foldl')
+import Data.Ord (comparing)
 
 import qualified Data.Foldable as F
+import qualified Data.Set as S
 import qualified Data.Traversable as T
 
 --  NOTE:  I wanted to declare this as a subclass of Functor, but
@@ -51,48 +56,58 @@ Labelled Directed Graph class.
 Minimum required implementation: 
 'emptyGraph', 'setArcs', and 'getArcs'.
 -}
-class (Eq (lg lb), Eq lb ) => LDGraph lg lb where
+
+class LDGraph lg lb where
+
     -- | Create the empty graph.
     emptyGraph  :: lg lb
       
     -- | Replace the existing arcs in the graph.
-    setArcs     :: lg lb -> [Arc lb] -> lg lb
+    setArcs     :: lg lb -> ArcSet lb -> lg lb
     
     -- | Extract all the arcs from a graph
-    getArcs     :: lg lb -> [Arc lb]
+    getArcs     :: lg lb -> ArcSet lb
     
     -- | Extract those arcs that match the given `Selector`.
-    extract     :: Selector lb -> lg lb -> lg lb
-    extract sel = update (filter sel)
+    extract     :: (Ord lb) => Selector lb -> lg lb -> lg lb
+    extract sel = update (S.filter sel)
     
     -- | Add the two graphs
-    addGraphs         :: lg lb -> lg lb -> lg lb
-    addGraphs    addg = update (union (getArcs addg))
+    addGraphs         :: (Ord lb) => lg lb -> lg lb -> lg lb
+    addGraphs    addg = update (S.union (getArcs addg))
     
     -- | Remove those arcs in the first graph from the second
     -- graph
-    delete :: lg lb  -- ^ g1
-              -> lg lb -- ^ g2
-              -> lg lb -- ^ g2 - g1 -> g3
-    delete delg = update (\\ getArcs delg)
+    delete :: 
+        (Ord lb) =>
+        lg lb    -- ^ g1
+        -> lg lb -- ^ g2
+        -> lg lb -- ^ g2 - g1 -> g3
+    delete g1 g2 = setArcs g2 (getArcs g2 `S.difference` getArcs g1)
     
     -- | Enumerate the distinct labels contained in a graph;
     -- that is, any label that appears in the subject,
     -- predicate or object position of an `Arc`.
-    labels      :: lg lb -> [lb]
-    labels g    = foldl' union [] (map arcLabels (getArcs g))
+    labels      :: (Ord lb) => lg lb -> S.Set lb
+    labels = getComponents arcLabels . getArcs
     
     -- | Enumerate the distinct nodes contained in a graph;
     -- that is, any label that appears in the subject
     -- or object position of an `Arc`.
-    nodes       :: lg lb -> [lb]
-    nodes g     = foldl' union [] (map arcNodes (getArcs g))
+    nodes       :: (Ord lb) => lg lb -> S.Set lb
+    nodes = getComponents arcNodes . getArcs
     
     -- | Update the arcs in a graph using a supplied function.
-    update      :: ([Arc lb] -> [Arc lb]) -> lg lb -> lg lb
+    update      :: (ArcSet lb -> ArcSet lb) -> lg lb -> lg lb
     update f g  = setArcs g ( f (getArcs g) )
 
--- | Label class
+-- | Extract components from a set.
+getComponents :: (Ord a, Ord b) => (a -> [b]) -> S.Set a -> S.Set b
+getComponents f = 
+    let ins sgr = foldl' (flip S.insert) sgr . f
+    in S.foldl' ins S.empty 
+
+-- | Label class.
 --
 --  A label may have a fixed binding, which means that the label identifies (is) a
 --  particular graph node, and different such labels are always distinct nodes.
@@ -105,8 +120,12 @@ class (Eq (lg lb), Eq lb ) => LDGraph lg lb where
 --  are the same.  Variable labels may be matched with any other variable label.
 --  Our definition of isomorphism (for RDF graphs) does not match variable labels
 --  with fixed labels.
+--
 
-class (Eq lb, Show lb, Ord lb) => Label lb where
+-- We do not need Ord/Show constraints here, but it means we can just use
+-- Label as a short-form for Ord/Show in code
+
+class (Ord lb, Show lb) => Label lb where
   
   -- | Does this node have a variable binding?
   labelIsVar  :: lb -> Bool           
@@ -124,9 +143,6 @@ class (Eq lb, Show lb, Ord lb) => Label lb where
   -- | Make a label value from a local id.  
   makeLabel   :: String -> lb
     
-  -- compare     :: lb -> lb -> Ordering
-  -- compare l1 l2 = compare (show l1) (show l2)
-
 -- | Arc type.
 --
 -- Prior to @0.7.0.0@ you could also use @asubj@, @apred@ and @aobj@
@@ -138,6 +154,9 @@ data Arc lb = Arc
               , arcObj :: lb   -- ^ The object of the arc.
               }
             deriving (Eq, Functor, F.Foldable, T.Traversable)
+
+-- | A set - or graph - of arcs.
+type ArcSet lb = S.Set (Arc lb)
 
 instance (Hashable lb) => Hashable (Arc lb) where
   hash (Arc s p o) = hash s `hashWithSalt` p `hashWithSalt` o
@@ -159,21 +178,7 @@ arcFromTriple :: (lb,lb,lb) -> Arc lb
 arcFromTriple (s,p,o) = Arc s p o
 
 instance Ord lb => Ord (Arc lb) where
-  compare (Arc s1 p1 o1) (Arc s2 p2 o2)
-    | cs /= EQ = cs
-    | cp /= EQ = cp
-    | otherwise = co
-    where
-      cs = compare s1 s2
-      cp = compare p1 p2
-      co = compare o1 o2
-
-  {- not needed
-  (Arc s1 p1 o1) <= (Arc s2 p2 o2)
-    | s1 /= s2 = s1 <= s2
-    | p1 /= p2 = p1 <= p2
-    | otherwise = o1 <= o2
-  -}
+    compare = comparing arcToTriple
 
 instance (Show lb) => Show (Arc lb) where
     show (Arc lb1 lb2 lb3) =

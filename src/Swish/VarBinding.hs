@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
@@ -13,7 +12,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances
+--  Portability :  FlexibleInstances, OverloadedStrings, TypeSynonymInstances
 --
 --  This module defines functions for representing and manipulating query
 --  binding variable sets.  This is the key data that mediates between
@@ -29,6 +28,7 @@ module Swish.VarBinding
     , boundVars, subBinding, makeVarBinding
     , applyVarBinding, joinVarBindings, addVarBinding
     , VarBindingModify(..), OpenVarBindingModify
+    , openVbmName
     , vbmCompatibility, vbmCompose
     , composeSequence, findCompositions, findComposition
     , VarBindingFilter(..)
@@ -45,73 +45,89 @@ import Swish.QName (newLName, getLName)
 
 import Swish.RDF.Vocabulary (swishName)
 
-import Swish.Utils.ListHelpers (equiv, subset, flist)
+import Swish.Utils.ListHelpers (flist)
 
+import Control.Applicative ((<$>), (<*>))
+import Control.Monad (mplus)
+
+import Data.Function (on)
 import Data.List (find, intersect, union, (\\), foldl', permutations)
-import Data.LookupMap (LookupEntryClass(..), makeLookupMap, mapFindMaybe)
 import Data.Maybe (mapMaybe, fromMaybe, isJust, fromJust, listToMaybe)
-import Data.Monoid (mconcat)
+import Data.Monoid (Monoid(..), mconcat)
+import Data.Ord (comparing)
+
+import qualified Data.Map as M
+import qualified Data.Set as S
 
 ------------------------------------------------------------
 --  Query variable bindings
 ------------------------------------------------------------
-
--- TODO: is it worth making a Monoid instance of VarBinding?
 
 -- |VarBinding is the type of an arbitrary variable bindings
 --  value, where the type of the bound values is not specified.
 --
 data VarBinding a b = VarBinding
     { vbMap  :: a -> Maybe b
-    , vbEnum :: [(a,b)]
+    , vbEnum :: S.Set (a,b)
     , vbNull :: Bool
     }
 
--- |VarBinding is an instance of class Eq, so that variable
---  bindings can be compared for equivalence
+-- | The Eq instance is defined as the set equivalence of the
+--   pairs of variables in the binding.
 --
-instance (Eq a, Eq b) => Eq (VarBinding a b) where
-    vb1 == vb2 = vbEnum vb1 `equiv` vbEnum vb2
+instance (Ord a, Ord b) => Eq (VarBinding a b) where
+    (==) = (==) `on` vbEnum
 
--- |VarBinding is an instance of class Show, so that variable
---  bindings can be displayed
+-- | The Ord instance is defined only on the pairs of
+--   variables in the binding.
+instance (Ord a, Ord b) => Ord (VarBinding a b) where
+    compare = comparing vbEnum
+
+-- | When combining instances, if there is an overlapping binding then
+--   the  value from the first instance is used.
+instance (Ord a, Ord b) => Monoid (VarBinding a b) where
+    mempty = nullVarBinding
+    mappend = joinVarBindings
+
+-- | The Show instance only displays the pairs of variables
+--    in the binding.
 --
 instance (Show a, Show b) => Show (VarBinding a b) where
-    show = show . vbEnum
+    show = show . S.toList . vbEnum
 
--- | maps no query variables.
+-- | The null, or empry, binding maps no query variables.
+--   This is the 'mempty' instance of the Monoid.
 --
 nullVarBinding :: VarBinding a b
 nullVarBinding = VarBinding
     { vbMap  = const Nothing
-    , vbEnum = []
+    , vbEnum = S.empty
     , vbNull = True
     }
 
 -- |Return a list of the variables bound by a supplied variable binding
 --
-boundVars :: VarBinding a b -> [a]
-boundVars = map fst . vbEnum
+boundVars :: (Ord a, Ord b) => VarBinding a b -> S.Set a
+boundVars = S.map fst . vbEnum
 
 -- |VarBinding subset function, tests to see if one query binding
 --  is a subset of another;  i.e. every query variable mapping defined
 --  by one is also defined by the other.
 --
-subBinding :: (Eq a, Eq b) => VarBinding a b -> VarBinding a b -> Bool
-subBinding vb1 vb2 = vbEnum vb1 `subset` vbEnum vb2
+subBinding :: (Ord a, Ord b) => VarBinding a b -> VarBinding a b -> Bool
+subBinding = S.isSubsetOf `on` vbEnum
 
 -- |Function to make a variable binding from a list of
 --  pairs of variable and corresponding assigned value.
 --
-makeVarBinding :: (Eq a, Show a, Eq b, Show b) => [(a,b)] -> VarBinding a b
+makeVarBinding :: (Ord a, Ord b) => [(a,b)] -> VarBinding a b
 makeVarBinding [] = nullVarBinding
 makeVarBinding vrbs =
-    let selectFrom = flip mapFindMaybe . makeLookupMap
-    in VarBinding
-           { vbMap  = selectFrom vrbs
-           , vbEnum = vrbs
-           , vbNull = False
-           }
+    VarBinding
+    { vbMap  = flip M.lookup (M.fromList vrbs)
+    , vbEnum = S.fromList vrbs
+    , vbNull = False
+    }
 
 -- |Apply query binding to a supplied value, returning the value
 --  unchanged if no binding is defined
@@ -122,34 +138,29 @@ applyVarBinding vbind v = fromMaybe v (vbMap vbind v)
 -- |Join a pair of query bindings, returning a new binding that
 --  maps all variables recognized by either of the input bindings.
 --  If the bindings should overlap, such overlap is not detected and
---  the value from the first binding provided is used arbitrarily.
+--  the value from the first binding provided is used.
 --
-joinVarBindings :: (Eq a) => VarBinding a b -> VarBinding a b -> VarBinding a b
+joinVarBindings :: (Ord a, Ord b) => VarBinding a b -> VarBinding a b -> VarBinding a b
 joinVarBindings vb1 vb2
     | vbNull vb1 = vb2
     | vbNull vb2 = vb1
     | otherwise  = VarBinding
         { vbMap  = mv12
-        , vbEnum = map (\v -> (v,fromJust (mv12 v))) bv12
+        , vbEnum = S.map (\v -> (v,fromJust (mv12 v))) bv12
         , vbNull = False
         }
     where
-        mv12 = headOrNothing . filter isJust . flist [ vbMap vb1, vbMap vb2 ]
-        bv12 = boundVars vb1 `union` boundVars vb2
-
--- |Return head of a list of @Maybe@'s, or @Nothing@ if list is empty
---
---  Use with @filter isJust@ to select a non-Nothing value from a
---  list when such a value is present.
---
-headOrNothing :: [Maybe a] -> Maybe a
-headOrNothing []    = Nothing
-headOrNothing (a:_) = a
+        mv12 n = vbMap vb1 n `mplus` vbMap vb2 n
+        bv12 = boundVars vb1 `S.union` boundVars vb2
 
 -- |Add a single new value to a variable binding and return the resulting
 --  new variable binding.
 --
-addVarBinding :: (Eq a, Show a, Eq b, Show b) => a -> b -> VarBinding a b
+addVarBinding :: 
+    (Ord a, Ord b) 
+    => a 
+    -> b 
+    -> VarBinding a b
     -> VarBinding a b
 addVarBinding lb val vbind = joinVarBindings vbind $ makeVarBinding [(lb,val)]
 
@@ -216,14 +227,6 @@ data VarBindingModify a b = VarBindingModify
                             --  variables in @vbmVocab@ are supplied.
     }
 
--- |Allow a VarBindingModify value to be accessed using a 'LookupMap'.
---
-instance LookupEntryClass
-    (VarBindingModify a b) ScopedName (VarBindingModify a b)
-    where
-        keyVal   vbm     = (vbmName vbm,vbm)
-        newEntry (_,vbm) = vbm
-
 -- |Type for variable binding modifier that has yet to be instantiated
 --  with respect to the variables that it operates upon.
 --
@@ -242,16 +245,7 @@ type OpenVarBindingModify lb vn = [lb] -> VarBindingModify lb vn
 openVbmName :: OpenVarBindingModify lb vn -> ScopedName
 openVbmName ovbm = vbmName (ovbm (error "Undefined labels in variable binding"))
 
--- |Allow an @OpenVarBindingModify@ value to be accessed using a @LookupMap@.
---
-instance LookupEntryClass
-    (OpenVarBindingModify a b) ScopedName (OpenVarBindingModify a b)
-    where
-        keyVal   ovbm     = (openVbmName ovbm,ovbm)
-        newEntry (_,ovbm) = ovbm
-
--- |Allow an OpenVarBindingModify value to be accessed using a LookupMap.
---
+-- | Displays the name of the modifier.
 instance Show (OpenVarBindingModify a b)
     where
         show = show . openVbmName
@@ -458,9 +452,7 @@ makeVarTestFilter ::
 makeVarTestFilter nam vtest var = VarBindingFilter
     { vbfName   = nam
     , vbfVocab  = [var]
-    , vbfTest   = \vb -> case vbMap vb var of
-                    Just val  -> vtest val
-                    _         -> False
+    , vbfTest   = \vb -> maybe False vtest (vbMap vb var)
     }
 
 -- |Make a variable comparison filter for named variables using
@@ -470,9 +462,7 @@ makeVarCompareFilter ::
 makeVarCompareFilter nam vcomp v1 v2 = VarBindingFilter
     { vbfName   = nam
     , vbfVocab  = [v1,v2]
-    , vbfTest   = \vb -> case (vbMap vb v1,vbMap vb v2) of
-                    (Just val1, Just val2) -> vcomp val1 val2
-                    _                      -> False
+    , vbfTest   = \vb -> fromMaybe False (vcomp <$> vbMap vb v1 <*> vbMap vb v2)
     }
 
 ------------------------------------------------------------

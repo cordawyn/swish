@@ -63,6 +63,7 @@ import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (modify, gets)
 import Control.Monad (liftM, when)
 
+import qualified Data.Set as S
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as IO
 
@@ -126,8 +127,8 @@ swishGraphDiff fnam =
 diffGraph :: RDFGraph -> SwishStateIO ()
 diffGraph gr = do
   oldGr <- gets graph
-  let p1 = partitionGraph (getArcs oldGr)
-      p2 = partitionGraph (getArcs gr)
+  let p1 = partitionGraph (S.toList $ getArcs oldGr)
+      p2 = partitionGraph (S.toList $ getArcs gr)
       diffs = comparePartitions p1 p2
       
   swishWriteFile (swishOutputDiffs diffs) Nothing

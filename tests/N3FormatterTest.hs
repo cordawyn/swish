@@ -19,7 +19,7 @@
 module Main where
 
 import Swish.GraphClass (Arc, arc)
-import Swish.Namespace (Namespace, makeNamespace, makeNSScopedName, namespaceToBuilder)
+import Swish.Namespace (Namespace, makeNamespace, getNamespaceTuple, makeNSScopedName, namespaceToBuilder)
 import Swish.QName (LName)
 
 import Swish.RDF.Formatter.N3 (formatGraphAsLazyText, formatGraphDiag)
@@ -30,13 +30,10 @@ import Swish.RDF.Graph
     , RDFLabel(..), ToRDFLabel
     , NSGraph(..)
     , NamespaceMap
-    , LookupFormula(..)
     , emptyRDFGraph, toRDFGraph, toRDFTriple
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
     , resOwlSameAs
     )
-
-import Data.LookupMap (LookupMap(..), emptyLookupMap, makeLookupMap)
 
 import Swish.RDF.Vocabulary (toLangTag, namespaceRDF, namespaceXSD)
 
@@ -47,6 +44,8 @@ import Data.Maybe (fromJust)
 
 import Data.String (IsString(..))
 
+import qualified Data.Map as M
+import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
@@ -183,7 +182,7 @@ t06 = arc s3 p1 l2
 t07 = arc s3 p2 l3
 
 nslist :: NamespaceMap
-nslist = makeLookupMap
+nslist = M.fromList $ map getNamespaceTuple
     [ base1
     , base2
     , base3
@@ -191,10 +190,11 @@ nslist = makeLookupMap
     ]
 
 g1np :: RDFGraph
-g1np = emptyRDFGraph { namespaces = makeLookupMap [base1], statements = [t01] }
+g1np = emptyRDFGraph { namespaces = uncurry M.singleton (getNamespaceTuple base1) 
+                     , statements = S.singleton t01 }
 
 toGraph :: [Arc RDFLabel] -> RDFGraph
-toGraph arcs = (toRDFGraph arcs) {namespaces = nslist}
+toGraph arcs = (toRDFGraph (S.fromList arcs)) {namespaces = nslist}
 
 g1, g1b1, g1b3, g1a1, g1l1, g1l2 :: RDFGraph
 g1   = toGraph [t01]
@@ -207,44 +207,39 @@ g1l2 = toGraph [arc s1 p1 l2]
 {-
 g1f1 = NSGraph
         { namespaces = nslist
-        , formulae   = formo1g1
+        , formulae   = M.singleton o1 (Formula o1g1)
         , statements = [f01]
         }
     where
         f01      = arc s1 p1 o1
-        formo1g1 = LookupMap [Formula o1 g1]
 -}
 
 g1f2, g1f3 :: RDFGraph
 g1f2 = NSGraph
         { namespaces = nslist
-        , formulae   = formb2g1
-        , statements = [f02]
+        , formulae   = M.singleton b2 g1 -- $ Formula b2 g1
+        , statements = S.singleton $ arc s1 p1 b2
         }
-    where
-        f02 = arc s1 p1 b2
-        formb2g1 = LookupMap [Formula b2 g1]
 
 g1f3 = NSGraph
         { namespaces = nslist
-        , formulae   = formb3g1f2
-        , statements = [f02]
+        , formulae   = M.singleton b3 g1f2 -- $ Formula b3 g1f2
+        , statements = S.singleton $ arc s1 p1 b3
         }
-    where
-        f02 = arc s1 p1 b3
-        formb3g1f2 = LookupMap [Formula b3 g1f2]
 
 g1fu1 :: RDFGraph
 g1fu1 =
   mempty
-  { namespaces = makeLookupMap [basem, makeNamespace Nothing (toURI "file:///home/swish/photos/")]
-  , statements = [arc sf meDepicts meMe, arc sf meHasURN su]
+  { namespaces = 
+      M.fromList $ map getNamespaceTuple
+        [basem, makeNamespace Nothing (toURI "file:///home/swish/photos/")]
+  , statements = S.fromList [arc sf meDepicts meMe, arc sf meHasURN su]
   }
   
 ----
 
 g2, g3, g4, g5, g6, g7 :: RDFGraph
-g2 = toRDFGraph [t01,t02,t03]
+g2 = toRDFGraph $ S.fromList [t01,t02,t03]
 g3 = toGraph [t01,t04]
 g4 = toGraph [t01,t05]
 g5 = toGraph [t01,t02,t03,t04,t05]
@@ -440,22 +435,22 @@ x6 = toGraph [ arc s1 resRdfFirst o1
 x7 :: RDFGraph
 x7 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 g2]
-        , statements = [arc b1 p2 f2]
+        , formulae   = M.singleton b1 g2 -- $ Formula b1 g2
+        , statements = S.singleton $ arc b1 p2 f2
         }
 
 x8 :: RDFGraph
 x8 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g2]
-        , statements = [arc f1 p2 f2]
+        , formulae   = M.singleton f1 g2 -- $ Formula f1 g2
+        , statements = S.singleton $ arc f1 p2 f2
         }
 
 x9 :: RDFGraph
 x9 = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g1]
-        , statements = [arc f1 p2 f2]
+        , formulae   = M.singleton f1 g1 -- $ Formula f1 g1
+        , statements = S.singleton $ arc f1 p2 f2
         }
         
 --  Test allocation of bnodes carries over a nested formula
@@ -463,8 +458,9 @@ x9 = NSGraph
 x12, x12fg :: RDFGraph
 x12    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b2 x12fg]
-        , statements = [ arc s1 p1 b1
+        , formulae   = M.singleton b2 x12fg -- $ Formula b2 x12fg
+        , statements = S.fromList 
+	  	       [ arc s1 p1 b1
                        , arc b1 p1 o1
                        , arc b2 p2 f2
                        , arc s3 p3 b3
@@ -472,7 +468,8 @@ x12    = NSGraph
                        ]
         }
 
-x12fg  = toRDFGraph [ arc s2 p2 b4
+x12fg  = toRDFGraph $ S.fromList
+                    [ arc s2 p2 b4
                     , arc b4 p2 o2
                     ]
         
@@ -643,22 +640,22 @@ graph_c3    = toGraph [arc s1 p1 b1,
 
 graph_b1, graph_b1rev, graph_b2, graph_b2rev, graph_b3, 
   graph_b4, graph_b5 :: RDFGraph
-graph_b1    = toRDFGraph [arc s1 p1 b1]
-graph_b1rev = toRDFGraph [arc b1 p1 o1]
-graph_b2    = toRDFGraph [arc s1 p1 b1,
+graph_b1    = toRDFGraph $ S.singleton $ arc s1 p1 b1
+graph_b1rev = toRDFGraph $ S.singleton $ arc b1 p1 o1
+graph_b2    = toRDFGraph $ S.fromList [arc s1 p1 b1,
                           arc b1 p2 l1,
                           arc b1 o2 o3]
-graph_b2rev = toRDFGraph [arc b1 p2 l1,
+graph_b2rev = toRDFGraph $ S.fromList [arc b1 p2 l1,
                           arc b1 o2 o3,
                           arc b1 p1 o1]
-graph_b3    = toRDFGraph [arc s1 p1 b1,
+graph_b3    = toRDFGraph $ S.fromList [arc s1 p1 b1,
                           arc b1 p2 l2,
                           arc b1 o2 o3,
                           arc s1 p2 b2,
                           arc s2 p2 o2]
-graph_b4    = toRDFGraph [arc b1 resRdfType o1,
+graph_b4    = toRDFGraph $ S.fromList [arc b1 resRdfType o1,
                           arc b2 resRdfType o2]
-graph_b5    = toRDFGraph [arc b1 resRdfType o1,
+graph_b5    = toRDFGraph $ S.fromList [arc b1 resRdfType o1,
                           arc b2 p2 o2,
                           arc b3 resRdfType o3]
 
@@ -683,9 +680,12 @@ graph_l3 =
              ]
   {-             
       gtmp = toRDFGraph arcs
-  in gtmp { namespaces = mapAdd (namespaces gtmp) (Namespace "xsd" "http://www.w3.org/2001/XMLSchema#") }
+  in gtmp { namespaces = 
+           M.insert (Just "xsd") ("http://www.w3.org/2001/XMLSchema#")
+                    (namespaces gtmp)
+          }
   -}
-  in toRDFGraph arcs
+  in toRDFGraph $ S.fromList arcs
    
 graph_l4 = toGraph [ toRDFTriple s1 p1 ("A string with \"quotes\"" :: RDFLabel)
                    , toRDFTriple s2 p2 (TypedLit "A typed string with \"quotes\"" (fromString "urn:a#b"))
@@ -711,7 +711,7 @@ diagTest :: String -> RDFGraph -> L.Text -> Test
 diagTest lab gr out =
     TestList
       [ TestCase ( assertEqual ("diag:text:"++lab) out resTxt )
-      , TestCase ( assertEqual ("diag:map:"++lab) emptyLookupMap nmap )
+      , TestCase ( assertEqual ("diag:map:"++lab) M.empty nmap )
       , TestCase ( assertEqual ("diag:gen:"++lab) 0 ngen )
       , TestCase ( assertEqual ("diag:trc:"++lab) [] trc )
       ]
@@ -829,8 +829,8 @@ simpleN3Graph_g1_10 =
 simpleN3Graph_g1_fu1 :: B.Builder
 simpleN3Graph_g1_fu1 =
   mconcat
-  [ "@prefix me: <http://example.com/ns#> .\n"
-  , "@prefix : <file:///home/swish/photos/> .\n"
+  [ "@prefix : <file:///home/swish/photos/> .\n"
+  , "@prefix me: <http://example.com/ns#> .\n"
   -- , ":me.png me:depicts me:me ;\n"
   , "<file:///home/swish/photos/me.png> me:depicts me:me ;\n"
   , "     me:hasURN <urn:one:two:3.14> .\n"
@@ -915,18 +915,18 @@ simpleN3Graph_b1rev =
 
 simpleN3Graph_b2 :: B.Builder
 simpleN3Graph_b2 =
-  commonPrefixesN [2,1,0] `mappend`
+  commonPrefixesN [0,1,2] `mappend`
   "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b2rev :: B.Builder
 simpleN3Graph_b2rev =
-  commonPrefixesN [0,2,1] `mappend`
+  commonPrefixesN [0,1,2] `mappend`
   "[\n base1:p1 base1:o1 ;\n     base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
 simpleN3Graph_b3 :: B.Builder
 simpleN3Graph_b3 =
   mconcat
-  [ commonPrefixesN [2,1,0]
+  [ commonPrefixesN [0,1,2]
   , "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"", l2txt, "\"\"\"\n] ;\n"
   , "     base2:p2 [] .\n"
   , "base2:s2 base2:p2 base2:o2 .\n" ]
@@ -934,14 +934,14 @@ simpleN3Graph_b3 =
 simpleN3Graph_b4 :: B.Builder
 simpleN3Graph_b4 =
   mconcat
-  [ commonPrefixesN [1,0,4]
+  [ commonPrefixesN [0,1,4]
   , "[\n a base1:o1\n] .\n"
   , "[\n a base2:o2\n] .\n" ]
 
 simpleN3Graph_b5 :: B.Builder
 simpleN3Graph_b5 =
   mconcat
-  [ commonPrefixesN [2,1,0,4]
+  [ commonPrefixesN [0,1,2,4]
   , "[\n a base1:o1\n] .\n"
   , "[\n base2:p2 base2:o2\n] .\n"
   , "[\n a base3:o3\n] .\n" ]
@@ -963,16 +963,11 @@ simpleN3Graph_l2 =
 simpleN3Graph_l3 :: B.Builder
 simpleN3Graph_l3 =
   mconcat
-  [ commonPrefixesN [5,0]
+  [ commonPrefixesN [0, 5]
   , "\n" -- TODO: why do we need this newline?
-  , "base1:s1 base1:p1 \"2.34E1\"^^xsd:float,\n"
-  , "     -2.304e-108,\n" 
-  , "     12,     true .\n" ]
-
-{-
-  "                  -2.304e-108,\n" ++ 
-  "                  12,                  true .\n"
--}
+  , "base1:s1 base1:p1 -2.304e-108,\n"
+  , "     12,\n" 
+  , "     \"2.34E1\"^^xsd:float,     true .\n" ]
 
 simpleN3Graph_l4 :: B.Builder
 simpleN3Graph_l4 =

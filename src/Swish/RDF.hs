@@ -3,12 +3,13 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDF
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances
+--  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings
 --
 --  This module provides an in-memory RDF Graph (it re-exports
 --  "Swish.RDF.Graph").

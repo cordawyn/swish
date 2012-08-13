@@ -48,20 +48,18 @@ import Swish.RDF.Vocabulary
     , scopeRDFD
     )
 
-import Data.LookupMap (mapFindMaybe)
+import Data.Maybe (isNothing, fromJust, fromMaybe)
+import Data.Monoid (Monoid(..))
+
+import Network.URI (URI, parseURI)
+
+import qualified Data.Map as M
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertBool, assertEqual )
-
-import Network.URI (URI, parseURI)
-
-import Data.Monoid (Monoid(..))
-import Data.Maybe (isNothing, fromJust, fromMaybe)
-
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as B
-
 import TestHelpers ( runTestSuite
                      , test
                      , testEq
@@ -150,8 +148,8 @@ xsdintContext = [ rulesetRDF, rulesetRDFS, rulesetRDFD, rulesetXsdInt ]
 xsdstrContext = [ rulesetRDF, rulesetRDFS, rulesetRDFD, rulesetXsdStr ]
 
 rulesetXsdInt, rulesetXsdStr :: RDFRuleset
-rulesetXsdInt = fromJust $ mapFindMaybe (namespaceXsdType "integer") rdfRulesetMap
-rulesetXsdStr = fromJust $ mapFindMaybe (namespaceXsdType "string") rdfRulesetMap
+rulesetXsdInt = fromJust $ M.lookup (namespaceXsdType "integer") rdfRulesetMap
+rulesetXsdStr = fromJust $ M.lookup (namespaceXsdType "string") rdfRulesetMap
 
 ------------------------
 --  RDF/S rule tests

@@ -20,12 +20,11 @@ module Main where
 
 import Swish.GraphClass (Arc, arc) 
 import Swish.Namespace (
-  Namespace, makeNamespace, getNamespaceURI
+  Namespace, makeNamespace, getNamespaceURI, getNamespaceTuple
   , ScopedName
   , makeScopedName
   , makeNSScopedName
   , nullScopedName
-  -- , makeUriScopedName
   , namespaceToBuilder
   )
 import Swish.QName (QName, qnameFromURI)
@@ -39,8 +38,7 @@ import Swish.RDF.Parser.N3
     )
 
 import Swish.RDF.Graph
-    ( RDFGraph, RDFLabel(..), NSGraph(..)
-    , LookupFormula(..)
+    ( RDFGraph, RDFLabel(..), NSGraph(..), NamespaceMap
     , emptyRDFGraph, toRDFGraph
     , resRdfType, resRdfFirst, resRdfRest, resRdfNil
     , resOwlSameAs, resLogImplies
@@ -56,8 +54,6 @@ import Swish.RDF.Vocabulary
     , xsdDouble 
     )
 
-import Data.LookupMap (LookupMap(..))
-
 import Test.HUnit (Test(TestCase,TestList), assertEqual)
 
 import Network.URI (URI, nullURI, parseURIReference)
@@ -66,6 +62,8 @@ import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust, fromMaybe)
 import Data.List (intercalate)
 
+import qualified Data.Map as M
+import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as B
@@ -353,8 +351,8 @@ makeNewPrefixNamespace :: (T.Text,Namespace) -> Namespace
 makeNewPrefixNamespace (pre,ns) = makeNamespace (Just pre) (getNamespaceURI ns)
 
 dg1, dg2, dg3 :: RDFGraph
-dg1 = toRDFGraph [arc ds1 dp1 do1]
-dg2 = toRDFGraph
+dg1 = toRDFGraph $ S.singleton $ arc ds1 dp1 do1
+dg2 = toRDFGraph $ S.fromList
       [ arc xa1 xb1 xc1
       , arc xa2 xb2 xc2
       , arc xa3 xb3 xc3
@@ -384,26 +382,15 @@ dg2 = toRDFGraph
     xc5 = mUN ns5 "c5"
 
 dg3 = -- TODO: add in prefixes ?
-  toRDFGraph [ arc (Res "file:///home/swish/photos/myphoto") (Res "http://example.com/ns#photoOf") (Res "http://example.com/ns#me")]
+  toRDFGraph $ S.singleton $ arc (Res "file:///home/swish/photos/myphoto") (Res "http://example.com/ns#photoOf") (Res "http://example.com/ns#me")
   
-nslist, xnslist :: LookupMap Namespace
-nslist = LookupMap $ map makeNewPrefixNamespace
-    [ ("base1",base1)
-    , ("base2",base2)
-    , ("base3",base3)
-    , ("base4",base4)
-    ]
-xnslist = LookupMap $ map makeNewPrefixNamespace
-    [ ("base1",base1)
-    , ("base2",base2)
-    , ("base3",base3)
-    , ("base4",base4)
-    , ("xsd", xsdNS)
-    ]
+nslist, xnslist :: NamespaceMap
+nslist = M.fromList $ map getNamespaceTuple [base1, base2, base3, base4]
+xnslist = (\(a,b) -> M.insert a b nslist) $ getNamespaceTuple xsdNS
 
 toGraph :: [Arc RDFLabel] -> RDFGraph
 toGraph stmts = mempty { namespaces = nslist
-                        , statements = stmts
+                        , statements = S.fromList stmts
                         }
 
 g1 :: RDFGraph
@@ -649,8 +636,8 @@ tx701 = arc b1 p2 f2
 x7 :: RDFGraph
 x7    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b1 g2]
-        , statements = [tx701]
+        , formulae   = M.singleton b1 g2 -- $ Formula b1 g2
+        , statements = S.singleton tx701
         }
 
 tx801 :: Arc RDFLabel
@@ -659,15 +646,15 @@ tx801 = arc f1 p2 f2
 x8 :: RDFGraph
 x8    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g2]
-        , statements = [tx801]
+        , formulae   = M.singleton f1 g2 -- $ Formula f1 g2
+        , statements = S.singleton tx801
         }
 
 x9 :: RDFGraph
 x9    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula f1 g1]
-        , statements = [tx801]
+        , formulae   = M.singleton f1 g1 -- $ Formula f1 g1
+        , statements = S.singleton tx801
         }
 
 --  Test allocation of bnodes carries over a nested formula
@@ -683,20 +670,20 @@ tx1211 = arc s2 p2 b4
 tx1212 = arc b4 p2 o2
 
 x12fg :: RDFGraph
-x12fg  = mempty { statements = [tx1211,tx1212] }
+x12fg  = mempty { statements = S.fromList [tx1211,tx1212] }
 {-
 x12fg  = NSGraph
         { namespaces = emptyNamespaceMap
         , formulae   = emptyFormulaMap
-        , statements = [tx1211,tx1212]
+        , statements = S.fromList [tx1211,tx1212]
         }
 -}
         
 x12 :: RDFGraph
 x12    = NSGraph
         { namespaces = nslist
-        , formulae   = LookupMap [Formula b2 x12fg]
-        , statements = [tx1201,tx1202,tx1203,tx1204,tx1205]
+        , formulae   = M.singleton b2 x12fg -- $ Formula b2 x12fg
+        , statements = S.fromList [tx1201,tx1202,tx1203,tx1204,tx1205]
         }
 
 --  List of simple anon nodes
@@ -808,8 +795,7 @@ x16 = toGraph [tx1601,tx1602,tx1603,tx1604,tx1605,tx1606,
                tx1627,tx1628,tx1629,tx1630,tx1631,tx1632]
 
 kg1 :: RDFGraph
-kg1 = toRDFGraph
-      [ arc b a c ]
+kg1 = toRDFGraph $ S.singleton $ arc b a c
   where
     -- the document base is set to file:///dev/null to begin with
     mUN = Res . makeNSScopedName dbase
@@ -1265,7 +1251,7 @@ b23e4 = TypedLit "-2.3E-4" xsdDouble
 lit_g4 :: RDFGraph
 lit_g4 = mempty {
   namespaces = xnslist
-  , statements = [
+  , statements = S.fromList [
     arc s1 p1 b1
     , arc b1 resRdfFirst bTrue
     , arc b1 resRdfRest  b2

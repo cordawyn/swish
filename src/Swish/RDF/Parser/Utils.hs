@@ -66,13 +66,13 @@ import Swish.RDF.Vocabulary
     )
 
 import Data.Char (isSpace, isHexDigit, chr)
-import Data.LookupMap (LookupMap(..))
 import Data.Maybe (fromMaybe, fromJust)
 
 import Network.URI (URI(..), relativeTo, parseURIReference)
 
 import Text.ParserCombinators.Poly.StateText
 
+import qualified Data.Map       as M
 import qualified Data.Text      as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Read as R
@@ -94,26 +94,7 @@ appendURIs base uri =
     _  -> Right uri
   
 -- | Type for special name lookup table
-type SpecialMap = LookupMap (String, ScopedName)
-
-{-
--- | Lookup prefix in table and return the matching URI.
---
---   If the prefix is unknown then we currently error
---   out (used to return 'prefix:' or ':' but now using
---   URIs I am changing this behavior). This may well be
---   backed out.
-mapPrefix :: NamespaceMap -> Maybe String -> URI
-mapPrefix pmap pfix = 
-  case mapFindMaybe pfix pmap of
-    Just uri -> uri
-    Nothing  -> error $ "Unable to find prefix: " ++ show pfix -- fromMaybe "" pfix ++ ":"
--}
-  
-{-
-mapPrefix ps p@(Just pre) = mapFind (pre++":") p ps
-mapPrefix ps _ = mapFind ":" Nothing ps
--}
+type SpecialMap = M.Map String ScopedName
 
 -- | Define default table of namespaces
 prefixTable :: [Namespace]

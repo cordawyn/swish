@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.7.0.2
+Version:            0.8.0.0
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -44,88 +44,28 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
-  Changes in version @0.7.0.2@:
+  Changes in version @0.8.0.0@:
   .
-  * The @Swish.QName.LName@ type now requires all characters to be
-  ASCII. This avoids downstream errors when trying to convert a
-  @QName@ to a @URI@.
+  * The @LDGraph@ class now uses @Set (Arc lb)@, rather than @[Arc lb]@,
+  for @setArcs@, @getArcs@, and @update@. Several data types - e.g.
+  @NSGraph@ - now use sets rather than lists. There are a number of API tweaks -
+  e.g. the addition of Ord constraints and the removal of Functor, Foldable,
+  and Traversable instances. Not all list of Arcs have been converted
+  since a review is needed to see where it makes sense and where it does not.
+  This definitely speeds up some operations but
+  a full analysis has not been attempted.
   .
-  Changes in version @0.7.0.1@:
+  * Replaced used of @Data.LookupMap@ with @Data.Map.Map@. This has led to the
+  removal of a number of language extensions from some modules.
   .
-  * Internal changes to parsing of URI values for NTriples, Turtle, and N3
-  parsers (error messages will be slightly different when IRIs are used).
-  Unfortunately IRIs are still not supported. 
+  * A few other minor changes have been made: the removal of @subset@ and
+  @equiv@ from
+  @Swish.Utils.ListHelpers@; the ordering used for @RDFLabel@ values has
+  changed; added a @Monoid@ instance for @VarBinding@; added @Ord@
+  instances for a number of containers; removed some un-needed constraints;
+  added @Network.URI.Ord@.
   .
-  Changes in version @0.7.0.0@:
-  .
-  For code that uses the Swish script language, the main change is to import @Swish@ rather
-  than @Swish.RDF.SwishMain@, and to note that the other @Swish.RDF.Swish*@ modules are
-  now called @Swish.*@.
-  .
-  For code that uses the graph library, the main changes are that @Swish.RDF.RDFGraph@
-  is now called @Swish.RDF.Graph@, the @Lit@ constructor of the @RDFLabel@ has been split
-  into three (@Lit@, @LangLit@, and @TypedLit@) and a new @LanguageTag@ type introduced,
-  local names now use the @LName@ type (previously they were just @Text@ values), and the
-  parsers and formatters have renamed to
-  @Swish.RDF.Parser.*@ and @Swish.RDF.Formatter.*@.
-  .
-  * Moved a number of modules around: generic code directly into @Swish@
-  and the @Swish.RDF.RDF*@ forms renamed to @Swish.RDF.*@. Some modules
-  have been moved out of the @Swish.Utils.*@ namespace. Generic modules
-  have been placed into the @Data.*@ namespace. The @Swish.RDF.Swish*@
-  modules have been moved to @Swish.*@ and @Swish.RDF.SwishMain@ has
-  been removed; use @Swish@ instead.
-  .
-  * Parsing modules are now in the @Swish.RDF.Parser@ hierarchy and
-  @Swish.RDF.RDFParser@ has been renamed to @Swish.RDF.Parser.Utils@.
-  .
-  * Formatting modules are now in the @Swish.RDF.Formatter@ hierarchy.
-  .
-  * RDF literals are now stored using the @Lit@, @LangLit@, or @TypedLit@ constructors
-  (@RDFLabel@) rather than using just @Lit@. Language codes are now represented
-  by @Swish.RDF.Vocabulary.LanguageTag@ rather than as a @ScopedName@.
-  .
-  * Local names are now represented by the @Swish.QName.LName@ type 
-  rather than as a @Text@ value. A few routines now return a @Maybe@ value
-  rather than error-ing out on invalid input.
-  .
-  * Make use of @Data.List.NonEmpty@ in a few cases.
-  .
-  * Removed @mkTypedLit@ from @Swish.RDF.RDFParser@; use
-  @Swish.RDF.RDFDatatype.makeDataTypedLiteral@ instead.
-  .
-  * Removed @asubj@, @apred@ and @aobj@ from @Swish.RDF.GraphClass@ and
-  @Swish.RDF.RDFGraph@; use @arcSubj@, @arcPred@ or @arcObj@ instead.
-  .
-  * Removed un-used @containedIn@ element of the @LDGraph@ type class.
-  The arguments to @setArcs@ have been flipped, @replaceArcs@ removed,
-  @add@ renamed to @addGraphs@, and @emptyGraph@ added.
-  .
-  * Removed un-used exports from @Swish.Utils.PartOrderedCollection@: 
-  @partCompareOrd@, @partCompareMaybe@, @partCompareListOrd@, and
-  @partCompareListPartOrd@.
-  .
-  * Removed the @Swish.Utils.MiscHelpers@ module and moved single-use functionality
-  out of @Swish.Utils.ListHelpers@.
-  .
-  * Removed various exported symbols from a range of modules as they were
-  unused.
-  .
-  * Use @Word32@ rather than @Int@ for label indexes (@Swish.GraphMatch.LabelIndex@)
-  and in the bnode counts when formatting to N3/Turtle.
-  .
-  * Minor clean up of the @LookupMap@ module: @mergeReplaceOrAdd@ and @mergeReplace@
-  are now combined into @mergeReplace@; @mapSelect@, @mapApplyToAll@, and
-  @mapTranslate*@ have been removed; documentation slightly improved;
-  and a few minor internal clean ups.
-  .
-  * Clarified that @Swish.RDF.RDFDatatypeXsdDecimal@ is for @xsd:decimal@ rather
-  than @xsd:double@.
-  .
-  * Support using versions 0.8 or 0.9 of the @intern@ package and version 0.5 of
-  @containers@.
-  .
-  * Switch to @Control.Exception.try@ to avoid deprecation warnings from @System.IO.Error.try@.
+  * Bumped the minimum containers requirement to @0.5@.
   .
   Changes in previous versions can be found at <https://bitbucket.org/doug_burke/swish/src/tip/CHANGES>.
   .
@@ -158,7 +98,7 @@ Library
    Build-Depends:
       base >=3 && < 5,
       binary == 0.5.*,
-      containers >= 0.3 && < 0.6,
+      containers == 0.5.*,
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
@@ -176,12 +116,13 @@ Library
       Build-Depends:   intern >= 0.8 && < 1.0
 
    Hs-Source-Dirs: src/
+   Other-Modules:  Swish.RDF.Formatter.Internal
 
    Exposed-Modules:
       Data.Interned.URI
-      Data.LookupMap
       Data.Ord.Partial
       Data.String.ShowLines
+      Network.URI.Ord
       Swish
       Swish.Commands
       Swish.Datatype
@@ -250,7 +191,8 @@ Test-Suite test-builtinmap
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
+      base,
+      containers,
       HUnit == 1.2.*,
       swish
 
@@ -264,9 +206,10 @@ Test-Suite test-graphpartition
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      semigroups >= 0.5 && < 0.9,
+      base,
+      containers,
+      HUnit,
+      semigroups,
       swish
 
 Test-Suite test-graph
@@ -279,8 +222,9 @@ Test-Suite test-graph
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
+      base,
+      containers, 
+      HUnit,
       swish
 
 Test-Suite test-nt
@@ -293,10 +237,11 @@ Test-Suite test-nt
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
+      base,
+      containers,
+      HUnit,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-n3parser
    type:       exitcode-stdio-1.0
@@ -308,11 +253,12 @@ Test-Suite test-n3parser
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-n3formatter
    type:       exitcode-stdio-1.0
@@ -324,11 +270,12 @@ Test-Suite test-n3formatter
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-rdfdatatypexsdinteger
    type:       exitcode-stdio-1.0
@@ -340,11 +287,12 @@ Test-Suite test-rdfdatatypexsdinteger
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-rdfgraph
    type:       exitcode-stdio-1.0
@@ -356,13 +304,14 @@ Test-Suite test-rdfgraph
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
-      old-locale == 1.0.*,
+      base,
+      containers,
+      HUnit,
+      network,
+      old-locale,
       swish,
-      text == 0.11.*,
-      time >= 1.1 && < 1.5
+      text,
+      time
 
 Test-Suite test-rdfproofcontext
    type:       exitcode-stdio-1.0
@@ -374,11 +323,12 @@ Test-Suite test-rdfproofcontext
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-rdfproof
    type:       exitcode-stdio-1.0
@@ -390,11 +340,12 @@ Test-Suite test-rdfproof
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-rdfquery
    type:       exitcode-stdio-1.0
@@ -406,11 +357,12 @@ Test-Suite test-rdfquery
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-rdfruleset
    type:       exitcode-stdio-1.0
@@ -422,11 +374,12 @@ Test-Suite test-rdfruleset
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
 Test-Suite test-varbinding
    type:       exitcode-stdio-1.0
@@ -438,22 +391,9 @@ Test-Suite test-varbinding
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      swish
-
-Test-Suite test-lookupmap
-   type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/
-   Main-Is:        LookupMapTest.hs
-   Other-Modules:  TestHelpers
-
-   ghc-options:
-      -Wall -fno-warn-orphans
-
-   Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
+      base,
+      containers,
+      HUnit,
       swish
 
 Test-Suite test-qname
@@ -466,11 +406,12 @@ Test-Suite test-qname
       -Wall -fno-warn-orphans
 
    Build-Depends:
-      base >=3 && < 5,
-      HUnit == 1.2.*,
-      network >= 2.2 && < 2.4,
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
-      text == 0.11.*
+      text
 
  -- we do not have the data files to run this test
  Executable         SwishTest

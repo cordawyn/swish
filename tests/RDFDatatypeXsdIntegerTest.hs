@@ -51,22 +51,20 @@ import Swish.RDF.Graph (RDFLabel(..), RDFGraph)
 
 import Swish.RDF.Vocabulary (namespaceDefault, namespaceRDF, namespaceRDFD, namespaceXSD)
 
-import Data.LookupMap (LookupMap(..), mapFindMaybe)
+import Data.List (intersperse)
+import Data.Maybe (fromMaybe, fromJust)
+import Data.Monoid (Monoid(..))
+
+import Network.URI (URI, parseURI)
+
+import qualified Data.Map as M
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
 
 import Test.HUnit
     ( Test(TestCase,TestList)
       , assertFailure
     )
-
-import Network.URI (URI, parseURI)
-
-import Data.Monoid (Monoid(..))
-import Data.Maybe (fromMaybe, fromJust)
-import Data.List (intersperse)
-
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as B
-
 import TestHelpers (runTestSuite
                    , testEq, testElem, testEqv, testEqv2)
 
@@ -916,7 +914,7 @@ diff02inp = multiInp "Diff" [(1, -111), (3, 333)]
 diff03inp = multiInp "Diff" [(1, -111), (2, 222)]
     
 diff01bwd :: [[B.Builder]]
-diff01bwd =
+diff01bwd = 
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
       , "_:a rdf:_2 \"222\"^^xsd:integer . "
@@ -928,7 +926,7 @@ diff01bwd =
     ]
 
 diff02bwd :: [[B.Builder]]
-diff02bwd =
+diff02bwd = 
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
       , "_:a rdf:_2 \"222\"^^xsd:integer . "
@@ -940,7 +938,7 @@ diff02bwd =
     ]
 
 diff03bwd :: [[B.Builder]]
-diff03bwd =
+diff03bwd = 
     [ [ "_:a a xsd_integer:Diff . "
       , "_:a rdf:_1 \"-111\"^^xsd:integer . "
       , "_:a rdf:_3 \"333\"^^xsd:integer . "
@@ -1072,12 +1070,12 @@ pvRules = typeMkRules rdfDatatypeXsdInteger gr
 --  Now the test cases that use the rules created above.
 
 pvRule0, pvRule1 :: Maybe (Rule RDFGraph)
-pvRule0 = mapFindMaybe
+pvRule0 = M.lookup 
             (makeNSScopedName namespaceDefault "PassengerVehicle")
-            (LookupMap pvRules)
-pvRule1 = mapFindMaybe
+            $ M.fromList $ map (\rl -> (ruleName rl, rl)) pvRules
+pvRule1 = M.lookup
             (makeNSScopedName namespaceDefault "PassengerVehicle1")
-            (LookupMap pvRules)
+            $ M.fromList $ map (\rl -> (ruleName rl, rl)) pvRules
 
 pv01inp :: B.Builder
 pv01inp =

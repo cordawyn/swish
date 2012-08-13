@@ -35,10 +35,11 @@ import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual )
 
-import qualified Data.Text.Lazy as T
-
 import Data.Maybe (fromJust)
 import TestHelpers (runTestSuite)
+
+import qualified Data.Set as S
+import qualified Data.Text.Lazy as T
 
 ------------------------------------------------------------
 --  Parser tests
@@ -100,10 +101,10 @@ w3cTest = "#\n# Copyright World Wide Web Consortium, (Massachusetts Institute of
 ------------------------------------------------------------
 
 s1, p1, p2, o1 :: RDFLabel
-s1 = Res $ "urn:b#s1" -- rely on IsString to convert to ScopedName
-p1 = Res $ "urn:b#p1"
-p2 = Res $ "http://example.com/pred2"
-o1 = Res $ "urn:b#o1"
+s1 = Res "urn:b#s1" -- rely on IsString to convert to ScopedName
+p1 = Res "urn:b#p1"
+p2 = Res "http://example.com/pred2"
+o1 = Res "urn:b#o1"
 {-
 s1 = Res $ makeURIScopedName "urn:b#s1"
 p1 = Res $ makeURIScopedName "urn:b#p1"
@@ -133,10 +134,10 @@ b2 = Blank "genid23"
 ------------------------------------------------------------
 
 g0 :: RDFGraph
-g0 = toRDFGraph []
+g0 = toRDFGraph S.empty
 
 mkGr1 :: RDFLabel -> RDFLabel -> RDFLabel -> RDFGraph
-mkGr1 s p o = toRDFGraph [arc s p o]
+mkGr1 s p o = toRDFGraph $ S.singleton $ arc s p o
 
 g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12 :: RDFGraph
 g1 = mkGr1 s1 p1 o1
@@ -153,7 +154,7 @@ g11 = mkGr1 b2 p1 b1
 g12 = mkGr1 s1 p1 l4
 
 gm1 :: RDFGraph
-gm1 = toRDFGraph [arc b2 p2 b1, arc b2 p1 o1]
+gm1 = toRDFGraph $ S.fromList [arc b2 p2 b1, arc b2 p1 o1]
 
 ------------------------------------------------------------
 --  Input documents

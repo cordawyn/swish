@@ -1,17 +1,15 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Monad
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses
+--  Portability :  H98
 --
 --  Composed state and IO monad for Swish
 --
@@ -20,7 +18,6 @@
 module Swish.Monad
     ( SwishStateIO, SwishState(..), SwishStatus(..)
     , SwishFormat(..)
-    , NamedGraph(..)
     , NamedGraphMap
     -- * Create and modify the Swish state
     , emptyState
@@ -31,7 +28,6 @@ module Swish.Monad
     , findOpenVarModify, findDatatype
     , setInfo, resetInfo, setError, resetError
     , setStatus
-    -- , setVerbose
     -- * Error handling
     , swishError
     , reportLine
@@ -53,10 +49,11 @@ import Swish.RDF.BuiltIn (findRDFOpenVarBindingModifier, findRDFDatatype, rdfRul
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (StateT(..), modify)
 
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..))
-import Data.LookupMap (emptyLookupMap, mapFindMaybe, mapVals)
+import Data.List (nub)
 
 import System.IO (hPutStrLn, stderr)
+
+import qualified Data.Map as M
 
 {-|
 The supported input and output formats.
@@ -116,8 +113,8 @@ emptyState = SwishState
     { format    = N3
     , base      = Nothing
     , graph     = emptyRDFGraph
-    , graphs    = emptyLookupMap
-    , rules     = emptyLookupMap
+    , graphs    = M.empty
+    , rules     = M.empty
     , rulesets  = rdfRulesetMap
     , infomsg   = Nothing
     , errormsg  = Nothing
@@ -143,13 +140,13 @@ modGraphs grmod state = state { graphs = grmod (graphs state) }
 
 -- | Find a named graph.
 findGraph :: ScopedName -> SwishState -> Maybe [RDFGraph]
-findGraph nam state = mapFindMaybe nam (graphs state)
+findGraph nam state = M.lookup nam (graphs state)
 
 -- | Find a formula. The search is first made in the named graphs
 -- and then, if not found, the rulesets.
 findFormula :: ScopedName -> SwishState -> Maybe RDFFormula
 findFormula nam state = case findGraph nam state of
-        Nothing  -> getMaybeContextAxiom nam (mapVals $ rulesets state)
+        Nothing  -> getMaybeContextAxiom nam (nub $ M.elems $ rulesets state)
         Just []  -> Just $ Formula nam emptyRDFGraph
         Just grs -> Just $ Formula nam (head grs)
 
@@ -161,8 +158,8 @@ modRules rlmod state = state { rules = rlmod (rules state) }
 -- | Find a named rule.
 findRule :: ScopedName -> SwishState -> Maybe RDFRule
 findRule nam state =
-    case mapFindMaybe nam (rules state) of
-      Nothing -> getMaybeContextRule nam $ mapVals $ rulesets state
+    case M.lookup nam (rules state) of
+      Nothing -> getMaybeContextRule nam $ nub $ M.elems $ rulesets state
       justlr  -> justlr
 
 -- | Modify the rule sets.
@@ -173,7 +170,7 @@ modRulesets rsmod state = state { rulesets = rsmod (rulesets state) }
 -- | Find a rule set.
 findRuleset ::
     ScopedName -> SwishState -> Maybe RDFRuleset
-findRuleset nam state = mapFindMaybe (getScopeNamespace nam) (rulesets state)
+findRuleset nam state = M.lookup (getScopeNamespace nam) (rulesets state)
 
 -- | Find a modify rule.
 findOpenVarModify :: ScopedName -> SwishState -> Maybe RDFOpenVarBindingModify
@@ -208,6 +205,7 @@ setVerbose :: Bool -> SwishState -> SwishState
 setVerbose f state = state { banner = f }
 -}
 
+{-
 -- | The graphs dictionary contains named graphs and/or lists
 --  of graphs that are created and used by script statements.
 
@@ -216,13 +214,10 @@ data NamedGraph = NamedGraph
     , ngGraph   :: [RDFGraph]
     }
 
-instance LookupEntryClass NamedGraph ScopedName [RDFGraph]
-    where
-        keyVal   (NamedGraph k v) = (k,v)
-        newEntry (k,v)            = NamedGraph k v
+-}
 
 -- | A LookupMap for the graphs dictionary.
-type NamedGraphMap = LookupMap NamedGraph
+type NamedGraphMap = M.Map ScopedName [RDFGraph]
 
 -- | Report error and set exit status code
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -6,12 +5,13 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  ClassRestrictionRule
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  MultiParamTypeClasses, OverloadedStrings
+--  Portability :  OverloadedStrings
 --
 --  This module implements an inference rule based on a restruction on class
 --  membership of one or more values.
@@ -58,12 +58,13 @@ import Swish.RDF.Vocabulary (namespaceRDFD)
 
 import Control.Monad (liftM)
 
-import Data.List (delete, nub, (\\), subsequences)
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..),mapFindMaybe)
+import Data.List (delete, nub, subsequences)
 import Data.Maybe (fromJust, fromMaybe, mapMaybe)
 import Data.Monoid (Monoid (..))
 import Data.Ord.Partial (minima, maxima, partCompareEq, partComparePair, partCompareListMaybe, partCompareListSubset)
 
+import qualified Data.Map as M
+import qualified Data.Set as S
 import qualified Data.Text.Lazy.Builder as B
 
 ------------------------------------------------------------
@@ -86,11 +87,6 @@ instance Eq ClassRestriction where
 
 instance Show ClassRestriction where
     show cr = "ClassRestriction:" ++ show (crName cr)
-
-instance LookupEntryClass ClassRestriction ScopedName ClassRestriction
-    where
-    newEntry (_,fn) = fn
-    keyVal cr = (crName cr, cr)
 
 ------------------------------------------------------------
 --  Instantiate a class restriction from a datatype relation
@@ -175,7 +171,9 @@ makeRestrictionRule1 crs gr vb =
         cs = filter (>0) $ map fromInteger $
              rdfFindPredInt c resRdfdMaxCardinality gr
         ps = rdfFindList gr p
-        rn = mapFindMaybe (getScopedName r) (LookupMap crs)
+
+        -- TODO: do not need to go via a map since looking through a list
+        rn = M.lookup (getScopedName r) $ M.fromList $ map (\cr -> (crName cr, cr)) crs
 
 makeRestrictionRule2 ::
     Maybe ClassRestriction -> RDFLabel -> [RDFLabel] -> [Int]
@@ -229,9 +227,9 @@ fwdApplyRestriction1 restriction ci props cs antgr =
         nts :: [[RDFLabel]]
         nts = mapMaybe sequence sts
         --  Make new graph from results, including only newly generated arcs
-        newarcs = nub [Arc ci p v | vs <- nts, (p,v) <- zip props vs ]
-                  \\ getArcs antgr
-        newgrs  = if null newarcs then [] else [toRDFGraph newarcs]
+        newarcs = S.fromList [Arc ci p v | vs <- nts, (p,v) <- zip props vs ]
+                  `S.difference` getArcs antgr
+        newgrs  = if S.null newarcs then [] else [toRDFGraph newarcs]
 
 --  Backward apply class restriction.
 --
@@ -289,11 +287,14 @@ bwdApplyRestriction1 restriction cls ci props cs congr =
         --  Make new graphs for all alternatives
         grss :: [[RDFGraph]]
         grss = map ( makeGraphs . newArcs ) ftss
+
         --  Collect arcs for one alternative
         newArcs dts =
             [ Arc ci p v | mvs <- dts, (p,Just v) <- zip props mvs ]
+
         --  Make graphs for one alternative
-        makeGraphs = map (toRDFGraph . (:[])) . (Arc ci resRdfType cls :)
+        --  TODO: convert to sets
+        makeGraphs = map (toRDFGraph . S.fromList . (:[])) . (Arc ci resRdfType cls :)
 
 --  Helper function to select sub-tuples from which some of a set of
 --  values can be derived using a class restriction.

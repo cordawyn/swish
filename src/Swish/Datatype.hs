@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
@@ -7,12 +6,13 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Datatype
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  ExistentialQuantification, MultiParamTypeClasses, OverloadedStrings
+--  Portability :  ExistentialQuantification, OverloadedStrings
 --
 --  This module defines the structures used to represent and
 --  manipulate datatypes.  It is designed as a basis for handling datatyped
@@ -73,9 +73,9 @@ import Swish.Utils.ListHelpers (flist)
 
 import Control.Monad (join, liftM)
 
-import Data.LookupMap (LookupEntryClass(..), LookupMap(..), mapFindMaybe)
 import Data.Maybe (isJust, catMaybes)
 
+import qualified Data.Map as M
 import qualified Data.Text as T
 
 ------------------------------------------------------------
@@ -87,12 +87,6 @@ import qualified Data.Text as T
 --  Users see just the datatype name and associated ruleset.
 --
 data Datatype ex lb vn = forall vt . Datatype (DatatypeVal ex vt lb vn)
-
-instance LookupEntryClass
-        (Datatype ex lb vn) ScopedName (Datatype ex lb vn)
-    where
-    newEntry (_,dt) = dt
-    keyVal dt       = (typeName dt, dt)
 
 -- |Get type name from Datatype value
 typeName :: Datatype ex lb vn -> ScopedName
@@ -241,13 +235,15 @@ instance ShowM ex => Show (DatatypeVal ex vt lb vn) where
 getDTRel ::
     ScopedName -> DatatypeVal ex vt lb vn -> Maybe (DatatypeRel vt)
 getDTRel nam dtv =
-    mapFindMaybe nam (LookupMap (tvalRel dtv))
+    let m = M.fromList $ map (\n -> (dtRelName n, n)) (tvalRel dtv)
+    in M.lookup nam m
 
 -- | Return the named datatype value modifier, if it exists.
 getDTMod ::
     ScopedName -> DatatypeVal ex vt lb vn -> Maybe (DatatypeMod vt lb vn)
 getDTMod nam dtv =
-    mapFindMaybe nam (LookupMap (tvalMod dtv))
+    let m = M.fromList $ map (\n -> (dmName n, n)) (tvalMod dtv)
+    in M.lookup nam m
 
 -- |Get the canonical form of a datatype value, or @Nothing@.
 --
@@ -310,11 +306,6 @@ data DatatypeRel vt = DatatypeRel
     , dtRelFunc :: DatatypeRelFn vt
     }
 
-instance LookupEntryClass (DatatypeRel vt) ScopedName (DatatypeRel vt)
-    where
-    newEntry (_,relf) = relf
-    keyVal dtrel = (dtRelName dtrel, dtrel)
-
 -- |Datatype value modifier functions type
 --
 --  Each function accepts a list of values and returns a list of values.
@@ -346,12 +337,6 @@ data DatatypeMod vt lb vn = DatatypeMod
     , dmModf :: [ModifierFn vt]
     , dmAppf :: ApplyModifier lb vn
     }
-
-instance LookupEntryClass
-        (DatatypeMod vt lb vn) ScopedName (DatatypeMod vt lb vn)
-    where
-    newEntry (_,dmod) = dmod
-    keyVal dmod = (dmName dmod, dmod)
 
 -- |Null datatype value modifier
 nullDatatypeMod :: DatatypeMod vt lb vn
@@ -417,7 +402,7 @@ dmAppf dtmod (dmName dtmod)
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod11inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod11inv :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod11inv nam [f0,f1,f2] lbs@(~[lb1,lb2]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -456,7 +441,7 @@ makeVmod11inv _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod11 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod11 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod11 nam [f0,f1] lbs@(~[lb1,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -501,7 +486,7 @@ makeVmod11 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod21inv :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod21inv :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod21inv nam [f0,f1,f2,f3] lbs@(~[lb1,lb2,lb3]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -542,7 +527,7 @@ makeVmod21inv _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmod21 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod21 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod21 nam [f0,f1] lbs@(~[lb1,_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -618,7 +603,7 @@ makeVmod20 _ _ _ =
 --  NOTE: this might be generalized to allow one of @w@ or @x@ to be
 --  specified, and return null if it doesn't match the calculated value.
 --
-makeVmod22 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmod22 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmod22 nam [f0,f1] lbs@(~[lb1,lb2,_,_]) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -658,7 +643,7 @@ makeVmod22 _ _ _ =
 --  for the 'VarBindingModify' value can be extracted using an undefined
 --  label value.
 --
-makeVmodN1 :: (Eq lb, Show lb, Eq vn, Show vn) => ApplyModifier lb vn
+makeVmodN1 :: (Ord lb, Ord vn) => ApplyModifier lb vn
 makeVmodN1 nam [f0,f1] lbs@(~(lb1:_)) = VarBindingModify
     { vbmName   = nam
     , vbmApply  = concatMap app1
@@ -685,7 +670,7 @@ makeVmodN1 _ _ _ =
 
 --  Add value to variable variable binding, if value is singleton list,
 --  otherwise return empty list.
-addv :: (Eq lb, Show lb, Eq vt, Show vt)
+addv :: (Ord lb, Ord vt)
     => lb -> [vt] -> VarBinding lb vt
     -> [VarBinding lb vt]
 addv lb [val] vbind = [addVarBinding lb val vbind]
@@ -693,7 +678,7 @@ addv _  _     _     = []
 
 --  Add two entries to variable variable binding, if value supplied is
 --  a doubleton list, otherwise return empty list.
-addv2 :: (Eq lb, Show lb, Eq vt, Show vt)
+addv2 :: (Ord lb, Ord vt)
     => lb -> lb -> [vt] -> VarBinding lb vt
     -> [VarBinding lb vt]
 addv2 lb1 lb2 [val1,val2] vbind = [addVarBinding lb1 val1 $

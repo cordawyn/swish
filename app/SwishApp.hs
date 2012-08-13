@@ -20,7 +20,7 @@ import Paths_swish (version)
 import Data.Version (showVersion)
 
 import System.Environment (getArgs)
-import System.Exit (ExitCode(ExitSuccess,ExitFailure), exitWith)
+import System.Exit (ExitCode(ExitFailure), exitWith, exitSuccess)
 
 import Control.Monad (unless)
 
@@ -47,7 +47,7 @@ main = do
       doQuiet = "-q" `elem` flags
       
   if doHelp || doVersion
-    then if doHelp then displaySwishHelp else displayVersion >> exitWith ExitSuccess
+    then if doHelp then displaySwishHelp else displayVersion >> exitSuccess
     else do
       unless doQuiet $ displayVersion >> putStrLn "\n"
       case validateCommands cmds of
@@ -58,7 +58,7 @@ main = do
         Right acts -> do
           code <- runSwishActions acts
           case code of
-            SwishSuccess -> exitWith ExitSuccess
+            SwishSuccess -> exitSuccess
             _ -> hPutStrLn stderr ("Swish: "++show code)
                  >> exitWith (ExitFailure $ fromEnum code)
   

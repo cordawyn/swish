@@ -2,51 +2,33 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  ListHelpers
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Module      :  Ord
+--  Copyright   :  (c) 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  H98
 --
+--  Provide an ordering for URIs.
+--
 --------------------------------------------------------------------------------
 
-module Swish.Utils.ListHelpers (flist) where
+module Network.URI.Ord () where
 
--- |Apply list of functions to some value, returning list of results.
---  It's kind of like an converse map.
---
---  This is similar to the 'ap' function in the Monad library.
---
-flist :: [a->b] -> a -> [b]
-flist fs a = map ($ a) fs
+import Data.Ord (comparing)
 
-{-
-flisttest = flist [(1*),(2*),(3*)] 5 -- [5,10,15]
--}
+import Network.URI (URI)
 
-{-
+-- | This instance is provided so that URIs can be used as the
+--   key of a 'Data.Map.Map'.
 
--- |A more generalized form of flist that works with arbitrary Monads.
---  (Suggested by Derek Elkin.)
-
-fmonad :: Monad m => m (a->b) -> a -> m b
-fmonad fm a =
-    do  { f <- fm
-        ; return $ f a
-        }
-
--}
-
-{-
-fmonadtest = fmonad [(1*),(2*),(3*)] 3 -- [3,6,9]
--}
+instance Ord URI where
+    compare = comparing show -- TODO: do this properly
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--  Copyright (c) 2012 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

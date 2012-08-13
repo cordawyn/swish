@@ -28,11 +28,11 @@ import Swish.Rule (Expression(..), Formula(..), Rule(..))
 import Swish.Rule (showsFormula, showsFormulae)
 import Swish.Ruleset (Ruleset(..))
 
-import Swish.Utils.ListHelpers (subset)
-
 import Data.List (union, intersect, intercalate, foldl')
 import Data.Maybe (catMaybes, isNothing)
 import Data.String.ShowLines (ShowLines(..))
+
+import qualified Data.Set as S
 
 ------------------------------------------------------------
 --  Proof framework
@@ -76,14 +76,18 @@ proofAxiomsUsed proof = foldl' union [] $ map stepAxioms (proofChain proof)
 
 -- |Check consistency of given proof.
 --  The supplied rules and axioms are assumed to be correct.
-checkProof :: (Expression ex) => Proof ex -> Bool
+checkProof :: 
+    (Expression ex, Ord ex) 
+    => Proof ex -> Bool
 checkProof pr =
     checkProof1 (proofRules pr) initExpr (proofChain pr) goalExpr
     where
         initExpr = formExpr (proofInput pr) : map formExpr (proofAxioms pr)
         goalExpr = formExpr $ proofResult pr
 
-checkProof1 :: (Expression ex) => [Rule ex] -> [ex] -> [Step ex] -> ex -> Bool
+checkProof1 :: 
+    (Expression ex, Ord ex) 
+    => [Rule ex] -> [ex] -> [Step ex] -> ex -> Bool
 checkProof1 _     prev []       res = res `elem` prev
 checkProof1 rules prev (st:steps) res =
     checkStep rules prev st &&
@@ -98,7 +102,7 @@ checkProof1 rules prev (st:steps) res =
 --  being in correspondence with the name of one of the indicated
 --  valid rules of inference.
 checkStep :: 
-  (Expression ex) 
+  (Expression ex, Ord ex) 
   => [Rule ex]   -- ^ rules
   -> [ex]        -- ^ antecedants
   -> Step ex     -- ^ the step to validate
@@ -148,7 +152,7 @@ checkStep rules prev step =
 -- |Check proof. If there is an error then return information
 -- about the failing step.
 explainProof ::
-    (Expression ex) => Proof ex -> Maybe String
+    (Expression ex, Ord ex) => Proof ex -> Maybe String
 explainProof pr =
     explainProof1 (proofRules pr) initExpr (proofChain pr) goalExpr
     where
@@ -156,7 +160,8 @@ explainProof pr =
         goalExpr = formExpr $ proofResult pr
 
 explainProof1 ::
-    (Expression ex) => [Rule ex] -> [ex] -> [Step ex] -> ex -> Maybe String
+    (Expression ex, Ord ex) 
+    => [Rule ex] -> [ex] -> [Step ex] -> ex -> Maybe String
 explainProof1 _     prev []       res   =
     if res `elem` prev then Nothing else Just "Result not demonstrated"
 explainProof1 rules prev (st:steps) res =
@@ -174,7 +179,7 @@ explainProof1 rules prev (st:steps) res =
 --  valid rules of inference.
 --
 explainStep :: 
-  (Expression ex) 
+  (Expression ex, Ord ex) 
   => [Rule ex]  -- ^ rules
   -> [ex]       -- ^ previous
   -> Step ex    -- ^ step
@@ -194,7 +199,7 @@ explainStep rules prev step =
             [ require (ruleName srul `elem` map ruleName rules)
                       ("rule "++show (ruleName srul)++" not present")
             -- Antecedent expressions are all previously accepted expressions
-            , require (sant `subset` prev)
+            , require (S.fromList sant `S.isSubsetOf` S.fromList prev) -- (sant `subset` prev)
                       "antecedent not axiom or previous result"
             -- Inference rule yields consequence from antecedents
             , require (checkInference srul sant scon)

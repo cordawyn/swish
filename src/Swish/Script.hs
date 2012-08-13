@@ -72,7 +72,7 @@ module Swish.Script
 where
 
 import Swish.Datatype (typeMkRules)
-import Swish.Monad ( SwishStateIO, SwishStatus(..), NamedGraph(..))
+import Swish.Monad ( SwishStateIO, SwishStatus(..))
 import Swish.Monad (modGraphs, findGraph, findFormula
                    , modRules, findRule
                    , modRulesets, findRuleset
@@ -80,7 +80,7 @@ import Swish.Monad (modGraphs, findGraph, findFormula
                    , setInfo, setError, setStatus)
 import Swish.Proof (explainProof, showsProof)
 import Swish.Rule (Formula(..), Rule(..)) 
-import Swish.Ruleset (makeRuleset, getRulesetRule, getMaybeContextRule)
+import Swish.Ruleset (makeRuleset, getRulesetRule, getRulesetNamespace, getMaybeContextRule)
 import Swish.VarBinding (composeSequence)
 
 import Swish.RDF.Datatype (RDFDatatype)
@@ -119,23 +119,24 @@ import Swish.QName (QName, qnameFromURI)
 
 import Swish.RDF.Formatter.N3 (formatGraphAsBuilder)
 
-import Swish.Utils.ListHelpers (equiv, flist)
+import Swish.Utils.ListHelpers (flist)
 
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.Builder as B
-import qualified Data.Text.Lazy.IO as LIO
 import Text.ParserCombinators.Poly.StateText
 
 import Control.Monad (unless, when, liftM, void)
 import Control.Monad.State (modify, gets, lift)
 
-import Data.LookupMap (mapReplace)
 import Data.Monoid (Monoid(..))
 
 import Network.URI (URI(..))
 
-import qualified System.IO.Error as IO
 import qualified Control.Exception as CE
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+import qualified Data.Text.Lazy.IO as LIO
+import qualified System.IO.Error as IO
 
 ------------------------------------------------------------
 --
@@ -460,7 +461,7 @@ ssAddGraph nam gf =
             ; let egs = sequence esg    -- Either String [RDFGraph]
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
-                    Right gs -> modGraphs (`mapReplace` NamedGraph nam gs)
+                    Right gs -> modGraphs (M.insert nam gs)
             ; modify fgs
             }
 
@@ -547,7 +548,7 @@ ssMerge nam gfs =
             ; let fgs = case egs of
                     Left  er -> setError  (errmsg++er)
                     Right [] -> setError  (errmsg++"No graphs to merge")
-                    Right gs -> modGraphs (`mapReplace` NamedGraph nam [g])
+                    Right gs -> modGraphs (M.insert nam [g])
                             where g = foldl1 merge gs
             ; modify fgs
             }
@@ -571,7 +572,7 @@ ssAssertEq n1 n2 comment =
                 (Left er,_) -> modify $ setError (comment++er1++"\n  "++er)
                 (_,Left er) -> modify $ setError (comment++er1++"\n  "++er)
                 (Right gr1,Right gr2) -> 
-                    unless (equiv gr1 gr2) $ modify $
+                    when (S.fromList gr1 /= S.fromList gr2) $ modify $
                       setError (comment++":\n  Graph "++show n1
                                 ++" differs from "++show n2++".")
             }
@@ -629,7 +630,7 @@ ssDefineRule rn agfs cgf vmds =
                             newRule = makeRDFClosureRule rn agrs cgr
                         in
                         case composeSequence vbms of
-                            Just vm -> modRules (`mapReplace` newRule vm)
+                            Just vm -> let nr = newRule vm in modRules (M.insert (ruleName nr) nr)
                             Nothing -> setError errmsg4
             ; modify frl
             }
@@ -662,7 +663,7 @@ ssDefineRuleset sn ans rns =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right ags,Right rls) ->
-                        modRulesets (`mapReplace` rs)
+                        modRulesets (M.insert (getRulesetNamespace rs) rs)
                         where
                             rs = makeRuleset (getScopeNamespace sn) ags rls
             ; modify frs
@@ -697,7 +698,7 @@ ssDefineConstraints  sn cgfs dtns =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right cgr,Right dts) ->
-                        modRulesets (`mapReplace` rs)
+                        modRulesets (M.insert (getRulesetNamespace rs) rs)
                         where
                             rs  = makeRuleset (getScopeNamespace sn) [] rls
                             rls = concatMap (`typeMkRules` cgr) dts
@@ -812,7 +813,7 @@ ssFwdChain sn rn agfs cn prefs =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right rl,Right ags) ->
-                        modGraphs (`mapReplace` NamedGraph cn [cg])
+                        modGraphs (M.insert cn [cg])
                         where
                             cg = case fwdApply rl ags of
                                 []  -> mempty
@@ -857,7 +858,7 @@ ssBwdChain sn rn cgf an prefs =
                     (Left er,_) -> setError (errmsg1++er)
                     (_,Left er) -> setError (errmsg2++er)
                     (Right rl,Right cg) ->
-                        modGraphs (`mapReplace` NamedGraph an ags)
+                        modGraphs (M.insert an ags)
                         where
                             ags  = map mergegr (bwdApply rl cg)
                             mergegr grs = case grs of
