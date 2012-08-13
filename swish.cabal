@@ -55,6 +55,9 @@ Description:
   This definitely speeds up some operations but
   a full analysis has not been attempted.
   .
+  * Replaced used of @Data.LookupMap@ with @Data.Map.Map@. This has led to the
+  removal of a number of language extensions from some modules.
+  .
   * A few other minor changes have been made: the removal of @subset@ and
   @equiv@ from
   @Swish.Utils.ListHelpers@; the ordering used for @RDFLabel@ values has
@@ -117,7 +120,6 @@ Library
 
    Exposed-Modules:
       Data.Interned.URI
-      Data.LookupMap
       Data.Ord.Partial
       Data.String.ShowLines
       Network.URI.Ord
@@ -383,21 +385,6 @@ Test-Suite test-varbinding
    type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/
    Main-Is:        VarBindingTest.hs
-   Other-Modules:  TestHelpers
-
-   ghc-options:
-      -Wall -fno-warn-orphans
-
-   Build-Depends:
-      base,
-      containers,
-      HUnit == 1.2.*,
-      swish
-
-Test-Suite test-lookupmap
-   type:       exitcode-stdio-1.0
-   Hs-Source-Dirs: tests/
-   Main-Is:        LookupMapTest.hs
    Other-Modules:  TestHelpers
 
    ghc-options:
