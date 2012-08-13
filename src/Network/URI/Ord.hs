@@ -10,21 +10,31 @@
 --  Stability   :  experimental
 --  Portability :  H98
 --
---  Provide an ordering for URIs.
+--  Provide an ordering for URIs (that is, an 'Ord' instance for
+--  'URI').
+--
+--  This instance is provided so that URIs can be used as the
+--  key of a 'Data.Map.Map'. Case is relevant for the ordering,
+--  and no attempt is made to decode percent-encoded values (i.e.
+--  the comparison does /not/ use a canonical or normalized form).
 --
 --------------------------------------------------------------------------------
 
 module Network.URI.Ord () where
 
-import Data.Ord (comparing)
+import Network.URI (URI(..), URIAuth(..))
 
-import Network.URI (URI)
-
--- | This instance is provided so that URIs can be used as the
---   key of a 'Data.Map.Map'.
+-- NOTE: we do not say compare = comparing show for the URI
+-- instance since the standard show instance for URIs does not
+-- include a password if included as part of the authority field.
 
 instance Ord URI where
-    compare = comparing show -- TODO: do this properly
+    URI s1 a1 o1 q1 f1 `compare` URI s2 a2 o2 q2 f2 =
+        (s1,a1,o1,q1,f1) `compare` (s2,a2,o2,q2,f2)
+
+instance Ord URIAuth where
+    URIAuth ui1 rn1 p1 `compare` URIAuth ui2 rn2 p2 =
+        (ui1,rn1,p1) `compare` (ui2,rn2,p2)
 
 --------------------------------------------------------------------------------
 --
