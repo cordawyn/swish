@@ -46,9 +46,11 @@ import Data.Char (isAscii)
 import Data.Maybe (fromMaybe)
 import Data.Interned (intern, unintern)
 import Data.Interned.URI (InternedURI)
+import Data.Ord (comparing)
 import Data.String (IsString(..))
 
 import Network.URI (URI(..), URIAuth(..), parseURIReference)
+import Network.URI.Ord ()
 
 import System.Directory (canonicalizePath)
 import System.FilePath (splitFileName)
@@ -142,50 +144,25 @@ instance IsString QName where
 -- | Equality is determined by a case sensitive comparison of the               
 -- URI.
 instance Eq QName where
-  -- see qnEq comments below
-  (QName u1 _ _) == (QName u2 _ _) = u1 == u2
+    u1 == u2 = getQNameURI u1 == getQNameURI u2
 
--- ugly, use show instance OR switch to the ordering of InternedURI
-
--- | At present the ordering is based on a comparison of the @Show@
--- instance of the URI.
+-- | In @0.8.0.0@ the ordering now uses the ordering defined in
+--   "Network.URI.Ord" rather than the @Show@
+--   instance. This should make no difference unless a password
+--   was included in the URI when using basic access authorization.
+--
 instance Ord QName where
-  {-
-    (QName u1 l1) <= (QName u2 l2) =
-        if up1 /= up2 then up1 <= up2 else (ur1++l1) <= (ur2++l2)
-        where
-            n   = min (length u1) (length u2)
-            (up1,ur1) = splitAt n u1
-            (up2,ur2) = splitAt n u2
-  -}
+    compare = comparing getQNameURI
   
-  -- TODO: which is faster?
-  -- Now we have changed to InternedURI, we could use the
-  -- Ord instance of it, but it is unclear to me what the
-  -- ordering means in that case, and whether the semantics
-  -- matter here?
-  (QName u1 _ _) <= (QName u2 _ _) = show u1 <= show u2
-  
-  {-
-  (QName _ uri1 l1) <= (QName _ uri2 l2) =
-    if up1 /= up2 then up1 <= up2 else (ur1 ++ T.unpack l1) <= (ur2 ++ T.unpack l2)
-      where
-        u1 = show uri1
-        u2 = show uri2
-        
-        n   = min (length u1) (length u2)
-        (up1,ur1) = splitAt n u1
-        (up2,ur2) = splitAt n u2
-  -}
-  
--- | The format used to display the URI is @\<uri\>@.
+-- | The format used to display the URI is @\<uri\>@, and does not
+--   include the password if using baccess access authorization.
 instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
 
 {-
 The assumption in QName is that the validation done in creating
 the local name is sufficient to ensure that the combined 
-URI is syntactically valid. Is this in fact true?
+URI is syntactically valid. Is this true?
 -}
 
 -- | Create a new qualified name with an explicit local component.
@@ -224,9 +201,8 @@ qnameFromURI ::
 qnameFromURI uri =
   let uf = uriFragment uri
       up = uriPath uri
-      q0 = Just $ QName iuri uri emptyLName
-      start = QName iuri
-      iuri = intern uri
+      q0 = Just $ start uri emptyLName
+      start = QName (intern uri)
   in case uf of
        "#"    -> q0
        '#':xs -> start (uri {uriFragment = "#"}) `liftM` newLName (T.pack xs)
@@ -254,25 +230,6 @@ getLocalName (QName _ _ l) = l
 -- namespace and local components).
 getQNameURI :: QName -> URI
 getQNameURI (QName u _ _) = unintern u
-
-{-
-Original used comparison of concatenated strings,
-but that was very inefficient.  The longer version below
-does the comparison without constructing new values but is
-no longer valid with the namespace being stored as a URI,
-so for now just compare the overall URIs and we can
-optimize this at a later date if needed.
-qnEq :: QName -> QName -> Bool
-qnEq (QName u1 _ _) (QName u2 _ _) = u1 == u2
-
-qnEq (QName _ n1 l1) (QName _ n2 l2) = qnEq1 n1 n2 l1 l2
-  where
-    qnEq1 (c1:ns1) (c2:ns2)  ln1 ln2   = c1==c2 && qnEq1 ns1 ns2 ln1 ln2
-    qnEq1 []  ns2  ln1@(_:_) ln2       = qnEq1 ln1 ns2 []  ln2
-    qnEq1 ns1 []   ln1       ln2@(_:_) = qnEq1 ns1 ln2 ln1 []
-    qnEq1 []  []   []        []        = True
-    qnEq1 _   _    _         _         = False
--}
 
 {-|
 Convert a filepath to a file: URI stored in a QName. If the

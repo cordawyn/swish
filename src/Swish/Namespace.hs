@@ -44,6 +44,7 @@ import Swish.QName (QName, LName, newQName, getLName, emptyLName, getQNameURI, g
 
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
+import Data.Ord (comparing)
 import Data.String (IsString(..))
 
 import Network.URI (URI(..), parseURIReference, nullURI)
@@ -147,19 +148,19 @@ getScopePrefix = getNamespacePrefix . getScopeNamespace
 getScopeURI :: ScopedName -> URI
 getScopeURI = getNamespaceURI . getScopeNamespace
 
--- | This is not total since it will fail if the input string is not a valid URI.
+-- | This is not total since it will fail if the input string is not a valid 'URI'.
 instance IsString ScopedName where
   fromString s =
     maybe (error ("Unable to convert " ++ s ++ " into a ScopedName"))
           makeURIScopedName (parseURIReference s)
     
--- | Scoped names are equal if their corresponding QNames are equal
+-- | Scoped names are equal if their corresponding 'QName' values are equal.
 instance Eq ScopedName where
-  (ScopedName qn1 _ _) == (ScopedName qn2 _ _) = qn1 == qn2
+    sn1 == sn2 = getQName sn1 == getQName sn2
 
--- | Scoped names are ordered by their QNames
+-- | Scoped names are ordered by their 'QName' components.
 instance Ord ScopedName where
-  (ScopedName qn1 _ _) <= (ScopedName qn2 _ _) = qn1 <= qn2
+    compare = comparing getQName
 
 -- | If there is a namespace associated then the Show instance
 -- uses @prefix:local@, otherwise @<url>@.

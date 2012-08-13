@@ -12,6 +12,8 @@
   Replaced used of Data.LookupMap with Data.Map.Map. This has led to
   the removal of a number of language extensions from some modules.
 
+  Added Network.URI.Ord to provide an ordering for URIs.
+
   A few other minor changes have been made: the removal of subset and
   equiv from Swish.Utils.ListHelpers; the ordering used for RDFLabel
   values has changed; added a Monoid instance for VarBinding; added
