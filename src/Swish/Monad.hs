@@ -1,17 +1,15 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Monad
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--                 2011, 2012 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses
+--  Portability :  H98
 --
 --  Composed state and IO monad for Swish
 --
@@ -30,7 +28,6 @@ module Swish.Monad
     , findOpenVarModify, findDatatype
     , setInfo, resetInfo, setError, resetError
     , setStatus
-    -- , setVerbose
     -- * Error handling
     , swishError
     , reportLine
@@ -53,7 +50,6 @@ import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.State (StateT(..), modify)
 
 import Data.List (nub)
--- import Data.LookupMap (LookupEntryClass(..))
 
 import System.IO (hPutStrLn, stderr)
 
@@ -217,11 +213,6 @@ data NamedGraph = NamedGraph
     { ngName    :: ScopedName
     , ngGraph   :: [RDFGraph]
     }
-
-instance LookupEntryClass NamedGraph ScopedName [RDFGraph]
-    where
-        keyVal   (NamedGraph k v) = (k,v)
-        newEntry (k,v)            = NamedGraph k v
 
 -}
 
