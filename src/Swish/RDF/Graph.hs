@@ -1153,19 +1153,21 @@ instance (Label lb) => LDGraph NSGraph lb where
 instance (Label lb) => Monoid (NSGraph lb) where
     mempty  = emptyGraph
     mappend = merge
+
+-- fmapNSGraph :: (Ord lb1, Ord lb2) => (lb1 -> lb2) -> NSGraph lb1 -> NSGraph lb2
   
 -- | 'fmap' for 'NSGraph' instances.
--- fmapNSGraph :: (Ord lb1, Ord lb2) => (lb1 -> lb2) -> NSGraph lb1 -> NSGraph lb2
 fmapNSGraph :: (Ord lb) => (lb -> lb) -> NSGraph lb -> NSGraph lb
 fmapNSGraph f (NSGraph ns fml stmts) = 
     NSGraph ns (fmapFormulaMap f fml) ((S.map $ fmap f) stmts)
 
--- | 'Data.Traversable.traverse' for 'NSGraph' instances.
 {-
 traverseNSGraph :: 
     (Applicative f, Ord a, Ord b) 
     => (a -> f b) -> NSGraph a -> f (NSGraph b)
 -}
+
+-- | 'Data.Traversable.traverse' for 'NSGraph' instances.
 traverseNSGraph :: 
     (Applicative f, Ord a) 
     => (a -> f a) -> NSGraph a -> f (NSGraph a)
