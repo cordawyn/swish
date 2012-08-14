@@ -64,13 +64,14 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , LabelContext(..)
                                     , NodeGenState(..), emptyNgs
                                     , findMaxBnode
-                                    , getCollection
                                     , processArcs
 				    , quoteB
-				    , quoteText
-				    , showScopedName
 				    , formatScopedName
 				    , formatPrefixLines
+                                    , maybeExtractList
+				    , formatPlainLit
+				    , formatLangLit
+				    , formatTypedLit
 				    ) 
 
 import Swish.Namespace (ScopedName)
@@ -83,18 +84,15 @@ import Swish.RDF.Graph (
   setNamespaces, getNamespaces,
   getFormulae,
   emptyRDFGraph
-  , resRdfFirst, resRdfRest
   )
 
 import Swish.RDF.Vocabulary (
-  fromLangTag, 
   rdfType,
   rdfNil,
   owlSameAs, logImplies
-  , xsdBoolean, xsdDecimal, xsdInteger, xsdDouble 
   )
 
-import Control.Monad (liftM, when, void)
+import Control.Monad (liftM, void)
 import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
@@ -254,26 +252,13 @@ extractList :: LabelContext -> RDFLabel -> Formatter (Maybe [RDFLabel])
 extractList lctxt ln = do
   osubjs <- getSubjs
   oprops <- getProps
-  let mlst = getCollection osubjs' ln
+  case maybeExtractList osubjs oprops lctxt ln of
+    Just (ls, osubjs', oprops') -> do
+      setSubjs osubjs'
+      setProps oprops' -- TODO: this used to be optional; is this valid?
+      return (Just ls)
 
-      -- we only want to send in rdf:first/rdf:rest here
-      fprops = filter ((`elem` [resRdfFirst, resRdfRest]) . fst) oprops
-
-      osubjs' =
-          case lctxt of
-            SubjContext -> (ln, fprops) : osubjs
-            _ -> osubjs 
-
-      -- tr = "extractList " ++ show ln ++ " (" ++ show lctxt ++ ")\n -> osubjs= " ++ show osubjs ++ "\n -> opreds= " ++ show oprops ++ "\n -> mlst= " ++ show mlst ++ "\n"
-  -- addTrace tr
-  case mlst of
-    -- sl is guaranteed to be free of (ln,fprops) here if lctxt is SubjContext
-    Just (sl,ls,_) -> do
-              setSubjs sl
-              when (lctxt == SubjContext) $ setProps $ filter ((`notElem` [resRdfFirst, resRdfRest]) . fst) oprops
-              return (Just ls)
-
-    Nothing -> return Nothing
+    _ -> return Nothing
   
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
@@ -649,18 +634,9 @@ formatLabel _ lab@(Res sn) =
       queueFormula lab
       return $ formatScopedName sn pr
 
--- The canonical notation for xsd:double in XSD, with an upper-case E,
--- does not match the syntax used in N3, so we need to convert here.     
--- Rather than converting back to a Double and then displaying that       
--- we just convert E to e for now.      
---
-formatLabel _ (TypedLit lit dtype)
-    | dtype == xsdDouble = return $ B.fromText $ T.toLower lit
-    | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = return $ B.fromText lit
-    | otherwise = return $ quoteText lit `mappend` "^^" `mappend` showScopedName dtype
-formatLabel _ (LangLit lit lcode) =
-    return $ quoteText lit `mappend` "@" `mappend` B.fromText (fromLangTag lcode)
-formatLabel _ (Lit lit) = return $ quoteText lit
+formatLabel _ (Lit lit)            = return $ formatPlainLit lit
+formatLabel _ (LangLit lit lcode)  = return $ formatLangLit lit lcode
+formatLabel _ (TypedLit lit dtype) = return $ formatTypedLit lit dtype
 
 formatLabel _ lab = return $ B.fromString $ show lab
 

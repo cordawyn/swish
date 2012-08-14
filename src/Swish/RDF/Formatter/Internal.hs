@@ -35,6 +35,10 @@ module Swish.RDF.Formatter.Internal
     , showScopedName
     , formatScopedName
     , formatPrefixLines
+    , maybeExtractList
+    , formatPlainLit
+    , formatLangLit
+    , formatTypedLit
     )
 where
 
@@ -47,6 +51,7 @@ import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil
                        , quote
                        , quoteT
                        )
+import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, xsdInteger, xsdDouble)
 
 import Data.List (delete, foldl', groupBy)
 import Data.Monoid (mconcat)
@@ -285,6 +290,50 @@ formatPrefixLines = map pref . M.assocs
       pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
       pref (_,u)      = mconcat ["@prefix : <", quoteB True (show u), "> ."]
       
+
+maybeExtractList :: 
+  SubjTree RDFLabel
+  -> PredTree RDFLabel
+  -> LabelContext
+  -> RDFLabel
+  -> Maybe ([RDFLabel], SubjTree RDFLabel, PredTree RDFLabel)
+maybeExtractList osubjs oprops lctxt ln =
+  let mlst = getCollection osubjs' ln
+
+      -- we only want to send in rdf:first/rdf:rest here
+      fprops = filter ((`elem` [resRdfFirst, resRdfRest]) . fst) oprops
+
+      osubjs' =
+          case lctxt of
+            SubjContext -> (ln, fprops) : osubjs
+            _ -> osubjs 
+
+  in case mlst of
+    Just (sl, ls, _) -> 
+      let oprops' = if lctxt == SubjContext
+                    then filter ((`notElem` [resRdfFirst, resRdfRest]) . fst) oprops
+                    else oprops
+      in Just (ls, sl, oprops')
+
+    _ -> Nothing
+
+formatPlainLit :: T.Text -> B.Builder
+formatPlainLit = quoteText
+
+formatLangLit :: T.Text -> LanguageTag -> B.Builder
+formatLangLit lit lcode = mconcat [quoteText lit, "@", B.fromText (fromLangTag lcode)]
+
+-- The canonical notation for xsd:double in XSD, with an upper-case E,
+-- does not match the syntax used in N3, so we need to convert here.     
+-- Rather than converting back to a Double and then displaying that       
+-- we just convert E to e for now.      
+--      
+formatTypedLit :: T.Text -> ScopedName -> B.Builder
+formatTypedLit lit dtype
+    | dtype == xsdDouble = B.fromText $ T.toLower lit
+    | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = B.fromText lit
+    | otherwise = mconcat [quoteText lit, "^^", showScopedName dtype]
+                           
 	       
 --------------------------------------------------------------------------------
 --
