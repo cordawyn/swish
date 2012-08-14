@@ -66,13 +66,14 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , findMaxBnode
                                     , getCollection
                                     , processArcs
-				    , findPrefix
 				    , quoteB
+				    , quoteText
 				    , showScopedName
+				    , formatScopedName
+				    , formatPrefixLines
 				    ) 
 
-import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
-import Swish.QName (getLName)
+import Swish.Namespace (ScopedName)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..),
@@ -82,7 +83,6 @@ import Swish.RDF.Graph (
   setNamespaces, getNamespaces,
   getFormulae,
   emptyRDFGraph
-  , quoteT
   , resRdfFirst, resRdfRest
   )
 
@@ -346,13 +346,8 @@ formatGraph ind end dobreak dopref gr = do
     else return fp
 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
-formatPrefixes pmap = do
-  let mls = map pref $ M.assocs pmap
-  ls <- sequence mls
-  return $ mconcat ls
-    where
-      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
-      pref (_,u)      = nextLine $ mconcat ["@prefix : <", quoteB True (show u), "> ."]
+formatPrefixes pmap =
+    mconcat `liftM` mapM nextLine (formatPrefixLines pmap)
 
 {-
 NOTE:
@@ -651,22 +646,8 @@ formatLabel _ lab@(Res sn) =
     Just txt -> return $ quoteB True txt -- TODO: do we need to quote?
     Nothing -> do
       pr <- getPrefixes
-      let nsuri  = getScopeURI sn
-          local  = getLName $ getScopeLocal sn
-	  prefix = findPrefix nsuri pr
-          
-          name   = case prefix of
-                     Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
-      
-      {-
-          name   = case prefix of
-                     Just p -> quoteB True (p ++ ":" ++ local) -- TODO: what are quoting rules for QNames
-                     _ -> mconcat ["<", quoteB True (nsuri++local), ">"]
-      -}
-          
       queueFormula lab
-      return name
+      return $ formatScopedName sn pr
 
 -- The canonical notation for xsd:double in XSD, with an upper-case E,
 -- does not match the syntax used in N3, so we need to convert here.     
@@ -682,26 +663,6 @@ formatLabel _ (LangLit lit lcode) =
 formatLabel _ (Lit lit) = return $ quoteText lit
 
 formatLabel _ lab = return $ B.fromString $ show lab
-
-{-
-We have to decide whether to use " or """ to quote
-the string.
-
-There is also no need to restrict the string to the
-ASCII character set; this could be an option but we
-can also leave Unicode as is (or at least convert to UTF-8).
-
-If we use """ to surround the string then we protect the
-last character if it is a " (assuming it isn't protected).
--}
-
-quoteText :: T.Text -> B.Builder
-quoteText txt = 
-  let st = T.unpack txt -- TODO: fix
-      qst = quoteB (n==1) st
-      n = if '\n' `elem` st || '"' `elem` st then 3 else 1
-      qch = B.fromString (replicate n '"')
-  in mconcat [qch, qst, qch]
 
 formatNodeId :: RDFLabel -> Formatter B.Builder
 formatNodeId lab@(Blank (lnc:_)) =

@@ -31,18 +31,25 @@ module Swish.RDF.Formatter.Internal
     , findPrefix
       -- N3-like formatting
     , quoteB
+    , quoteText
     , showScopedName
+    , formatScopedName
+    , formatPrefixLines
     )
 where
 
 import Swish.GraphClass (Arc(..), ArcSet)
-import Swish.Namespace (ScopedName)
+import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
+import Swish.QName (getLName)
+
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..), NamespaceMap)
 import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil
                        , quote
+                       , quoteT
                        )
 
 import Data.List (delete, foldl', groupBy)
+import Data.Monoid (mconcat)
 import Data.Word
 
 import Network.URI (URI)
@@ -50,7 +57,7 @@ import Network.URI.Ord ()
 
 import qualified Data.Map as M
 import qualified Data.Set as S
-
+import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as B
 
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
@@ -241,14 +248,44 @@ countBnodes (SA as) = snd (foldl' ctr ([],[]) as)
 quoteB :: Bool -> String -> B.Builder
 quoteB f v = B.fromString $ quote f v
 
+{-|
+Convert text into a format for display in Turtle. The idea
+is to use one double quote unless three are needed, and to
+handle adding necessary @\\@ characters, or conversion
+for Unicode characters.
+-}
+quoteText :: T.Text -> B.Builder
+quoteText txt = 
+  let st = T.unpack txt -- TODO: fix
+      qst = quoteB (n==1) st
+      n = if '\n' `elem` st || '"' `elem` st then 3 else 1
+      qch = B.fromString (replicate n '"')
+  in mconcat [qch, qst, qch]
+
 -- TODO: need to be a bit more clever with this than we did in NTriples
 --       not sure the following counts as clever enough ...
 --  
 showScopedName :: ScopedName -> B.Builder
 showScopedName = quoteB True . show
 
+formatScopedName :: ScopedName -> M.Map (Maybe T.Text) URI -> B.Builder
+formatScopedName sn prmap =
+  let nsuri = getScopeURI sn
+      local = getLName $ getScopeLocal sn
+  in case findPrefix nsuri prmap of
+       Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local]
+       _             -> mconcat [ "<"
+                                , quoteB True (show nsuri ++ T.unpack local)
+                                , ">"
+                                ]
 
-
+formatPrefixLines :: NamespaceMap -> [B.Builder]
+formatPrefixLines = map pref . M.assocs
+    where
+      pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
+      pref (_,u)      = mconcat ["@prefix : <", quoteB True (show u), "> ."]
+      
+	       
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,

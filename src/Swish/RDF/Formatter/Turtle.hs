@@ -40,9 +40,6 @@ module Swish.RDF.Formatter.Turtle
     , formatGraphAsBuilder
     , formatGraphIndent  
     , formatGraphDiag
-      
-    --  -- * Auxillary routines
-    -- , quoteText
     )
 where
 
@@ -52,20 +49,17 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , findMaxBnode
                                     , getCollection
                                     , processArcs
-				    , findPrefix
-				    , quoteB
+ 				    , quoteText
 				    , showScopedName
+                                    , formatScopedName
+                                    , formatPrefixLines
 				    )
-
-import Swish.Namespace (getScopeLocal, getScopeURI)
-import Swish.QName (getLName)
 
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..)
   , NamespaceMap
   , getNamespaces
   , emptyRDFGraph
-  , quoteT
   , resRdfFirst, resRdfRest
   )
 
@@ -288,13 +282,8 @@ formatGraph ind end dobreak dopref gr = do
     else return fp
 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
-formatPrefixes pmap = do
-  let mls = map pref $ M.assocs pmap
-  ls <- sequence mls
-  return $ mconcat ls
-    where
-      pref (Just p,u) = nextLine $ mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
-      pref (_,u)      = nextLine $ mconcat ["@prefix : <", quoteB True (show u), "> ."]
+formatPrefixes pmap = 
+    mconcat `liftM` mapM nextLine (formatPrefixLines pmap)
 
 {-
 NOTE:
@@ -568,13 +557,7 @@ formatLabel ctxt (Res sn)
   | ctxt == ObjContext  && sn == rdfNil  = return "()"
   | otherwise = do
   pr <- getPrefixes
-  let nsuri  = getScopeURI sn
-      local  = getLName $ getScopeLocal sn
-      name   = case findPrefix nsuri pr of
-        Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local] -- TODO: what are quoting rules for QNames
-        _ -> mconcat ["<", quoteB True (show nsuri ++ T.unpack local), ">"]
-      
-  return name
+  return $ formatScopedName sn pr
 
 -- The canonical notation for xsd:double in XSD, with an upper-case E,
 -- does not match the syntax used in N3, so we need to convert here.     
@@ -589,20 +572,6 @@ formatLabel _ (TypedLit lit dtype)
     | otherwise = return $ quoteText lit `mappend` "^^" `mappend` showScopedName dtype
 
 formatLabel _ lab = return $ B.fromString $ show lab
-
-{-|
-Convert text into a format for display in Turtle. The idea
-is to use one double quote unless three are needed, and to
-handle adding necessary @\\@ characters, or conversion
-for Unicode characters.
--}
-quoteText :: T.Text -> B.Builder
-quoteText txt = 
-  let st = T.unpack txt -- TODO: fix
-      qst = quoteB (n==1) st
-      n = if '\n' `elem` st || '"' `elem` st then 3 else 1
-      qch = B.fromString (replicate n '"')
-  in mconcat [qch, qst, qch]
 
 formatNodeId :: RDFLabel -> Formatter B.Builder
 formatNodeId lab@(Blank (lnc:_)) =
