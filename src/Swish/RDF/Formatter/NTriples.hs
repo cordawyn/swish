@@ -29,7 +29,11 @@ module Swish.RDF.Formatter.NTriples
     )
 where
 
-import Swish.RDF.Formatter.Internal (NodeGenLookupMap)
+import Swish.RDF.Formatter.Internal ( NodeGenLookupMap
+                                    , NodeGenState(..)
+                                    , emptyNgs
+                                    , getBNodeLabel
+                                    )
 
 import Swish.GraphClass (Arc(..))
 import Swish.Namespace (ScopedName, getQName)
@@ -62,16 +66,23 @@ import qualified Data.Text.Lazy.Builder as B
 --
 --  This is a lot simpler than other formatters.
 
+type NTFormatterState = NodeGenState
+
+{-
 data NTFormatterState = NTFS { 
       ntfsNodeMap :: NodeGenLookupMap,
       ntfsNodeGen :: Word32
     } deriving Show
+-}
 
 emptyNTFS :: NTFormatterState
+emptyNTFS = emptyNgs
+{-
 emptyNTFS = NTFS {
               ntfsNodeMap = M.empty,
               ntfsNodeGen = 0
               }
+-}
 
 type Formatter a = State NTFormatterState a
 
@@ -141,6 +152,7 @@ formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, carets, showSc
 -- just in case rather than failing
 formatLabel lab = return $ B.fromString $ show lab
 
+{-
 mapBlankNode :: RDFLabel -> Formatter B.Builder
 mapBlankNode lab = do
   st <- get
@@ -158,6 +170,17 @@ mapBlankNode lab = do
             n -> return n
 
   return $ "_:swish" `mappend` B.fromString (show nv)
+-}
+
+mapBlankNode :: RDFLabel -> Formatter B.Builder
+mapBlankNode lab = do
+  ngs <- get
+  let (lval, mngs) = getBNodeLabel lab ngs
+  case mngs of
+    Just ngs' -> put ngs'
+    _ -> return ()
+  return lval
+  
 
 -- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder

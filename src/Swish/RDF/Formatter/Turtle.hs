@@ -45,7 +45,11 @@ where
 
 import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , LabelContext(..)
-                                    , NodeGenState(..), emptyNgs
+                                    , NodeGenState(..)
+                                    , changeState
+                                    , hasMore
+                                    , emptyNgs
+                                    , getBNodeLabel
                                     , findMaxBnode
                                     , processArcs
                                     , formatScopedName
@@ -434,9 +438,6 @@ newState gr st =
 setGraph :: RDFGraph -> Formatter ()
 setGraph = modify . newState
 
-hasMore :: (TurtleFormatterState -> [b]) -> Formatter Bool
-hasMore lens = (not . null . lens) `liftM` get
-
 moreSubjects :: Formatter Bool
 moreSubjects = hasMore subjs
 
@@ -447,39 +448,30 @@ moreObjects :: Formatter Bool
 moreObjects = hasMore objs
 
 nextSubject :: Formatter RDFLabel
-nextSubject = do
-  st <- get
-
-  let sb:sbs = subjs st
-      nst = st  { subjs = sbs
-                , props = snd sb
-                , objs  = []
-                }
-
-  put nst
-  return $ fst sb
+nextSubject = 
+    changeState $ \st -> 
+        let (a,b):sbs = subjs st
+            nst = st  { subjs = sbs
+                      , props = b
+                      , objs  = []
+                      }
+        in (a, nst)
 
 nextProperty :: RDFLabel -> Formatter RDFLabel
-nextProperty _ = do
-  st <- get
-
-  let pr:prs = props st
-      nst = st  { props = prs
-                 , objs  = snd pr
-                 }
-
-  put nst
-  return $ fst pr
-
+nextProperty _ =
+    changeState $ \st ->
+        let (a,b):prs = props st
+            nst = st  { props = prs
+                      , objs  = b
+                      }
+        in (a, nst)
+        
 nextObject :: RDFLabel -> RDFLabel -> Formatter RDFLabel
-nextObject _ _ = do
-  st <- get
-
-  let ob:obs = objs st
-      nst = st { objs = obs }
-
-  put nst
-  return ob
+nextObject _ _ =
+    changeState $ \st ->
+        let ob:obs = objs st
+            nst = st { objs = obs }
+        in (ob, nst)
 
 nextLine :: B.Builder -> Formatter B.Builder
 nextLine str = do
@@ -556,19 +548,11 @@ formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to
 mapBlankNode :: RDFLabel -> Formatter B.Builder
 mapBlankNode lab = do
   ngs <- getNgs
-  let cmap = nodeMap ngs
-      cval = nodeGen ngs
-  nv <- case M.findWithDefault 0 lab cmap of
-    0 -> do 
-      let nval = succ cval
-          nmap = M.insert lab nval cmap
-      setNgs $ ngs { nodeGen = nval, nodeMap = nmap }
-      return nval
-      
-    n -> return n
-  
-  -- TODO: is this what we want?
-  return $ "_:swish" `mappend` B.fromString (show nv)
+  let (lval, mngs) = getBNodeLabel lab ngs
+  case mngs of
+    Just ngs' -> setNgs ngs'
+    _ -> return ()
+  return lval
 
 --------------------------------------------------------------------------------
 --

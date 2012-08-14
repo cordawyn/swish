@@ -24,7 +24,10 @@ module Swish.RDF.Formatter.Internal
     , PredTree
     , LabelContext(..)
     , NodeGenState(..)
+    , changeState
+    , hasMore
     , emptyNgs 
+    , getBNodeLabel
     , findMaxBnode
     , getCollection
     , processArcs
@@ -53,8 +56,11 @@ import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil
                        )
 import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, xsdInteger, xsdDouble)
 
+import Control.Monad (liftM)
+import Control.Monad.State (State, get, put)
+
 import Data.List (delete, foldl', groupBy)
-import Data.Monoid (mconcat)
+import Data.Monoid (Monoid(..), mconcat)
 import Data.Word
 
 import Network.URI (URI)
@@ -82,25 +88,70 @@ type NodeGenLookupMap = M.Map RDFLabel Word32
 type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
 
--- simple context for label creation
--- (may be a temporary solution to the problem
---  of label creation)
+-- | The context for label creation.
 --
 data LabelContext = SubjContext | PredContext | ObjContext
                     deriving (Eq, Show)
 
+-- | A generator for BNode labels.
 data NodeGenState = Ngs
-    { prefixes  :: NamespaceMap
+    { prefixes  :: NamespaceMap          -- TODO: why do we have prefixes in here? should be in parent state (if needed)
     , nodeMap   :: NodeGenLookupMap
     , nodeGen   :: Word32
     }
 
+-- | Create an empty node generator.
 emptyNgs :: NodeGenState
 emptyNgs = Ngs
     { prefixes  = M.empty
     , nodeMap   = M.empty
     , nodeGen   = 0
     }
+
+{-|
+Get the label text for the blank node, creating a new one
+if it has not been seen before.
+
+The label text is currently _:swish<number> where number is
+1 or higher. This format may be changed in the future.
+-}
+getBNodeLabel :: RDFLabel -> NodeGenState -> (B.Builder, Maybe NodeGenState)
+getBNodeLabel lab ngs = 
+    let cmap = nodeMap ngs
+        cval = nodeGen ngs
+
+        (lnum, mngs) = 
+            case M.findWithDefault 0 lab cmap of
+              0 -> let nval = succ cval
+                       nmap = M.insert lab nval cmap
+                   in (nval, Just (ngs { nodeGen = nval, nodeMap = nmap }))
+
+              n -> (n, Nothing)
+
+    in ("_:swish" `mappend` B.fromString (show lnum), mngs)
+
+
+{-|
+Process the state, returning a value extracted from it
+after updating the state.
+-}
+
+changeState ::
+    (a -> (b, a)) -> State a b
+changeState f = do
+  st <- get
+  let (rval, nst) = f st
+  put nst
+  return rval
+
+{-|
+Apply the function to the state and return True
+if the result is not empty.
+-}
+
+hasMore :: (a -> [b]) -> State a Bool
+hasMore lens = (not . null . lens) `liftM` get
+
 
 {-|
 Removes the first occurrence of the item from the
