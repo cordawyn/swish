@@ -68,6 +68,7 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , emptyNgs
                                     , getBNodeLabel
                                     , findMaxBnode
+                                    , splitOnLabel
                                     , processArcs
 				    , quoteB
 				    , formatScopedName
@@ -100,7 +101,7 @@ import Control.Monad (liftM, void)
 import Control.Monad.State (State, modify, get, put, runState)
 
 import Data.Char (isDigit)
-import Data.List (partition, intersperse)
+import Data.List (intersperse)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -458,21 +459,7 @@ insertBnode SubjContext lbl = do
 insertBnode _ lbl = do
   ost <- get
   let osubjs = subjs ost
-      oprops = props ost
-      oobjs  = objs  ost
-
-      (bsubj, rsubjs) = partition ((== lbl) . fst) osubjs
-
-      rprops = case bsubj of
-                 [(_,rs)] -> rs
-                 _ -> []
-
-      -- we essentially want to create a new subgraph
-      -- for this node but it's not as simple as that since
-      -- we could have something like
-      --     :a :b [ :foo [ :bar "xx" ] ]
-      -- so we still need to carry around the whole graph
-      --
+      (rsubjs, rprops) = splitOnLabel lbl osubjs
       nst = ost { subjs = rsubjs,
                   props = rprops,
                   objs  = []
@@ -484,21 +471,18 @@ insertBnode _ lbl = do
          then (`mappend` "\n") `liftM` formatProperties lbl ""
          else return ""
 
-  -- TODO: how do we restore the original set up?
-  --       I can't believe the following is sufficient
-  --
   nst' <- get
   let slist  = map fst $ subjs nst'
       nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
 
   put $ nst' { subjs = nsubjs,
-                       props = oprops, 
-                       objs  = oobjs
+                       props = props ost, 
+                       objs  = objs ost
              }
 
   -- TODO: handle indentation?
   return $ mconcat ["[", txt, "]"]
-  
+
 ----------------------------------------------------------------------
 --  Formatting helpers
 ----------------------------------------------------------------------

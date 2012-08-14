@@ -29,8 +29,7 @@ module Swish.RDF.Formatter.NTriples
     )
 where
 
-import Swish.RDF.Formatter.Internal ( NodeGenLookupMap
-                                    , NodeGenState(..)
+import Swish.RDF.Formatter.Internal ( NodeGenState(..)
                                     , emptyNgs
                                     , getBNodeLabel
                                     )
@@ -48,13 +47,11 @@ import Control.Applicative ((<$>))
 
 import Data.Char (ord, intToDigit, toUpper)
 import Data.Monoid
-import Data.Word (Word32)
 
 -- it strikes me that using Lazy Text here is likely to be
 -- wrong; however I have done no profiling to back this
 -- assumption up!
 
-import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -68,21 +65,8 @@ import qualified Data.Text.Lazy.Builder as B
 
 type NTFormatterState = NodeGenState
 
-{-
-data NTFormatterState = NTFS { 
-      ntfsNodeMap :: NodeGenLookupMap,
-      ntfsNodeGen :: Word32
-    } deriving Show
--}
-
 emptyNTFS :: NTFormatterState
 emptyNTFS = emptyNgs
-{-
-emptyNTFS = NTFS {
-              ntfsNodeMap = M.empty,
-              ntfsNodeGen = 0
-              }
--}
 
 type Formatter a = State NTFormatterState a
 
@@ -151,26 +135,6 @@ formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, carets, showSc
 -- do not expect to get the following, but include
 -- just in case rather than failing
 formatLabel lab = return $ B.fromString $ show lab
-
-{-
-mapBlankNode :: RDFLabel -> Formatter B.Builder
-mapBlankNode lab = do
-  st <- get
-  let cmap = ntfsNodeMap st
-      cval = ntfsNodeGen st
-
-  nv <- case M.findWithDefault 0 lab cmap of
-            0 -> do
-              let nval = succ cval
-                  nmap = M.insert lab nval cmap
-
-              put $ st { ntfsNodeMap = nmap, ntfsNodeGen = nval }
-              return nval
-
-            n -> return n
-
-  return $ "_:swish" `mappend` B.fromString (show nv)
--}
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
 mapBlankNode lab = do

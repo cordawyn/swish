@@ -29,6 +29,7 @@ module Swish.RDF.Formatter.Internal
     , emptyNgs 
     , getBNodeLabel
     , findMaxBnode
+    , splitOnLabel
     , getCollection
     , processArcs
     , findPrefix
@@ -59,7 +60,7 @@ import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, x
 import Control.Monad (liftM)
 import Control.Monad.State (State, get, put)
 
-import Data.List (delete, foldl', groupBy)
+import Data.List (delete, foldl', groupBy, partition)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Word
 
@@ -256,6 +257,16 @@ getAutoBnodeIndex (Blank ('_':lns)) = res where
             [x] -> x
             _   -> 0
 getAutoBnodeIndex _                   = 0
+
+splitOnLabel :: 
+    (Eq a) => a -> SubjTree a -> (SubjTree a, PredTree a)
+splitOnLabel lbl osubjs = 
+    let (bsubj, rsubjs) = partition ((== lbl) . fst) osubjs
+        rprops = case bsubj of
+                   [(_, rs)] -> rs
+                   _         -> []
+    in (rsubjs, rprops)
+  
 
 {-
 Find all blank nodes that occur
