@@ -63,6 +63,7 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
 import Swish.RDF.Graph (
   RDFGraph, RDFLabel(..)
   , NamespaceMap
+  , emptyNamespaceMap
   , getNamespaces
   , emptyRDFGraph
   )
@@ -105,6 +106,7 @@ data TurtleFormatterState = TFS
     , objs      :: [RDFLabel]          -- for last property selected
     -- , formAvail :: FormulaMap RDFLabel
     -- , formQueue :: [(RDFLabel,RDFGraph)]
+    , prefixes  :: NamespaceMap
     , nodeGenSt :: NodeGenState
     , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
@@ -122,6 +124,7 @@ emptyTFS ngs = TFS
     , objs      = []
     -- , formAvail = emptyFormulaMap
     -- , formQueue = []
+    , prefixes  = emptyNamespaceMap
     , nodeGenSt = ngs
     , bNodesCheck   = []
     , traceBuf  = []
@@ -146,7 +149,7 @@ setNgs :: NodeGenState -> Formatter ()
 setNgs ngs = modify $ \st -> st { nodeGenSt = ngs }
 
 getPrefixes :: Formatter NamespaceMap
-getPrefixes = prefixes `liftM` getNgs
+getPrefixes = prefixes `liftM` get
 
 getSubjs :: Formatter (SubjTree RDFLabel)
 getSubjs = subjs `liftM` get
@@ -232,10 +235,7 @@ formatGraphDiag ::
   -> (B.Builder, NodeGenLookupMap, Word32, [String])
 formatGraphDiag indnt flag gr = 
   let fg  = formatGraph indnt " .\n" False flag gr
-      ngs = emptyNgs {
-        prefixes = M.empty,
-        nodeGen  = findMaxBnode gr
-        }
+      ngs = emptyNgs { nodeGen = findMaxBnode gr }
              
       (out, fgs) = runState fg (emptyTFS ngs)
       ogs        = nodeGenSt fgs
@@ -422,16 +422,14 @@ insertBnode _ lbl = do
 
 newState :: RDFGraph -> TurtleFormatterState -> TurtleFormatterState
 newState gr st = 
-    let ngs0 = nodeGenSt st
-        pre' = prefixes ngs0 `M.union` getNamespaces gr
-        ngs' = ngs0 { prefixes = pre' }
+    let pre' = prefixes st `M.union` getNamespaces gr
         (arcSubjs, bNodes) = processArcs gr
 
     in st  { graph     = gr
            , subjs     = arcSubjs
            , props     = []
            , objs      = []
-           , nodeGenSt = ngs'
+           , prefixes  = pre'
            , bNodesCheck   = bNodes
            }
 

@@ -132,6 +132,7 @@ data N3FormatterState = N3FS
     , objs      :: [RDFLabel]          -- for last property selected
     , formAvail :: FormulaMap RDFLabel
     , formQueue :: [(RDFLabel,RDFGraph)]
+    , prefixes  :: NamespaceMap
     , nodeGenSt :: NodeGenState
     , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
@@ -139,8 +140,8 @@ data N3FormatterState = N3FS
              
 type Formatter a = State N3FormatterState a
 
-emptyN3FS :: NodeGenState -> N3FormatterState
-emptyN3FS ngs = N3FS
+emptyN3FS :: NamespaceMap -> NodeGenState -> N3FormatterState
+emptyN3FS pmap ngs = N3FS
     { indent    = "\n"
     , lineBreak = False
     , graph     = emptyRDFGraph
@@ -149,6 +150,7 @@ emptyN3FS ngs = N3FS
     , objs      = []
     , formAvail = emptyFormulaMap
     , formQueue = []
+    , prefixes  = pmap
     , nodeGenSt = ngs
     , bNodesCheck   = []
     , traceBuf  = []
@@ -173,7 +175,10 @@ setNgs :: NodeGenState -> Formatter ()
 setNgs ngs = modify $ \st -> st { nodeGenSt = ngs }
 
 getPrefixes :: Formatter NamespaceMap
-getPrefixes = prefixes `liftM` getNgs
+getPrefixes = prefixes `liftM` get
+
+setPrefixes :: NamespaceMap -> Formatter ()
+setPrefixes pmap = modify $ \st -> st { prefixes = pmap }
 
 getSubjs :: Formatter (SubjTree RDFLabel)
 getSubjs = subjs `liftM` get
@@ -298,12 +303,9 @@ formatGraphDiag ::
   -> (B.Builder, NodeGenLookupMap, Word32, [String])
 formatGraphDiag indnt flag gr = 
   let fg  = formatGraph indnt " .\n" False flag gr
-      ngs = emptyNgs {
-        prefixes = M.empty,
-        nodeGen  = findMaxBnode gr
-        }
+      ngs = emptyNgs { nodeGen = findMaxBnode gr }
              
-      (out, fgs) = runState fg (emptyN3FS ngs)
+      (out, fgs) = runState fg (emptyN3FS emptyNamespaceMap ngs)
       ogs        = nodeGenSt fgs
   
   in (out, nodeMap ogs, nodeGen ogs, traceBuf fgs)
@@ -415,14 +417,16 @@ formatObjects sb pr prstr = do
 
 insertFormula :: RDFGraph -> Formatter B.Builder
 insertFormula gr = do
+  pmap0 <- getPrefixes
   ngs0  <- getNgs
   ind   <- getIndent
   let grm = formatGraph (ind `mappend` "    ") "" True False
             (setNamespaces emptyNamespaceMap gr)
 
-      (f3str, fgs') = runState grm (emptyN3FS ngs0)
+      (f3str, fgs') = runState grm (emptyN3FS pmap0 ngs0)
 
   setNgs (nodeGenSt fgs')
+  setPrefixes (prefixes fgs')
   f4str <- nextLine " } "
   return $ mconcat [" { ",f3str, f4str]
 
@@ -501,9 +505,7 @@ insertBnode _ lbl = do
 
 newState :: RDFGraph -> N3FormatterState -> N3FormatterState
 newState gr st = 
-    let ngs0 = nodeGenSt st
-        pre' = prefixes ngs0 `M.union` getNamespaces gr
-        ngs' = ngs0 { prefixes = pre' }
+    let pre' = prefixes st `M.union` getNamespaces gr
         (arcSubjs, bNodes) = processArcs gr
 
     in st  { graph     = gr
@@ -511,7 +513,7 @@ newState gr st =
            , props     = []
            , objs      = []
            , formAvail = getFormulae gr
-           , nodeGenSt = ngs'
+           , prefixes  = pre'
            , bNodesCheck   = bNodes
            }
 

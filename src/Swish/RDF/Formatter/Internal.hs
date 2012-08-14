@@ -95,18 +95,13 @@ data LabelContext = SubjContext | PredContext | ObjContext
 
 -- | A generator for BNode labels.
 data NodeGenState = Ngs
-    { prefixes  :: NamespaceMap          -- TODO: why do we have prefixes in here? should be in parent state (if needed)
-    , nodeMap   :: NodeGenLookupMap
+    { nodeMap   :: NodeGenLookupMap
     , nodeGen   :: Word32
     }
 
 -- | Create an empty node generator.
 emptyNgs :: NodeGenState
-emptyNgs = Ngs
-    { prefixes  = M.empty
-    , nodeMap   = M.empty
-    , nodeGen   = 0
-    }
+emptyNgs = Ngs M.empty 0
 
 {-|
 Get the label text for the blank node, creating a new one
