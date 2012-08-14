@@ -63,12 +63,7 @@ import qualified Data.Text.Lazy.Builder as B
 --
 --  This is a lot simpler than other formatters.
 
-type NTFormatterState = NodeGenState
-
-emptyNTFS :: NTFormatterState
-emptyNTFS = emptyNgs
-
-type Formatter a = State NTFormatterState a
+type Formatter a = State NodeGenState a
 
 -- | Convert a RDF graph to NTriples format.
 formatGraphAsText :: RDFGraph -> T.Text
@@ -80,7 +75,7 @@ formatGraphAsLazyText = B.toLazyText . formatGraphAsBuilder
 
 -- | Convert a RDF graph to NTriples format.
 formatGraphAsBuilder :: RDFGraph -> B.Builder
-formatGraphAsBuilder gr = fst $ runState (formatGraph gr) emptyNTFS
+formatGraphAsBuilder gr = fst $ runState (formatGraph gr) emptyNgs
 
 ----------------------------------------------------------------------
 --  Formatting as a monad-based computation
@@ -103,34 +98,13 @@ formatArc (Arc s p o) = do
   pl <- formatLabel p
   ol <- formatLabel o
   return $ mconcat [sl, space, pl, space, ol, nl]
-  -- return $ sl `mappend` $ space `mappend` $ pl `mappend` $ space `mappend` $ ol `mappend` nl
   
-{-
-If we have a blank node then can
-
-  - use the label it contains
-  - generate a new one on output
-
-For now we create new labels whatever the input was since this
-simplifies things, but it may be changed.
-
-formatLabel :: RDFLabel -> Formatter String
-formatLabel lab@(Blank (lnc:_)) = 
-  if isDigit lnc then mapBlankNode lab else return $ show lab
-formatLabel lab = return $ show lab
--}
-
-squote, at, carets  :: B.Builder
-squote = "\""
-at     = "@"
-carets = "^^"
-
 formatLabel :: RDFLabel -> Formatter B.Builder
 formatLabel lab@(Blank _) = mapBlankNode lab
 formatLabel (Res sn) = return $ showScopedName sn
 formatLabel (Lit lit) = return $ quoteText lit
-formatLabel (LangLit lit lang) = return $ mconcat [quoteText lit, at, B.fromText (fromLangTag lang)]
-formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, carets, showScopedName dt]
+formatLabel (LangLit lit lang) = return $ mconcat [quoteText lit, "@", B.fromText (fromLangTag lang)]
+formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, "^^", showScopedName dt]
 
 -- do not expect to get the following, but include
 -- just in case rather than failing
@@ -148,16 +122,10 @@ mapBlankNode lab = do
 
 -- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder
-{-
-showScopedName (ScopedName n l) = 
-  let uri = T.pack (show (nsURI n)) `mappend` l
-  in mconcat ["<", B.fromText (quote uri), ">"]
--}
--- showScopedName s = mconcat ["<", B.fromText (quote (T.pack (show (getQName s)))), ">"]
 showScopedName s = B.fromText (quote (T.pack (show (getQName s)))) -- looks like qname already adds the <> around this
 
 quoteText :: T.Text -> B.Builder
-quoteText  st = mconcat [squote, B.fromText (quote st), squote]
+quoteText  st = mconcat ["\"", B.fromText (quote st), "\""]
 
 {-
 QUS: should we be operating on Text like this?
