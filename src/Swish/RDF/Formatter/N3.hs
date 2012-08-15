@@ -98,7 +98,7 @@ import Swish.RDF.Vocabulary (
   )
 
 import Control.Monad (liftM, void)
-import Control.Monad.State (State, modify, get, put, runState)
+import Control.Monad.State (State, modify, get, gets, put, runState)
 
 import Data.Char (isDigit)
 import Data.List (intersperse)
@@ -157,38 +157,20 @@ emptyN3FS pmap ngs = N3FS
     , traceBuf  = []
     }
 
-getIndent :: Formatter B.Builder
-getIndent = indent `liftM` get
-
 setIndent :: B.Builder -> Formatter ()
 setIndent ind = modify $ \st -> st { indent = ind }
-
-getLineBreak :: Formatter Bool
-getLineBreak = lineBreak `liftM` get
 
 setLineBreak :: Bool -> Formatter ()
 setLineBreak brk = modify $ \st -> st { lineBreak = brk }
 
-getNgs :: Formatter NodeGenState
-getNgs = nodeGenSt `liftM` get
-
 setNgs :: NodeGenState -> Formatter ()
 setNgs ngs = modify $ \st -> st { nodeGenSt = ngs }
-
-getPrefixes :: Formatter NamespaceMap
-getPrefixes = prefixes `liftM` get
 
 setPrefixes :: NamespaceMap -> Formatter ()
 setPrefixes pmap = modify $ \st -> st { prefixes = pmap }
 
-getSubjs :: Formatter (SubjTree RDFLabel)
-getSubjs = subjs `liftM` get
-
 setSubjs :: SubjTree RDFLabel -> Formatter ()
 setSubjs sl = modify $ \st -> st { subjs = sl }
-
-getProps :: Formatter (PredTree RDFLabel)
-getProps = props `liftM` get
 
 setProps :: PredTree RDFLabel -> Formatter ()
 setProps ps = modify $ \st -> st { props = ps }
@@ -202,9 +184,6 @@ setObjs os = do
   st <- get
   put $ st { objs = os }
 -}
-
-getBnodesCheck :: Formatter [RDFLabel]
-getBnodesCheck = bNodesCheck `liftM` get
 
 {-
 addTrace :: String -> Formatter ()
@@ -260,8 +239,8 @@ Should we change the preds/objs entries as well?
 -}
 extractList :: LabelContext -> RDFLabel -> Formatter (Maybe [RDFLabel])
 extractList lctxt ln = do
-  osubjs <- getSubjs
-  oprops <- getProps
+  osubjs <- gets subjs
+  oprops <- gets props
   case maybeExtractList osubjs oprops lctxt ln of
     Just (ls, osubjs', oprops') -> do
       setSubjs osubjs'
@@ -418,9 +397,9 @@ formatObjects sb pr prstr = do
 
 insertFormula :: RDFGraph -> Formatter B.Builder
 insertFormula gr = do
-  pmap0 <- getPrefixes
-  ngs0  <- getNgs
-  ind   <- getIndent
+  pmap0 <- gets prefixes
+  ngs0  <- gets nodeGenSt
+  ind   <- gets indent
   let grm = formatGraph (ind `mappend` "    ") "" True False
             (setNamespaces emptyNamespaceMap gr)
 
@@ -541,8 +520,8 @@ nextObject _ _ =
 
 nextLine :: B.Builder -> Formatter B.Builder
 nextLine str = do
-  ind <- getIndent
-  brk <- getLineBreak
+  ind <- gets indent
+  brk <- gets lineBreak
   if brk
     then return $ ind `mappend` str
     else do
@@ -599,7 +578,7 @@ formatLabel lctxt lab@(Blank (_:_)) = do
               case mfml of
                 Just fml -> insertFormula fml
                 Nothing -> do
-                          nb1 <- getBnodesCheck
+                          nb1 <- gets bNodesCheck
                           if lctxt /= PredContext && lab `notElem` nb1
                             then insertBnode lctxt lab
                             else formatNodeId lab
@@ -608,7 +587,7 @@ formatLabel _ lab@(Res sn) =
   case lookup sn specialTable of
     Just txt -> return $ quoteB True txt -- TODO: do we need to quote?
     Nothing -> do
-      pr <- getPrefixes
+      pr <- gets prefixes
       queueFormula lab
       return $ formatScopedName sn pr
 
@@ -625,7 +604,7 @@ formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
 mapBlankNode lab = do
-  ngs <- getNgs
+  ngs <- gets nodeGenSt
   let (lval, mngs) = getBNodeLabel lab ngs
   case mngs of
     Just ngs' -> setNgs ngs'
