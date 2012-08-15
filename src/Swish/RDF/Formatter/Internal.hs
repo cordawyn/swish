@@ -46,6 +46,8 @@ module Swish.RDF.Formatter.Internal
     , insertList
     , nextLine_
     , mapBlankNode_
+    , formatPrefixes_
+    , formatGraph_
     )
 where
 
@@ -54,14 +56,16 @@ import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 import Swish.QName (getLName)
 
 import Swish.RDF.Graph (RDFGraph, RDFLabel(..), NamespaceMap)
-import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil
+import Swish.RDF.Graph (labels, getArcs
+                       , getNamespaces
+                       , resRdfFirst, resRdfRest, resRdfNil
                        , quote
                        , quoteT
                        )
 import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, xsdInteger, xsdDouble)
 
 import Control.Monad (liftM)
-import Control.Monad.State (State, get, gets, put)
+import Control.Monad.State (State, get, gets, modify, put)
 
 import Data.List (delete, foldl', groupBy, intersperse, partition)
 import Data.Monoid (Monoid(..), mconcat)
@@ -344,13 +348,6 @@ formatScopedName sn prmap =
                                 , ">"
                                 ]
 
-formatPrefixLines :: NamespaceMap -> [B.Builder]
-formatPrefixLines = map pref . M.assocs
-    where
-      pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
-      pref (_,u)      = mconcat ["@prefix : <", quoteB True (show u), "> ."]
-      
-
 maybeExtractList :: 
   SubjTree RDFLabel
   -> PredTree RDFLabel
@@ -428,6 +425,44 @@ mapBlankNode_ nodeGenSt setNgs lab = do
     Just ngs' -> setNgs ngs'
     _ -> return ()
   return lval
+
+formatPrefixLines :: NamespaceMap -> [B.Builder]
+formatPrefixLines = map pref . M.assocs
+    where
+      pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
+      pref (_,u)      = mconcat ["@prefix : <", quoteB True (show u), "> ."]
+      
+formatPrefixes_ :: (B.Builder -> State a B.Builder) -> NamespaceMap -> State a B.Builder
+formatPrefixes_ nextLine pmap = 
+    mconcat `liftM` mapM nextLine (formatPrefixLines pmap)
+
+formatGraph_ :: 
+    (B.Builder -> State a ()) -- set indent
+    -> (Bool -> State a ())   -- set line-break flag
+    -> (RDFGraph -> a -> a)        -- create a new state from the graph
+    -> (NamespaceMap -> State a B.Builder) -- format prefixes
+    -> (a -> SubjTree RDFLabel)      -- get the subjects
+    -> State a B.Builder              -- format the subjects
+    -> B.Builder     -- indentation string
+    -> B.Builder  -- text to be placed after final statement
+    -> Bool       -- True if a line break is to be inserted at the start
+    -> Bool       -- True if prefix strings are to be generated
+    -> RDFGraph   -- graph to convert
+    -> State a B.Builder
+formatGraph_ setIndent setLineBreak newState formatPrefixes subjs formatSubjects ind end dobreak dopref gr = do
+  setIndent ind
+  setLineBreak dobreak
+  modify (newState gr)
+  
+  fp <- if dopref
+        then formatPrefixes (getNamespaces gr)
+        else return mempty
+  more <- hasMore subjs
+  if more
+    then do
+      fr <- formatSubjects
+      return $ mconcat [fp, fr, end]
+    else return fp
 
 --------------------------------------------------------------------------------
 --

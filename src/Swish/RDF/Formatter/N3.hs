@@ -71,7 +71,6 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , processArcs
 				    , quoteB
 				    , formatScopedName
-				    , formatPrefixLines
                                     , maybeExtractList
 				    , formatPlainLit
 				    , formatLangLit
@@ -79,6 +78,8 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
 				    , insertList
                                     , nextLine_
                                     , mapBlankNode_
+                                    , formatPrefixes_
+                                    , formatGraph_
 				    ) 
 
 import Swish.Namespace (ScopedName)
@@ -302,24 +303,10 @@ formatGraph ::
   -> Bool       -- True if prefix strings are to be generated
   -> RDFGraph   -- graph to convert
   -> Formatter B.Builder
-formatGraph ind end dobreak dopref gr = do
-  setIndent ind
-  setLineBreak dobreak
-  modify (newState gr)
-  
-  fp <- if dopref
-        then formatPrefixes (getNamespaces gr)
-        else return mempty
-  more <- hasMore subjs
-  if more
-    then do
-      fr <- formatSubjects
-      return $ mconcat [fp, fr, end]
-    else return fp
+formatGraph = formatGraph_ setIndent setLineBreak newState formatPrefixes subjs formatSubjects
 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
-formatPrefixes pmap =
-    mconcat `liftM` mapM nextLine (formatPrefixLines pmap)
+formatPrefixes = formatPrefixes_ nextLine
 
 {-
 NOTE:
