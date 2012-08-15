@@ -66,7 +66,6 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , changeState
                                     , hasMore
                                     , emptyNgs
-                                    , getBNodeLabel
                                     , findMaxBnode
                                     , splitOnLabel
                                     , processArcs
@@ -78,6 +77,8 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
 				    , formatLangLit
 				    , formatTypedLit
 				    , insertList
+                                    , nextLine_
+                                    , mapBlankNode_
 				    ) 
 
 import Swish.Namespace (ScopedName)
@@ -304,7 +305,7 @@ formatGraph ::
 formatGraph ind end dobreak dopref gr = do
   setIndent ind
   setLineBreak dobreak
-  setGraph gr
+  modify (newState gr)
   
   fp <- if dopref
         then formatPrefixes (getNamespaces gr)
@@ -469,9 +470,6 @@ newState gr st =
            , bNodesCheck   = bNodes
            }
 
-setGraph :: RDFGraph -> Formatter ()
-setGraph = modify . newState
-
 nextSubject :: Formatter RDFLabel
 nextSubject = 
     changeState $ \st -> 
@@ -499,15 +497,7 @@ nextObject _ _ =
         in (ob, nst)
 
 nextLine :: B.Builder -> Formatter B.Builder
-nextLine str = do
-  ind <- gets indent
-  brk <- gets lineBreak
-  if brk
-    then return $ ind `mappend` str
-    else do
-      --  After first line, always insert line break
-      setLineBreak True
-      return str
+nextLine = nextLine_ indent lineBreak setLineBreak
 
 --  Format a label
 --  Most labels are simply displayed as provided, but there are a
@@ -548,6 +538,8 @@ formatLabel lab@(Blank (_:_)) = do
 
 {-
 The "[..]" conversion is done last, after "()" and "{}" checks.
+
+TODO: look at the (_:_) check on the blank string; why is this needed?
 -}
 formatLabel lctxt lab@(Blank (_:_)) = do
   mlst <- extractList lctxt lab
@@ -583,13 +575,7 @@ formatNodeId lab@(Blank (lnc:_)) =
 formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to shut up -Wall
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
-mapBlankNode lab = do
-  ngs <- gets nodeGenSt
-  let (lval, mngs) = getBNodeLabel lab ngs
-  case mngs of
-    Just ngs' -> setNgs ngs'
-    _ -> return ()
-  return lval
+mapBlankNode = mapBlankNode_ nodeGenSt setNgs
 
 --------------------------------------------------------------------------------
 --

@@ -44,6 +44,8 @@ module Swish.RDF.Formatter.Internal
     , formatLangLit
     , formatTypedLit
     , insertList
+    , nextLine_
+    , mapBlankNode_
     )
 where
 
@@ -59,7 +61,7 @@ import Swish.RDF.Graph (labels, getArcs, resRdfFirst, resRdfRest, resRdfNil
 import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, xsdInteger, xsdDouble)
 
 import Control.Monad (liftM)
-import Control.Monad.State (State, get, put)
+import Control.Monad.State (State, get, gets, put)
 
 import Data.List (delete, foldl', groupBy, intersperse, partition)
 import Data.Monoid (Monoid(..), mconcat)
@@ -406,7 +408,27 @@ insertList _ [] = return "()" -- QUS: can this happen in a valid graph?
 insertList f xs = do
     ls <- mapM f xs
     return $ mconcat ("( " : intersperse " " ls) `mappend` " )" 
-    
+
+nextLine_ :: (a -> B.Builder) -> (a -> Bool) -> (Bool -> State a ()) -> B.Builder -> State a B.Builder
+nextLine_ indent lineBreak setLineBreak str = do
+  ind <- gets indent
+  brk <- gets lineBreak
+  if brk
+    then return $ ind `mappend` str
+    else do
+      --  After first line, always insert line break
+      setLineBreak True
+      return str
+         
+mapBlankNode_ :: (a -> NodeGenState) -> (NodeGenState -> State a ()) -> RDFLabel -> State a B.Builder
+mapBlankNode_ nodeGenSt setNgs lab = do
+  ngs <- gets nodeGenSt
+  let (lval, mngs) = getBNodeLabel lab ngs
+  case mngs of
+    Just ngs' -> setNgs ngs'
+    _ -> return ()
+  return lval
+
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,

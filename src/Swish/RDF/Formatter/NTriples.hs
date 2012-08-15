@@ -31,7 +31,7 @@ where
 
 import Swish.RDF.Formatter.Internal ( NodeGenState(..)
                                     , emptyNgs
-                                    , getBNodeLabel
+                                    , mapBlankNode_
                                     )
 
 import Swish.GraphClass (Arc(..))
@@ -111,14 +111,7 @@ formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, "^^", showScop
 formatLabel lab = return $ B.fromString $ show lab
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
-mapBlankNode lab = do
-  ngs <- get
-  let (lval, mngs) = getBNodeLabel lab ngs
-  case mngs of
-    Just ngs' -> put ngs'
-    _ -> return ()
-  return lval
-  
+mapBlankNode = mapBlankNode_ id put
 
 -- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder
