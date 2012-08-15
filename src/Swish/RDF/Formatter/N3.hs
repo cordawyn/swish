@@ -77,6 +77,7 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
 				    , formatPlainLit
 				    , formatLangLit
 				    , formatTypedLit
+				    , insertList
 				    ) 
 
 import Swish.Namespace (ScopedName)
@@ -101,7 +102,6 @@ import Control.Monad (liftM, void)
 import Control.Monad.State (State, modify, get, gets, put, runState)
 
 import Data.Char (isDigit)
-import Data.List (intersperse)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -411,17 +411,6 @@ insertFormula gr = do
   return $ mconcat [" { ",f3str, f4str]
 
 {-
-Add a list inline. We are given the labels that constitute
-the list, in order, so just need to display them surrounded
-by ().
--}
-insertList :: [RDFLabel] -> Formatter B.Builder
-insertList [] = return "()" -- not convinced this can happen
-insertList xs = do
-  ls <- mapM (formatLabel ObjContext) xs
-  return $ mconcat ("( " : intersperse " " ls) `mappend` " )"
-    
-{-
 Add a blank node inline.
 -}
 
@@ -572,7 +561,7 @@ The "[..]" conversion is done last, after "()" and "{}" checks.
 formatLabel lctxt lab@(Blank (_:_)) = do
   mlst <- extractList lctxt lab
   case mlst of
-    Just lst -> insertList lst
+    Just lst -> insertList (formatLabel ObjContext) lst
     Nothing -> do
               mfml <- extractFormula lab
               case mfml of

@@ -43,6 +43,7 @@ module Swish.RDF.Formatter.Internal
     , formatPlainLit
     , formatLangLit
     , formatTypedLit
+    , insertList
     )
 where
 
@@ -60,7 +61,7 @@ import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, x
 import Control.Monad (liftM)
 import Control.Monad.State (State, get, put)
 
-import Data.List (delete, foldl', groupBy, partition)
+import Data.List (delete, foldl', groupBy, intersperse, partition)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Word
 
@@ -392,6 +393,20 @@ formatTypedLit lit dtype
     | otherwise = mconcat [quoteText lit, "^^", showScopedName dtype]
                            
 	       
+{-
+Add a list inline. We are given the labels that constitute
+the list, in order, so just need to display them surrounded
+by ().
+-}
+insertList ::
+    (RDFLabel -> State a B.Builder)
+    -> [RDFLabel]
+    -> State a B.Builder
+insertList _ [] = return "()" -- QUS: can this happen in a valid graph?
+insertList f xs = do
+    ls <- mapM f xs
+    return $ mconcat ("( " : intersperse " " ls) `mappend` " )" 
+    
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,

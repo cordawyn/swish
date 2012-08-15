@@ -59,6 +59,7 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , formatPlainLit
                                     , formatLangLit
                                     , formatTypedLit
+                                    , insertList
 				    )
 
 import Swish.RDF.Graph (
@@ -75,7 +76,6 @@ import Control.Monad (liftM)
 import Control.Monad.State (State, modify, get, gets, put, runState)
 
 import Data.Char (isDigit)
-import Data.List (intersperse)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word32)
 
@@ -328,17 +328,6 @@ formatObjects sb pr prstr = do
     else return $ mconcat [prstr, " ", obstr]
 
 {-
-Add a list inline. We are given the labels that constitute
-the list, in order, so just need to display them surrounded
-by ().
--}
-insertList :: [RDFLabel] -> Formatter B.Builder
-insertList [] = return "()" -- not convinced this can happen
-insertList xs = do
-  ls <- mapM (formatLabel ObjContext) xs
-  return $ mconcat ("( " : intersperse " " ls) `mappend` " )"
-    
-{-
 Add a blank node inline.
 -}
 
@@ -480,7 +469,7 @@ The "[..]" conversion is done last, after "()" and "{}" checks.
 formatLabel lctxt lab@(Blank (_:_)) = do
   mlst <- extractList lctxt lab
   case mlst of
-    Just lst -> insertList lst
+    Just lst -> insertList (formatLabel ObjContext) lst
     Nothing -> do
       -- NOTE: unlike N3 we do not properly handle "formula"/named graphs
       -- also we only expand out bnodes into [...] format when it's a object.
