@@ -123,8 +123,6 @@ emptyTFS ngs = TFS
     , subjs     = []
     , props     = []
     , objs      = []
-    -- , formAvail = emptyFormulaMap
-    -- , formQueue = []
     , prefixes  = emptyNamespaceMap
     , nodeGenSt = ngs
     , bNodesCheck   = []
@@ -147,23 +145,6 @@ setProps :: PredTree RDFLabel -> Formatter ()
 setProps ps = modify $ \st -> st { props = ps }
 
 {-
-getObjs :: Formatter ([RDFLabel])
-getObjs = objs `liftM` get
-
-setObjs :: [RDFLabel] -> Formatter ()
-setObjs os = do
-  st <- get
-  put $ st { objs = os }
--}
-
-{-
-addTrace :: String -> Formatter ()
-addTrace tr = do
-  st <- get
-  put $ st { traceBuf = tr : traceBuf st }
--}
-  
-{-
 TODO:
 
 Should we change the preds/objs entries as well?
@@ -176,7 +157,7 @@ extractList lctxt ln = do
   case maybeExtractList osubjs oprops lctxt ln of
     Just (ls, osubjs', oprops') -> do
       setSubjs osubjs'
-      setProps oprops' -- TODO: this used to be optional; is this valid?
+      setProps oprops'
       return (Just ls)
 
     _ -> return Nothing
@@ -241,7 +222,7 @@ formatGraph ind end dobreak dopref gr = do
   fp <- if dopref
         then formatPrefixes (getNamespaces gr)
         else return mempty
-  more <- moreSubjects
+  more <- hasMore subjs
   if more
     then do
       fr <- formatSubjects
@@ -263,11 +244,11 @@ formatSubjects = do
   sb    <- nextSubject
   sbstr <- formatLabel SubjContext sb
   
-  flagP <- moreProperties
+  flagP <- hasMore props
   if flagP
     then do
       prstr <- formatProperties sb sbstr
-      flagS <- moreSubjects
+      flagS <- hasMore subjs
       if flagS
         then do
           fr <- formatSubjects
@@ -277,7 +258,7 @@ formatSubjects = do
     else do
       txt <- nextLine sbstr
     
-      flagS <- moreSubjects
+      flagS <- hasMore subjs
       if flagS
         then do
           fr <- formatSubjects
@@ -305,7 +286,7 @@ formatProperties sb sbstr = do
   pr <- nextProperty sb
   prstr <- formatLabel PredContext pr
   obstr <- formatObjects sb pr $ mconcat [sbstr, " ", prstr]
-  more  <- moreProperties
+  more  <- hasMore props
   let sbindent = hackIndent -- mkIndent sbstr
   if more
     then do
@@ -318,7 +299,7 @@ formatObjects :: RDFLabel -> RDFLabel -> B.Builder -> Formatter B.Builder
 formatObjects sb pr prstr = do
   ob    <- nextObject sb pr
   obstr <- formatLabel ObjContext ob
-  more  <- moreObjects
+  more  <- hasMore objs
   if more
     then do
       let prindent = hackIndent -- mkIndent prstr
@@ -334,7 +315,7 @@ Add a blank node inline.
 insertBnode :: LabelContext -> RDFLabel -> Formatter B.Builder
 insertBnode SubjContext lbl = do
   -- a safety check
-  flag <- moreProperties
+  flag <- hasMore props
   if flag
     then do
       txt <- (`mappend` "\n") `liftM` formatProperties lbl ""
@@ -351,14 +332,12 @@ insertBnode _ lbl = do
                 }
 
   put nst
-  flag <- moreProperties
+  flag <- hasMore props
   txt <- if flag
          then (`mappend` "\n") `liftM` formatProperties lbl ""
          else return ""
 
-  -- TODO: how do we restore the original set up?
-  --       I can't believe the following is sufficient
-  --
+  -- restore the original data (where appropriate)
   nst' <- get
   let slist  = map fst $ subjs nst'
       nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
@@ -390,15 +369,6 @@ newState gr st =
 
 setGraph :: RDFGraph -> Formatter ()
 setGraph = modify . newState
-
-moreSubjects :: Formatter Bool
-moreSubjects = hasMore subjs
-
-moreProperties :: Formatter Bool
-moreProperties = hasMore props
-
-moreObjects :: Formatter Bool
-moreObjects = hasMore objs
 
 nextSubject :: Formatter RDFLabel
 nextSubject = 
