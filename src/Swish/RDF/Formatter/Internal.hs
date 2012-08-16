@@ -39,7 +39,6 @@ module Swish.RDF.Formatter.Internal
     , showScopedName
     , formatScopedName
     , formatPrefixLines
-    , maybeExtractList
     , formatPlainLit
     , formatLangLit
     , formatTypedLit
@@ -51,6 +50,8 @@ module Swish.RDF.Formatter.Internal
     , formatSubjects_
     , formatProperties_
     , formatObjects_
+    , insertBnode_
+    , extractList_
     )
 where
 
@@ -351,32 +352,6 @@ formatScopedName sn prmap =
                                 , ">"
                                 ]
 
-maybeExtractList :: 
-  SubjTree RDFLabel
-  -> PredTree RDFLabel
-  -> LabelContext
-  -> RDFLabel
-  -> Maybe ([RDFLabel], SubjTree RDFLabel, PredTree RDFLabel)
-maybeExtractList osubjs oprops lctxt ln =
-  let mlst = getCollection osubjs' ln
-
-      -- we only want to send in rdf:first/rdf:rest here
-      fprops = filter ((`elem` [resRdfFirst, resRdfRest]) . fst) oprops
-
-      osubjs' =
-          case lctxt of
-            SubjContext -> (ln, fprops) : osubjs
-            _ -> osubjs 
-
-  in case mlst of
-    Just (sl, ls, _) -> 
-      let oprops' = if lctxt == SubjContext
-                    then filter ((`notElem` [resRdfFirst, resRdfRest]) . fst) oprops
-                    else oprops
-      in Just (ls, sl, oprops')
-
-    _ -> Nothing
-
 formatPlainLit :: T.Text -> B.Builder
 formatPlainLit = quoteText
 
@@ -560,6 +535,83 @@ formatObjects_ nextObject formatLabel objs nextLine sb pr prstr = do
       return $ nl `mappend` fr
     else return $ mconcat [prstr, " ", obstr]
 
+{-
+Processing a Bnode when not a subject.
+-}
+insertBnode_ ::
+    (a -> SubjTree RDFLabel)  -- ^ extract subjects
+    -> (a -> PredTree RDFLabel) -- ^ extract properties
+    -> (a -> [RDFLabel]) -- ^ extract objects
+    -> (a -> SubjTree RDFLabel -> PredTree RDFLabel -> [RDFLabel] -> a) -- ^ update state to new settings
+    -> (RDFLabel -> B.Builder -> State a B.Builder) -- ^ format properties
+    -> RDFLabel
+    -> State a B.Builder
+insertBnode_ subjs props objs updateState formatProperties lbl = do
+  ost <- get
+  let osubjs = subjs ost
+      (rsubjs, rprops) = splitOnLabel lbl osubjs
+  put $ updateState ost rsubjs rprops []
+  flag <- hasMore props
+  txt <- if flag
+         then (`mappend` "\n") `liftM` formatProperties lbl ""
+         else return ""
+
+  -- restore the original data (where appropriate)
+  nst <- get
+  let slist  = map fst $ subjs nst
+      nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
+
+  put $ updateState nst nsubjs (props ost) (objs ost)
+
+  -- TODO: handle indentation?
+  return $ mconcat ["[", txt, "]"]
+
+
+maybeExtractList :: 
+  SubjTree RDFLabel
+  -> PredTree RDFLabel
+  -> LabelContext
+  -> RDFLabel
+  -> Maybe ([RDFLabel], SubjTree RDFLabel, PredTree RDFLabel)
+maybeExtractList osubjs oprops lctxt ln =
+  let mlst = getCollection osubjs' ln
+
+      -- we only want to send in rdf:first/rdf:rest here
+      fprops = filter ((`elem` [resRdfFirst, resRdfRest]) . fst) oprops
+
+      osubjs' =
+          case lctxt of
+            SubjContext -> (ln, fprops) : osubjs
+            _ -> osubjs 
+
+  in case mlst of
+    Just (sl, ls, _) -> 
+      let oprops' = if lctxt == SubjContext
+                    then filter ((`notElem` [resRdfFirst, resRdfRest]) . fst) oprops
+                    else oprops
+      in Just (ls, sl, oprops')
+
+    _ -> Nothing
+
+extractList_ :: 
+    (a -> SubjTree RDFLabel) -- ^ extract subjects
+    -> (a -> PredTree RDFLabel) -- ^ extract properties
+    -> (SubjTree RDFLabel -> State a ())  -- ^ set subjects
+    -> (PredTree RDFLabel -> State a ())  -- ^ set properties
+    -> LabelContext 
+    -> RDFLabel 
+    -> State a (Maybe [RDFLabel])
+extractList_ subjs props setSubjs setProps lctxt ln = do
+  osubjs <- gets subjs
+  oprops <- gets props
+  case maybeExtractList osubjs oprops lctxt ln of
+    Just (ls, osubjs', oprops') -> do
+      setSubjs osubjs'
+      setProps oprops'
+      return (Just ls)
+
+    _ -> return Nothing
+  
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,

@@ -67,11 +67,9 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , hasMore
                                     , emptyNgs
                                     , findMaxBnode
-                                    , splitOnLabel
                                     , processArcs
 				    , quoteB
 				    , formatScopedName
-                                    , maybeExtractList
 				    , formatPlainLit
 				    , formatLangLit
 				    , formatTypedLit
@@ -83,6 +81,8 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , formatSubjects_
                                     , formatProperties_
                                     , formatObjects_
+                                    , insertBnode_
+                                    , extractList_
 				    ) 
 
 import Swish.Namespace (ScopedName)
@@ -145,6 +145,9 @@ data N3FormatterState = N3FS
     }
              
 type Formatter a = State N3FormatterState a
+
+updateState :: N3FormatterState -> SubjTree RDFLabel -> PredTree RDFLabel -> [RDFLabel] -> N3FormatterState
+updateState ost nsubjs nprops nobjs = ost { subjs = nsubjs, props = nprops, objs = nobjs }
 
 emptyN3FS :: NamespaceMap -> NodeGenState -> N3FormatterState
 emptyN3FS pmap ngs = N3FS
@@ -243,16 +246,7 @@ Should we change the preds/objs entries as well?
 
 -}
 extractList :: LabelContext -> RDFLabel -> Formatter (Maybe [RDFLabel])
-extractList lctxt ln = do
-  osubjs <- gets subjs
-  oprops <- gets props
-  case maybeExtractList osubjs oprops lctxt ln of
-    Just (ls, osubjs', oprops') -> do
-      setSubjs osubjs'
-      setProps oprops'
-      return (Just ls)
-
-    _ -> return Nothing
+extractList = extractList_ subjs props setSubjs setProps
   
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
@@ -349,32 +343,7 @@ insertBnode SubjContext lbl = do
   -- TODO: handle indentation?
   return $ mconcat ["[", txt, "]"]
 
-insertBnode _ lbl = do
-  ost <- get
-  let osubjs = subjs ost
-      (rsubjs, rprops) = splitOnLabel lbl osubjs
-      nst = ost { subjs = rsubjs,
-                  props = rprops,
-                  objs  = []
-                }
-
-  put nst
-  flag <- hasMore props
-  txt <- if flag
-         then (`mappend` "\n") `liftM` formatProperties lbl ""
-         else return ""
-
-  nst' <- get
-  let slist  = map fst $ subjs nst'
-      nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
-
-  put $ nst' { subjs = nsubjs,
-                       props = props ost, 
-                       objs  = objs ost
-             }
-
-  -- TODO: handle indentation?
-  return $ mconcat ["[", txt, "]"]
+insertBnode _ lbl = insertBnode_ subjs props objs updateState formatProperties lbl
 
 ----------------------------------------------------------------------
 --  Formatting helpers

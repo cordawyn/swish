@@ -50,10 +50,8 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , hasMore
                                     , emptyNgs
                                     , findMaxBnode
-                                    , splitOnLabel
                                     , processArcs
                                     , formatScopedName
-                                    , maybeExtractList
                                     , formatPlainLit
                                     , formatLangLit
                                     , formatTypedLit
@@ -65,6 +63,8 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , formatSubjects_
                                     , formatProperties_
                                     , formatObjects_
+                                    , insertBnode_
+                                    , extractList_
 				    )
 
 import Swish.RDF.Graph (
@@ -78,7 +78,7 @@ import Swish.RDF.Graph (
 import Swish.RDF.Vocabulary (rdfType, rdfNil)
 
 import Control.Monad (liftM)
-import Control.Monad.State (State, modify, get, gets, put, runState)
+import Control.Monad.State (State, modify, gets, runState)
 
 import Data.Char (isDigit)
 import Data.Monoid (Monoid(..))
@@ -120,6 +120,9 @@ data TurtleFormatterState = TFS
              
 type Formatter a = State TurtleFormatterState a
 
+updateState :: TurtleFormatterState -> SubjTree RDFLabel -> PredTree RDFLabel -> [RDFLabel] -> TurtleFormatterState
+updateState ost nsubjs nprops nobjs = ost { subjs = nsubjs, props = nprops, objs = nobjs }
+
 emptyTFS :: NodeGenState -> TurtleFormatterState
 emptyTFS ngs = TFS
     { indent    = "\n"
@@ -156,17 +159,8 @@ Should we change the preds/objs entries as well?
 
 -}
 extractList :: LabelContext -> RDFLabel -> Formatter (Maybe [RDFLabel])
-extractList lctxt ln = do
-  osubjs <- gets subjs
-  oprops <- gets props
-  case maybeExtractList osubjs oprops lctxt ln of
-    Just (ls, osubjs', oprops') -> do
-      setSubjs osubjs'
-      setProps oprops'
-      return (Just ls)
+extractList = extractList_ subjs props setSubjs setProps
 
-    _ -> return Nothing
-  
 ----------------------------------------------------------------------
 --  Define a top-level formatter function:
 ----------------------------------------------------------------------
@@ -247,34 +241,8 @@ insertBnode SubjContext lbl = do
       return $ mconcat ["[] ", txt]
     else error $ "Internal error: expected properties with label: " ++ show lbl
 
-insertBnode _ lbl = do
-  ost <- get
-  let osubjs = subjs ost
-      (rsubjs, rprops) = splitOnLabel lbl osubjs
-      nst = ost { subjs = rsubjs,
-                  props = rprops,
-                  objs  = []
-                }
+insertBnode _ lbl = insertBnode_ subjs props objs updateState formatProperties lbl
 
-  put nst
-  flag <- hasMore props
-  txt <- if flag
-         then (`mappend` "\n") `liftM` formatProperties lbl ""
-         else return ""
-
-  -- restore the original data (where appropriate)
-  nst' <- get
-  let slist  = map fst $ subjs nst'
-      nsubjs = filter (\(l,_) -> l `elem` slist) osubjs
-
-  put $ nst' { subjs = nsubjs,
-                       props = props ost, 
-                       objs  = objs ost
-             }
-
-  -- TODO: handle indentation?
-  return $ mconcat ["[", txt, "]"]
-  
 ----------------------------------------------------------------------
 --  Formatting helpers
 ----------------------------------------------------------------------
