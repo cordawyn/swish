@@ -62,6 +62,9 @@ import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
                                     , mapBlankNode_
                                     , formatPrefixes_
                                     , formatGraph_
+                                    , formatSubjects_
+                                    , formatProperties_
+                                    , formatObjects_
 				    )
 
 import Swish.RDF.Graph (
@@ -221,80 +224,14 @@ formatGraph = formatGraph_ setIndent setLineBreak newState formatPrefixes subjs 
 formatPrefixes :: NamespaceMap -> Formatter B.Builder
 formatPrefixes = formatPrefixes_ nextLine
 
-{-
-NOTE:
-I expect there to be confusion below where I need to
-convert from Text to Builder
--}
-
 formatSubjects :: Formatter B.Builder
-formatSubjects = do
-  sb    <- nextSubject
-  sbstr <- formatLabel SubjContext sb
-  
-  flagP <- hasMore props
-  if flagP
-    then do
-      prstr <- formatProperties sb sbstr
-      flagS <- hasMore subjs
-      if flagS
-        then do
-          fr <- formatSubjects
-          return $ mconcat [prstr, " .", fr]
-        else return prstr
-           
-    else do
-      txt <- nextLine sbstr
-    
-      flagS <- hasMore subjs
-      if flagS
-        then do
-          fr <- formatSubjects
-          return $ mconcat [txt, " .", fr]
-        else return txt
-
-{-
-TODO: now we are throwing a Builder around it is awkward to
-get the length of the text to calculate the indentation
-
-So
-
-  a) change the indentation scheme
-  b) pass around text instead of builder
-
-mkIndent :: L.Text -> L.Text
-mkIndent inVal = L.replicate (L.length inVal) " "
--}
-
-hackIndent :: B.Builder
-hackIndent = "    "
+formatSubjects = formatSubjects_ nextSubject formatLabel props formatProperties subjs nextLine
 
 formatProperties :: RDFLabel -> B.Builder -> Formatter B.Builder
-formatProperties sb sbstr = do
-  pr <- nextProperty sb
-  prstr <- formatLabel PredContext pr
-  obstr <- formatObjects sb pr $ mconcat [sbstr, " ", prstr]
-  more  <- hasMore props
-  let sbindent = hackIndent -- mkIndent sbstr
-  if more
-    then do
-      fr <- formatProperties sb sbindent
-      nl <- nextLine $ obstr `mappend` " ;"
-      return $ nl `mappend` fr
-    else nextLine obstr
+formatProperties = formatProperties_ nextProperty formatLabel formatObjects props nextLine
 
 formatObjects :: RDFLabel -> RDFLabel -> B.Builder -> Formatter B.Builder
-formatObjects sb pr prstr = do
-  ob    <- nextObject sb pr
-  obstr <- formatLabel ObjContext ob
-  more  <- hasMore objs
-  if more
-    then do
-      let prindent = hackIndent -- mkIndent prstr
-      fr <- formatObjects sb pr prindent
-      nl <- nextLine $ mconcat [prstr, " ", obstr, ","]
-      return $ nl `mappend` fr
-    else return $ mconcat [prstr, " ", obstr]
+formatObjects = formatObjects_ nextObject formatLabel objs nextLine
 
 {-
 Add a blank node inline.

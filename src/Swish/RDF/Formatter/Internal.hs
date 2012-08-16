@@ -48,6 +48,9 @@ module Swish.RDF.Formatter.Internal
     , mapBlankNode_
     , formatPrefixes_
     , formatGraph_
+    , formatSubjects_
+    , formatProperties_
+    , formatObjects_
     )
 where
 
@@ -463,6 +466,99 @@ formatGraph_ setIndent setLineBreak newState formatPrefixes subjs formatSubjects
       fr <- formatSubjects
       return $ mconcat [fp, fr, end]
     else return fp
+
+formatSubjects_ ::
+    State a RDFLabel     -- ^ next subject
+    -> (LabelContext -> RDFLabel -> State a B.Builder)  -- ^ convert label into text
+    -> (a -> PredTree RDFLabel) -- ^ extract properties
+    -> (RDFLabel -> B.Builder -> State a B.Builder)   -- ^ format properties
+    -> (a -> SubjTree RDFLabel) -- ^ extract subjects
+    -> (B.Builder -> State a B.Builder) -- ^ next line
+    -> State a B.Builder
+formatSubjects_ nextSubject formatLabel props formatProperties subjs nextLine = do
+  sb    <- nextSubject
+  sbstr <- formatLabel SubjContext sb
+  
+  flagP <- hasMore props
+  if flagP
+    then do
+      prstr <- formatProperties sb sbstr
+      flagS <- hasMore subjs
+      if flagS
+        then do
+          fr <- formatSubjects_ nextSubject formatLabel props formatProperties subjs nextLine
+          return $ mconcat [prstr, " .", fr]
+        else return prstr
+           
+    else do
+      txt <- nextLine sbstr
+    
+      flagS <- hasMore subjs
+      if flagS
+        then do
+          fr <- formatSubjects_ nextSubject formatLabel props formatProperties subjs nextLine
+          return $ mconcat [txt, " .", fr]
+        else return txt
+
+
+{-
+TODO: now we are throwing a Builder around it is awkward to
+get the length of the text to calculate the indentation
+
+So
+
+  a) change the indentation scheme
+  b) pass around text instead of builder
+
+mkIndent :: L.Text -> L.Text
+mkIndent inVal = L.replicate (L.length inVal) " "
+-}
+
+hackIndent :: B.Builder
+hackIndent = "    "
+
+formatProperties_ :: 
+    (RDFLabel -> State a RDFLabel)        -- ^ next property for the given subject
+    -> (LabelContext -> RDFLabel -> State a B.Builder) -- ^ convert label into text
+    -> (RDFLabel -> RDFLabel -> B.Builder -> State a B.Builder) -- ^ format objects
+    -> (a -> PredTree RDFLabel) -- ^ extract properties
+    -> (B.Builder -> State a B.Builder) -- ^ next line
+    -> RDFLabel             -- ^ property being processed
+    -> B.Builder            -- ^ current output
+    -> State a B.Builder
+formatProperties_ nextProperty formatLabel formatObjects props nextLine sb sbstr = do
+  pr <- nextProperty sb
+  prstr <- formatLabel PredContext pr
+  obstr <- formatObjects sb pr $ mconcat [sbstr, " ", prstr]
+  more  <- hasMore props
+  let sbindent = hackIndent -- mkIndent sbstr
+  if more
+    then do
+      fr <- formatProperties_ nextProperty formatLabel formatObjects props nextLine sb sbindent
+      nl <- nextLine $ obstr `mappend` " ;"
+      return $ nl `mappend` fr
+    else nextLine obstr
+
+formatObjects_ :: 
+    (RDFLabel -> RDFLabel -> State a RDFLabel) -- ^ get the next object for the (subject,property) pair
+    -> (LabelContext -> RDFLabel -> State a B.Builder) -- ^ format a label
+    -> (a -> [RDFLabel]) -- ^ extract objects
+    -> (B.Builder -> State a B.Builder) -- ^ new line
+    -> RDFLabel      -- ^ subject
+    -> RDFLabel      -- ^ property
+    -> B.Builder     -- ^ current text
+    -> State a B.Builder
+formatObjects_ nextObject formatLabel objs nextLine sb pr prstr = do
+  ob    <- nextObject sb pr
+  obstr <- formatLabel ObjContext ob
+  more  <- hasMore objs
+  if more
+    then do
+      let prindent = hackIndent -- mkIndent prstr
+      fr <- formatObjects_ nextObject formatLabel objs nextLine sb pr prindent
+      nl <- nextLine $ mconcat [prstr, " ", obstr, ","]
+      return $ nl `mappend` fr
+    else return $ mconcat [prstr, " ", obstr]
 
 --------------------------------------------------------------------------------
 --
