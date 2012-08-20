@@ -44,6 +44,7 @@ module Swish.RDF.Formatter.Turtle
 where
 
 import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
+                                    , SLens(..)
                                     , LabelContext(..)
                                     , NodeGenState(..)
                                     , changeState
@@ -117,10 +118,23 @@ data TurtleFormatterState = TFS
     , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
     }
-             
+
+type SL a = SLens TurtleFormatterState a
+
+_lineBreak :: SL Bool
+_lineBreak = SLens lineBreak    $ \a b -> a { lineBreak = b }
+
+_nodeGen :: SL NodeGenState
+_nodeGen   = SLens nodeGenSt    $ \a b -> a { nodeGenSt = b }
+
 type Formatter a = State TurtleFormatterState a
 
-updateState :: TurtleFormatterState -> SubjTree RDFLabel -> PredTree RDFLabel -> [RDFLabel] -> TurtleFormatterState
+updateState ::
+    TurtleFormatterState
+    -> SubjTree RDFLabel
+    -> PredTree RDFLabel
+    -> [RDFLabel]
+    -> TurtleFormatterState
 updateState ost nsubjs nprops nobjs = ost { subjs = nsubjs, props = nprops, objs = nobjs }
 
 emptyTFS :: NodeGenState -> TurtleFormatterState
@@ -142,9 +156,6 @@ setIndent ind = modify $ \st -> st { indent = ind }
 
 setLineBreak :: Bool -> Formatter ()
 setLineBreak brk = modify $ \st -> st { lineBreak = brk }
-
-setNgs :: NodeGenState -> Formatter ()
-setNgs ngs = modify $ \st -> st { nodeGenSt = ngs }
 
 setSubjs :: SubjTree RDFLabel -> Formatter ()
 setSubjs sl = modify $ \st -> st { subjs = sl }
@@ -287,7 +298,7 @@ nextObject _ _ =
         in (ob, nst)
 
 nextLine :: B.Builder -> Formatter B.Builder
-nextLine = nextLine_ indent lineBreak setLineBreak
+nextLine = nextLine_ indent _lineBreak
 
 --  Format a label
 --  Most labels are simply displayed as provided, but there are a
@@ -353,7 +364,7 @@ formatNodeId lab@(Blank (lnc:_)) =
 formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to shut up -Wall
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
-mapBlankNode = mapBlankNode_ nodeGenSt setNgs
+mapBlankNode = mapBlankNode_ _nodeGen
 
 --------------------------------------------------------------------------------
 --

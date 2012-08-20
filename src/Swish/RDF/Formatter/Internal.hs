@@ -20,6 +20,7 @@
 
 module Swish.RDF.Formatter.Internal
     ( NodeGenLookupMap
+    , SLens(..)
     , SubjTree
     , PredTree
     , LabelContext(..)
@@ -93,10 +94,33 @@ swap (a,b) = (b,a)
 findPrefix :: URI -> M.Map a URI -> Maybe a
 findPrefix u = M.lookup u . M.fromList . map swap . M.assocs
 
+{- 
+
+Playing around with ideas to reduce the amount of duplicated code
+without (for instance) deciding on one of the many lens packages
+available. It does not seem worth further re-factoring until we
+have another formatter using a turtle-like syntax (e.g. TriG
+http://www4.wiwiss.fu-berlin.de/bizer/trig/).
+
+-}
+
+data SLens a b = SLens (a -> b) (a -> b -> a)
+
+-- | Extract the setter.
+slens :: SLens a b -> a -> b -> a
+slens (SLens _ s) = s
+
+-- | Extract the getter.
+glens :: SLens a b -> a -> b
+glens (SLens g _) = g
+
 -- | Node name generation state information that carries through
 --  and is updated by nested formulae.
 type NodeGenLookupMap = M.Map RDFLabel Word32
 
+{-
+TODO: look at using Swish.Graphpartition instead.
+-}
 type SubjTree lb = [(lb,PredTree lb)]
 type PredTree lb = [(lb,[lb])]
 
@@ -384,23 +408,26 @@ insertList f xs = do
     ls <- mapM f xs
     return $ mconcat ("( " : intersperse " " ls) `mappend` " )" 
 
-nextLine_ :: (a -> B.Builder) -> (a -> Bool) -> (Bool -> State a ()) -> B.Builder -> State a B.Builder
-nextLine_ indent lineBreak setLineBreak str = do
+nextLine_ ::
+    (a -> B.Builder)      -- ^ indentation
+    -> SLens a Bool       -- ^ line break lens
+    -> B.Builder -> State a B.Builder
+nextLine_ indent _lineBreak str = do
   ind <- gets indent
-  brk <- gets lineBreak
+  brk <- gets $ glens _lineBreak
   if brk
     then return $ ind `mappend` str
     else do
       --  After first line, always insert line break
-      setLineBreak True
+      modify $ \st -> slens _lineBreak st True
       return str
-         
-mapBlankNode_ :: (a -> NodeGenState) -> (NodeGenState -> State a ()) -> RDFLabel -> State a B.Builder
-mapBlankNode_ nodeGenSt setNgs lab = do
-  ngs <- gets nodeGenSt
+
+mapBlankNode_ :: SLens a NodeGenState -> RDFLabel -> State a B.Builder
+mapBlankNode_ _nodeGen lab = do
+  ngs <- gets $ glens _nodeGen
   let (lval, mngs) = getBNodeLabel lab ngs
   case mngs of
-    Just ngs' -> setNgs ngs'
+    Just ngs' -> modify $ \st -> slens _nodeGen st ngs'
     _ -> return ()
   return lval
 
@@ -409,8 +436,11 @@ formatPrefixLines = map pref . M.assocs
     where
       pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
       pref (_,u)      = mconcat ["@prefix : <", quoteB True (show u), "> ."]
-      
-formatPrefixes_ :: (B.Builder -> State a B.Builder) -> NamespaceMap -> State a B.Builder
+
+formatPrefixes_ ::
+    (B.Builder -> State a B.Builder)  -- ^ Create a new line
+    -> NamespaceMap
+    -> State a B.Builder
 formatPrefixes_ nextLine pmap = 
     mconcat `liftM` mapM nextLine (formatPrefixLines pmap)
 
@@ -517,8 +547,8 @@ formatProperties_ nextProperty formatLabel formatObjects props nextLine sb sbstr
 formatObjects_ :: 
     (RDFLabel -> RDFLabel -> State a RDFLabel) -- ^ get the next object for the (subject,property) pair
     -> (LabelContext -> RDFLabel -> State a B.Builder) -- ^ format a label
-    -> (a -> [RDFLabel]) -- ^ extract objects
-    -> (B.Builder -> State a B.Builder) -- ^ new line
+    -> (a -> [RDFLabel])   -- ^ extract objects
+    -> (B.Builder -> State a B.Builder) -- ^ insert a new line
     -> RDFLabel      -- ^ subject
     -> RDFLabel      -- ^ property
     -> B.Builder     -- ^ current text

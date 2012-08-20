@@ -61,6 +61,7 @@ module Swish.RDF.Formatter.N3
 where
 
 import Swish.RDF.Formatter.Internal (NodeGenLookupMap, SubjTree, PredTree
+                                    , SLens(..)
                                     , LabelContext(..)
                                     , NodeGenState(..)
                                     , changeState
@@ -143,7 +144,15 @@ data N3FormatterState = N3FS
     , bNodesCheck   :: [RDFLabel]      -- these bNodes are not to be converted to '[..]' format
     , traceBuf  :: [String]
     }
-             
+
+type SL a = SLens N3FormatterState a
+
+_lineBreak :: SL Bool
+_lineBreak = SLens lineBreak    $ \a b -> a { lineBreak = b }
+
+_nodeGen :: SL NodeGenState
+_nodeGen   = SLens nodeGenSt    $ \a b -> a { nodeGenSt = b }
+
 type Formatter a = State N3FormatterState a
 
 updateState :: N3FormatterState -> SubjTree RDFLabel -> PredTree RDFLabel -> [RDFLabel] -> N3FormatterState
@@ -170,12 +179,6 @@ setIndent ind = modify $ \st -> st { indent = ind }
 
 setLineBreak :: Bool -> Formatter ()
 setLineBreak brk = modify $ \st -> st { lineBreak = brk }
-
-setNgs :: NodeGenState -> Formatter ()
-setNgs ngs = modify $ \st -> st { nodeGenSt = ngs }
-
-setPrefixes :: NamespaceMap -> Formatter ()
-setPrefixes pmap = modify $ \st -> st { prefixes = pmap }
 
 setSubjs :: SubjTree RDFLabel -> Formatter ()
 setSubjs sl = modify $ \st -> st { subjs = sl }
@@ -324,8 +327,8 @@ insertFormula gr = do
 
       (f3str, fgs') = runState grm (emptyN3FS pmap0 ngs0)
 
-  setNgs (nodeGenSt fgs')
-  setPrefixes (prefixes fgs')
+  modify $ \st -> st { nodeGenSt = nodeGenSt fgs'
+                     , prefixes  = prefixes fgs' }
   f4str <- nextLine " } "
   return $ mconcat [" { ",f3str, f4str]
 
@@ -390,7 +393,7 @@ nextObject _ _ =
         in (ob, nst)
 
 nextLine :: B.Builder -> Formatter B.Builder
-nextLine = nextLine_ indent lineBreak setLineBreak
+nextLine = nextLine_ indent _lineBreak
 
 --  Format a label
 --  Most labels are simply displayed as provided, but there are a
@@ -468,7 +471,7 @@ formatNodeId lab@(Blank (lnc:_)) =
 formatNodeId other = error $ "formatNodeId not expecting a " ++ show other -- to shut up -Wall
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
-mapBlankNode = mapBlankNode_ nodeGenSt setNgs
+mapBlankNode = mapBlankNode_ _nodeGen
 
 --------------------------------------------------------------------------------
 --

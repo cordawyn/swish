@@ -30,6 +30,7 @@ module Swish.RDF.Formatter.NTriples
 where
 
 import Swish.RDF.Formatter.Internal ( NodeGenState(..)
+                                    , SLens (..)
                                     , emptyNgs
                                     , mapBlankNode_
                                     )
@@ -64,6 +65,9 @@ import qualified Data.Text.Lazy.Builder as B
 --  This is a lot simpler than other formatters.
 
 type Formatter a = State NodeGenState a
+
+_nodeGen :: SLens NodeGenState NodeGenState
+_nodeGen = SLens id $ flip const
 
 -- | Convert a RDF graph to NTriples format.
 formatGraphAsText :: RDFGraph -> T.Text
@@ -111,7 +115,7 @@ formatLabel (TypedLit lit dt)  = return $ mconcat [quoteText lit, "^^", showScop
 formatLabel lab = return $ B.fromString $ show lab
 
 mapBlankNode :: RDFLabel -> Formatter B.Builder
-mapBlankNode = mapBlankNode_ id put
+mapBlankNode = mapBlankNode_ _nodeGen
 
 -- TODO: can we use Network.URI to protect the URI?
 showScopedName :: ScopedName -> B.Builder
