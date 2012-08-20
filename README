@@ -1,9 +1,50 @@
-This is an update to Swish [1,2] so that it builds with a recent
-Haskell platform.
 
-For more information on this release see [3].
+# Introduction
 
- [1] http://www.ninebynine.org/Software/Swish-0.2.0.html
- [2] http://www.ninebynine.org/RDFNotes/Swish/Intro.html
- [2] https://bitbucket.org/doug_burke/swish/wiki/Home
+Swish - which stands for Semantic Web Inference Scripting in Haskell -
+was written by Graham Klyne as a framework, written in the purely
+functional programming language Haskell, for performing deductions in
+RDF data using a variety of techniques. Swish wass conceived as a
+toolkit for experimenting with RDF inference, and for implementing
+stand-alone RDF file processors (usable in similar style to CWM, but
+with a view to being extensible in declarative style through added
+Haskell function and data value declarations). One of the aims was to
+explore Haskell as "a scripting language for the Semantic Web"
+(http://www.ninebynine.org/RDFNotes/Swish/Intro.html).
 
+It was updated from version 0.2.1 by Vasili I Galchin so that it would
+build with recent version of GHC
+(http://hackage.haskell.org/package/swish-0.2.1).
+
+Since then it has been updated to take advantage of recent
+developments in the Haskell ecosystem, add support for the NTriples
+and Turtle serialisation formats, and a number of convenience
+functions. Development is done at
+https://bitbucket.org/doug_burke/swish/.
+
+# Aim
+
+Current development is based on my own needs, which are more about
+using this as a RDF library for I/O with limited querying rather than
+for inferencing or use as a flexible graph-processing library
+(e.g. for extensions to non-RDF models).
+
+# Haskell and the Semantic Web 
+
+Other Haskell packages for RDF support include
+
+ * rdf4h http://hackage.haskell.org/package/rdf4h
+ * hsparql http://hackage.haskell.org/package/hsparql
+ * hasparql-client http://hackage.haskell.org/package/hasparql-client
+
+# Installation
+
+Install a recent version of the Haskell platform (http://hackage.haskell.org/platform/)
+and then try
+
+    % cabal update
+    % cabal install swish
+
+This will install a command-line tool `Swish` along with the modules
+in the `Swish` namespace; documentation can be found at
+http://hackage.haskell.org/package/swish .
