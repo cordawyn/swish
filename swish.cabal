@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.8.0.1
+Version:            0.8.0.2
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -44,7 +44,12 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
-  Changes in version @0.8.0.0@:
+  Changes in version @0.8.0.2@:
+  .
+  * Restrict @hashable@ since tests fail with @1.1.2.5@
+  (this is a hack).
+  .
+  Changes in version @0.8.0.1@:
   .
   * Internal changes to Turtle/N3 formatting. No user-visible changes.
   .
@@ -107,7 +112,8 @@ Library
       containers >= 0.4 && < 0.6,
       directory >= 1.0 && < 1.2,
       filepath >= 1.1 && < 1.4,
-      hashable == 1.1.*,
+      -- hashable == 1.1.*,
+      hashable >= 1.1 && < 1.1.2.4,
       mtl >= 2 && < 3,
       network >= 2.2 && < 2.4,
       old-locale == 1.0.*, 

@@ -1,3 +1,10 @@
+0.8.0.2:
+
+  Restrict hashable to < 1.1.2.4 to try and avoid test
+  failures - see
+  http://travis-ci.org/#!/DougBurke/swish/builds/2360859
+  This is a hack and the tests should be updated.
+
 0.8.0.1:
 
   Internal changes to Turtle/N3 formatting. No user-visible changes.
