@@ -5,6 +5,8 @@
   http://travis-ci.org/#!/DougBurke/swish/builds/2360859
   This is a hack and the tests should be updated.
 
+  Updated directory constraint to allow 1.2 on ghc 7.6.
+
 0.8.0.1:
 
   Internal changes to Turtle/N3 formatting. No user-visible changes.
