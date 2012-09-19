@@ -38,9 +38,11 @@ import Swish.GraphMatch
 
 -- import Swish.Utils.ListHelpers (subset)
 
-import TestHelpers (runTestSuite, testEq)
+import TestHelpers (runTestSuite, testEq, testNe)
 
-import Data.List (sort, elemIndex)
+import Data.Function (on)
+import Data.Hashable (combine)
+import Data.List (sort, sortBy, elemIndex)
 import Data.Maybe (fromJust)
 import Data.Ord (comparing)
 import Data.Word (Word32)
@@ -149,11 +151,21 @@ testLabSuite = TestList
     , testEq "Lab03" False (labelIsVar lab2f)
     , testEq "Lab04" True  (labelIsVar lab2v)
 
+    {- This just tests the hash routine, which doesn't
+       really tell us that much, so replace by checks that the
+       hashes aren't the same
     , testEq "Lab05" 39495998 (labelHash 1 lab1f)
     , testEq "Lab06" 45349309 (labelHash 1 lab1v)
     , testEq "Lab07" 39495997 (labelHash 1 lab2f)
     , testEq "Lab08" 45349310 (labelHash 1 lab2v)
-    
+    -}
+
+    , testNe "Hash Lab05/6" (labelHash 1 lab1f) (labelHash 1 lab1v)
+    , testNe "Hash Lab05/7" (labelHash 1 lab1f) (labelHash 1 lab2f)
+    , testNe "Hash Lab06/8" (labelHash 1 lab1v) (labelHash 1 lab2v)
+    , testNe "Hash Lab07/8" (labelHash 1 lab2f) (labelHash 1 lab2v)
+    , testNe "Hash Lab05/8" (labelHash 1 lab1f) (labelHash 1 lab2v)
+    , testNe "Hash Lab06/7" (labelHash 1 lab1v) (labelHash 1 lab2f)
 
     , testEq "Lab09" "!lab1" (show lab1f)
     , testEq "Lab10" "?lab1" (show lab1v)
@@ -644,30 +656,41 @@ testGraphLabels16 = testEq "GraphLabels16" str (show glas6)
 bhash :: Word32
 bhash = 23
 
+-- since the hashing is now done by hashable, is it worth checking
+-- the hash values directly?
+
+-- copy of internal code in GraphMatch
+toHash :: (Label lb) => Int -> lb -> Word32
+toHash s lbl = 
+    fromIntegral $
+      if labelIsVar lbl 
+        then s `combine` 23
+        else labelHash s lbl
+
 l1hash, l4hash, l10hash :: Word32
-l1hash = 2524
-l4hash = -1302210307
-l10hash = 10836024  
+l1hash = toHash 0 l1
+l4hash = toHash 0 l4
+l10hash = toHash 0 l10  
 
 l1hash2, l4hash2, l10hash2 :: Word32
-l1hash2 = 2524
-l4hash2 = -1302210307
-l10hash2 = 10836024  
+l1hash2 = l1hash 
+l4hash2 = l4hash
+l10hash2 = l10hash
 
 o1hash, o2hash, o3hash :: Word32
-o1hash = 2623
-o2hash = 2620
-o3hash = 2621
+o1hash = toHash 0 o1
+o2hash = toHash 0 o2
+o3hash = toHash 0 o3
 
 p1hash, p2hash, p3hash :: Word32
-p1hash = 2624
-p2hash = 2627
-p3hash = 2626
+p1hash = toHash 0 p1
+p2hash = toHash 0 p2
+p3hash = toHash 0 p3
 
 s1hash, s2hash, s3hash :: Word32
-s1hash = 2723
-s2hash = 2720
-s3hash = 2721
+s1hash = toHash 0 s1
+s2hash = toHash 0 s2
+s3hash = toHash 0 s3
 
 lmap5 :: LabelMap LabelMem
 lmap5 = tstLabelMap 2 
@@ -1066,9 +1089,10 @@ ec31 = equivalenceClasses eq3lmap (graphLabels as11)
 
 ec31test :: [EquivArgs]
 ec31test =
-    [ ((1,2623),[o1_1])
-    , ((1,2624),[p1_1])
-    , ((1,2723),[s1_1])
+    sortBy (compare `on` (snd.fst))
+    [ ((1,o1hash),[o1_1])
+    , ((1,p1hash),[p1_1])
+    , ((1,s1hash),[s1_1])
     ]
 
 ec32 :: [EquivClass]
@@ -1076,16 +1100,17 @@ ec32 = equivalenceClasses eq3lmap (graphLabels as22)
 
 ec32test :: [EquivArgs]
 ec32test =
-    [ ((1,2524),[l1_2])
-    , ((1,2620),[o2_2])
-    , ((1,2621),[o3_2])
-    , ((1,2623),[o1_2])
-    , ((1,2624),[p1_2])
-    , ((1,2720),[s2_2])
-    , ((1,2721),[s3_2])
-    , ((1,2723),[s1_2])
-    , ((1,10836024),[l10_2])
-    , ((1,2992756989),[l4_2])
+    sortBy (compare `on` (snd.fst))
+    [ ((1,l1hash),[l1_2])
+    , ((1,o2hash),[o2_2])
+    , ((1,o3hash),[o3_2])
+    , ((1,o1hash),[o1_2])
+    , ((1,p1hash),[p1_2])
+    , ((1,s2hash),[s2_2])
+    , ((1,s3hash),[s3_2])
+    , ((1,s1hash),[s1_2])
+    , ((1,l10hash),[l10_2])
+    , ((1,l4hash),[l4_2])
     ]
   
 testEquivClass33_1, testEquivClass33_2 :: Test

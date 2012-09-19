@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.8.0.2
+Version:            0.8.0.3
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -44,6 +44,10 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
+  Changes in version @0.8.0.3@:
+  .
+  * Fix up the tests so that they pass with @hashable-1.1.2.5@.
+  .
   Changes in version @0.8.0.2@:
   .
   * Restrict @hashable@ since tests fail with @1.1.2.5@
@@ -51,7 +55,7 @@ Description:
   .
   * Updated @directory@ constraint to include @1.2@ on ghc 7.6.
   .
-  Changes in version @0.8.0.1@:
+  Changes in version @0.8.0.1@ (unreleased):
   .
   * Internal changes to Turtle/N3 formatting. No user-visible changes.
   .
@@ -111,12 +115,13 @@ Library
    Build-Depends:
       base >=3 && < 5,
       binary == 0.5.*,
+      -- binary 0.6 has been released
       containers >= 0.4 && < 0.6,
       filepath >= 1.1 && < 1.4,
-      -- hashable == 1.1.*,
-      hashable >= 1.1 && < 1.1.2.4,
+      hashable == 1.1.*,
       mtl >= 2 && < 3,
       network >= 2.2 && < 2.4,
+      -- network 2.4 has been released
       old-locale == 1.0.*, 
       polyparse >= 1.6 && < 1.9,
       semigroups >= 0.5 && < 0.9,
@@ -241,7 +246,8 @@ Test-Suite test-graph
 
    Build-Depends:
       base,
-      containers, 
+      containers,
+      hashable, 
       HUnit,
       swish
 
