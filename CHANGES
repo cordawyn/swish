@@ -1,6 +1,7 @@
 0.8.0.3:
 
-  Remove hashtable restriction (rewrite tests)
+  Remove hashtable restriction (rewrite tests), remove binary constraint
+  as it was apparently unneeded.
 
   Updates to support network version 2.4.0.0: the package now provides
   an Ord instance for Network.URI so Network.URI.Ord is now a no-op if

@@ -52,6 +52,8 @@ Description:
   since the network package provides the instance; fix to change in API
   of @relativeTo@.
   .
+  * Removed binary constraint as unused.
+  .
   Changes in version @0.8.0.2@:
   .
   * Restrict @hashable@ since tests fail with @1.1.2.5@
@@ -118,8 +120,6 @@ Flag  developer
 Library
    Build-Depends:
       base >=3 && < 5,
-      binary == 0.5.*,
-      -- binary 0.6 has been released
       containers >= 0.4 && < 0.6,
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
