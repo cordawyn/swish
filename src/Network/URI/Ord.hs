@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -8,7 +10,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  H98
+--  Portability :  CPP
 --
 --  Provide an ordering for URIs (that is, an 'Ord' instance for
 --  'URI').
@@ -18,9 +20,16 @@
 --  and no attempt is made to decode percent-encoded values (i.e.
 --  the comparison does /not/ use a canonical or normalized form).
 --
+--  For @network@ version @2.4.0.0@ and higher, this module is a no-op,
+--  since 'Network.URI' now defines these instances.
+--
 --------------------------------------------------------------------------------
 
 module Network.URI.Ord () where
+
+#if MIN_VERSION_network(2,4,0)
+
+#else
 
 import Network.URI (URI(..), URIAuth(..))
 
@@ -35,6 +44,8 @@ instance Ord URI where
 instance Ord URIAuth where
     URIAuth ui1 rn1 p1 `compare` URIAuth ui2 rn2 p2 =
         (ui1,rn1,p1) `compare` (ui2,rn2,p2)
+
+#endif
 
 --------------------------------------------------------------------------------
 --

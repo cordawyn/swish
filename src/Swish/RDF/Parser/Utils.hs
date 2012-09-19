@@ -1,4 +1,6 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
@@ -9,7 +11,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  OverloadedStrings
+--  Portability :  CPP, OverloadedStrings
 --
 --  Support for the RDF Parsing modules.
 --
@@ -82,16 +84,30 @@ import qualified Data.Text.Read as R
 -- | Append the two URIs. Should probably be moved
 --   out of RDFParser. It is also just a thin wrapper around
 --   `Network.URI.relativeTo`.
+--
+--  Apparently, @relativeTo@ always returns @Just@ (at least
+--  prior to version @2.4.0.0@ of @network), so we do not
+--  expect this to ever fail (return `Left`).
+--
 appendURIs ::
   URI     -- ^ The base URI
   -> URI  -- ^ The URI to append (it can be an absolute URI).
   -> Either String URI
+#if MIN_VERSION_network(2,4,0)
+appendURIs base uri =
+  case uriScheme uri of
+    "" -> Right $ uri `relativeTo` base
+    _  -> Right uri
+	   
+#else
 appendURIs base uri =
   case uriScheme uri of
     "" -> case uri `relativeTo` base of
           Just out -> Right out
           _ -> Left $ "Unable to append <" ++ show uri ++ "> to base=<" ++ show base ++ ">"
     _  -> Right uri
+
+#endif
   
 -- | Type for special name lookup table
 type SpecialMap = M.Map String ScopedName

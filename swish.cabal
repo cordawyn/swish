@@ -48,6 +48,10 @@ Description:
   .
   * Fix up the tests so that they pass with @hashable-1.1.2.5@.
   .
+  * Update to support @network-2.4.0.0@: @Network.URI.Ord@ is now a no-op
+  since the network package provides the instance; fix to change in API
+  of @relativeTo@.
+  .
   Changes in version @0.8.0.2@:
   .
   * Restrict @hashable@ since tests fail with @1.1.2.5@
@@ -120,8 +124,7 @@ Library
       filepath >= 1.1 && < 1.4,
       hashable == 1.1.*,
       mtl >= 2 && < 3,
-      network >= 2.2 && < 2.4,
-      -- network 2.4 has been released
+      network >= 2.2 && < 2.5,
       old-locale == 1.0.*, 
       polyparse >= 1.6 && < 1.9,
       semigroups >= 0.5 && < 0.9,

@@ -1,3 +1,12 @@
+0.8.0.3:
+
+  Remove hashtable restriction (rewrite tests)
+
+  Updates to support network version 2.4.0.0: the package now provides
+  an Ord instance for Network.URI so Network.URI.Ord is now a no-op if
+  network >= 2.4.0.0 is installed; fix up code to handle change to
+  the API of relativeTo.
+
 0.8.0.2:
 
   Restrict hashable to < 1.1.2.4 to try and avoid test
