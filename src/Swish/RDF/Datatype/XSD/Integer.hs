@@ -355,7 +355,7 @@ modXsdIntegerProd = DatatypeMod
         f0 _             = []
         f1 [v2,v3]       = [v2*v3]
         f1 _             = []
-        f2 [v1,vi]       = if r == 0 then [q] else []
+        f2 [v1,vi]       = [q | r == 0]
             where (q,r)  = quotRem v1 vi
         f2 _             = []
 

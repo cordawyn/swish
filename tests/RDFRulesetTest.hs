@@ -341,8 +341,8 @@ testRDFSuite =
   TestList
   [ test    "testRDF01" (isJust rdfr2modc)
   , testVal "testRDF02" rdfr2b1 rdfr2v1
-  , test "testRDF03" $ rdfr2v2 == []
-  -- , test "testRDF04" $ rdfr2v3 == []
+  , test "testRDF03" $ null rdfr2v2
+  -- , test "testRDF04" $ null rdfr2v3
   , testEq "testRDF09" True [] $ bwdApply rdfr2rul con03
   ]
 

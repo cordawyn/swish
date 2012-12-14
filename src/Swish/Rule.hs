@@ -200,8 +200,8 @@ bwdCheckInference rule ante cons = any checkAnts (bwdApply rule cons)
 nullRule :: Rule ex
 nullRule = Rule
     { ruleName = makeNSScopedName nullScope "nullRule"
-    , fwdApply = \ _ -> []
-    , bwdApply = \ _ -> []
+    , fwdApply = const []
+    , bwdApply = const []
     , checkInference = \ _ _ -> False
     }
 

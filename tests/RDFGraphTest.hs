@@ -52,7 +52,7 @@ import Swish.RDF.Vocabulary
   , xsdDate
     )
 
-import Control.Arrow (first)
+import Control.Arrow ((&&&), first)
 
 import Data.List (elemIndex, intercalate)
 import Data.Maybe (fromJust, fromMaybe)
@@ -1078,8 +1078,7 @@ lf22str =
   "        (base3:s3,base1:p1,\"l10\"^^rdf:XMLLiteral) }"
 
 toFM :: [Formula RDFLabel] -> FormulaMap RDFLabel
-toFM = M.fromList . map (\fm -> (formLabel fm, formGraph fm))
--- toFM = M.fromList . map (\fm -> (formLabel fm, fm))
+toFM = M.fromList . map (formLabel &&& formGraph)
 
 fm2, fm3, fm4, fm5, fm6, fm7 :: FormulaMap RDFLabel
 fm2  = toFM [lf22]

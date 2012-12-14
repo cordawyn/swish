@@ -186,6 +186,7 @@ import Swish.GraphMatch (graphMatch)
 import Swish.QName (QName, getLName)
 
 import Control.Applicative (Applicative(pure), (<$>), (<*>))
+import Control.Arrow ((***))
 
 import Network.URI (URI)
 
@@ -1068,7 +1069,7 @@ emptyFormulaMap = M.empty
 
 -- fmapFormulaMap :: (Ord a, Ord b) => (a -> b) -> FormulaMap a -> FormulaMap b
 fmapFormulaMap :: (Ord a) => (a -> a) -> FormulaMap a -> FormulaMap a
-fmapFormulaMap f m = M.fromList $ map (\(k,g) -> (f k, fmapNSGraph f g)) $ M.assocs m
+fmapFormulaMap f m = M.fromList $ map (f *** fmapNSGraph f) $ M.assocs m
 
 -- TODO: how to traverse formulamaps now?
 

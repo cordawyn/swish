@@ -670,7 +670,7 @@ graphMapEq ::
     -> ArcSet lb
     -> ArcSet lb 
     -> Bool
-graphMapEq lmap = (==) `on` (graphMap lmap)
+graphMapEq lmap = (==) `on` graphMap lmap
 
 --------------------------------------------------------------------------------
 --
