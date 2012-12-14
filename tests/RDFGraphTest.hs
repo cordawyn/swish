@@ -364,6 +364,15 @@ testConv lbl sVal dtype hVal =
     testFrConv lbl sVal dtype hVal         
     ]
   
+-- get an integer that is larger than can be stored in an Int
+-- (could just pick a value bigger than maxBound seen on a 64-bit build
+--  but try to be fancy)
+--
+bigInt :: T.Text
+bigInt = let bi :: Integer
+             bi = fromIntegral (maxBound :: Int) + 11
+         in T.pack $ show bi
+
 -- some conversions (e.g. toRDFTriple) are covered by  
 -- other tests
 --
@@ -379,7 +388,7 @@ testConversionSuite =
   , testEq "fconv:fail bool2"   (Nothing :: Maybe Bool)  (fromRDFLabel (TypedLit "True" xsdBoolean)) -- should we just let this be valid?
   , testEq "fconv:fail bool3"   (Nothing :: Maybe Bool)  (fromRDFLabel (TypedLit "true" xsdFloat))
   , testEq "fconv:fail int1"    (Nothing :: Maybe Int)  (fromRDFLabel l1)
-  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (TypedLit "123456789012345" xsdInteger)) 
+  , testEq "fconv:fail int2"    (Nothing :: Maybe Int)  (fromRDFLabel (TypedLit bigInt xsdInteger)) 
   , testEq "fconv:fail float1"  (Nothing :: Maybe Float)  (fromRDFLabel l1)
   , testEq "fconv:fail float2"  (Nothing :: Maybe Float)  (fromRDFLabel (TypedLit "1.234e101" xsdFloat)) -- invalid input 
   , testEq "fconv:fail float3"  (Nothing :: Maybe Float)  (fromRDFLabel (TypedLit "-1.234e101" xsdFloat)) -- invalid input 
