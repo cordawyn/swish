@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -12,7 +13,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  FlexibleInstances, MultiParamTypeClasses
+--  Portability :  CPP, FlexibleInstances, MultiParamTypeClasses
 --
 --  This module defines a simple memory-based graph instance.
 --
@@ -34,7 +35,7 @@ module Swish.GraphMem
 import Swish.GraphClass
 import Swish.GraphMatch
 
-import Data.Hashable (Hashable(..), combine)
+import Data.Hashable (Hashable(..))
 import Data.Monoid (Monoid(..))
 import Data.Ord (comparing)
 
@@ -115,10 +116,12 @@ data LabelMem
     | LV String
 
 instance Hashable LabelMem where
+  hashWithSalt salt (LF l) = salt `hashWithSalt` (1::Int) `hashWithSalt` l
+  hashWithSalt salt (LV l) = salt `hashWithSalt` (2::Int) `hashWithSalt` l
+#if !MIN_VERSION_hashable(1,2,0)
   hash (LF l) = 1 `hashWithSalt` l
   hash (LV l) = 2 `hashWithSalt` l
-  hashWithSalt salt (LF l) = salt `combine` 1 `hashWithSalt` l
-  hashWithSalt salt (LV l) = salt `combine` 2 `hashWithSalt` l
+#endif
 
 instance Label LabelMem where
     labelIsVar (LV _)   = True

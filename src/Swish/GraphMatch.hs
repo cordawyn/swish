@@ -40,7 +40,7 @@ import Control.Exception.Base (assert)
 import Control.Arrow (second)
 
 import Data.Function (on)
-import Data.Hashable (combine)
+import Data.Hashable (hashWithSalt)
 import Data.List (foldl', sortBy, groupBy, partition)
 import Data.Ord (comparing)
 import Data.Word
@@ -192,7 +192,7 @@ instance (Label lb) => Label (ScopedLabel lb) where
     makeLabel locnam = error $ "makeLabel for ScopedLabel: "++locnam
     labelIsVar (ScopedLabel _ lab)   = labelIsVar lab
     labelHash seed (ScopedLabel scope lab)
-        | labelIsVar lab    = seed `combine` scope -- MH.hash seed $ show scope ++ "???"
+        | labelIsVar lab    = seed `hashWithSalt` scope
         | otherwise         = labelHash seed lab
 
 instance (Label lb) => Eq (ScopedLabel lb) where
@@ -478,10 +478,9 @@ assignLabelMap1 lab (LabelMap g lvs) =
 initVal :: (Label lb) => lb -> Word32
 initVal = fromIntegral . hashVal 0
 
-hashVal :: (Label lb) => Int -> lb -> Int
+hashVal :: (Label lb) => Word32 -> lb -> Int
 hashVal seed lab =
-  if labelIsVar lab then seed `combine` 23 else labelHash seed lab
-  -- if labelIsVar lab then hash seed "???" else labelHash seed lab
+  if labelIsVar lab then 23 `hashWithSalt` seed else labelHash (fromIntegral seed) lab
 
 -- | Return the equivalence classes of the supplied nodes 
 -- using the label map.
@@ -588,11 +587,14 @@ remapLabels gs lmap@(LabelMap gen _) ls =
     where
         gen'                = gen+1
         newEntries          = [ (l, (gen', fromIntegral (newIndex l))) | l <- ls ]
+	-- TODO: should review this given the changes to the hash code
+        --       since it was re-written
         newIndex l
             | labelIsVar l  = mapAdjacent l                 -- adjacency classifies variable labels
-            | otherwise     = hashVal (fromIntegral gen) l  -- otherwise rehash (to disentangle collisions)
-        -- mapAdjacent l       = sum (sigsOver l) `rem` hashModulus
-        mapAdjacent l       = sum (sigsOver l) `combine` hashModulus -- is this a sensible replacement for `rem` MH.hashModulus        
+            | otherwise     = fromIntegral $ hashVal gen l  -- otherwise rehash (to disentangle collisions)
+
+	-- mapAdjacent used to use `rem` hashModulus
+        mapAdjacent l       = hashModulus `hashWithSalt` sum (sigsOver l)
 
         gls = S.toList gs
 
@@ -631,11 +633,10 @@ arcSignatures lmap =
     map (sigCalc . arcToTriple) 
     where
         sigCalc (s,p,o)  =
-            fromIntegral ( labelVal2 s +
-                           labelVal2 p * 3 +
-                           labelVal2 o * 5 )
-            `combine` hashModulus
-            -- `rem` hashModulus
+	    hashModulus `hashWithSalt`
+              ( labelVal2 s +
+                labelVal2 p * 3 +
+                labelVal2 o * 5 )
           
         labelVal         = mapLabelIndex lmap
         labelVal2        = uncurry (*) . labelVal

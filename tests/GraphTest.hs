@@ -41,7 +41,7 @@ import Swish.GraphMatch
 import TestHelpers (runTestSuite, testEq, testNe)
 
 import Data.Function (on)
-import Data.Hashable (combine)
+import Data.Hashable (hashWithSalt)
 import Data.List (sort, sortBy, elemIndex)
 import Data.Maybe (fromJust)
 import Data.Ord (comparing)
@@ -654,18 +654,20 @@ testGraphLabels16 = testEq "GraphLabels16" str (show glas6)
 -- assignLabels :: (Label lb) => [lb] -> LabelMap lb -> LabelMap lb
 
 bhash :: Word32
-bhash = 23
+-- bhash = 23 -- before trying to support Hashable 1.2.0
+bhash = 3730297980
 
 -- since the hashing is now done by hashable, is it worth checking
--- the hash values directly?
+-- the hash values directly? It would perhaps be better to just
+-- quickcheck that values get sorted.
 
 -- copy of internal code in GraphMatch
-toHash :: (Label lb) => Int -> lb -> Word32
+toHash :: (Label lb) => Word32 -> lb -> Word32
 toHash s lbl = 
     fromIntegral $
       if labelIsVar lbl 
-        then s `combine` 23
-        else labelHash s lbl
+        then 23 `hashWithSalt` s
+        else labelHash (fromIntegral s) lbl
 
 l1hash, l4hash, l10hash :: Word32
 l1hash = toHash 0 l1

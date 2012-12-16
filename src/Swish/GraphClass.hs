@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveFoldable #-}
@@ -14,7 +15,7 @@
 --
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
---  Portability :  DeriveFunctor, DeriveFoldable, DeriveTraversable, MultiParamTypeClasses
+--  Portability :  CPP, DeriveFunctor, DeriveFoldable, DeriveTraversable, MultiParamTypeClasses
 --
 --  This module defines a Labelled Directed Graph and Label classes,
 --  and the Arc datatype.
@@ -159,7 +160,10 @@ data Arc lb = Arc
 type ArcSet lb = S.Set (Arc lb)
 
 instance (Hashable lb) => Hashable (Arc lb) where
+#if MIN_VERSION_hashable(1,2,0) 
+#else
   hash (Arc s p o) = hash s `hashWithSalt` p `hashWithSalt` o
+#endif
   hashWithSalt salt (Arc s p o) = salt `hashWithSalt` s `hashWithSalt` p `hashWithSalt` o
 
 -- | Create an arc.

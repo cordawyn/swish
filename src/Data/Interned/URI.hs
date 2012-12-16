@@ -67,7 +67,10 @@ instance Uninternable InternedURI where
 -- Rather than access the URI components, just use the reverse of the
 -- string representation of the URI.
 instance Hashable (Description InternedURI) where
+#if MIN_VERSION_hashable(1,2,0)
+#else
   hash = hashWithSalt 5381 -- use the stringSalt value from Data.Hashable
+#endif
   hashWithSalt salt (DU u) = hashWithSalt salt ((reverse . show) u)
 
 iuCache :: Cache InternedURI
