@@ -655,7 +655,7 @@ testGraphLabels16 = testEq "GraphLabels16" str (show glas6)
 
 bhash :: Word32
 -- bhash = 23 -- before trying to support Hashable 1.2.0
-bhash = 3730297980
+bhash = fromIntegral (23 `hashWithSalt` (0::Word32))
 
 -- since the hashing is now done by hashable, is it worth checking
 -- the hash values directly? It would perhaps be better to just
