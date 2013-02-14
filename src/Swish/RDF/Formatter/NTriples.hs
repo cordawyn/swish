@@ -79,7 +79,7 @@ formatGraphAsLazyText = B.toLazyText . formatGraphAsBuilder
 
 -- | Convert a RDF graph to NTriples format.
 formatGraphAsBuilder :: RDFGraph -> B.Builder
-formatGraphAsBuilder gr = fst $ runState (formatGraph gr) emptyNgs
+formatGraphAsBuilder gr = evalState (formatGraph gr) emptyNgs
 
 ----------------------------------------------------------------------
 --  Formatting as a monad-based computation
