@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.9.0.0
+Version:            0.9.0.1
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -43,6 +43,11 @@ Description:
   * RDF formal semantics entailment rule implementation.
   .
   * Complete, ready-to-run, command-line and script-driven programs.
+  .
+  Changes in version @0.9.0.1@:
+  .
+  * Updated the upper bound on the semigroup dependency (thanks to 
+  Leif Warner).
   .
   Changes in version @0.9.0.0@:
   .
