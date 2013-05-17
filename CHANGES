@@ -1,3 +1,7 @@
+0.9.0.2:
+
+  Updated the upper bound on the polyparse dependency.
+
 0.9.0.1:
 
   Updated the upper bound on the semigroup dependency (thanks to Leif
