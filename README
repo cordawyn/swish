@@ -29,6 +29,18 @@ using this as a RDF library for I/O with limited querying rather than
 for inferencing or use as a flexible graph-processing library
 (e.g. for extensions to non-RDF models).
 
+# Copyright
+
+(c) 2003, 2004 G. Klyne
+(c) 2009 Vasili I Galchin
+(c) 2011, 2012, 2013 Doug Burke
+
+All rights reserved.
+
+# License
+
+GPL V2
+
 # Haskell and the Semantic Web 
 
 Other Haskell packages for RDF support include

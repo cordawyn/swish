@@ -5,7 +5,7 @@
 -- |
 --  Module      :  NTriples
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                 2011, 2012 Douglas Burke
+--                 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke

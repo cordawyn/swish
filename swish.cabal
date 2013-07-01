@@ -1,15 +1,15 @@
 Name:               swish
-Version:            0.9.0.2
+Version:            0.9.0.3
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
 Author:             Graham Klyne - GK@ninebynine.org
-Copyright:          (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011, 2012 Doug Burke; All rights reserved.
+Copyright:          (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011, 2012, 2013 Doug Burke; All rights reserved.
 Maintainer:         dburke@cfa.harvard.edu
 Category:           Semantic Web
 Synopsis:           A semantic web toolkit. 
 
-Tested-With:        GHC==7.4.2
+Tested-With:        GHC==7.6.3
 Cabal-Version:      >= 1.9.2
 Homepage:           https://bitbucket.org/doug_burke/swish/wiki/Home
 Bug-reports:        https://bitbucket.org/doug_burke/swish/issues
@@ -43,6 +43,10 @@ Description:
   * RDF formal semantics entailment rule implementation.
   .
   * Complete, ready-to-run, command-line and script-driven programs.
+  .
+  Changes in version @0.9.0.3@:
+  .
+  * Minor Haddock fix to @Swish.RDF.Parser.Utils.appendURIs@.
   .
   Changes in version @0.9.0.2@:
   .

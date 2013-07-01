@@ -6,7 +6,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Utils
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -81,13 +81,10 @@ import qualified Data.Text.Read as R
 
 -- Code
 
--- | Append the two URIs. Should probably be moved
---   out of RDFParser. It is also just a thin wrapper around
---   `Network.URI.relativeTo`.
---
---  Apparently, @relativeTo@ always returns @Just@ (at least
---  prior to version @2.4.0.0@ of @network), so we do not
---  expect this to ever fail (return `Left`).
+-- | Append the two URIs. Given the change in signature of
+--   `Network.URI.relativeTo` in versino @2.4.0.0@ of @network@,
+--   it is not clear that this function is necessary. At the
+--   very lease, it will be changed to just return a `URI`.
 --
 appendURIs ::
   URI     -- ^ The base URI
