@@ -1,5 +1,5 @@
 Name:               swish
-Version:            0.9.0.3
+Version:            0.9.0.4
 Stability:          experimental
 License:            LGPL
 License-file:       LICENSE 
@@ -44,6 +44,10 @@ Description:
   .
   * Complete, ready-to-run, command-line and script-driven programs.
   .
+  Changes in version @0.9.0.4@:
+  .
+  * Added tests for the Turtle parser.
+  .
   Changes in version @0.9.0.3@:
   .
   * Minor Haddock fix to @Swish.RDF.Parser.Utils.appendURIs@.
@@ -87,10 +91,6 @@ Source-repository head
 Flag  developer
   Description: Turn on developer flags
   Default:     False
-
--- Flag  hpc
---   Description: Use Hpc for the tests
---   Default:     False
 
 Library
    Build-Depends:
@@ -243,6 +243,23 @@ Test-Suite test-nt
       base,
       containers,
       HUnit,
+      swish,
+      text
+
+Test-Suite test-turtleparser
+   type:       exitcode-stdio-1.0
+   Hs-Source-Dirs: tests/
+   Main-Is:        TurtleParserTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      network,
       swish,
       text
 
