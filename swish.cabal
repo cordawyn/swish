@@ -50,7 +50,7 @@ Description:
   string literals with three or more consecutive @"@ characters); blank
   node handling has been improved but the output may not be as elegant.
   .
-  * Added tests for the Turtle parser.
+  * Added tests for the Turtle parser and formatter.
   .
   Changes in version @0.9.0.3@:
   .
@@ -250,10 +250,10 @@ Test-Suite test-nt
       swish,
       text
 
-Test-Suite test-turtleparser
+Test-Suite test-turtle
    type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/
-   Main-Is:        TurtleParserTest.hs
+   Main-Is:        TurtleTest.hs
    Other-Modules:  TestHelpers
 
    ghc-options:

@@ -4,17 +4,19 @@
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
---  Module      :  TurtleParserTest
+--  Module      :  TurtleTest
 --  Copyright   :  (c) 2013 Douglas Burke
 --  License     :  GPL V2
---
+-- 
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
---
---  This Module contains test cases for module "TurtleParser", based on the
---  examples given in <http://www.w3.org/TR/2013/CR-turtle-20130219/>.
---
+-- 
+--  This Module contains test cases for the module
+--  "Swish.RDF.Parser.Turtle" and "Swish.RDF.Formatter.Turtle" based
+--  on the examples given in
+--  <http://www.w3.org/TR/2013/CR-turtle-20130219/>.
+-- 
 --------------------------------------------------------------------------------
 
 module Main where
@@ -35,7 +37,8 @@ import Swish.RDF.Graph ( RDFGraph
                         , toRDFGraph
                         , toRDFTriple
                         )
-                          
+
+import Swish.RDF.Formatter.Turtle (formatGraphAsText)
 import Swish.RDF.Parser.Turtle (parseTurtle)
 import Swish.RDF.Vocabulary.DublinCore (dcelemtitle)
 import Swish.RDF.Vocabulary.FOAF (foafgivenName, foafknows, foafmbox, foafname, foafPerson)
@@ -56,20 +59,45 @@ toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURIRefer
 toGraph :: T.Text -> Either String RDFGraph
 toGraph = flip parseTurtle Nothing . L.fromStrict
 
+-- | Compare a Turtle format graph with its expected
+--   contents. There is also a 'round trip' check, that
+--   the contents, written out in Turtle format, then
+--   read back in, match the original contents (this
+--   only uses the list of triples, not the input Turtle
+--   version).
+--
 -- It is quicker to just check the statements when we
 -- know that the graph can not contain a blank node
 -- - i.e. compare getArcs gr to S.fromList o - but
 -- stick with graph equality checks, for now.
-compareExample :: String -> T.Text -> [RDFTriple] -> Test
+compareExample ::
+  String         -- ^ label
+  -> T.Text      -- ^ Turtle representation
+  -> [RDFTriple] -- ^ Corresponding triples
+  -> Test
 compareExample l t o =
-  let egr = toGraph t
+  let expectedGraph = toRDFGraph oset
+      egr = toGraph t
       oset = S.fromList o
       lbl = "example: " ++ l
-  in case egr of
-    Left e -> TestCase $ assertFailure $ "Unable to parse example " ++ l ++ ":\n" ++ e
-    -- Right gr -> lbl ~: oset ~=? getArcs gr
-    Right gr -> lbl ~: toRDFGraph oset ~=? gr
 
+      compareTriples =
+        case egr of
+          Left e -> TestCase $ assertFailure $ "Unable to parse example " ++ l ++ ":\n" ++ e
+          Right gr -> lbl ~: expectedGraph ~=? gr
+
+      compareRoundTrip = 
+        let ttl = formatGraphAsText expectedGraph
+            tgr = toGraph ttl
+        in case tgr of
+          Left e -> TestCase $ assertFailure $ "Unable to parse round-trip example " ++ l ++ ":\n" ++ e ++ "\n*** Turtle=\n" ++ T.unpack ttl
+          Right gr -> lbl ~: expectedGraph ~=? gr
+         
+        
+  in TestList [ compareTriples
+              , compareRoundTrip
+              ]
+     
 compareGraphs :: String -> T.Text -> T.Text -> Test
 compareGraphs l t1 t2 =
   case (toGraph t1, toGraph t2) of
@@ -285,6 +313,23 @@ result2_6 =
   in [ triple alice foafknows bob
      , triple bob foafknows alice 
      ]
+
+{-
+If you write out result2_6 you get
+
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+[
+ foaf:knows [
+ foaf:knows []
+]
+] .
+
+which is
+  :_a foaf:knows :_b
+  :_b foaf:knows :_c
+
+which is obviously wrong
+-}
      
 -- | From <http://www.w3.org/TR/2013/CR-turtle-20130219/#unlabeled-bnodes>.
 example2_7_a :: T.Text
@@ -304,6 +349,50 @@ result2_7_a =
   in [ triple someone foafknows bob
      , triple bob foafname (Lit "Bob") -- TODO: change to TypedLit
      ]
+
+{-
+### Failure in: 0:6:1:"example: 2.7 a"
+expected: Graph, formulae:
+arcs:
+    (_:23,foaf:name,"Bob")
+    (_:p,foaf:knows,_:23)
+ but got: Graph, formulae:
+arcs:
+    (_:1,foaf:name,"Bob")
+    (_:2,foaf:knows,_:3)
+
+Writing out as N3 and Turtle give different results,
+but not convinced round-tripping is sensible here,
+since reading back in the N3 version generates the
+invalid results above.
+
+% ./dist/build/Swish/Swish -i=delme2.ttl -n3 -o
+Swish 0.9.0.4
+
+
+@prefix : <#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+[
+ foaf:knows [
+ foaf:name "Bob"
+]
+] .
+
+% ./dist/build/Swish/Swish -i=delme2.ttl -ttl -o
+Swish 0.9.0.4
+
+
+@prefix : <#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+[]
+ foaf:knows [
+ foaf:name "Bob"
+]
+ .
+
+Need to look at this to see what the difference is.
+
+-}
 
 -- | From <http://www.w3.org/TR/2013/CR-turtle-20130219/#unlabeled-bnodes>.
 example2_7_b1 :: T.Text
@@ -388,7 +477,7 @@ result3_a =
       exEditor = toURI "http://example.org/stuff/1.0/editor"
       exFullName = toURI "http://example.org/stuff/1.0/fullname"
       exHomePage = toURI "http://example.org/stuff/1.0/homePage"
-      bn = Blank "$123_"
+      bn = Blank "foo" -- "$123_"
       
   in [ triple g dcelemtitle (Lit "RDF/XML Syntax Specification (Revised)")
      , triple g exEditor bn
