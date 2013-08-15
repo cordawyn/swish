@@ -6,7 +6,7 @@
 -- |
 --  Module      :  Turtle
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                 2011, 2012 Douglas Burke
+--                 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -21,6 +21,18 @@
 --  - \"Turtle, Terse RDF Triple Language\",
 --    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
 --    <http://www.w3.org/TR/turtle/>
+--
+-- NOTES:
+--
+--  - The formatter needs to be updated to the latest working draft (10 July 2012,
+--    <http://www.w3.org/TR/2012/WD-turtle-20120710/#sec-changelog>) and *then*
+--    the Candidate Recommendation (19 February 2013,
+--    <http://www.w3.org/TR/2013/CR-turtle-20130219/#sec-changelog>).
+--
+--  - Should literal strings (@Lit@) be written out as @xsd:string@, or
+--    should @TypedLit@ strings with a type of @xsd:string@ be written
+--    out with no type? (e.g. see
+--    <http://www.w3.org/TR/2011/WD-turtle-20110809/#terms>).
 --
 --------------------------------------------------------------------------------
 
@@ -311,15 +323,11 @@ nextLine = nextLine_ indent _lineBreak
 --  (b) URI nodes:  if possible, replace URI with qname,
 --      else display as <uri>
 --  (c) formula nodes (containing graphs).
---  (d) use the "special-case" formats for integer/float/double
+--  (d) use the "special-case" formats for integer/float/double/string
 --      literals.      
 --      
---  [[[TODO:]]]
---  (d) generate multi-line literals when appropriate
---
 -- This is being updated to produce inline formula, lists and     
 -- blank nodes. The code is not efficient.
---
 --
 -- Note: There is a lot less customisation possible in Turtle than N3.
 --      
@@ -329,7 +337,7 @@ formatLabel :: LabelContext -> RDFLabel -> Formatter B.Builder
 {-
 The "[..]" conversion is done last, after "()" and "{}" checks.
 
-TODO: look at the (_:_) check on the blank string; why is this needed?
+TODO: why is there a (_:_) check on the blank node?
 -}
 formatLabel lctxt lab@(Blank (_:_)) = do
   mlst <- extractList lctxt lab
@@ -369,7 +377,7 @@ mapBlankNode = mapBlankNode_ _nodeGen
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

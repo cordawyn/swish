@@ -7,7 +7,7 @@
 -- |
 --  Module      :  Internal
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                 2011, 2012 Douglas Burke
+--                 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -56,6 +56,11 @@ module Swish.RDF.Formatter.Internal
     )
 where
 
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
+
 import Swish.GraphClass (Arc(..), ArcSet)
 import Swish.Namespace (ScopedName, getScopeLocal, getScopeURI)
 import Swish.QName (getLName)
@@ -72,17 +77,12 @@ import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, x
 import Control.Monad (liftM)
 import Control.Monad.State (State, get, gets, modify, put)
 
-import Data.List (delete, foldl', groupBy, isInfixOf, intersperse, partition)
+import Data.List (foldl', groupBy, isInfixOf, intersperse, partition)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Word
 
 import Network.URI (URI)
 import Network.URI.Ord ()
-
-import qualified Data.Map as M
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as B
 
 #if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 701)
 import Data.Tuple (swap)
@@ -232,6 +232,9 @@ getCollection subjList lbl = go subjList lbl ([],[])
 --  Graph-related helper functions
 ----------------------------------------------------------------------
 
+-- partiton up the graph; should this be replaced by Swish.GraphPartition?
+-- Also extracts a list of bnodes in the graph
+--
 processArcs :: RDFGraph -> (SubjTree RDFLabel, [RDFLabel])
 processArcs gr =
     let arcs = sortArcs $ getArcs gr
@@ -304,40 +307,53 @@ splitOnLabel lbl osubjs =
   
 
 {-
-Find all blank nodes that occur
-  - any number of times as a subject
-  - 0 or 1 times as an object
+Return a list of blank nodes that can not be converted to "[]"
+format by Turtle/N3:
 
-Such nodes can be output using the "[..]" syntax. To make it simpler
-to check we actually store those nodes that can not be expanded.
+ - any blank node that is a predicate
+ - any blank node that is an object position multiple times
+ - any blank node that is both a subject and object
 
-Note that we do not try and expand any bNode that is used in
-a predicate position.
+Note, really need to partition the graph since the last check
+means that we can not convert
 
-Should probably be using the SubjTree RDFLabel structure but this
-is easier for now.
+  _:a :knows _:b . _:b :knows _:a .
+
+to
+
+  _:a :knows [ :knows _:a ] .
 
 -}
 
 countBnodes :: SortedArcs RDFLabel -> [RDFLabel]
-countBnodes (SA as) = snd (foldl' ctr ([],[]) as)
-    where
-      -- first element of tuple are those blank nodes only seen once,
-      -- second element those blank nodes seen multiple times
+countBnodes (SA as) =
+  let -- This is only ever used if a label already exists,
+      -- so we know that in this case the value to store is True
+      upd _ _ = True
+
+      -- Only want to process the subject after processing all the
+      -- arcs that it is the subject of. It could be included into
+      -- procPO by passing around the previous subject and processing
+      -- it when it changes, but separate out for now.
+      procPO oMap (Arc _ p o) =
+        addNode False o $ addNode True p oMap
+
+      procS oMap s = addNode False s oMap
+
+      -- Take advantage of the fact that the arcs are sorted
       --
-      inc b@(b1s,bms) l@(Blank _) | l `elem` bms = b
-                                  | l `elem` b1s = (delete l b1s, l:bms)
-                                  | otherwise    = (l:b1s, bms)
-      inc b _ = b
+      isBlank (Blank _) = True
+      isBlank _ = False
+      subjects = S.filter isBlank $ S.fromList $ map arcSubj as
 
-      -- if the bNode appears as a predicate we instantly add it to the
-      -- list of nodes not to expand, even if only used once
-      incP b@(b1s,bms) l@(Blank _) | l `elem` bms = b
-                                   | l `elem` b1s = (delete l b1s, l:bms)
-           			   | otherwise    = (b1s, l:bms)
-      incP b _ = b
+      -- not bothering about lazy/strict insert here
+      addNode f l@(Blank _) m = M.insertWith upd l f m
+      addNode _ _ m = m
 
-      ctr orig (Arc _ p o) = inc (incP orig p) o
+      map1 = foldl' procPO M.empty as
+      map2 = S.foldl' procS map1 subjects
+      
+  in M.keys $ M.filter id map2
 
 -- N3-like output
 
@@ -677,7 +693,7 @@ extractList_ subjs props setSubjs setProps lctxt ln = do
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

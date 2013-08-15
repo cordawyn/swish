@@ -838,9 +838,14 @@ simpleN3Graph_g1_fu1 =
 
 {-
 Simple troublesome case
--}
-    
-simpleN3Graph_x13a :: B.Builder
+
+
+Changed Aug 15 2013 to support rendering
+
+  _:a :knows _:b . _:b :knows _:a .
+
+which, as currently implemented, loses the ability to make the simplification below.
+
 simpleN3Graph_x13a =
   mconcat
   [ commonPrefixes 
@@ -853,6 +858,24 @@ simpleN3Graph_x13a =
       b1s = "[\n base1:p1 base1:o1\n]"
       b2s = "[\n base1:p1 base2:o2\n]"
       b3s = "[\n base1:p1 base3:o3\n]"
+
+-}
+    
+simpleN3Graph_x13a :: B.Builder
+simpleN3Graph_x13a =
+  mconcat
+  [ commonPrefixes 
+  , "base1:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "
+  , b1n
+  , " ;\n     <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> ( ", b2n, " ", b3n, " ) .\n"
+  , b1n, " base1:p1 base1:o1 .\n"
+  , b2n, " base1:p1 base2:o2 .\n"
+  , b3n, " base1:p1 base3:o3 .\n"
+  ]
+    where
+      b1n = "_:swish1"
+      b2n = "_:swish2"
+      b3n = "_:swish3"
 
 {-
 Simple collection tests; may replicate some of the
@@ -913,23 +936,44 @@ simpleN3Graph_b1rev =
   commonPrefixesN [0] `mappend`
   "[\n base1:p1 base1:o1\n] .\n"
 
-simpleN3Graph_b2 :: B.Builder
+{-
+See discussion of simpleN3Graph_x13a  for why this has been changed
 simpleN3Graph_b2 =
   commonPrefixesN [0,1,2] `mappend`
   "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
+-}
+
+simpleN3Graph_b2 :: B.Builder
+simpleN3Graph_b2 =
+  commonPrefixesN [0,1,2] `mappend`
+  "base1:s1 base1:p1 _:b1 .\n_:b1 base2:o2 base3:o3 ;\n     base2:p2 \"l1\" .\n"
 
 simpleN3Graph_b2rev :: B.Builder
 simpleN3Graph_b2rev =
   commonPrefixesN [0,1,2] `mappend`
   "[\n base1:p1 base1:o1 ;\n     base2:o2 base3:o3 ;\n     base2:p2 \"l1\"\n] .\n"
 
-simpleN3Graph_b3 :: B.Builder
+{-
+See discussion of simpleN3Graph_x13a  for why this has been changed
+
 simpleN3Graph_b3 =
   mconcat
   [ commonPrefixesN [0,1,2]
   , "base1:s1 base1:p1 [\n base2:o2 base3:o3 ;\n     base2:p2 \"\"\"", l2txt, "\"\"\"\n] ;\n"
   , "     base2:p2 [] .\n"
   , "base2:s2 base2:p2 base2:o2 .\n" ]
+
+-}
+
+simpleN3Graph_b3 :: B.Builder
+simpleN3Graph_b3 =
+  mconcat
+  [ commonPrefixesN [0,1,2]
+  , "base1:s1 base1:p1 _:b1 ;\n"
+  , "     base2:p2 [] .\n"
+  , "base2:s2 base2:p2 base2:o2 .\n"
+  , "_:b1 base2:o2 base3:o3 ;\n     base2:p2 \"\"\"", l2txt, "\"\"\" .\n"
+  ]
 
 simpleN3Graph_b4 :: B.Builder
 simpleN3Graph_b4 =
