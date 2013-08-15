@@ -72,7 +72,7 @@ import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, x
 import Control.Monad (liftM)
 import Control.Monad.State (State, get, gets, modify, put)
 
-import Data.List (delete, foldl', groupBy, intersperse, partition)
+import Data.List (delete, foldl', groupBy, isInfixOf, intersperse, partition)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Word
 
@@ -350,13 +350,45 @@ Convert text into a format for display in Turtle. The idea
 is to use one double quote unless three are needed, and to
 handle adding necessary @\\@ characters, or conversion
 for Unicode characters.
+
+Turtle supports 4 ways of quoting text,
+
+  1) '...'
+  2) '''...'''
+  3) "..."
+  4) """..."""
+
+where there are constraints on ... for each one. At present
+we assume that the string is to be quoted as 3 or 4; this
+could be extended to allow for 1 or 2 as well.
+
+For now option 4 is only used when the contents contain a
+@\n@ character and does not contain @"""@.
 -}
+
+-- The original thinking was that a scan of the string is worthwhile
+-- if it avoids having to quote characters, but we always need to
+-- go through and do this anyway, eg for @\t@ or @\@.
+--
+-- Swish.RDF.Graph.quote, used by quoteB, does not handle
+-- strings with three or more consecutive @"@ characters, so
+-- we explicitly check for this and fall back to the single-"
+-- version, which protects each quote.
+--
 quoteText :: T.Text -> B.Builder
 quoteText txt = 
-  let st = T.unpack txt -- TODO: fix
-      qst = quoteB (n==1) st
-      n = if '\n' `elem` st || '"' `elem` st then 3 else 1
+  let st = T.unpack txt -- TODO: fix to use Text
+
+      -- assume the magical ghc pixie will fuse all these loops
+      hasNL = '\n' `elem` st
+      hasSQ = '"' `elem` st
+      has3Q = "\"\"\"" `isInfixOf` st
+        
+      n = if has3Q || (not hasNL && not hasSQ) then 1 else 3
+            
       qch = B.fromString (replicate n '"')
+      qst = quoteB (n==1) st
+
   in mconcat [qch, qst, qch]
 
 -- TODO: need to be a bit more clever with this than we did in NTriples

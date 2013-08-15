@@ -8,7 +8,7 @@
 -- |
 --  Module      :  Graph
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---                 2011, 2012 Douglas Burke
+--                 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -668,12 +668,12 @@ showCanon s                  = show s
 
 -- | See `quote`.
 quoteT :: Bool -> T.Text -> T.Text
-quoteT f = T.pack . quote f . T.unpack 
+quoteT f = T.pack . quote f . T.unpack  -- TODO: avoid conversion to string
 
 {-| N3-style quoting rules for a string.
 
-TODO: when flag is `False` need to worry about multiple quotes (> 2)
-in a row.
+*WARNING*: the output is /incorrect/ if the flag is `False` and
+the text contains 3 or more consecutive @"@ characters.
 -}
 
 quote :: 
@@ -1474,7 +1474,7 @@ updateRDFGraph gr as = gr { statements=as }
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

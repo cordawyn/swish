@@ -46,6 +46,9 @@ Description:
   .
   Changes in version @0.9.0.4@:
   .
+  * Improved string formatting for Turtle/N3 output (better handling of
+  string literals with three or more consecutive @"@ characters).
+  .
   * Added tests for the Turtle parser.
   .
   Changes in version @0.9.0.3@:
