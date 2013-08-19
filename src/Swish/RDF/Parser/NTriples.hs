@@ -4,7 +4,7 @@
 
 -- |
 --  Module      :  NTriples
---  Copyright   :  (c) 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -25,7 +25,9 @@
 --
 --  - If the URI is actually an IRI (Internationalized Resource Identifiers)
 --    then the parser will fail since 'Network.URI.parseURI' fails.
---    
+--
+--  - The case of language tags is retained.
+--
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Parser.NTriples
@@ -208,9 +210,13 @@ isaz = isAsciiLower
 isAZ = isAsciiUpper
 is09 = isDigit
 
+isaZ, isaZ09 :: Char -> Bool
+isaZ c = isaz c || isAZ c
+isaZ09 c = isaZ c || is09 c
+
 isHeadChar, isBodyChar :: Char -> Bool
-isHeadChar c = isaz c || isAZ c
-isBodyChar c = isHeadChar c || is09 c
+isHeadChar = isaZ
+isBodyChar = isaZ09
 
 name :: NTParser L.Text
 name = L.cons <$> satisfy isHeadChar <*> manySatisfy isBodyChar
@@ -297,8 +303,8 @@ ntstring = bracket (char '"') (char '"') (many character)
 
 dtlang :: NTParser (Either LanguageTag ScopedName)
 dtlang = 
-    (char '@' *> (Left <$> language))
-    <|> (string "^^" *> (Right <$> uriref))
+    (char '@' *> commit (Left <$> language))
+    <|> (string "^^" *> commit (Right <$> uriref))
 
 -- Note that toLangTag may fail since it does some extra
 -- validation not done by the parser (mainly on the length of the
@@ -307,10 +313,14 @@ dtlang =
 -- NOTE: This parser does not accept multiple secondary tags which RFC3066
 -- does.
 --
+-- Although the EBNF only lists [a-z] we also support upper case values,
+-- since the W3C Turtle test case includes a NTriples file with
+-- "...@en-UK" in it.
+--
 language :: NTParser LanguageTag
 language = do
-    h <- many1Satisfy isaz
-    mt <- optional ( L.cons <$> char '-' <*> many1Satisfy (\c -> isaz c || is09 c) )
+    h <- many1Satisfy isaZ
+    mt <- optional $ L.cons <$> char '-' <*> many1Satisfy isaZ09
     let lbl = L.toStrict $ L.append h $ fromMaybe L.empty mt
     case toLangTag lbl of
         Just lt -> return lt
@@ -380,7 +390,7 @@ character =
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2011, 2012 Douglas Burke
+--  Copyright (c) 2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

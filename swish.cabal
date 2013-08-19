@@ -50,6 +50,9 @@ Description:
   string literals with three or more consecutive @"@ characters); blank
   node handling has been improved but the output may not be as elegant.
   .
+  * NTriples parser: now accepts upper-case language tags such as
+  @en-UK@ (case is preserved).
+  .
   * Added tests for the Turtle parser and formatter.
   .
   Changes in version @0.9.0.3@:
