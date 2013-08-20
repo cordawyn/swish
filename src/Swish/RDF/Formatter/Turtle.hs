@@ -362,7 +362,7 @@ formatLabel ctxt (Res sn)
 
 formatLabel _ (Lit lit) = return $ formatPlainLit lit
 formatLabel _ (LangLit lit lcode) = return $ formatLangLit lit lcode
-formatLabel _ (TypedLit lit dtype) = return $ formatTypedLit lit dtype
+formatLabel _ (TypedLit lit dtype) = return $ formatTypedLit False lit dtype
 
 formatLabel _ lab = return $ B.fromString $ show lab
 

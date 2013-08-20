@@ -434,10 +434,17 @@ formatLangLit lit lcode = mconcat [quoteText lit, "@", B.fromText (fromLangTag l
 -- does not match the syntax used in N3, so we need to convert here.     
 -- Rather than converting back to a Double and then displaying that       
 -- we just convert E to e for now.      
---      
-formatTypedLit :: T.Text -> ScopedName -> B.Builder
-formatTypedLit lit dtype
-    | dtype == xsdDouble = B.fromText $ T.toLower lit
+--
+-- However, I am moving away from storing a canonical representation
+-- of a datatyped literal in the resource since it is messy and makes
+-- some comparisons difficult (unless equality of RDFLabels is made
+-- dependent on types, and then it gets messy). I am also not as
+-- concerned about issues in the N3 parser/formatter as in the Turtle
+-- one.
+--
+formatTypedLit :: Bool -> T.Text -> ScopedName -> B.Builder
+formatTypedLit n3flag lit dtype
+    | dtype == xsdDouble = B.fromText $ if n3flag then T.toLower lit else lit
     | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = B.fromText lit
     | otherwise = mconcat [quoteText lit, "^^", showScopedName dtype]
                            
