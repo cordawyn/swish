@@ -50,12 +50,10 @@
 --     others - e.g. Sparql or the N3 parser?
 
 module Swish.RDF.Parser.Turtle
-       {- EXPORT EVERYTHING FOR TESTING; TODO REMOVE XXX
     ( ParseResult
     , parseTurtle      
     , parseTurtlefromText      
     )
--}
 where
 
 import Swish.GraphClass (arc)

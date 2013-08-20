@@ -15,7 +15,17 @@
 --  Stability   :  experimental
 --  Portability :  FlexibleInstances, MultiParamTypeClasses, OverloadedStrings
 --
---  This module defines a memory-based RDF graph instance.
+--  This module defines a memory-based RDF graph instance. At present only
+--  RDF 1.0 is explicitly supported; I have not gone through the RDF 1.1
+--  changes to see how the code needs to be updated. This means that you
+--  can have untyped strings in your graph that do not match the same content
+--  but with an explicit @xsd:string@ datatype.
+--
+--  Note that the identifiers for blank nodes may /not/ be propogated when
+--  a graph is written out using one of the formatters, such as
+--  'Swish.RDF.Formatter.Turtle'. There is limited support for
+--  generating new blank nodes from an existing set of triples; e.g.
+--  'newNode' and 'newNodes'.
 --
 --------------------------------------------------------------------------------
 
@@ -213,7 +223,7 @@ import qualified Data.Traversable as Traversable
 
 -- | RDF graph node values
 --
---  cf. <http://www.w3.org/TR/rdf-concepts/#section-Graph-syntax>
+--  cf. <http://www.w3.org/TR/rdf-concepts/#section-Graph-syntax> version 1.0
 --
 --  This is extended from the RDF abstract graph syntax in the
 --  following ways:
@@ -672,8 +682,8 @@ quoteT f = T.pack . quote f . T.unpack  -- TODO: avoid conversion to string
 
 {-| N3-style quoting rules for a string.
 
-*WARNING*: the output is /incorrect/ if the flag is `False` and
-the text contains 3 or more consecutive @"@ characters.
+WARNING: the output is /incorrect/ if the flag is @False@ and
+the text contains 3 or more consecutive @\"@ characters.
 -}
 
 quote :: 
@@ -1377,13 +1387,14 @@ maplist (dn:dupbn) allbn cnvbn mapbn = maplist dupbn allbn' cnvbn mapbn'
         mapbn' = (dn,dnmap):mapbn
         allbn' = dnmap:allbn
 
+--  TODO: optimize this for common case @nnn@ and @_nnn@:
+--    always generate @_nnn@ and keep track of last allocated
+--
+
 -- |Given a node and a list of existing nodes, find a new node for
 --  the supplied node that does not clash with any existing node.
 --  (Generates an non-terminating list of possible replacements, and
 --  picks the first one that isn't already in use.)
---
---  TODO: optimize this for common case @nnn@ and @_nnn@:
---    always generate @_nnn@ and keep track of last allocated
 --
 newNode :: (Label lb) => lb -> [lb] -> lb
 newNode dn existnodes =

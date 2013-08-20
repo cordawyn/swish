@@ -24,10 +24,9 @@
 --
 -- NOTES:
 --
---  - The formatter needs to be updated to the latest working draft (10 July 2012,
---    <http://www.w3.org/TR/2012/WD-turtle-20120710/#sec-changelog>) and *then*
---    the Candidate Recommendation (19 February 2013,
---    <http://www.w3.org/TR/2013/CR-turtle-20130219/#sec-changelog>).
+--  - The formatter needs to be updated to the W3C
+--    Candidate Recommendation (19 February 2013,
+--    <http://www.w3.org/TR/2013/CR-turtle-20130219/>).
 --
 --  - Should literal strings (@Lit@) be written out as @xsd:string@, or
 --    should @TypedLit@ strings with a type of @xsd:string@ be written

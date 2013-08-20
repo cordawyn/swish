@@ -12,13 +12,19 @@
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
 --
---  This Module implements a NTriples formatter for an 'RDFGraph'.
+--  This Module implements a NTriples formatter for a 'RDFGraph'.
 --
 --  REFERENCES:
 --
 --  - \"RDF Test Cases\",
 --     W3C Recommendation 10 February 2004,
 --     <http://www.w3.org/TR/rdf-testcases/#ntriples>
+--
+-- NOTES:
+--
+--  - Update to the document \"N-Triples. A line-based syntax for an RDF graph\"
+--    W3C Working Group Note 09 April 2013,
+--    <http://www.w3.org/TR/2013/NOTE-n-triples-20130409/>
 --
 --------------------------------------------------------------------------------
 

@@ -369,17 +369,21 @@ for Unicode characters.
 
 Turtle supports 4 ways of quoting text,
 
-  1) '...'
-  2) '''...'''
-  3) "..."
-  4) """..."""
+  (1) @\'...\'@
 
-where there are constraints on ... for each one. At present
+  (2) @\'\'\'...\'\'\'@
+
+  (3) @\"...\"@
+
+  (4) @\"\"\"...\"\"\"@
+
+where there are slightly-different
+constraints on @...@ for each one. At present
 we assume that the string is to be quoted as 3 or 4; this
 could be extended to allow for 1 or 2 as well.
 
 For now option 4 is only used when the contents contain a
-@\n@ character and does not contain @"""@.
+@\n@ character and does not contain @\"\"\"@.
 -}
 
 -- The original thinking was that a scan of the string is worthwhile

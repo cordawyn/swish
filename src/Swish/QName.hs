@@ -118,12 +118,13 @@ two components.
 > swish> let qn2 = "http://example.com/bob" :: QName
 > swish> let qn3 = "http://example.com/bob/fred" :: QName
 > swish> let qn4 = "http://example.com/bob/fred#x" :: QName
-> swish> map getLocalName [qn1, qn2, qn3, qn4]
-> ["","bob","fred","x"]
+> swish> let qn5 = "http://example.com/bob/fred:joe" :: QName
+> swish> map getLocalName [qn1, qn2, qn3, qn4, qn5]
+> ["","bob","fred","x","fred:joe"]
 > swish> getNamespace qn1
-> http://example.com
+> http://example.com/
 > swish> getNamespace qn2
-> http://example.com
+> http://example.com/
 > swish> getNamespace qn3
 > http://example.com/bob/
 > swish> getNamespace qn4
@@ -159,7 +160,7 @@ instance Ord QName where
     compare = comparing getQNameURI
   
 -- | The format used to display the URI is @\<uri\>@, and does not
---   include the password if using baccess access authorization.
+--   include the password if using basic access authorization.
 instance Show QName where
     show (QName u _ _) = "<" ++ show u ++ ">"
 

@@ -28,6 +28,10 @@
 --
 --  - The case of language tags is retained.
 --
+--  - Update to the document \"N-Triples. A line-based syntax for an RDF graph\"
+--    W3C Working Group Note 09 April 2013,
+--    <http://www.w3.org/TR/2013/NOTE-n-triples-20130409/>
+--
 --------------------------------------------------------------------------------
 
 module Swish.RDF.Parser.NTriples
