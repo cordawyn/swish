@@ -1,5 +1,11 @@
 0.9.0.4:
 
+  Turtle parser: updated to the Candidate Recommendation (19 February
+  2013) specification; added minor improvements to error messages when
+  given invalid syntax. As part of the upgrade, there is no longer a
+  default namespace set up for the empty prefix and numeric literals
+  are no-longer converted into a 'canonical' form.
+
   Turtle/N3 output: improved string formatting (better handling of
   string literals with three or more consecutive " characters); blank
   node handling has been improved but the output may not be as elegant.
@@ -8,6 +14,8 @@
   en-UK (case is preserved).
 
   Swish.QName.LName names can now contain #, : and / characters.
+
+  Added tests for the Turtle parser and formatter.
 
   The new w3ctests flag will build the runw3ctests executable,
   which will run the W3C Turtle tests (if downloaded from

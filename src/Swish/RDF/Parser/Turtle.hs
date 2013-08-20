@@ -1,11 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-} -- only used in 'fromMaybe "" mbase' line of parseN3
+{-# LANGUAGE OverloadedStrings #-}
 
 --------------------------------------------------------------------------------
 --  See end of this file for licence information.
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  Turtle
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -19,48 +19,43 @@
 -- REFERENCES:
 --
 --  - \"Turtle, Terse RDF Triple Language\",
---    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>),
+--    W3C Candidate Recommendation 19 February 2013 (<http://www.w3.org/TR/2013/CR-turtle-20130219/L),
 --    <http://www.w3.org/TR/turtle/>
 --
 -- NOTES:
 --
---  - At present there is a lot of overlap with the N3 Parser.
---
---  - The parser needs to be updated to the latest working draft (10 July 2012,
---    <http://www.w3.org/TR/2012/WD-turtle-20120710/#sec-changelog>).
---
+--  - Prior to version @0.9.0.4@, the parser followed the
+--    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
+-- 
 --  - Strings with no language tag are converted to a 'LitTag' not a
 --    'TypedLitTag' with a type of @xsd:string@ (e.g. see
 --    <http://www.w3.org/TR/2011/WD-turtle-20110809/#terms>).
 --
 --  - If the URI is actually an IRI (Internationalized Resource Identifiers)
 --    then the parser will fail since 'Network.URI.parseURI' fails.
+-- 
+--  - The current (August 2013) Turtle test suite from
+--    <http://www.w3.org/2013/TurtleTests/> passes except for the four
+--    tests with non-ASCII local names, namely:
+--    @localName_with_assigned_nfc_bmp_PN_CHARS_BASE_character_boundaries@,
+--    @localName_with_assigned_nfc_PN_CHARS_BASE_character_boundaries@,
+--    @localName_with_nfc_PN_CHARS_BASE_character_boundaries@,
+--    and
+--    @localName_with_non_leading_extras@.
 --
 --------------------------------------------------------------------------------
 
+-- TODO:
+--   - should the productions moved to an Internal module for use by
+--     others - e.g. Sparql or the N3 parser?
+
 module Swish.RDF.Parser.Turtle
+       {- EXPORT EVERYTHING FOR TESTING; TODO REMOVE XXX
     ( ParseResult
     , parseTurtle      
     , parseTurtlefromText      
-    {-
-    , parseAnyfromText
-    , parseTextFromText, parseAltFromText
-    , parseNameFromText -- , parsePrefixFromText
-    , parseAbsURIrefFromText, parseLexURIrefFromText, parseURIref2FromText
-    -}
-      
-      {-
-    -- * Exports for parsers that embed Turtle in a bigger syntax
-    , TurtleParser, TurtleState(..), SpecialMap
-    
-    , getPrefix -- a combination of the old defaultPrefix and namedPrefix productions
-    , n3symbol -- replacement for uriRef2 -- TODO: check this is semantically correct      
-    , quickVariable -- was varid      
-    , lexUriRef       
-    , document, subgraph                                                   
-    , newBlankNode
-       -}
     )
+-}
 where
 
 import Swish.GraphClass (arc)
@@ -72,7 +67,6 @@ import Swish.QName (newLName, emptyLName)
 
 import Swish.RDF.Graph
     ( RDFGraph, RDFLabel(..)
-    , ToRDFLabel(..)
     , NamespaceMap
     , addArc 
     , setNamespaces
@@ -99,7 +93,7 @@ import Swish.RDF.Parser.Utils
     , ichar
     , string
     , stringT
-    , symbol
+    , sepEndBy1
     , isymbol
     , lexeme
     , whiteSpace
@@ -111,8 +105,8 @@ import Swish.RDF.Parser.Utils
 import Control.Applicative
 import Control.Monad (foldM)
 
-import Data.Char (chr, ord, isAsciiLower, isAsciiUpper, isDigit) 
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Char (chr, isAsciiLower, isAsciiUpper, isDigit, isHexDigit, ord, toLower)
+import Data.Maybe (fromMaybe)
 import Data.Word (Word32)
 
 import Network.URI (URI(..), parseURIReference)
@@ -198,14 +192,19 @@ parseTurtle ::
   -> ParseResult
 parseTurtle txt mbase = parseAnyfromText turtleDoc mbase txt
 
+{-
 hashURI :: URI
 hashURI = fromJust $ parseURIReference "#"
+-}
 
+-- | The W3C turtle tests - e.g. <http://www.w3.org/2013/TurtleTests/turtle-syntax-bad-prefix-01.ttl> -
+-- point out there's no default prefix mapping.
+--
 emptyState :: 
   Maybe URI  -- ^ starting base for the graph
   -> TurtleState
 emptyState mbase = 
-  let pmap   = M.singleton Nothing hashURI
+  let pmap   = M.empty -- M.singleton Nothing hashURI
       buri   = fromMaybe (getScopedNameURI defaultBase) mbase
   in TurtleState
      { graphState = emptyRDFGraph
@@ -258,13 +257,28 @@ dQuot3 = ignore $ string "\"\"\""
 match :: (Ord a) => a -> [(a,a)] -> Bool
 match v = any (\(l,h) -> v >= l && v <= h)
 
--- a specialization of bracket
-br :: String -> String -> TurtleParser a -> TurtleParser a
-br lsym rsym = bracket (symbol lsym) (symbol rsym)
+-- a specialization of bracket that ensures white space after
+-- the bracket symbol is parsed.
+br :: Char -> Char -> TurtleParser a -> TurtleParser a
+br lsym rsym =
+  let f = lexeme . char
+  in bracket (f lsym) (f rsym)
 
 -- this is a lot simpler than N3
 atWord :: T.Text -> TurtleParser ()
 atWord s = char '@' *> lexeme (stringT s) *> pure ()
+
+-- | Case insensitive match.
+charI ::
+  Char  -- ^ must be upper case
+  -> TurtleParser Char
+charI c = satisfy (`elem` c : [ toLower c ])
+
+-- | Case insensitive match.
+stringI ::
+  String  -- ^ must be upper case
+  -> TurtleParser String
+stringI = mapM charI
 
 {-
 Add statement to graph in the parser state; there is a special case
@@ -290,19 +304,6 @@ isAZ = isAsciiUpper
 isaZ c = isaz c || isAZ c
 is09 = isDigit
 isaZ09 c = isaZ c || is09 c
-
-{-
-Convert a string representing a double into canonical
-XSD form. The input string is assumed to be syntactically
-valid so we use read rather than reads. We use the String read
-rather than Text one because of issues I have had in some tests
-with the accuracy of the Text one.
--}
-d2s :: L.Text -> RDFLabel
-d2s = 
-  let conv :: String -> Double
-      conv = read
-  in toRDFLabel . conv . L.unpack
 
 {-
 Since operatorLabel can be used to add a label with an 
@@ -346,10 +347,27 @@ findPrefix pre = do
     Just uri -> return $ makeNamespace (Just pre) uri
     Nothing  -> failBad $ "Undefined prefix '" ++ T.unpack pre ++ ":'."
 
+-- | Add the message to the start of the error message if the
+--   parser fails (a minor specialization of 'adjustErr').
+
+{-
+addErr :: Parser s a -> String -> Parser s a
+addErr p m = adjustErr p (m++)
+-}
+
+(<?) ::
+  Parser s a
+  -> String -- ^ Error message to add (a new line is added after the message)
+  -> Parser s a
+(<?) p m = adjustErr p ((m++"\n")++)
+
+-- Applicative's <* et al are infixl 4, with <|> infixl 3
+infixl 4 <?
+
 {-
 
-Syntax productions; the Turtle NBF grammar elements are from
-http://www.w3.org/TR/turtle/turtle.bnf
+Syntax productions; the Turtle ENBF grammar elements are from
+http://www.w3.org/TR/2013/CR-turtle-20130219/#sec-grammar-grammar
 
 The element names are converted to match Haskell syntax
 and idioms where possible:
@@ -359,9 +377,8 @@ and idioms where possible:
   - upper-case identifiers prepended by _ after above form
 
 -}
-
 {-
-[1] turtleDoc ::= (statement)*
+[1]	turtleDoc	::=	statement*
 -}
 turtleDoc :: TurtleParser RDFGraph
 turtleDoc = mkGr <$> (whiteSpace *> many statement *> eof *> stGet)
@@ -369,158 +386,140 @@ turtleDoc = mkGr <$> (whiteSpace *> many statement *> eof *> stGet)
     mkGr s = setNamespaces (prefixUris s) (graphState s)
 
 {-
-[2] statement ::= directive "." 
- | triples "."
+[2]	statement	::=	directive | triples '.'
 -}
 statement :: TurtleParser ()
-statement = (directive <|> triples) *> fullStop
+statement = directive <|> (triples *> fullStop)
 
 {-
-[3] directive ::= prefixID 
- | base
+[3]	directive	::=	prefixID | base | sparqlPrefix | sparqlBase
+
+With the addition of sparqlPrefix/sparqlBase (so '.' handling moved
+into prefixID/base) may need to adjust use of lexeme.
 -}
 directive :: TurtleParser ()
-directive = lexeme (prefixID <|> base)
+directive =
+  lexeme
+  (prefixID <? "Unable to parse @prefix statement."
+   <|> base <? "Unable to parse @base statement."
+   <|> sparqlPrefix <? "Unable to parse Sparql PREFIX statement."
+   <|> sparqlBase <? "Unable to parse Sparql BASE statement.")
 
 {-
-[4] prefixID ::= PREFIX PNAME_NS IRI_REF 
+[4]	prefixID	::=	'@prefix' PNAME_NS IRIREF '.'
 -}
 prefixID :: TurtleParser ()
 prefixID = do
-  _prefix 
-  p <- lexeme _pnameNS
-  u <- _iriRef
-  stUpdate (setPrefix (fmap L.toStrict p) u)
+  atWord "prefix"
+  p <- commit $ lexeme _pnameNS
+  u <- lexeme _iriRef
+  fullStop
+  stUpdate $ setPrefix (fmap L.toStrict p) u
 
 {-
-[5] base ::= BASE IRI_REF 
+[5]	base	::=	'@base' IRIREF '.'
 -}
 base :: TurtleParser ()
-base = _base >> _iriRef >>= stUpdate . setBase
+base = do
+  atWord "base"
+  b <- commit $ lexeme _iriRef
+  fullStop
+  stUpdate $ setBase b
 
 {-
-[6] triples ::= subject predicateObjectList 
+[5s]	sparqlBase	::=	"BASE" IRIREF
+-}
+sparqlBase :: TurtleParser ()
+sparqlBase = lexeme (stringI "BASE") >> commit _iriRef >>= stUpdate . setBase
+
+{-
+[6s]	sparqlPrefix	::=	"PREFIX" PNAME_NS IRIREF
+-}
+sparqlPrefix :: TurtleParser ()
+sparqlPrefix = do
+  ignore $ lexeme $ stringI "PREFIX"
+  p <- commit $ lexeme _pnameNS
+  u <- lexeme _iriRef
+  stUpdate $ setPrefix (fmap L.toStrict p) u
+
+{-
+[6]	triples	::=	subject predicateObjectList | blankNodePropertyList predicateObjectList?
 -}
 
 triples :: TurtleParser ()
-triples = subject >>= predicateObjectList
+triples =
+  (subject >>= predicateObjectList)
+  <|>
+  (blankNodePropertyList >>= ignore . optional . predicateObjectList)
 
 {-
-[7] predicateObjectList ::= verb objectList ( ";" verb objectList )* (";")? 
+[7]	predicateObjectList	::=	verb objectList (';' (verb objectList)?)*
 -}
 
 predicateObjectList :: RDFLabel -> TurtleParser ()
 predicateObjectList subj = 
   let term = verb >>= objectList subj
-  in sepBy1 term semiColon *> ignore (optional semiColon)
-  -- in sepBy1 (lexeme term) semiColon *> ignore (optional semiColon)
-  
+  in ignore $ sepEndBy1 term (many1 semiColon)
+
 {-
-[8] objectList ::= object ( "," object )* 
+[8]	objectList	::=	object (',' object)*
 -}
 
 objectList :: RDFLabel -> RDFLabel -> TurtleParser ()
 objectList subj prd = sepBy1 object comma >>= mapM_ (addStatement subj prd)
 
 {-
-[9] verb ::= predicate 
- | "a"
+[9]	verb	::=	predicate | 'a'
 -}
 
 verb :: TurtleParser RDFLabel
 verb = predicate <|> (lexeme (char 'a') *> operatorLabel rdfType)
    
 {-       
-[10] subject ::= IRIref 
- | blank 
+[10]	subject	::=	iri | BlankNode | collection
 -}
 
 subject :: TurtleParser RDFLabel
-subject = (Res <$> iriref) <|> blank
+subject = (Res <$> iri) <|> blankNode <|> collection
 
 {-
-[11] predicate ::= IRIref 
+[11]	predicate	::=	iri
 -}
 
 predicate :: TurtleParser RDFLabel
-predicate = Res <$> iriref
+predicate = Res <$> iri
 
 {-
-[12] object ::= IRIref 
- | blank 
- | literal
+[12]	object	::=	iri | BlankNode | collection | blankNodePropertyList | literal
 -}
 
 object :: TurtleParser RDFLabel
-object = (Res <$> iriref) <|> blank <|> literal
+object = (Res <$> iri) <|> blankNode <|> collection <|>
+         blankNodePropertyList <|> literal
 
 {-
-[13] literal ::= RDFLiteral 
- | NumericLiteral 
- | BooleanLiteral 
+[13]	literal	::=	RDFLiteral | NumericLiteral | BooleanLiteral
 -}
 
 literal :: TurtleParser RDFLabel
 literal = lexeme $ rdfLiteral <|> numericLiteral <|> booleanLiteral
 
 {-
-[14] blank ::= BlankNode 
- | blankNodePropertyList 
- | collection 
-
-Since both BlankNode and blankNodePropertyList can match '[ ... ]' we pull
-that out and treat this as
-
-  blank ::= BLANK_NODE_LABEL
-     | "[" (predicateObjectList | WS*) "]"
-     | collection
-
-blank :: TurtleParser RDFLabel
-blank = lexeme (blankNode <|> blankNodePropertyList <|> collection)
-
+[14]	blankNodePropertyList	::=	'[' predicateObjectList ']'
 -}
-
-blank :: TurtleParser RDFLabel
-blank = lexeme (_blankNodeLabel
-                <|>
-                bracket (char '[') (char ']') handleBlankNode
-                <|>
-                collection
-                )
-
-{-
-[15] blankNodePropertyList ::= "[" predicateObjectList "]" 
-
-We now match the brackets in the parent rule.
 
 blankNodePropertyList :: TurtleParser RDFLabel
 blankNodePropertyList = do
   bNode <- newBlankNode
-  -- br "[" "]" (predicateObjectList bNode)
-  bracket (satisfy (=='['))
-    (satisfy (==']'))
-    (_manyws *> predicateObjectList bNode *> _manyws)
-  -- ignore (optional _manyws) -- TODO: this is a hack
+  br '[' ']' $ lexeme (predicateObjectList bNode)
   return bNode
-
--}
-
-handleBlankNode :: TurtleParser RDFLabel
-handleBlankNode = do
-  bNode <- newBlankNode
-  _manyws
-  ignore $ optional $ predicateObjectList bNode
-  _manyws
-  return bNode
-
 
 {-
-[16] collection ::= "(" object* ")" 
+[15]	collection	::=	'(' object* ')'
 -}
-
 collection :: TurtleParser RDFLabel
 collection = do
-  os <- br "(" ")" (many object)
+  os <- br '(' ')' $ many object
   eNode <- operatorLabel rdfNil
   case os of
     [] -> return eNode
@@ -544,157 +543,93 @@ collection = do
         return bNode
 
 {-
-[17] <BASE> ::= "@base" 
--}
+[16]	NumericLiteral	::=	INTEGER | DECIMAL | DOUBLE
 
-_base :: TurtleParser ()
-_base = atWord "base"
+NOTE: We swap the order from this production
+
+I have removed the conversion to a canonical form for
+the double production, since it makes running the W3C
+tests for Turtle harder (since it assumes that "1E0"
+is passed through as is). It is also funny to
+create a "canonical" form for only certain data types.
+-}
+numericLiteral :: TurtleParser RDFLabel
+numericLiteral =
+  let f t v = makeDatatypedLiteral t (L.toStrict v)
+  in (f xsdDouble <$> _double)
+     <|>
+     (f xsdDecimal <$> _decimal)
+     <|>
+     (f xsdInteger <$> _integer)
 
 {-
-[18] <PREFIX> ::= "@prefix" 
+[128s]	RDFLiteral	::=	String (LANGTAG | '^^' iri)?
+
+TODO: remove 'Lit lbl' form, since dtype=xsd:string in this case.
 -}
-
-_prefix :: TurtleParser ()
-_prefix = atWord "prefix"
-
-{-
-[19] <UCHAR> ::= ( "\\u" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] ) 
- | ( "\\U" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] 
- [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] ) 
-
--}
-
-_uchar :: TurtleParser Char
-_uchar = char '\\' *> _uchar'
-         
-_uchar' :: TurtleParser Char
-_uchar' = (char 'u' *> hex4) <|> (char 'U' *> hex8)
-
-{-
-[60s] RDFLiteral ::= String ( LANGTAG | ( "^^" IRIref ) )? 
--}
-
 rdfLiteral :: TurtleParser RDFLabel
 rdfLiteral = do
   lbl <- L.toStrict <$> turtleString
-  opt <- optional ((Left <$> _langTag) <|> (string "^^" *> (Right <$> iriref)))
+  opt <- optional ((Left <$> _langTag)
+                   <|>
+                   (string "^^" *> (Right <$> commit iri)))
+  ignore $ optional whiteSpace
   return $ case opt of
              Just (Left lcode)  -> LangLit lbl lcode
              Just (Right dtype) -> TypedLit lbl dtype
              _                  -> Lit lbl
 
 {-
-[61s] NumericLiteral ::= NumericLiteralUnsigned 
- | NumericLiteralPositive 
- | NumericLiteralNegative 
+[133s]	BooleanLiteral	::=	'true' | 'false'
 -}
-
-numericLiteral :: TurtleParser RDFLabel
-numericLiteral = numericLiteralNegative <|> numericLiteralPositive <|> numericLiteralUnsigned
-
-{-
-[62s] NumericLiteralUnsigned ::= INTEGER 
- | DECIMAL 
- | DOUBLE 
--}
-
-numericLiteralUnsigned :: TurtleParser RDFLabel
-numericLiteralUnsigned = 
-  d2s <$> _double
-  <|> 
-  (makeDatatypedLiteral xsdDecimal . L.toStrict <$> _decimal)
-  <|> 
-  (makeDatatypedLiteral xsdInteger . L.toStrict <$> _integer)
-
-{-
-[63s] NumericLiteralPositive ::= INTEGER_POSITIVE 
- | DECIMAL_POSITIVE 
- | DOUBLE_POSITIVE 
--}
-
-numericLiteralPositive :: TurtleParser RDFLabel
-numericLiteralPositive =
-  d2s <$> _doublePositive
-  <|> 
-  (makeDatatypedLiteral xsdDecimal . L.toStrict <$> _decimalPositive)
-  <|> 
-  (makeDatatypedLiteral xsdInteger . L.toStrict <$> _integerPositive)
-
-{-
-[64s] NumericLiteralNegative ::= INTEGER_NEGATIVE 
- | DECIMAL_NEGATIVE 
- | DOUBLE_NEGATIVE 
--}
-
-numericLiteralNegative :: TurtleParser RDFLabel
-numericLiteralNegative = 
-  d2s <$> _doubleNegative
-  <|> 
-  (makeDatatypedLiteral xsdDecimal . L.toStrict <$> _decimalNegative)
-  <|> 
-  (makeDatatypedLiteral xsdInteger . L.toStrict <$> _integerNegative)
-   
-{-
-[65s] BooleanLiteral ::= "true" 
- | "false"
--}
-
 booleanLiteral :: TurtleParser RDFLabel
-booleanLiteral = makeDatatypedLiteral xsdBoolean . T.pack <$> (string "true" <|> string "false")
+booleanLiteral = makeDatatypedLiteral xsdBoolean . T.pack <$> lexeme (string "true" <|> string "false")
 
 {-
-[66s] String ::= STRING_LITERAL1 
- | STRING_LITERAL2 
- | STRING_LITERAL_LONG1 
- | STRING_LITERAL_LONG2
+[17]	String	::=	STRING_LITERAL_QUOTE | STRING_LITERAL_SINGLE_QUOTE | STRING_LITERAL_LONG_SINGLE_QUOTE | STRING_LITERAL_LONG_QUOTE
 -}
-
 turtleString :: TurtleParser L.Text
 turtleString = 
   lexeme (
-    _stringLiteralLong1 <|> _stringLiteral1 <|>
-    _stringLiteralLong2 <|> _stringLiteral2)
+    _stringLiteralLongQuote <|> _stringLiteralQuote <|>
+    _stringLiteralLongSingleQuote <|> _stringLiteralSingleQuote
+  )
 
 {-
-[67s] IRIref ::= IRI_REF 
- | PrefixedName 
+[135s]	iri	::=	IRIREF | PrefixedName
 -}
-
-iriref :: TurtleParser ScopedName
-iriref = lexeme ((makeURIScopedName <$> _iriRef) <|> prefixedName)
+iri :: TurtleParser ScopedName
+iri = lexeme (
+  (makeURIScopedName <$> _iriRef)
+  <|>
+  prefixedName)
 
 {-
-[68s] PrefixedName ::= PNAME_LN 
- | PNAME_NS 
+[136s]	PrefixedName	::=	PNAME_LN | PNAME_NS
 -}
-
 prefixedName :: TurtleParser ScopedName
 prefixedName = 
   _pnameLN <|> 
   flip makeNSScopedName emptyLName <$> (_pnameNS >>= findPrefixNamespace)
 
 {-
-[69s] BlankNode ::= BLANK_NODE_LABEL 
- | ANON 
-
+[137s]	BlankNode	::=	BLANK_NODE_LABEL | ANON
+-}
 blankNode :: TurtleParser RDFLabel
 blankNode = lexeme (_blankNodeLabel <|> _anon)
 
--}
+{--- Productions for terminals ---}
 
 {-
-[70s] <IRI_REF> ::= "<" ( [^<>\"{}|^`\\] - [#0000- ] | UCHAR )* ">" 
-
-Read [#0000- ] as [#x00-#x20] from
-http://lists.w3.org/Archives/Public/public-rdf-comments/2011Aug/0011.html
-
-Unlike N3, whitespace is significant within the surrounding <>.
+[18]	IRIREF	::=	'<' ([^#x00-#x20<>\"{}|^`\] | UCHAR)* '>'
 -}
-
 _iriRef :: TurtleParser URI
 _iriRef = do
-  ignore $ char '<'
-  ustr <- manyFinally' iriRefChar (char '>')
+  -- ignore $ char '<'
+  -- why a, I using manyFinally' here? '>' shouldn't overlap
+  -- with iriRefChar.
+  -- ustr <- manyFinally' iriRefChar (char '>')
+  ustr <- bracket (char '<') (commit (char '>')) (many iriRefChar)
   case parseURIReference ustr of
     Nothing -> failBad $ "Invalid URI: <" ++ ustr ++ ">"
     Just uref -> do
@@ -702,24 +637,23 @@ _iriRef = do
       either fail return $ appendURIs (baseUri s) uref
 
 iriRefChar :: TurtleParser Char
-iriRefChar = satisfy notIRIChar <|> _uchar
+iriRefChar = satisfy isIRIChar <|> _uchar
 
-notIRIChar :: Char -> Bool
-notIRIChar c = c >= chr 0x20
-               && 
-               c `notElem` "^<>\"{}|^`\\"
+isIRIChar :: Char -> Bool
+isIRIChar c =
+  c > chr 0x20
+  && 
+  c `notElem` "<>\"{}|^`\\"
 
 {-
-[71s] <PNAME_NS> ::= (PN_PREFIX)? ":" 
+[139s]	PNAME_NS	::=	PN_PREFIX? ':'
 -}
-
 _pnameNS :: TurtleParser (Maybe L.Text)
 _pnameNS = optional _pnPrefix <* char ':'
 
 {-
-[72s] <PNAME_LN> ::= PNAME_NS PN_LOCAL 
+[140s]	PNAME_LN	::=	PNAME_NS PN_LOCAL
 -}
-
 _pnameLN :: TurtleParser ScopedName
 _pnameLN = do
   ns <- _pnameNS >>= findPrefixNamespace
@@ -729,302 +663,66 @@ _pnameLN = do
     _ -> fail $ "Invalid local name: '" ++ T.unpack l ++ "'"
 
 {-
-[73s] <BLANK_NODE_LABEL> ::= "_:" PN_LOCAL 
+[141s]	BLANK_NODE_LABEL	::=	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
 -}
-
 _blankNodeLabel :: TurtleParser RDFLabel
-_blankNodeLabel = (Blank . L.unpack) <$> (string "_:" *> _pnLocal)
+_blankNodeLabel = do
+  ignore $ string "_:"
+  fChar <- _pnCharsU <|> satisfy is09
+  rest <- _pnRest
+  return $ Blank $ fChar : L.unpack rest
 
 {-
+Extracted from BLANK_NODE_LABEL and PN_PREFIX
 
-These are unused in the grammar.
-
-[74s] <VAR1> ::= "?" VARNAME 
-[75s] <VAR2> ::= "$" VARNAME 
--}
-
-{-
-[76s] <LANGTAG> ::= BASE 
- | PREFIX 
- | "@" [a-zA-Z]+ ( "-" [a-zA-Z0-9]+ )* 
-
-I am ignoring the BASE and PREFIX lines here as they don't make sense to me.
--}
-
--- Note that toLangTag may fail since it does some extra
--- validation not done by the parser (mainly on the length of the
--- primary and secondary tags).
---
--- NOTE: This parser does not accept multiple secondary tags which RFC3066
--- does.
---
-_langTag :: TurtleParser LanguageTag
-_langTag = do
-    ichar '@'
-    h <- many1Satisfy isaZ
-    mt <- optional (L.cons <$> char '-' <*> many1Satisfy isaZ09)
-    let lbl = L.toStrict $ L.append h $ fromMaybe L.empty mt
-    case toLangTag lbl of
-        Just lt -> return lt
-        _ -> fail ("Invalid language tag: " ++ T.unpack lbl) -- should this be failBad?
-  
-{-
-[77s] <INTEGER> ::= [0-9]+ 
--}
-
-_integer :: TurtleParser L.Text
-_integer = many1Satisfy is09
-
-{-
-[78s] <DECIMAL> ::= [0-9]+ "." [0-9]* 
- | "." [0-9]+ 
-
-We try to produce a canonical form for the
-numbers.
--}
-
-_decimal :: TurtleParser L.Text
-_decimal = 
-  let dpart = L.cons <$> char '.' <*> (fromMaybe "0" <$> optional _integer)
-  in 
-   (L.append <$> _integer <*> dpart)
-   <|>
-   (L.append "0." <$> (char '.' *> _integer))
-
-{-
-[79s] <DOUBLE> ::= [0-9]+ "." [0-9]* EXPONENT 
- | "." ( [0-9] )+ EXPONENT 
- | ( [0-9] )+ EXPONENT 
-
-Unlike _decimal, the canonical form is enforced
-later on, although it could be done here.
--}
-
-_double :: TurtleParser L.Text
-_double = 
-  (L.append <$> _decimal <*> _exponent)
-  <|>
-  (L.append <$> _integer <*> _exponent)
-  
-{-
-[80s] <INTEGER_POSITIVE> ::= "+" INTEGER 
-[81s] <DECIMAL_POSITIVE> ::= "+" DECIMAL 
-[82s] <DOUBLE_POSITIVE> ::= "+" DOUBLE 
--}
-
-_integerPositive, _decimalPositive, _doublePositive :: TurtleParser L.Text
-_integerPositive = char '+' *> _integer
-_decimalPositive = char '+' *> _decimal
-_doublePositive = char '+' *> _double
-
-{-
-[83s] <INTEGER_NEGATIVE> ::= "-" INTEGER 
-[84s] <DECIMAL_NEGATIVE> ::= "-" DECIMAL 
-[85s] <DOUBLE_NEGATIVE> ::= "-" DOUBLE 
--}
-
-_integerNegative, _decimalNegative, _doubleNegative :: TurtleParser L.Text
-_integerNegative = L.cons <$> char '-' <*> _integer
-_decimalNegative = L.cons <$> char '-' <*> _decimal
-_doubleNegative = L.cons <$> char '-' <*> _double
-
-{-
-[86s] <EXPONENT> ::= [eE] [+-]? [0-9]+ 
--}
-
-_exponent :: TurtleParser L.Text
-_exponent = do
-  ignore $ satisfy (`elem` "eE")
-  ms <- optional (satisfy (`elem` "+-"))
-  e <- _integer
-  case ms of
-    Just '-' -> return $ L.append "E-" e
-    _        -> return $ L.cons 'E' e
-  
-{-
-[87s] <STRING_LITERAL1> ::= "'" ( ( [^'\\\n\r] ) | ECHAR | UCHAR )* "'" 
-[88s] <STRING_LITERAL2> ::= '"' ( ( [^\"\\\n\r] ) | ECHAR | UCHAR )* '"' 
-[89s] <STRING_LITERAL_LONG1> ::= "'''" ( ( "'" | "''" )? ( [^'\\] | ECHAR | UCHAR ) )* "'''" 
-[90s] <STRING_LITERAL_LONG2> ::= '"""' ( ( '"' | '""' )? ( [^\"\\] | ECHAR | UCHAR ) )* '"""' 
--}
-
-_stringLiteral1, _stringLiteral2 :: TurtleParser L.Text
-_stringLiteral1 = _stringIt sQuot (_tChars "'\\\n\r")
-_stringLiteral2 = _stringIt dQuot (_tChars "\"\\\n\r")
-
-_stringLiteralLong1, _stringLiteralLong2 :: TurtleParser L.Text
-_stringLiteralLong1 = _stringItLong sQuot3 (_tCharsLong '\'' "'\\")
-_stringLiteralLong2 = _stringItLong dQuot3 (_tCharsLong '"' "\"\\")
-
-_stringIt :: TurtleParser a -> TurtleParser Char -> TurtleParser L.Text
-_stringIt sep chars = L.pack <$> bracket sep sep (many chars)
-
-_stringItLong :: TurtleParser a -> TurtleParser L.Text -> TurtleParser L.Text
-_stringItLong sep chars = L.concat <$> bracket sep sep (many chars)
-
-_tChars :: String -> TurtleParser Char
-_tChars excl = (char '\\' *> (_echar' <|> _uchar'))
-               <|> noneOf excl
-
-_tCharsLong :: Char -> String -> TurtleParser L.Text
-_tCharsLong c excl = do
-  mq <- optional $ oneOrTwo c
-  r <- _tChars excl
-  return $ L.append (fromMaybe L.empty mq) (L.singleton r)
-
-oneOrTwo :: Char -> TurtleParser L.Text
-oneOrTwo c = do
-  a <- char c
-  mb <- optional (char c)
-  case mb of
-    Just b -> return $ L.pack [a,b]
-    _      -> return $ L.singleton a
-
-{-
-[91s] <ECHAR> ::= "\\" [tbnrf\\\"'] 
--}
-
-_echar :: TurtleParser Char
-_echar = char '\\' *> _echar'
-
-_echar' :: TurtleParser Char
-_echar' = 
-  (char 't' *> pure '\t') <|>
-  (char 'b' *> pure '\b') <|>
-  (char 'n' *> pure '\n') <|>
-  (char 'r' *> pure '\r') <|>
-  (char '\\' *> pure '\\') <|>
-  (char '"' *> pure '"') <|>
-  (char '\'' *> pure '\'')
-
-
-{-
-
-Unused.
-
-[92s] <NIL> ::= "(" (WS)* ")" 
--}
-
-{-
-[93s] <WS> ::= " " 
- | "\t" 
- | "\r" 
- | "\n"
-
-_ws :: TurtleParser ()
-_ws = ignore $ satisfy (`elem` " \t\r\n")
-
--}
-
-_manyws :: TurtleParser ()
-_manyws = ignore $ manySatisfy (`elem` " \t\r\n")
-
-{-
-[94s] <ANON> ::= "[" (WS)* "]" 
-
-Unused as we do not support the use of ANON in the BlankNode
-terminal.
-
-_anon :: TurtleParser RDFLabel
-_anon = br "[" "]" _manyws *> newBlankNode
-
--}
-
-{-
-[95s] <PN_CHARS_BASE> ::= [A-Z] 
- | [a-z] 
- | [#00C0-#00D6] 
- | [#00D8-#00F6] 
- | [#00F8-#02FF] 
- | [#0370-#037D] 
- | [#037F-#1FFF] 
- | [#200C-#200D] 
- | [#2070-#218F] 
- | [#2C00-#2FEF] 
- | [#3001-#D7FF] 
- | [#F900-#FDCF] 
- | [#FDF0-#FFFD] 
- | [#10000-#EFFFF] 
- | UCHAR 
-
-TODO: may want to make this a Char -> Bool selector for
-use with manySatisfy rather than a combinator.
--}
-
-_pnCharsBase :: TurtleParser Char
-_pnCharsBase = 
-  let f c = let i = ord c
-            in isaZ c || 
-               match i [(0xc0, 0xd6), (0xd8, 0xf6), (0xf8, 0x2ff),
-                        (0x370, 0x37d), (0x37f, 0x1fff), (0x200c, 0x200d),
-                        (0x2070, 0x218f), (0x2c00, 0x2fef), (0x3001, 0xd7ff),
-                        (0xf900, 0xfdcf), (0xfdf0, 0xfffd), (0x10000, 0xeffff)]
-  in satisfy f <|> _uchar
-
-{-
-[96s] <PN_CHARS_U> ::= PN_CHARS_BASE 
- | "_"
--}
-
-_pnCharsU :: TurtleParser Char
-_pnCharsU = _pnCharsBase <|> char '_'
-
-{-
-
-Only used in VAR1/2 rules which are themselves unused.
-
-Unused in the grammar (other than
-[97s] <VARNAME> ::= ( PN_CHARS_U | [0-9] ) ( PN_CHARS_U | [0-9] | #00B7 | [#0300-#036F] | [# 
- 203F-#2040] )* 
--}
-
-{-
-[98s] <PN_CHARS> ::= PN_CHARS_U 
- | "-" 
- | [0-9] 
- | #00B7 
- | [#0300-#036F] 
- | [#203F-#2040] 
--}
-
-_pnChars :: TurtleParser Char
-_pnChars = 
-  _pnCharsU 
-  <|> 
-  satisfy (\c -> let i = ord c 
-                 in c == '-' || isDigit c || i == 0xb7 ||
-                    match i [(0x0300, 0x036f), (0x203f, 0x2040)])
-
-{-
-[99s] <PN_PREFIX> ::= PN_CHARS_BASE ( ( PN_CHARS | "." )* PN_CHARS )? 
--}
-
-_pnPrefix :: TurtleParser L.Text
-_pnPrefix = L.cons <$> _pnCharsBase <*> _pnRest
-  
-{-
-[100s] <PN_LOCAL> ::= ( PN_CHARS_U | [0-9] ) ( ( PN_CHARS | "." )* PN_CHARS )? 
--}     
-
-_pnLocal :: TurtleParser L.Text
-_pnLocal = L.cons <$> (_pnCharsU <|> satisfy is09) 
-           <*> _pnRest
-
-{-
-Extracted from PN_PREFIX and PN_LOCAL is
-
-<PN_REST> :== ( ( PN_CHARS | "." )* PN_CHARS )?
+<PN_REST> :== ( ( PN_CHARS | '.' )* PN_CHARS )?
 
 We assume below that the match is only ever done for small strings, so
-the cost of the foldr isn't likely to be large. Let's see how well
-this assumption holds up.
+the cost isn't likely to be large. Let's see how well this assumption
+holds up.
 
 -}
 
 _pnRest :: TurtleParser L.Text
-_pnRest = do
-  lbl <- many (_pnChars <|> char '.')
-  let (nret, lclean) = clean lbl
+_pnRest = noTrailingDot _pnChars
+
+{-
+There are two productions which look like
+
+  ( (parser | '.')* parser )?
+
+Unfortunately one of them has parser returning a Char and the
+other has the parser returning multiple characters, so separate
+out for now; hopefully can combine
+
+Have decided to try replacing this with sepEndBy1, treating the '.'
+as a separator, since this is closer to the EBNF. However, this
+then eats up multiple '.' characters.
+
+noTrailingDot ::
+  TurtleParser Char -- ^ This *should not* match '.'
+  -> TurtleParser L.Text
+noTrailingDot p = do
+  terms <- sepEndBy1 (many p) (char '.')
+  return $ L.pack $ intercalate "." terms
+
+noTrailingDotM ::
+  TurtleParser L.Text -- ^ This *should not* match '.'
+  -> TurtleParser L.Text
+noTrailingDotM p = do
+  terms <- sepEndBy1 (many p) (char '.')
+  return $ L.intercalate "." $ map L.concat terms
+
+-}
+
+noTrailing ::
+  TurtleParser a      -- ^ parser for '.'
+  -> ([a] -> String)  -- ^ Collect fragments into a string
+  -> TurtleParser a   -- ^ This *should not* match '.'
+  -> TurtleParser L.Text
+noTrailing dotParser conv parser = do
+  lbl <- many (parser <|> dotParser)
+  let (nret, lclean) = clean $ conv lbl
       
       -- a simple difference list implementation
       edl = id
@@ -1044,31 +742,293 @@ _pnRest = do
           go 0 acc (x:xs) = go 0 (snocdl x acc) xs
           go n acc (x:xs) = go 0 (appenddl acc (snocdl x (replicatedl n '.'))) xs
 
-  reparse $ L.replicate (fromIntegral nret) (L.singleton '.')
+  reparse $ L.replicate (fromIntegral nret) "."
   return $ L.pack lclean
 
+noTrailingDot ::
+  TurtleParser Char -- ^ This *should not* match '.'
+  -> TurtleParser L.Text
+noTrailingDot = noTrailing (char '.') id
+
+noTrailingDotM ::
+  TurtleParser L.Text -- ^ This *should not* match '.'
+  -> TurtleParser L.Text
+noTrailingDotM  = noTrailing (char '.' *> pure ".") (L.unpack . L.concat)
+
 {-
-Original from 
+[144s]	LANGTAG	::=	'@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
 
- chop = go 0 []
-        where
-        -- go :: State -> Stack -> String -> String
-        go 0 _ [] = []
-        go 0 _ (x:xs)
-            | isSpace x = go 1 [x] xs
-            | otherwise = x : go 0 xs
+Note that toLangTag may fail since it does some extra
+validation not done by the parser (mainly on the length of the
+primary and secondary tags).
 
-        go 1 ss [] = []
-        go 1 ss (x:xs)
-            | isSpace c = go 1 (x:ss) xs
-            | otherwise = reverse ss ++ x : go 0 xs
+NOTE: This parser does not accept multiple secondary tags which RFC3066
+does.
 
 -}
+_langTag :: TurtleParser LanguageTag
+_langTag = do
+    ichar '@'
+    h <- commit $ many1Satisfy isaZ
+    mt <- optional (L.cons <$> char '-' <*> many1Satisfy isaZ09)
+    let lbl = L.toStrict $ L.append h $ fromMaybe L.empty mt
+    case toLangTag lbl of
+        Just lt -> return lt
+        _ -> fail ("Invalid language tag: " ++ T.unpack lbl) -- should this be failBad?
+
+-- Returns True for + and False for -.
+_leadingSign :: TurtleParser (Maybe Bool)
+_leadingSign = do
+  ms <- optional (satisfy (`elem` "+-"))
+  return $ (=='+') `fmap` ms
+
+{-
+For when we tried to create a canonical representation.
+addSign :: Maybe Bool -> L.Text -> L.Text
+addSign (Just False) t = L.cons '-' t
+addSign _            t = t
+-}
+
+addSign :: Maybe Bool -> L.Text -> L.Text
+addSign (Just True) t = L.cons '+' t
+addSign (Just _)    t = L.cons '-' t
+addSign _           t = t
+
+{-
+[19]	INTEGER	::=	[+-]? [0-9]+
+
+We try to produce a canonical form for the
+numbers.
+-}
+
+_integer :: TurtleParser L.Text
+_integer = do
+  ms <- _leadingSign
+  rest <- many1Satisfy is09
+  return $ addSign ms rest
+
+{-
+[20]	DECIMAL	::=	[+-]? [0-9]* '.' [0-9]+
+-}
+
+_decimal :: TurtleParser L.Text
+_decimal = do
+  ms <- _leadingSign
+  leading <- manySatisfy is09
+  ichar '.'
+  trailing <- many1Satisfy is09
+  let ans2 = L.cons '.' trailing
+      ans = if L.null leading
+            -- then L.cons '0' ans2 -- create a 'canonical' version
+            then ans2
+            else L.append leading ans2
+  return $ addSign ms ans
+  
+{-
+[21]	DOUBLE	::=	[+-]? ([0-9]+ '.' [0-9]* EXPONENT | '.' [0-9]+ EXPONENT | [0-9]+ EXPONENT)
+
+-}
+_d1 :: TurtleParser L.Text
+_d1 = do
+  a <- many1Satisfy is09
+  ichar '.'
+  b <- manySatisfy is09
+  return $ a `L.append` ('.' `L.cons` b)
+
+_d2 :: TurtleParser L.Text
+_d2 = do
+  ichar '.'
+  b <- many1Satisfy is09
+  return $ '.' `L.cons` b
+
+_d3 :: TurtleParser L.Text
+_d3 = many1Satisfy is09
+
+_double :: TurtleParser L.Text
+_double = do
+  ms <- _leadingSign
+  leading <- _d1 <|> _d2 <|> _d3
+  e <- _exponent
+  return $ addSign ms $ leading `L.append` e
+
+{-
+[154s]	EXPONENT	::=	[eE] [+-]? [0-9]+
+-}
+_exponent :: TurtleParser L.Text
+_exponent = do
+  e <- char 'e' <|> char 'E'
+  ms <- _leadingSign
+  ep <- _integer
+  return $ L.cons e $ addSign ms ep
+
+{-
+[22]	STRING_LITERAL_QUOTE	::=	'"' ([^#x22#x5C#xA#xD] | ECHAR | UCHAR)* '"'
+[23]	STRING_LITERAL_SINGLE_QUOTE	::=	"'" ([^#x27#x5C#xA#xD] | ECHAR | UCHAR)* "'"
+[24]	STRING_LITERAL_LONG_SINGLE_QUOTE	::=	"'''" (("'" | "''")? [^'\] | ECHAR | UCHAR)* "'''"
+[25]	STRING_LITERAL_LONG_QUOTE	::=	'"""' (('"' | '""')? [^"\] | ECHAR | UCHAR)* '"""'
+-}
+
+_exclSLQ, _exclSLSQ :: String
+_exclSLQ = map chr [0x22, 0x5c, 0x0a, 0x0d]
+_exclSLSQ = map chr [0x27, 0x5c, 0x0a, 0x0d]
+
+_stringLiteralQuote, _stringLiteralSingleQuote :: TurtleParser L.Text
+_stringLiteralQuote = _stringIt dQuot (_tChars _exclSLQ)
+_stringLiteralSingleQuote = _stringIt sQuot (_tChars _exclSLSQ)
+
+_stringLiteralLongQuote, _stringLiteralLongSingleQuote :: TurtleParser L.Text
+_stringLiteralLongQuote = _stringItLong dQuot3 (_tCharsLong '"')
+_stringLiteralLongSingleQuote = _stringItLong sQuot3 (_tCharsLong '\'')
+
+_stringIt :: TurtleParser a -> TurtleParser Char -> TurtleParser L.Text
+_stringIt sep chars = L.pack <$> bracket sep sep (many chars)
+
+_stringItLong :: TurtleParser a -> TurtleParser L.Text -> TurtleParser L.Text
+_stringItLong sep chars = L.concat <$> bracket sep sep (many chars)
+
+_tChars :: String -> TurtleParser Char
+_tChars excl = (char '\\' *> (_echar' <|> _uchar'))
+               <|> noneOf excl
+
+oneOrTwo :: Char -> TurtleParser L.Text
+oneOrTwo c = do
+  a <- char c
+  mb <- optional (char c)
+  case mb of
+    Just b -> return $ L.pack [a,b]
+    _      -> return $ L.singleton a
+
+_multiQuote :: Char -> TurtleParser L.Text
+_multiQuote c = do
+  mq <- optional (oneOrTwo c)
+  r <- noneOf (c : "\\")
+  return $ fromMaybe L.empty mq `L.snoc` r
+                
+_tCharsLong :: Char -> TurtleParser L.Text
+_tCharsLong c =
+  let conv = (L.singleton `fmap`)
+  in _multiQuote c <|> conv (_echar <|> _uchar)
+
+{-
+[26]	UCHAR	::=	'\u' HEX HEX HEX HEX | '\U' HEX HEX HEX HEX HEX HEX HEX HEX
+-}
+_uchar :: TurtleParser Char
+_uchar = char '\\' >> _uchar'
+
+_uchar' :: TurtleParser Char
+_uchar' = (char 'u' *> hex4) <|> (char 'U' *> hex8)
+
+{-
+[159s]	ECHAR	::=	'\' [tbnrf\"']
+-}
+_echar :: TurtleParser Char
+_echar = char '\\' *> _echar'
+
+_echar' :: TurtleParser Char
+_echar' = 
+  (char 't' *> pure '\t') <|>
+  (char 'b' *> pure '\b') <|>
+  (char 'n' *> pure '\n') <|>
+  (char 'r' *> pure '\r') <|>
+  (char 'f' *> pure '\f') <|>
+  (char '\\' *> pure '\\') <|>
+  (char '"' *> pure '"') <|>
+  (char '\'' *> pure '\'')
+
+{-
+[161s]	WS	::=	#x20 | #x9 | #xD | #xA
+-}
+
+_ws :: TurtleParser ()
+_ws = ignore $ satisfy (`elem` _wsChars)
+
+_wsChars :: String
+_wsChars = map chr [0x20, 0x09, 0x0d, 0x0a]
+
+{-
+[162s]	ANON	::=	'[' WS* ']'
+-}
+
+_anon :: TurtleParser RDFLabel
+_anon =
+  br '[' ']' (many _ws) >> newBlankNode
+
+{-
+[163s]	PN_CHARS_BASE	::=	[A-Z] | [a-z] | [#x00C0-#x00D6] | [#x00D8-#x00F6] | [#x00F8-#x02FF] | [#x0370-#x037D] | [#x037F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] | [#x10000-#xEFFFF]
+
+TODO: may want to make this a Char -> Bool selector for
+use with manySatisfy rather than a combinator.
+-}
+
+_pnCharsBase :: TurtleParser Char
+_pnCharsBase = 
+  let f c = let i = ord c
+            in isaZ c || 
+               match i [(0xc0, 0xd6), (0xd8, 0xf6), (0xf8, 0x2ff),
+                        (0x370, 0x37d), (0x37f, 0x1fff), (0x200c, 0x200d),
+                        (0x2070, 0x218f), (0x2c00, 0x2fef), (0x3001, 0xd7ff),
+                        (0xf900, 0xfdcf), (0xfdf0, 0xfffd), (0x10000, 0xeffff)]
+  in satisfy f
+
+{-
+[164s]	PN_CHARS_U	::=	PN_CHARS_BASE | '_'
+[166s]	PN_CHARS	::=	PN_CHARS_U | '-' | [0-9] | #x00B7 | [#x0300-#x036F] | [#x203F-#x2040]
+-}
+
+_pnCharsU, _pnChars :: TurtleParser Char
+_pnCharsU = _pnCharsBase <|> char '_'
+_pnChars =
+  let f c = let i = ord c
+            in match i [(0x300, 0x36f), (0x203f, 0x2040)]
+  in _pnCharsU <|> char '-' <|> satisfy is09 <|>
+     char (chr 0xb7) <|> satisfy f
+
+{-
+[167s]	PN_PREFIX	::=	PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?
+[168s]	PN_LOCAL	::=	(PN_CHARS_U | ':' | [0-9] | PLX) ((PN_CHARS | '.' | ':' | PLX)* (PN_CHARS | ':' | PLX))?
+-}
+
+_pnPrefix :: TurtleParser L.Text
+_pnPrefix = L.cons <$> _pnCharsBase <*> _pnRest
+
+_pnLocal :: TurtleParser L.Text
+_pnLocal = do
+  s <- L.singleton <$> (_pnCharsU <|> char ':' <|> satisfy is09)
+       <|> _plx
+  e <- noTrailingDotM (L.singleton <$> (_pnChars <|> char ':') <|> _plx)
+  return $ s `L.append` e
+
+{-
+[169s]	PLX	::=	PERCENT | PN_LOCAL_ESC
+[170s]	PERCENT	::=	'%' HEX HEX
+[171s]	HEX	::=	[0-9] | [A-F] | [a-f]
+[172s]	PN_LOCAL_ESC	::=	'\' ('_' | '~' | '.' | '-' | '!' | '$' | '&' | "'" | '(' | ')' | '*' | '+' | ',' | ';' | '=' | '/' | '?' | '#' | '@' | '%')
+
+We do not convert hex-encoded values into the characters, which
+means we have to deal with Text rather than Char for these
+parsers, which is annoying.
+-}
+
+_plx, _percent :: TurtleParser L.Text
+_plx = _percent <|> (L.singleton <$> _pnLocalEsc)
+
+_percent = do
+  ichar '%'
+  a <- _hex
+  b <- _hex
+  return $ L.cons '%' $ L.cons a $ L.singleton b
+
+_hex, _pnLocalEsc :: TurtleParser Char
+_hex = satisfy isHexDigit
+_pnLocalEsc = char '\\' *> satisfy (`elem` _pnLocalEscChars)
+  
+_pnLocalEscChars :: String
+_pnLocalEscChars = "_~.-!$&'()*+,;=/?#@%"
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

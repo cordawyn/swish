@@ -43,7 +43,7 @@ import Swish.RDF.Parser.Turtle (parseTurtle)
 import Swish.RDF.Vocabulary.DublinCore (dcelemtitle)
 import Swish.RDF.Vocabulary.FOAF (foafgivenName, foafknows, foafmbox, foafname, foafPerson)
 import Swish.RDF.Vocabulary.RDF (rdfType, rdfFirst, rdfRest, rdfNil, rdfsLabel)
-import Swish.RDF.Vocabulary.XSD (xsdDecimal, xsdString)
+import Swish.RDF.Vocabulary.XSD (xsdDecimal, xsdDouble, xsdString)
 
 import Test.HUnit (Test(TestCase,TestList), (~=?), (~:), assertFailure)
 
@@ -59,6 +59,15 @@ toURI s = fromMaybe (error ("Internal error: invalid uri=" ++ s)) (parseURIRefer
 toGraph :: T.Text -> Either String RDFGraph
 toGraph = flip parseTurtle Nothing . L.fromStrict
 
+parseFail ::
+  String  -- ^ error from parse
+  -> T.Text  -- ^ original Turtle graph
+  -> String     -- ^ label
+  -> Test
+parseFail emsg gr lbl =
+  TestCase $ assertFailure $ concat
+  ["Unable to parse ", lbl, ":\n", emsg, "\n*** Turtle=\n", T.unpack gr]
+  
 -- | Compare a Turtle format graph with its expected
 --   contents. There is also a 'round trip' check, that
 --   the contents, written out in Turtle format, then
@@ -83,14 +92,14 @@ compareExample l t o =
 
       compareTriples =
         case egr of
-          Left e -> TestCase $ assertFailure $ "Unable to parse example " ++ l ++ ":\n" ++ e
+          Left e -> parseFail e t $ "example " ++ l
           Right gr -> lbl ~: expectedGraph ~=? gr
 
       compareRoundTrip = 
         let ttl = formatGraphAsText expectedGraph
             tgr = toGraph ttl
         in case tgr of
-          Left e -> TestCase $ assertFailure $ "Unable to parse round-trip example " ++ l ++ ":\n" ++ e ++ "\n*** Turtle=\n" ++ T.unpack ttl
+          Left e -> parseFail e ttl $ "round-trip example " ++ l
           Right gr -> lbl ~: expectedGraph ~=? gr
          
         
@@ -101,9 +110,8 @@ compareExample l t o =
 compareGraphs :: String -> T.Text -> T.Text -> Test
 compareGraphs l t1 t2 =
   case (toGraph t1, toGraph t2) of
-    (Left e1, _) -> TestCase $ assertFailure $ "Unable to parse graph 1 of " ++ l ++ ":\n" ++ e1
-    (_, Left e2) -> TestCase $ assertFailure $ "Unable to parse graph 2 of " ++ l ++ ":\n" ++ e2
-    -- (Right gr1, Right gr2) -> ("example: " ++ l) ~: (getArcs gr1) ~=? (getArcs gr2)
+    (Left e1, _) -> parseFail e1 t1 $ "graph 1 of " ++ l
+    (_, Left e2) -> parseFail e2 t2 $ "graph 2 of " ++ l
     (Right gr1, Right gr2) -> ("example: " ++ l) ~: gr1 ~=? gr2
       
 -- *********************************************
@@ -275,7 +283,8 @@ result2_5_2 =
 
   in [ triple helium aNum (2::Int)
      , triple helium aMass (TypedLit "4.002602" xsdDecimal)
-     , triple helium sGrav (1.663e-4::Double)
+     -- , triple helium sGrav (1.663e-4::Double)
+     , triple helium sGrav (TypedLit "1.663E-4" xsdDouble)
      ]
      
 -- | From <http://www.w3.org/TR/2013/CR-turtle-20130219/#booleans>.
@@ -547,7 +556,16 @@ example3_d2 =
   , "_:b0  :p         \"w\" . "
   ]
 
+{-
+I do not see how this representation is valid, and rapper version 2.0.9
+does not parse it (well, it reports the triples and then
+fails) so I am skipping this test. Am I mis-reading the test?
+
+See the discussion at http://lists.w3.org/Archives/Public/public-rdf-comments/2013May/0043.html
+which suggests that this is indeed invalid.
+
 -- | From <http://www.w3.org/TR/2013/CR-turtle-20130219/#sec-examples>.
+--
 example3_e1 :: T.Text
 example3_e1 =
   T.unlines
@@ -570,6 +588,8 @@ example3_e2 =
   , "          rdf:rest   rdf:nil ."
   , "    _:b3  rdf:rest   rdf:nil ."
   ]
+
+-}
 
 -- | From <http://www.w3.org/TR/2013/CR-turtle-20130219/#sec-parsing-example>.
 example7_4 :: T.Text
@@ -644,11 +664,40 @@ coverageCases =
   TestList
   [ compareExample "p1" coverage1 resultc1
   ]
-  
+
+-- Extracted from failures seen when using the W3C test suite
+-- at <http://www.w3.org/2013/TurtleTests/>.
+
+lt1T :: T.Text
+lt1T = "<urn:a> <urn:b> \"\"\"A long string. \"\"\"@en-UK ."
+
+lt1A :: [RDFTriple]
+lt1A =
+  [ triple (toURI "urn:a") (toURI "urn:b")
+    (LangLit "A long string. " "en-UK")
+  ]
+
+le1T :: T.Text
+le1T = "@prefix : <urn:example/>.<urn:a> <urn:b:> :c\\~d."
+
+le1A :: [RDFTriple]
+le1A =
+  [ triple (toURI "urn:a") (toURI "urn:b:") (toURI "urn:example/c~d") ]
+
+w3cCases :: Test
+w3cCases =
+  TestList
+  [ compareExample "lang-tag1" lt1T lt1A
+  , compareExample "localEscapes" le1T le1A
+  ]
+
+--
+
 allTests :: Test
 allTests = TestList
   [ initialTestSuite
   , coverageCases
+  , w3cCases
   ]
 
 main :: IO ()
