@@ -53,6 +53,10 @@ Description:
   * NTriples parser: now accepts upper-case language tags such as
   @en-UK@ (case is preserved).
   .
+  * The new @w3ctests@ flag will build the @runw3ctests@ executable,
+  which will run the W3C Turtle tests (if downloaded from
+  <http://www.w3.org/2013/TurtleTests/>).
+  .
   * Added tests for the Turtle parser and formatter.
   .
   Changes in version @0.9.0.3@:
@@ -97,6 +101,10 @@ Source-repository head
 
 Flag  developer
   Description: Turn on developer flags
+  Default:     False
+
+Flag  w3ctests
+  Description: Build the RunW3CTests application
   Default:     False
 
 Library
@@ -475,3 +483,27 @@ Executable         Swish
    Build-Depends:
       base,
       swish
+
+Executable         runw3ctests
+   Main-Is:        RunW3CTests.hs
+   Hs-Source-Dirs: app/ 
+   -- Other-Modules:  Paths_swish
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   if flag(developer)
+      ghc-options: -Werror
+      ghc-prof-options: -auto-all
+
+   if flag(w3ctests)
+     Build-Depends:
+        base,
+        containers,
+        directory,
+        filepath,
+        network,
+        swish,
+        text
+   else
+     Buildable:   False

@@ -17,3 +17,5 @@ syntax: regexp
 ^.hpc/
 ^prof/
 ^cabal-dev/
+
+^w3c/

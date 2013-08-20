@@ -9,6 +9,10 @@
 
   Added tests for the Turtle parser.
 
+  The new w3ctests flag will build the runw3ctests executable,
+  which will run the W3C Turtle tests (if downloaded from
+  http://www.w3.org/2013/TurtleTests/).
+
 0.9.0.3:
 
   Fix minor Haddock issue with Swish.RDF.Parser.Utils.appendURIs.
