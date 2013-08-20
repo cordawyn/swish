@@ -53,6 +53,8 @@ Description:
   * NTriples parser: now accepts upper-case language tags such as
   @en-UK@ (case is preserved).
   .
+  * @Swish.QName.LName@ names can now contain @#@, @:@ and @/@ characters.
+  .
   * The new @w3ctests@ flag will build the @runw3ctests@ executable,
   which will run the W3C Turtle tests (if downloaded from
   <http://www.w3.org/2013/TurtleTests/>).

@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  QName
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -16,8 +16,9 @@
 --  which represents a 'URI' as the combination of a namespace 'URI'
 --  and a local component ('LName'), which can be empty.
 --
---  Although RDF supports using IRIs, the use of 'URI' here precludes this.
---  There is currently no attempt to convert from an IRI into a URI.
+--  Although RDF supports using IRIs, the use of 'URI' here precludes this,
+--  which means that, for instance, 'LName' only accepts a subset of valid
+--  characters. There is currently no attempt to convert from an IRI into a URI.
 --
 --------------------------------------------------------------------------------
 
@@ -68,11 +69,13 @@ import qualified Data.Text as T
 
 {-| A local name, which can be empty.
 
-At present, the local name can not 
-contain spaces or the \'#\', \':\', or \'/\' characters. This restriction is
-experimental.
+At present, the local name can not contain a space character and can only
+contain ascii characters (those that match 'Data.Char.isAscii').
 
-The additional restriction of 'Data.Char.isAscii' was added in version @0.7.0.2@.
+In version @0.9.0.3@ and earlier, the following characters were not
+allowed in local names: \'#\', \':\', or \'/\' characters.
+
+This is all rather experimental.
 -}
 newtype LName = LName T.Text
     deriving (Eq, Ord)
@@ -93,8 +96,9 @@ emptyLName = LName ""
 
 -- | Create a local name.
 newLName :: T.Text -> Maybe LName
--- newLName l = if T.any (`elem` " #:/") l then Nothing else Just (LName l)
-newLName l = if T.any (\c -> c `elem` " #:/" || not (isAscii c)) l then Nothing else Just (LName l)
+-- newLName l = if T.any (`elem` " #:/") l then Nothing else Just (LName l) -- 0.7.0.1 and earlier
+-- newLName l = if T.any (\c -> c `elem` " #:/" || not (isAscii c)) l then Nothing else Just (LName l) -- 0.9.0.3 and earlier
+newLName l = if T.any (\c -> c == ' ' || not (isAscii c)) l then Nothing else Just (LName l)
 
 -- | Extract the local name.
 getLName :: LName -> T.Text
@@ -271,7 +275,7 @@ emptyAuth = Just $ URIAuth "" "" ""
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
