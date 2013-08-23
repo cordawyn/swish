@@ -77,7 +77,8 @@ import Swish.RDF.Vocabulary (LanguageTag, fromLangTag, xsdBoolean, xsdDecimal, x
 import Control.Monad (liftM)
 import Control.Monad.State (State, get, gets, modify, put)
 
-import Data.List (foldl', groupBy, isInfixOf, intersperse, partition)
+import Data.List (foldl', groupBy, intersperse, partition)
+import Data.Maybe (isJust)
 import Data.Monoid (Monoid(..), mconcat)
 import Data.Word
 
@@ -357,9 +358,17 @@ countBnodes (SA as) =
 
 -- N3-like output
 
--- temporary conversion
+-- temporary conversion, also note that it is not obvious that all
+-- the uses of quoteB are valid (e.g. when formatting a URL for use
+-- in a prefix statement). TODO: review
+--
 quoteB :: Bool -> String -> B.Builder
 quoteB f v = B.fromString $ quote f v
+
+-- Force the "basic" display, that is act as if it is to be
+-- surrounded by "...".
+quoteBString :: String -> B.Builder
+quoteBString = quoteB True
 
 {-|
 Convert text into a format for display in Turtle. The idea
@@ -388,26 +397,21 @@ For now option 4 is only used when the contents contain a
 
 -- The original thinking was that a scan of the string is worthwhile
 -- if it avoids having to quote characters, but we always need to
--- go through and do this anyway, eg for @\t@ or @\@.
---
--- Swish.RDF.Graph.quote, used by quoteB, does not handle
--- strings with three or more consecutive @"@ characters, so
--- we explicitly check for this and fall back to the single-"
--- version, which protects each quote.
+-- scan through to protect certain characters.
 --
 quoteText :: T.Text -> B.Builder
 quoteText txt = 
-  let st = T.unpack txt -- TODO: fix to use Text
-
-      -- assume the magical ghc pixie will fuse all these loops
-      hasNL = '\n' `elem` st
-      hasSQ = '"' `elem` st
-      has3Q = "\"\"\"" `isInfixOf` st
+  let -- assume the magical ghc pixie will fuse all these loops
+      -- (the docs say that T.findIndex can fuse, but that
+      -- T.isInfixOf doesn't)
+      hasNL = isJust $ T.findIndex (== '\n') txt
+      hasSQ = isJust $ T.findIndex (== '"') txt
+      has3Q = "\"\"\"" `T.isInfixOf` txt
         
       n = if has3Q || (not hasNL && not hasSQ) then 1 else 3
             
       qch = B.fromString (replicate n '"')
-      qst = quoteB (n==1) st
+      qst = B.fromText $ quoteT (n==1) txt
 
   in mconcat [qch, qst, qch]
 
@@ -415,7 +419,7 @@ quoteText txt =
 --       not sure the following counts as clever enough ...
 --  
 showScopedName :: ScopedName -> B.Builder
-showScopedName = quoteB True . show
+showScopedName = quoteBString . show
 
 formatScopedName :: ScopedName -> M.Map (Maybe T.Text) URI -> B.Builder
 formatScopedName sn prmap =
@@ -424,7 +428,7 @@ formatScopedName sn prmap =
   in case findPrefix nsuri prmap of
        Just (Just p) -> B.fromText $ quoteT True $ mconcat [p, ":", local]
        _             -> mconcat [ "<"
-                                , quoteB True (show nsuri ++ T.unpack local)
+                                , quoteBString (show nsuri ++ T.unpack local)
                                 , ">"
                                 ]
 
@@ -441,10 +445,10 @@ formatLangLit lit lcode = mconcat [quoteText lit, "@", B.fromText (fromLangTag l
 --
 -- However, I am moving away from storing a canonical representation
 -- of a datatyped literal in the resource since it is messy and makes
--- some comparisons difficult (unless equality of RDFLabels is made
--- dependent on types, and then it gets messy). I am also not as
--- concerned about issues in the N3 parser/formatter as in the Turtle
--- one.
+-- some comparisons difficult, in particular for the W3C Turtle test
+-- suite [I think] (unless equality of RDFLabels is made dependent on
+-- types, and then it gets messy). I am also not as concerned about
+-- issues in the N3 parser/formatter as in the Turtle one.
 --
 formatTypedLit :: Bool -> T.Text -> ScopedName -> B.Builder
 formatTypedLit n3flag lit dtype
@@ -452,7 +456,6 @@ formatTypedLit n3flag lit dtype
     | dtype `elem` [xsdBoolean, xsdDecimal, xsdInteger] = B.fromText lit
     | otherwise = mconcat [quoteText lit, "^^", showScopedName dtype]
                            
-	       
 {-
 Add a list inline. We are given the labels that constitute
 the list, in order, so just need to display them surrounded
@@ -493,8 +496,8 @@ mapBlankNode_ _nodeGen lab = do
 formatPrefixLines :: NamespaceMap -> [B.Builder]
 formatPrefixLines = map pref . M.assocs
     where
-      pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteB True (show u), "> ."]
-      pref (_,u)      = mconcat ["@prefix : <", quoteB True (show u), "> ."]
+      pref (Just p,u) = mconcat ["@prefix ", B.fromText p, ": <", quoteBString (show u), "> ."]
+      pref (_,u)      = mconcat ["@prefix : <", quoteBString (show u), "> ."]
 
 formatPrefixes_ ::
     (B.Builder -> State a B.Builder)  -- ^ Create a new line

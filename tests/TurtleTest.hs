@@ -25,6 +25,7 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
+import Data.Char (chr)
 import Data.Maybe (fromMaybe)
 
 import Network.URI (URI, parseURIReference)
@@ -644,25 +645,35 @@ initialTestSuite =
 
 -- Cases to try and improve the test coverage
 
--- | This was actually more a problem with output rather than input.
-coverage1 :: T.Text
-coverage1 =
-  T.unlines
-  [ "<urn:a> <urn:b> \"' -D RT @madeupname: \\\"Foo \\u0024 Zone\\\" \\U0000007e:\\\"\\\"\\\"D\" ."
-  ]
-
-resultc1 :: [RDFTriple]
-resultc1 =
-  [ triple
-    (toURI "urn:a")
-    (toURI "urn:b")
-    (Lit "' -D RT @madeupname: \"Foo $ Zone\" ~:\"\"\"D")
-  ]
+trips :: T.Text -> [RDFTriple]
+trips t = [triple (toURI "urn:a") (toURI "urn:b") (Lit t)]
 
 coverageCases :: Test
 coverageCases =
   TestList
-  [ compareExample "p1" coverage1 resultc1
+  [ -- This was actually more a problem with output rather than input.
+    compareExample "cov1"
+    "<urn:a> <urn:b> \"' -D RT @madeupname: \\\"Foo \\u0024 Zone\\\" \\U0000007e:\\\"\\\"\\\"D\" ."
+    (trips "' -D RT @madeupname: \"Foo $ Zone\" ~:\"\"\"D")
+  , compareExample "cov2"
+    "<urn:a> <urn:b> \"\"\"\"Bob \\\"\\uF481\"\"\"."
+    (trips (T.snoc "\"Bob \"" (chr 0xf481)))
+    {-
+      rapper will parse this but I do not think it matches
+      the Turtle grammar
+  , compareExample "cov2-option"
+    "<urn:a> <urn:b> \"\"\"\"Bob \"\\U0001F481\"\"\""
+    (trips "\"Bob \"\\U0001F481")
+    -}
+  , compareExample "cov3-1"
+    "<urn:a> <urn:b> \"\"\"\\\"A quoted string.\\\"\"\"\"."
+    (trips "\"A quoted string.\"")
+  , compareExample "cov3-2"
+    "<urn:a> <urn:b> \"\"\"\\\"\\\"A quoted string.\\\"\"\"\"."
+    (trips "\"\"A quoted string.\"")
+  , compareExample "cov3-3"
+    "<urn:a> <urn:b> \"\"\"\\\"A quoted string.\\\"\\\"\"\"\"."
+    (trips "\"A quoted string.\"\"")
   ]
 
 -- Extracted from failures seen when using the W3C test suite

@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -121,7 +121,7 @@ import Swish.RDF.Parser.Utils
     , notFollowedBy
     , endBy
     , sepEndBy
-    , manyTill
+    -- , manyTill
     , noneOf
     , char
     , ichar
@@ -579,16 +579,67 @@ TODO: there must be a better way of building up the Text
 -}
 
 singleQuoted :: N3Parser T.Text
-singleQuoted = fmap T.pack (bracket sQuot sQuot $ many n3Character)
+singleQuoted = T.pack <$> (bracket sQuot sQuot $ many n3Character)
     
 {-
 tripleQUoted ::=	"""[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""
--}
-tripleQuoted :: N3Parser T.Text
+
+The following may not match the output format we now create (with the
+move to the Turtle Candidate Recommendation), so re-writing as a test,
+but this means pulling in a lot of Turtle productions, which should
+be shared.
+
 tripleQuoted = tQuot *> fmap T.pack (manyTill (n3Character <|> sQuot <|> char '\n') tQuot)
   where
     -- tQuot = try (count 3 sQuot)
     tQuot = exactly 3 sQuot
+-}
+tripleQuoted :: N3Parser T.Text
+tripleQuoted =
+  let sep = exactly 3 sQuot
+  in T.concat <$> bracket sep sep (many _tCharsLong)
+
+{-- Turtle productions: start --}
+oneOrTwo :: N3Parser T.Text
+oneOrTwo = do
+  ignore $ char '"'
+  mb <- optional (char '"')
+  case mb of
+    Just _ -> return $ "\"\""
+    _      -> return $ "\""
+
+_multiQuote :: N3Parser T.Text
+_multiQuote = do
+  mq <- optional (oneOrTwo)
+  r <- noneOf "\"\\"
+  return $ fromMaybe T.empty mq `T.snoc` r
+                
+_tCharsLong :: N3Parser T.Text
+_tCharsLong =
+  T.singleton <$> _protChar
+  <|> _multiQuote
+
+_protChar :: N3Parser Char
+_protChar = char '\\' *> (_echar' <|> _uchar')
+
+_echar' :: N3Parser Char
+_echar' = 
+  (char 't' *> pure '\t') <|>
+  (char 'b' *> pure '\b') <|>
+  (char 'n' *> pure '\n') <|>
+  (char 'r' *> pure '\r') <|>
+  (char 'f' *> pure '\f') <|>
+  (char '\\' *> pure '\\') <|>
+  (char '"' *> pure '"') <|>
+  (char '\'' *> pure '\'')
+
+_uchar' :: N3Parser Char
+_uchar' =
+  (char 'u' *> commit hex4)
+  <|>
+  (char 'U' *> commit hex8)
+
+{-- Turtle productions: end --}
 
 getDefaultPrefix :: N3Parser Namespace
 getDefaultPrefix = do
@@ -1169,7 +1220,7 @@ universal =
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

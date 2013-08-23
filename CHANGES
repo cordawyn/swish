@@ -1,3 +1,13 @@
+0.9.0.5:
+
+  Turtle/N3 output: more changes for string literals containing
+  double-quote characters.
+
+  N3 Parser: parsing of string literals within three quote marks has
+  been updated to match the Turtle parser.
+
+  Turtle Parser: a few more error messages have been added.
+  
 0.9.0.4:
 
   Turtle parser: updated to the Candidate Recommendation (19 February

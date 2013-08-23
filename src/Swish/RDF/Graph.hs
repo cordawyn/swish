@@ -676,28 +676,129 @@ showCanon (LangLit st lang)  = quote1Str st ++ "@"  ++ T.unpack (fromLangTag lan
 showCanon (TypedLit st dt)   = quote1Str st ++ "^^" ++ show (getScopedNameURI dt)
 showCanon s                  = show s
 
+-- The Data.Text API points out issues with processing a text
+-- character-by-character, but it's not clear to me how to avoid
+-- that here
+--
+-- One assumption would be that the strings aren't likely to be large,
+-- so that several calls to T.find or similar could be made to
+-- simplify certain cases.
+--
+-- Is it worth scanning through the text to look for characters like \n
+-- or #, or to look for sequences like '##'?
+
+-- Is it worth sending in a flag to indicate the different modes for
+-- handling \n characters, or just leave this complexity in 'quoteT False'?
+--
+processChar ::
+  Char
+  -> (T.Text, Bool) -- ^ the boolean is @True@ if the returned text has been
+  -- expanded so that it begins with @\@
+processChar '"'  = ("\\\"", True)
+processChar '\\' = ("\\\\", True)
+processChar '\n' = ("\\n", True)
+processChar '\r' = ("\\r", True)
+processChar '\t' = ("\\t", True)
+processChar '\b' = ("\\b", True)
+processChar '\f' = ("\\f", True)
+processChar c =
+  let nc = ord c
+      -- lazy ways to convert to hex-encoded strings
+      four = T.append "\\u" . T.pack $ printf "%04X" nc
+      eight = T.append "\\U" . T.pack $ printf "%08X" nc
+  in if nc < 0x20
+     then (four, True)
+     else if nc < 0x7f
+          then (T.singleton c, False)
+          else if nc < 0x10000
+               then (four, True)
+               else (eight, True)
+
+convertChar :: Char -> T.Text
+convertChar = fst . processChar
+
 -- | See `quote`.
 quoteT :: Bool -> T.Text -> T.Text
-quoteT f = T.pack . quote f . T.unpack  -- TODO: avoid conversion to string
+quoteT True txt =
+  -- Output is to be used as "..."
+  let go dl x =
+        case T.uncons x of
+          Just (c, xs) -> go (dl . T.append (convertChar c)) xs
+          _ -> dl T.empty
+                          
+  in go (T.append T.empty) txt
 
-{-| N3-style quoting rules for a string.
+-- One complexity here is my reading of the Turtle grammar
+--    STRING_LITERAL_LONG_QUOTE ::=	'"""' (('"' | '""')? [^"\] | ECHAR | UCHAR)* '"""'
+-- which says that any un-protected double-quote characters can not
+-- be followed by a \ character. One option would be to always use the
+-- 'quoteT True' behavior.
+--
+quoteT _ txt =
+  -- Output is to be used as """...""""
+  let go dl x =
+        case T.uncons x of
+          Just ('"', xs) -> go1 dl xs
+          Just ('\n', xs) -> go (dl . T.cons '\n') xs
+          Just (c, xs) -> go (dl . T.append (convertChar c)) xs
+          _ -> dl T.empty
 
-WARNING: the output is /incorrect/ if the flag is @False@ and
-the text contains 3 or more consecutive @\"@ characters.
--}
+      -- Seen one double quote
+      go1 dl x =
+        case T.uncons x of
+          Just ('"', xs) -> go2 dl xs
+          Just ('\n', xs) -> go (dl . T.append "\"\n") xs
+          Just ('\\', xs) -> go (dl . T.append "\\\"\\\\") xs
+          Just (c, xs) ->
+            let (t, f) = processChar c
+                dl' = if f then T.append "\\\"" else T.cons '"'
+            in go (dl . dl' . T.append t) xs
+          _ -> dl "\\\""
+          
+      -- Seen two double quotes
+      go2 dl x =
+        case T.uncons x of
+          Just ('"', xs) -> go (dl . T.append "\\\"\\\"\\\"") xs
+          Just ('\n', xs) -> go (dl . T.append "\"\"\n") xs
+          Just ('\\', xs) -> go (dl . T.append "\\\"\\\"\\\\") xs
+          Just (c, xs) ->
+            let (t, f) = processChar c
+                dl' = T.append (if f then "\\\"\\\"" else "\"\"")
+            in go (dl . dl' . T.append t) xs
+          _ -> dl "\\\"\\\""
+
+      -- at the start of the string we have 3 quotes, so any
+      -- starting quote characters must be quoted.
+      go0 dl x =
+        case T.uncons x of
+          Just ('"', xs) -> go0 (dl . T.append "\\\"") xs
+          Just ('\n', xs) -> go (dl . T.cons '\n') xs
+          Just (c, xs) -> go (dl . T.append (convertChar c)) xs
+          _ -> dl T.empty
+      
+  in go0 (T.append T.empty) txt
+        
+-- | Turtle-style quoting rules for a string.
+--
+--   At present the choice is between using one or three
+--   double quote (@"@) characters to surround the string; i.e. using
+--   single quote (@'@)  characters is not supported.
 
 quote :: 
   Bool  -- ^ @True@ if the string is to be displayed using one rather than three quotes.
   -> String -- ^ String to quote.
-  -> String
+  -> String -- ^ The string does *not* contain the surrounding quote marks.
+quote f = T.unpack . quoteT f . T.pack
+
+{-
 quote _     []           = ""
 quote False s@(c:'"':[]) | c == '\\'  = s -- handle triple-quoted strings ending in "
                          | otherwise  = [c, '\\', '"']
 
 quote True  ('"': st)    = '\\':'"': quote True  st
 quote True  ('\n':st)    = '\\':'n': quote True  st
-
 quote True  ('\t':st)    = '\\':'t': quote True  st
+
 quote False ('"': st)    =      '"': quote False st
 quote False ('\n':st)    =     '\n': quote False st
 quote False ('\t':st)    =     '\t': quote False st
@@ -717,10 +818,12 @@ quote f (c:st) =
           then '\\':'u': drop 4 ustr
           else c : rst
 
--- surround a string with quotes ("...")
+-}
 
+-- surround a string with a single double-quote mark at each end,
+-- e.g. "...".
 quote1Str :: T.Text -> String
-quote1Str t = '"' : quote False (T.unpack t) ++ "\""
+quote1Str t = '"' : T.unpack (quoteT True t) ++ "\""
 
 ---------------------------------------------------------
 --  Selected RDFLabel values

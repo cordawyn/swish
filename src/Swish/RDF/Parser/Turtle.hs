@@ -7,30 +7,30 @@
 --  Module      :  Turtle
 --  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
---
+-- 
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
---
+-- 
 --  This Module implements a Turtle parser, returning a
 --  new 'RDFGraph' consisting of triples and namespace information parsed from
 --  the supplied input string, or an error indication.
---
+-- 
 -- REFERENCES:
---
+-- 
 --  - \"Turtle, Terse RDF Triple Language\",
 --    W3C Candidate Recommendation 19 February 2013 (<http://www.w3.org/TR/2013/CR-turtle-20130219/L),
 --    <http://www.w3.org/TR/turtle/>
---
+-- 
 -- NOTES:
---
+-- 
 --  - Prior to version @0.9.0.4@, the parser followed the
 --    W3C Working Draft 09 August 2011 (<http://www.w3.org/TR/2011/WD-turtle-20110809/>)
 -- 
 --  - Strings with no language tag are converted to a 'LitTag' not a
 --    'TypedLitTag' with a type of @xsd:string@ (e.g. see
 --    <http://www.w3.org/TR/2011/WD-turtle-20110809/#terms>).
---
+-- 
 --  - If the URI is actually an IRI (Internationalized Resource Identifiers)
 --    then the parser will fail since 'Network.URI.parseURI' fails.
 -- 
@@ -42,7 +42,7 @@
 --    @localName_with_nfc_PN_CHARS_BASE_character_boundaries@,
 --    and
 --    @localName_with_non_leading_extras@.
---
+-- 
 --------------------------------------------------------------------------------
 
 -- TODO:
@@ -387,7 +387,7 @@ turtleDoc = mkGr <$> (whiteSpace *> many statement *> eof *> stGet)
 [2]	statement	::=	directive | triples '.'
 -}
 statement :: TurtleParser ()
-statement = directive <|> (triples *> fullStop)
+statement = directive <|> (triples *> commit fullStop <? "Missing '.' after a statement.")
 
 {-
 [3]	directive	::=	prefixID | base | sparqlPrefix | sparqlBase
@@ -568,9 +568,9 @@ TODO: remove 'Lit lbl' form, since dtype=xsd:string in this case.
 rdfLiteral :: TurtleParser RDFLabel
 rdfLiteral = do
   lbl <- L.toStrict <$> turtleString
-  opt <- optional ((Left <$> _langTag)
+  opt <- optional ((Left <$> (_langTag <? "Unable to parse the language tag"))
                    <|>
-                   (string "^^" *> (Right <$> commit iri)))
+                   (string "^^" *> (Right <$> (commit iri <? "Unable to parse the datatype of the literal"))))
   ignore $ optional whiteSpace
   return $ case opt of
              Just (Left lcode)  -> LangLit lbl lcode
@@ -591,7 +591,7 @@ turtleString =
   lexeme (
     _stringLiteralLongQuote <|> _stringLiteralQuote <|>
     _stringLiteralLongSingleQuote <|> _stringLiteralSingleQuote
-  )
+    ) <? "Unable to parse a string literal"
 
 {-
 [135s]	iri	::=	IRIREF | PrefixedName
@@ -864,7 +864,13 @@ _exponent = do
 [23]	STRING_LITERAL_SINGLE_QUOTE	::=	"'" ([^#x27#x5C#xA#xD] | ECHAR | UCHAR)* "'"
 [24]	STRING_LITERAL_LONG_SINGLE_QUOTE	::=	"'''" (("'" | "''")? [^'\] | ECHAR | UCHAR)* "'''"
 [25]	STRING_LITERAL_LONG_QUOTE	::=	'"""' (('"' | '""')? [^"\] | ECHAR | UCHAR)* '"""'
+
+Since ECHAR | UCHAR is common to all these we pull it out to
+create the _protChar parser.
 -}
+
+_protChar :: TurtleParser Char
+_protChar = char '\\' *> (_echar' <|> _uchar')
 
 _exclSLQ, _exclSLSQ :: String
 _exclSLQ = map chr [0x22, 0x5c, 0x0a, 0x0d]
@@ -885,16 +891,15 @@ _stringItLong :: TurtleParser a -> TurtleParser L.Text -> TurtleParser L.Text
 _stringItLong sep chars = L.concat <$> bracket sep sep (many chars)
 
 _tChars :: String -> TurtleParser Char
-_tChars excl = (char '\\' *> (_echar' <|> _uchar'))
-               <|> noneOf excl
+_tChars excl = _protChar <|> noneOf excl
 
 oneOrTwo :: Char -> TurtleParser L.Text
 oneOrTwo c = do
-  a <- char c
+  ignore $ char c
   mb <- optional (char c)
   case mb of
-    Just b -> return $ L.pack [a,b]
-    _      -> return $ L.singleton a
+    Just _ -> return $ L.pack [c,c]
+    _      -> return $ L.singleton c
 
 _multiQuote :: Char -> TurtleParser L.Text
 _multiQuote c = do
@@ -904,8 +909,8 @@ _multiQuote c = do
                 
 _tCharsLong :: Char -> TurtleParser L.Text
 _tCharsLong c =
-  let conv = (L.singleton `fmap`)
-  in _multiQuote c <|> conv (_echar <|> _uchar)
+  L.singleton <$> _protChar
+  <|> _multiQuote c
 
 {-
 [26]	UCHAR	::=	'\u' HEX HEX HEX HEX | '\U' HEX HEX HEX HEX HEX HEX HEX HEX
@@ -914,13 +919,21 @@ _uchar :: TurtleParser Char
 _uchar = char '\\' >> _uchar'
 
 _uchar' :: TurtleParser Char
-_uchar' = (char 'u' *> hex4) <|> (char 'U' *> hex8)
+_uchar' =
+  (char 'u' *> (commit hex4 <? "Expected 4 hex characters after \\u"))
+  <|>
+  (char 'U' *> (commit hex8 <? "Expected 8 hex characters after \\U"))
 
 {-
 [159s]	ECHAR	::=	'\' [tbnrf\"']
--}
+
+Since ECHAR is only used by the string productions
+in the form ECHAR | UCHAR, the check for the leading
+\ has been moved out (see _protChar)
+
 _echar :: TurtleParser Char
 _echar = char '\\' *> _echar'
+-}
 
 _echar' :: TurtleParser Char
 _echar' = 
