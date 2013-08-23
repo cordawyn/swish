@@ -19,6 +19,11 @@
 --
 --  Possible improvements:
 --
+--   - add an @--enable-roundtrip@ flag which would do a round-trip test
+--     on all the valid files, to check the formatter as well as the parser
+--     (or just for those tests with a NTriples version, since that can be
+--      used to create the output graph, but may miss a few edge cases).
+--
 --   - create an EARL report (<http://www.w3.org/TR/EARL10-Schema/>), for
 --     <https://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/reports/index.html>.
 --     See also <http://lists.w3.org/Archives/Public/public-rdf-comments/2013Aug/0013.html>.
