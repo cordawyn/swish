@@ -674,6 +674,9 @@ coverageCases =
   , compareExample "cov3-3"
     "<urn:a> <urn:b> \"\"\"\\\"A quoted string.\\\"\\\"\"\"\"."
     (trips "\"A quoted string.\"\"")
+  , compareExample "cov4"
+    "<urn:a> <urn:b> \"3\\\\8\\\\11\" ."
+    (trips "3\\8\\11")
   ]
 
 -- Extracted from failures seen when using the W3C test suite
