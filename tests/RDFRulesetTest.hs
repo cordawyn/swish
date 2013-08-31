@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFRulesetTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -19,6 +19,13 @@
 --
 
 module Main where
+
+import qualified Data.Set as S
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
+
+import qualified TestHelpers as TH
 
 import Swish.Namespace (Namespace, makeNamespace, getNamespaceTuple, getNamespaceURI, ScopedName, makeScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.QName (LName)
@@ -56,6 +63,11 @@ import Swish.RDF.Graph
     
 import Swish.RDF.Vocabulary (namespaceRDF, namespaceRDFS, namespaceOWL, scopeRDF)
 
+import Data.Monoid (Monoid(..))
+import Data.List (sort)
+import Data.Maybe (isJust, fromJust)
+import Data.Text (Text)
+
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertBool
@@ -63,23 +75,12 @@ import Test.HUnit
 
 import Network.URI (URI, parseURI)
 
-import Data.Monoid (Monoid(..))
-import Data.List (sort)
-import Data.Maybe (isJust, fromJust)
-import Data.Text (Text)
-
-import qualified Data.Set as S
-import qualified Data.Text.Lazy.Builder as B
-
-import TestHelpers (runTestSuite
-                   , test
+import TestHelpers ( conv, test
                    , testLe
                    , testCompare
                    , testCompareEq
                    , testMaker
                    )
-
-import qualified TestHelpers as TH
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -350,30 +351,21 @@ testRDFSuite =
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ testFormulaSuite
-  , testRuleSuite
-  , testRulesetSuite
-  , testRDFSuite
+allTests :: [TF.Test]
+allTests = 
+  [ conv "Formula" testFormulaSuite
+  , conv "Rule" testRuleSuite
+  , conv "Ruleset" testRulesetSuite
+  , conv "RDF" testRDFSuite
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

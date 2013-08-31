@@ -15,9 +15,11 @@
 --
 --------------------------------------------------------------------------------
 
+-- TODO: move to using test-framework
+
 module TestHelpers
        ( 
-         runTestSuite
+         conv
          , test
          , testCompare, testCompareEq
          , testEq, testNe, testLe, testGe
@@ -29,30 +31,25 @@ module TestHelpers
          )
        where
 
-import System.Exit (exitSuccess, exitFailure)
+import qualified Data.Set as S
 
-import Test.HUnit (Test(TestCase, TestList)
-                   , runTestTT
-                   , Assertion
-                   , assertBool, assertEqual, assertFailure
-                   )
-import Test.HUnit.Base (Counts(..))
+import qualified Test.Framework as TF
+import qualified Test.Framework.Providers.HUnit as TF
 
 import Control.Monad (unless)
 
 import Data.Maybe (isJust, isNothing, fromJust)
 
-import qualified Data.Set as S
+import Test.HUnit (Test(TestCase, TestList)
+                   , Assertion
+                   , assertBool, assertEqual, assertFailure
+                   )
 
--- | Run the test suite and exit the process with either 
--- @exitSuccess@ or @exitFailure@.
-runTestSuite :: Test -> IO ()
-runTestSuite tests = do
-  Counts ncases ntried nerrors nfailures <- runTestTT tests
-  -- It's not clear whether all these checks are needed but leave in
-  if ntried == ncases && nerrors == nfailures && nerrors == 0
-    then exitSuccess
-    else exitFailure
+-- quick conversion from a set of HUnit tests to
+-- a labelled test-framework group.
+--
+conv :: String -> Test -> TF.Test
+conv lbl = TF.testGroup lbl . TF.hUnitTestToTests
 
 ------------------------------------------------------------
 --  Test case helpers
@@ -76,8 +73,8 @@ testCompareEq typ lab eq a1 a2 =
     TestCase ( assertEqual (typ++lab) eq (a1==a2) )
 
 testMaker :: (Show b, Eq b) => (a -> b) -> String -> String -> a -> a -> Test
-testMaker conv l1 l2 x y =
-  TestCase (assertEqual (l1 ++ ":" ++ l2) (conv x) (conv y))
+testMaker f l1 l2 x y =
+  TestCase (assertEqual (l1 ++ ":" ++ l2) (f x) (f y))
 
 testEq :: (Eq a, Show a) => String -> a -> a -> Test
 testEq = testCompare "testEq:"
@@ -197,23 +194,6 @@ testFailureSuite = TestList
     , testMaybeEqv  "11" (Just "abc") (Just "bda")
     , testMaybeEqv  "12" Nothing      (Just "bda")
     ]
--}
-
-------------------------------------------------------------
---  All tests
-------------------------------------------------------------
-
-{-
-allSuccessTests = TestList
-    [ testSuccessSuite
-    ]
-
-allFailureTests = TestList
-    [ testFailureSuite
-    ]
-
-mainS = runTestTT allSuccessTests
-mainF = runTestTT allFailureTests
 -}
 
 --------------------------------------------------------------------------------

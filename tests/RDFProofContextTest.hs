@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFProofContextTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -18,6 +18,12 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Map as M
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName, namespaceToBuilder)
 import Swish.QName (LName, newLName)
@@ -53,15 +59,10 @@ import Data.Monoid (Monoid(..))
 
 import Network.URI (URI, parseURI)
 
-import qualified Data.Map as M
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as B
-
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertBool, assertEqual )
-import TestHelpers ( runTestSuite
-                     , test
+import TestHelpers ( conv, test
                      , testEq
                      , testElem
                      )
@@ -652,34 +653,19 @@ testRdf = TestList
 --  and useful expressions for interactive use
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ testRules
-  , testRdf
+allTests :: [TF.Test]
+allTests =
+  [ conv "rules" testRules
+  , conv "rdf" testRdf
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
-
-p10 = runTestTT $ TestList
-    [ rdfAxiom10
-    , rdfRule10
-    , testProof     "rdfProof10" True  rdfProof10
-    ]
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

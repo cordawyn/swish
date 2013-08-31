@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  VarBindingTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -18,6 +18,10 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Set as S
+
+import qualified Test.Framework as TF
 
 import Swish.VarBinding
     ( VarBinding(..)
@@ -38,11 +42,8 @@ import Swish.RDF.Vocabulary (swishName)
 import Data.List (union, intersect)
 import Data.Maybe (isJust, isNothing, fromJust)
 
-import qualified Data.Set as S
-
 import Test.HUnit (Test(TestList))
-import TestHelpers (runTestSuite
-                    , test
+import TestHelpers ( conv, test
                     , testEq 
                     , testEqv, testEqv2, testHasEqv, testMaybeEqv
                     , testJust, testNothing  
@@ -781,30 +782,22 @@ testFilterSuite =
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-    [ testVarBindingSuite
-    , testVarModifySuite
-    , testVarComposeSuite
-    , testFindCompSuite
-    , testFilterSuite
-    ]
+allTests :: [TF.Test]
+allTests = 
+  [ conv "VarBinding" testVarBindingSuite
+  , conv "VarModify" testVarModifySuite
+  , conv "VarCompose" testVarComposeSuite
+  , conv "FindComp" testFindCompSuite
+  , conv "Filter" testFilterSuite
+  ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--      2011, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

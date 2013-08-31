@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  QNameTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -19,6 +19,10 @@
 
 module Main where
 
+import qualified Data.Text as T
+
+import qualified Test.Framework as TF
+
 import Swish.Namespace (makeQNameScopedName, getQName, getScopedNameURI)
 import Swish.QName
     ( QName
@@ -31,17 +35,13 @@ import Swish.QName
     , getLName
     )
 
-import Test.HUnit (Test(TestList))
-
-import Network.URI (URI, parseURIReference)
 import Data.Maybe (fromJust)
 
-import qualified Data.Text as T
+import Network.URI (URI, parseURIReference)
 
-import TestHelpers (runTestSuite
-                    , testCompare
-                    , testCompareEq
-                   )
+import Test.HUnit (Test(TestList))
+
+import TestHelpers (conv, testCompare, testCompareEq)
 
 ------------------------------------------------------------
 --  Define some common values
@@ -372,33 +372,25 @@ testSNameTTSuite =
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ testQNameEqSuite
-  , testMakeQNameSuite
-  , testPartQNameSuite
-  , testMaybeQNameEqSuite
-  , testQNameLeSuite
-  , testShowQNameSuite
-  , testSplitURISuite
-  , testSNameTTSuite
+allTests :: [TF.Test]
+allTests = 
+  [ conv "QNameEq" testQNameEqSuite
+  , conv "MakeQName" testMakeQNameSuite
+  , conv "PartQName" testPartQNameSuite
+  , conv "MaybeQNameEq" testMaybeQNameEqSuite
+  , conv "QNameLe" testQNameLeSuite
+  , conv "ShowQName" testShowQNameSuite
+  , conv "SplitURI" testSplitURISuite
+  , conv "SNameTT" testSNameTTSuite
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--      2011, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

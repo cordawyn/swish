@@ -25,6 +25,8 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
+import qualified Test.Framework as TF
+
 import Data.Char (chr)
 import Data.Maybe (fromMaybe)
 
@@ -48,7 +50,7 @@ import Swish.RDF.Vocabulary.XSD (xsdDecimal, xsdDouble, xsdString)
 
 import Test.HUnit (Test(TestCase,TestList), (~=?), (~:), assertFailure)
 
-import TestHelpers (runTestSuite)
+import TestHelpers (conv)
 
 triple :: (ToRDFLabel s, ToRDFLabel p, ToRDFLabel o)
           => s -> p -> o -> RDFTriple
@@ -707,15 +709,15 @@ w3cCases =
 
 --
 
-allTests :: Test
-allTests = TestList
-  [ initialTestSuite
-  , coverageCases
-  , w3cCases
+allTests :: [TF.Test]
+allTests = 
+  [ conv "initial" initialTestSuite
+  , conv "coverage" coverageCases
+  , conv "w3c" w3cCases
   ]
 
 main :: IO ()
-main = runTestSuite allTests
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --

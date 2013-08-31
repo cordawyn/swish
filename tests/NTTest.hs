@@ -18,6 +18,12 @@
 
 module Main where
 
+import qualified Data.Set as S
+import qualified Data.Text.Lazy as T
+
+import qualified Test.Framework as TF
+import qualified Test.Framework.Providers.HUnit as TF
+
 import Swish.GraphClass (arc)
 
 import Swish.RDF.Parser.NTriples (parseNT)
@@ -33,13 +39,12 @@ import Swish.RDF.Vocabulary (toLangTag, rdfXMLLiteral)
 
 import Test.HUnit
     ( Test(TestCase,TestList)
+    , (@=?)
     , assertEqual )
 
 import Data.Maybe (fromJust)
-import TestHelpers (runTestSuite)
 
-import qualified Data.Set as S
-import qualified Data.Text.Lazy as T
+import TestHelpers (conv)
 
 ------------------------------------------------------------
 --  Parser tests
@@ -81,6 +86,24 @@ roundTrip lbl inp =
     , TestCase (assertEqual ("roundTrip-parsing2:"++lbl) noError pErr2)
     , TestCase (assertEqual ("roundTrip-graph:"++lbl)    pGr1    pGr2)
     ]
+
+roundTripTF :: String -> T.Text -> TF.Test
+roundTripTF lbl inp = 
+  let (pErr1, pGr1) = case parseNT inp of
+        Right g -> (noError, g)
+        Left  s -> (s, emptyRDFGraph)
+        
+      inp2 = formatGraphAsLazyText pGr1
+      
+      (pErr2, pGr2) = case parseNT inp2 of
+        Right g -> (noError, g)
+        Left  s -> (s, emptyRDFGraph)
+        
+  in TF.testGroup ("roundTrip:" ++ lbl)
+     [ TF.testCase "parsing1" (noError @=? pErr1)
+     , TF.testCase "parsing2" (noError @=? pErr2)
+     , TF.testCase "graph"    (pGr1    @=? pGr2)
+     ]
 
 
 ------------------------------------------------------------
@@ -248,23 +271,16 @@ gTests = TestList
          , checkGraph "graphm1r" graphm1r gm1
          ]
 
-oTests :: Test
-oTests =
-  TestList
-  [ roundTrip "langtag" "<urn:a> <urn:b> \"Foo .\"@en-UK."
-  ]
-  
-allTests :: Test              
+allTests :: [TF.Test]
 allTests = 
-  TestList
-  [ rTests
-  , eTests
-  , gTests
-  , oTests
+  [ conv "r" rTests
+  , conv "e" eTests
+  , conv "g" gTests
+  , roundTripTF "langtag" "<urn:a> <urn:b> \"Foo .\"@en-UK."
   ]
   
 main :: IO ()  
-main = runTestSuite allTests
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --

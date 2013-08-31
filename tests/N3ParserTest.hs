@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3ParserTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -17,6 +17,14 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
 
 import Swish.GraphClass (Arc, arc) 
 import Swish.Namespace (
@@ -62,13 +70,7 @@ import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust, fromMaybe)
 import Data.List (intercalate)
 
-import qualified Data.Map as M
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.Builder as B
-
-import TestHelpers (runTestSuite, testCompareEq)
+import TestHelpers (conv, testCompareEq)
 
 -- Specialized equality comparisons
 
@@ -1472,27 +1474,27 @@ failTestSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ charTestSuite
-  , nameTestSuite
+allTests :: [TF.Test]
+allTests = 
+  [ conv "char" charTestSuite
+  , conv "name" nameTestSuite
   -- , prefixTestSuite
-  , absUriRefTestSuite
-  , uriRef2TestSuite
-  , simpleTestSuite
-  , litTestSuite
-  , exoticTestSuite
-  , keywordTestSuite
-  , failTestSuite
+  , conv "absUriRef" absUriRefTestSuite
+  , conv "uriRef2" uriRef2TestSuite
+  , conv "simple" simpleTestSuite
+  , conv "lit" litTestSuite
+  , conv "exotic" exoticTestSuite
+  , conv "keyword" keywordTestSuite
+  , conv "fail" failTestSuite
   ]
 
 main :: IO ()
-main = runTestSuite allTests
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

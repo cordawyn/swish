@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  N3FormatterTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -17,6 +17,14 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
 
 import Swish.GraphClass (Arc, arc)
 import Swish.Namespace (Namespace, makeNamespace, getNamespaceTuple, makeNSScopedName, namespaceToBuilder)
@@ -44,17 +52,11 @@ import Data.Maybe (fromJust)
 
 import Data.String (IsString(..))
 
-import qualified Data.Map as M
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.Builder as B
-
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual )
 
-import TestHelpers (runTestSuite, testCompareEq)
+import TestHelpers (conv, testCompareEq)
 
 -- Specialized equality comparisons
 
@@ -1503,31 +1505,22 @@ exoticTestSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ trivialTestSuite
-  , parseTestSuite
-  , roundTripTestSuite
-  , simpleTestSuite
-  , exoticTestSuite
+allTests :: [TF.Test]
+allTests = 
+  [ conv "trivial" trivialTestSuite
+  , conv "parse" parseTestSuite
+  , conv "roundtrip" roundTripTestSuite
+  , conv "simple" simpleTestSuite
+  , conv "exotic" exoticTestSuite
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFGraphTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -17,6 +17,15 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Text as T
+
+-- import qualified Data.Traversable as Traversable
+import qualified Data.Foldable as Foldable
+
+import qualified Test.Framework as TF
 
 import Swish.Namespace (Namespace, makeNamespace, getNamespaceURI, getNamespaceTuple, ScopedName, makeNSScopedName, nullScopedName)
 import Swish.QName (QName, qnameFromURI)
@@ -64,20 +73,12 @@ import Network.URI (URI, parseURI)
 
 import System.Locale (defaultTimeLocale)
 
-import qualified Data.Map as M
-import qualified Data.Set as S
-import qualified Data.Text as T
-
--- import qualified Data.Traversable as Traversable
-import qualified Data.Foldable as Foldable
-
 import Test.HUnit
     ( Test(TestCase,TestList,TestLabel)
     , Assertion
     , assertBool, assertEqual )
 
-import TestHelpers ( runTestSuite
-                   , testEq
+import TestHelpers ( conv, testEq
                    , testEqv
                    , testCompare
                    , testCompareEq)
@@ -1570,47 +1571,32 @@ testMergeSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ testLangEqSuite
-  , testConversionSuite
-  , testNodeEqSuite
-  , testNodeClassSuite
-  , testNodeLocalSuite
-  , testNewNodeSuite
-  , testNodeOrdSuite
-  , testLabelOtherSuite
-  , testStmtEqSuite
-  , testGraphEqSuite
-  , testGraphEqSelSuite
-  , testGraphFoldSuite
-  , testGraphFormulaSuite
-  , testGraphTranslateSuite
-  , testMergeSuite
+allTests :: [TF.Test]
+allTests = 
+  [ conv "LangEq" testLangEqSuite
+  , conv "Conversion" testConversionSuite
+  , conv "NodeEq" testNodeEqSuite
+  , conv "NodeClass" testNodeClassSuite
+  , conv "NodeLocal" testNodeLocalSuite
+  , conv "NewNode" testNewNodeSuite
+  , conv "NodeOrd" testNodeOrdSuite
+  , conv "LabelOther" testLabelOtherSuite
+  , conv "StmtEq" testStmtEqSuite
+  , conv "GraphEq" testGraphEqSuite
+  , conv "GraphEqSel" testGraphEqSelSuite
+  , conv "GraphFold" testGraphFoldSuite
+  , conv "GraphFormula" testGraphFormulaSuite
+  , conv "GraphTranslate" testGraphTranslateSuite
+  , conv "Merge" testMergeSuite
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
-
-geq  = testGraphEqSuite
-nord = testNodeOrdSuite
-gtr  = testGraphTranslateSuite
-
-gmm g1 g2 = grMatchMap g1 g2
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke  
+--    2011, 2012, 2013 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

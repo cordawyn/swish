@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFQueryTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -21,6 +21,11 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Set as S
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
 
 import Swish.Namespace (getNamespaceURI, ScopedName, makeScopedName)
 import Swish.VarBinding
@@ -61,12 +66,8 @@ import Data.Maybe (fromJust)
 
 import Network.URI (URI, parseURI)
 
-import qualified Data.Set as S
-import qualified Data.Text.Lazy.Builder as B
-
 import Test.HUnit ( Test(TestList) )
-import TestHelpers (runTestSuite
-                   , test
+import TestHelpers ( conv, test
                    , testEq
                    , testElem
                    , testEqv
@@ -1635,35 +1636,24 @@ tl3  = queryList graphlist th3
 --  and useful expressions for interactive use
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-  [ test1
-  , test2
-  , test3
-  , test4
-  , test6
-  , test7
+allTests :: [TF.Test]
+allTests = 
+  [ conv "1" test1
+  , conv "2" test2
+  , conv "3" test3
+  , conv "4" test4
+  , conv "6" test6
+  , conv "7" test7
 --  , test8
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
-
-shres32 = TestCase $ assertString (show res32)
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke  
+--    2011, 2012, 2013 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

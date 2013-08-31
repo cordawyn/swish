@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -17,10 +17,11 @@
 module Main where
 
 import qualified Data.Foldable as F
+import qualified Data.Map as M
+import qualified Data.Set as S
 
-import Test.HUnit
-      ( Test(TestCase,TestList,TestLabel),
-        assertEqual, assertBool )
+import qualified Test.Framework as TF
+import qualified Test.Framework.Providers.HUnit as TF
 
 import Swish.GraphClass (Arc(..), ArcSet, LDGraph(..), Label(..))
 import Swish.GraphClass (arc, arcFromTriple, arcToTriple)
@@ -38,8 +39,6 @@ import Swish.GraphMatch
 
 -- import Swish.Utils.ListHelpers (subset)
 
-import TestHelpers (runTestSuite, testEq, testNe)
-
 import Data.Function (on)
 import Data.Hashable (hashWithSalt)
 import Data.List (sort, sortBy, elemIndex)
@@ -47,8 +46,12 @@ import Data.Maybe (fromJust)
 import Data.Ord (comparing)
 import Data.Word (Word32)
 
-import qualified Data.Map as M
-import qualified Data.Set as S
+import Test.HUnit
+      ( Test(TestCase,TestList,TestLabel)
+        , (@=?)
+        , assertEqual, assertBool )
+
+import TestHelpers (conv, testEq, testNe)
 
 default ( Int )
 
@@ -1853,50 +1856,35 @@ testGraphEqSuiteMore = TestList
 -- All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
+allTests :: [TF.Test]
+allTests = 
   [ -- testSelectSuite
     -- testSubsetSuite
-    testLabSuite
-  , testGraphSuite
-  , testLabelEqSuite
-  , testLabelOrdSuite
-  , TestCase (assertBool "arc neq" (Arc True True True /= Arc True True False)) -- silly test of Eq instance
-  , testStmtEqSuite
-  , testLabelMapSuite
-  , testGraphMatchSupportSuite
-  , testGraphMatchStepSuite
-  , testGraphEqSuitePart
-  , testGraphEqSuite
-  , testGraphEqSuiteMore
+    conv "Lab" testLabSuite
+  , conv "Graph" testGraphSuite
+  , conv "LabelEq" testLabelEqSuite
+  , conv "LabelOrd" testLabelOrdSuite
+    -- silly test of Eq instance
+  , TF.testCase "arc neq"
+    (assertBool "arc neq" (Arc True True True /= Arc True True False))
+  , conv "StmtEq" testStmtEqSuite
+  , conv "LabelMap" testLabelMapSuite
+  , conv "GraphMatchSupport" testGraphMatchSupportSuite
+  , conv "GraphMatchStep" testGraphMatchStepSuite
+  , conv "GraphEq Part" testGraphEqSuitePart
+  , conv "GraphEq" testGraphEqSuite
+  , conv "GraphEq More" testGraphEqSuiteMore
     -- test of Foldable instance of Arc
-  , TestCase (assertEqual "fold Arc" [1::Int,2,4] (F.fold (Arc [1::Int] [2] [4])))
+  , TF.testCase "foldArc" ([1::Int,2,4] @=? F.fold (Arc [1::Int] [2] [4]))
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
-
-geq    = testGraphEqSuite
-geq1   = testGraphEqSuiteMore
-ttmore = tt testGraphEqSuiteMore    -- this test may take a long time
-tfmore = tf testGraphEqSuiteMore
-ttstep = tt testGraphMatchStepSuite
-tfstep = tf testGraphMatchStepSuite
-
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

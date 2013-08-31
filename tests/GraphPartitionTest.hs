@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  GraphPartitionTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -15,6 +15,8 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Test.Framework as TF
 
 import Swish.GraphPartition
     ( PartitionedGraph(..), getArcs
@@ -29,10 +31,9 @@ import Data.List.NonEmpty (fromList)
 
 import Test.HUnit (Test(TestList))
 
-import TestHelpers (runTestSuite
-                    , testEq, testNe
+import TestHelpers (conv, testEq, testNe
                    , testEqv, testNotEqv
-                    )
+                   )
 
 ------------------------------------------------------------
 --  Basic GraphPartition tests
@@ -504,29 +505,20 @@ testCompareSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-    [ testBasicSuite
-    , testPartitionSuite
-    , testCompareSuite
-    ]
+allTests :: [TF.Test]
+allTests =
+  [ conv "basic" testBasicSuite
+  , conv "partiton" testPartitionSuite
+  , conv "compare" testCompareSuite
+  ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFDatatypeXsdIntegerTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -18,6 +18,12 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Map as M
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
 
 import Swish.Datatype
     ( typeName, typeRules, typeMkRules
@@ -57,16 +63,11 @@ import Data.Monoid (Monoid(..))
 
 import Network.URI (URI, parseURI)
 
-import qualified Data.Map as M
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as B
-
 import Test.HUnit
     ( Test(TestCase,TestList)
       , assertFailure
     )
-import TestHelpers (runTestSuite
-                   , testEq, testElem, testEqv, testEqv2)
+import TestHelpers (conv, testEq, testElem, testEqv, testEqv2)
 
 ------------------------------------------------------------
 --  Misc values
@@ -1332,32 +1333,21 @@ testDatatypeRuleSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-    [ testDatatypeSuite
-    , testDatatypeValSuite
-    , testVarModifySuite
-    , testDatatypeRuleSuite
-    ]
+allTests :: [TF.Test]
+allTests = 
+  [ conv "Datatype" testDatatypeSuite
+  , conv "DatatypeVal" testDatatypeValSuite
+  , conv "VarModify" testVarModifySuite
+  , conv "DatatypeRule" testDatatypeRuleSuite
+  ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-trules = runTestTT testDatatypeRuleSuite
-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.

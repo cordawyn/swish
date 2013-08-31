@@ -1,3 +1,7 @@
+0.9.0.6:
+
+  Changed the test handling to use test-framework.
+
 0.9.0.5:
 
   Turtle/N3 output: more changes for string literals containing

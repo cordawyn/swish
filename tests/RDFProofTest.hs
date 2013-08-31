@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  RDFProofTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2013 Douglas Burke
 --  License     :  GPL V2
 --
 --  Maintainer  :  Douglas Burke
@@ -18,6 +18,12 @@
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Data.Set as S
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as B
+
+import qualified Test.Framework as TF
 
 import Swish.Namespace (Namespace, makeNamespace, ScopedName, makeNSScopedName)
 import Swish.Rule (Rule(..))
@@ -45,21 +51,16 @@ import Swish.RDF.Graph
     ( Label(..), RDFLabel(..), RDFGraph
     , addGraphs, allLabels, allNodes )
 
-import Test.HUnit ( Test(TestList) )
-
-import Network.URI (URI, parseURI)
-
 import Data.Monoid (Monoid(..))
 import Data.Maybe (fromJust)
 
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.Builder as B
+import Network.URI (URI, parseURI)
 
-import TestHelpers ( runTestSuite
-                     , test
-                     , testEq, testElem
-                     , testNo
+import Test.HUnit ( Test(TestList) )
+
+import TestHelpers ( conv, test
+                   , testEq, testElem
+                   , testNo
                    )
 
 --  misc helpers
@@ -1029,32 +1030,24 @@ test7 =
 
 --  Full test suite, main program, and useful expressions for interactive use
 
-allTests :: Test
-allTests = TestList
-  [ test1
-  , test2
-  , test3
-  , test4
-  , test5
-  , test6
-  , test7
+allTests :: [TF.Test]
+allTests =
+  [ conv "1" test1
+  , conv "2" test2
+  , conv "3" test3
+  , conv "4" test4
+  , conv "5" test5
+  , conv "6" test6
+  , conv "7" test7
   ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    runTestText (putTextToHandle h False) t
-    hClose h
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
---  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011 Douglas Burke  
+--  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
+--     2011, 2013 Douglas Burke  
 --  All rights reserved.
 --
 --  This file is part of Swish.

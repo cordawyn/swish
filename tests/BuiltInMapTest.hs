@@ -5,19 +5,23 @@
 --------------------------------------------------------------------------------
 -- |
 --  Module      :  BuiltInMapTest
---  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012 Douglas Burke
+--  Copyright   :  (c) 2003, Graham Klyne, 2009 Vasili I Galchin, 2011, 2012, 2013 Douglas Burke
 --  License     :  GPL V2
---
+-- 
 --  Maintainer  :  Douglas Burke
 --  Stability   :  experimental
 --  Portability :  OverloadedStrings
---
+-- 
 --  This module contains test cases for accessing built-in variable
 --  binding modifiers.
---
+-- 
 --------------------------------------------------------------------------------
 
 module Main where
+
+import qualified Test.Framework as TF
+
+import qualified Data.Map as M
 
 import Swish.Namespace (makeNSScopedName)
 import Swish.Ruleset (getMaybeContextAxiom, getMaybeContextRule)
@@ -39,14 +43,12 @@ import Swish.RDF.Vocabulary
     , namespaceXsdType
     )
 
-import qualified Data.Map as M
-
 import Test.HUnit
     ( Test(TestCase,TestList)
     , assertEqual
     )
 
-import TestHelpers (runTestSuite, testJust)
+import TestHelpers (conv, testJust)
 
 ------------------------------------------------------------
 --  Test finding built-in variable binding modifiers
@@ -146,33 +148,22 @@ testFindRuleSuite = TestList
 --  All tests
 ------------------------------------------------------------
 
-allTests :: Test
-allTests = TestList
-    [ testVarModSuite
-    , testDatatypeSuite
-    , testRulesetSuite
-    , testFindAxiomSuite
-    , testFindRuleSuite
-    ]
+allTests :: [TF.Test]
+allTests =
+  [ conv "VarMod" testVarModSuite
+  , conv "Datatype" testDatatypeSuite
+  , conv "Ruleset" testRulesetSuite
+  , conv "FindAxiom" testFindAxiomSuite
+  , conv "FindRule" testFindRuleSuite
+  ]
 
 main :: IO ()
-main = runTestSuite allTests
-
-{-
-runTestFile :: Test -> IO ()
-runTestFile t = do
-    h <- openFile "a.tmp" WriteMode
-    _ <- runTestText (putTextToHandle h False) t
-    hClose h
-    
-tf = runTestFile
-tt = runTestTT
--}
+main = TF.defaultMain allTests
 
 --------------------------------------------------------------------------------
 --
 --  Copyright (c) 2003, Graham Klyne, 2009 Vasili I Galchin,
---    2011, 2012 Douglas Burke
+--    2011, 2012, 2013 Douglas Burke
 --  All rights reserved.
 --
 --  This file is part of Swish.
