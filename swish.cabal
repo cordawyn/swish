@@ -297,7 +297,6 @@ Test-Suite test-turtle
    type:       exitcode-stdio-1.0
    Hs-Source-Dirs: tests/
    Main-Is:        TurtleTest.hs
-   Other-Modules:  TestHelpers
 
    ghc-options:
       -Wall -fno-warn-orphans

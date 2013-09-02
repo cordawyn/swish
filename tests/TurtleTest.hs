@@ -26,6 +26,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
 import qualified Test.Framework as TF
+import qualified Test.Framework.Providers.HUnit as TF
 
 import Data.Char (chr)
 import Data.Maybe (fromMaybe)
@@ -48,9 +49,7 @@ import Swish.RDF.Vocabulary.FOAF (foafgivenName, foafknows, foafmbox, foafname, 
 import Swish.RDF.Vocabulary.RDF (rdfType, rdfFirst, rdfRest, rdfNil, rdfsLabel)
 import Swish.RDF.Vocabulary.XSD (xsdDecimal, xsdDouble, xsdString)
 
-import Test.HUnit (Test(TestCase,TestList), (~=?), (~:), assertFailure)
-
-import TestHelpers (conv)
+import Test.HUnit (Assertion, (@=?), assertFailure)
 
 triple :: (ToRDFLabel s, ToRDFLabel p, ToRDFLabel o)
           => s -> p -> o -> RDFTriple
@@ -65,11 +64,10 @@ toGraph = flip parseTurtle Nothing . L.fromStrict
 parseFail ::
   String  -- ^ error from parse
   -> T.Text  -- ^ original Turtle graph
-  -> String     -- ^ label
-  -> Test
-parseFail emsg gr lbl =
-  TestCase $ assertFailure $ concat
-  ["Unable to parse ", lbl, ":\n", emsg, "\n*** Turtle=\n", T.unpack gr]
+  -> Assertion
+parseFail emsg gr =
+  assertFailure $ concat
+  ["Unable to parse:\n", emsg, "\n*** Turtle=\n", T.unpack gr]
   
 -- | Compare a Turtle format graph with its expected
 --   contents. There is also a 'round trip' check, that
@@ -86,7 +84,7 @@ compareExample ::
   String         -- ^ label
   -> T.Text      -- ^ Turtle representation
   -> [RDFTriple] -- ^ Corresponding triples
-  -> Test
+  -> TF.Test
 compareExample l t o =
   let expectedGraph = toRDFGraph oset
       egr = toGraph t
@@ -95,27 +93,29 @@ compareExample l t o =
 
       compareTriples =
         case egr of
-          Left e -> parseFail e t $ "example " ++ l
-          Right gr -> lbl ~: expectedGraph ~=? gr
+          Left e -> parseFail e t
+          Right gr -> expectedGraph @=? gr
 
       compareRoundTrip = 
         let ttl = formatGraphAsText expectedGraph
             tgr = toGraph ttl
         in case tgr of
-          Left e -> parseFail e ttl $ "round-trip example " ++ l
-          Right gr -> lbl ~: expectedGraph ~=? gr
+          Left e -> parseFail e ttl
+          Right gr -> expectedGraph @=? gr
          
         
-  in TestList [ compareTriples
-              , compareRoundTrip
-              ]
+  in TF.testGroup lbl
+     [ TF.testCase "base case" compareTriples
+     , TF.testCase "round-trip example" compareRoundTrip
+     ]
      
-compareGraphs :: String -> T.Text -> T.Text -> Test
+compareGraphs :: String -> T.Text -> T.Text -> TF.Test
 compareGraphs l t1 t2 =
-  case (toGraph t1, toGraph t2) of
-    (Left e1, _) -> parseFail e1 t1 $ "graph 1 of " ++ l
-    (_, Left e2) -> parseFail e2 t2 $ "graph 2 of " ++ l
-    (Right gr1, Right gr2) -> ("example: " ++ l) ~: gr1 ~=? gr2
+  let ans = case (toGraph t1, toGraph t2) of
+        (Left e1, _) -> parseFail e1 t1 -- "graph 1 of " ++ l
+        (_, Left e2) -> parseFail e2 t2 -- "graph 2 of " ++ l
+        (Right gr1, Right gr2) -> gr1 @=? gr2
+  in TF.testCase ("example: " ++ l) ans
       
 -- *********************************************
 -- Examples from Turtle specification
@@ -625,9 +625,9 @@ result7_4 =
 -- Set up test suites
 -- *********************************************
 
-initialTestSuite :: Test
+initialTestSuite :: TF.Test
 initialTestSuite =
-  TestList
+  TF.testGroup "initial"
   [ compareExample "1" example1 result1
   , compareExample "2.4" example2_4 result2_4
   , compareExample "2.5.1" example2_5_1 result2_5_1
@@ -650,9 +650,9 @@ initialTestSuite =
 trips :: T.Text -> [RDFTriple]
 trips t = [triple (toURI "urn:a") (toURI "urn:b") (Lit t)]
 
-coverageCases :: Test
+coverageCases :: TF.Test
 coverageCases =
-  TestList
+  TF.testGroup "coverage"
   [ -- This was actually more a problem with output rather than input.
     compareExample "cov1"
     "<urn:a> <urn:b> \"' -D RT @madeupname: \\\"Foo \\u0024 Zone\\\" \\U0000007e:\\\"\\\"\\\"D\" ."
@@ -700,9 +700,9 @@ le1A :: [RDFTriple]
 le1A =
   [ triple (toURI "urn:a") (toURI "urn:b:") (toURI "urn:example/c~d") ]
 
-w3cCases :: Test
+w3cCases :: TF.Test
 w3cCases =
-  TestList
+  TF.testGroup "w3c"
   [ compareExample "lang-tag1" lt1T lt1A
   , compareExample "localEscapes" le1T le1A
   ]
@@ -711,9 +711,9 @@ w3cCases =
 
 allTests :: [TF.Test]
 allTests = 
-  [ conv "initial" initialTestSuite
-  , conv "coverage" coverageCases
-  , conv "w3c" w3cCases
+  [ initialTestSuite
+  , coverageCases
+  , w3cCases
   ]
 
 main :: IO ()
