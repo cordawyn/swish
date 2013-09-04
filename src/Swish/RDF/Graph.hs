@@ -678,7 +678,7 @@ showCanon s                  = show s
 
 -- The Data.Text API points out issues with processing a text
 -- character-by-character, but it's not clear to me how to avoid
--- that here
+-- that here.
 --
 -- One assumption would be that the strings aren't likely to be large,
 -- so that several calls to T.find or similar could be made to
@@ -700,7 +700,11 @@ processChar '\n' = ("\\n", True)
 processChar '\r' = ("\\r", True)
 processChar '\t' = ("\\t", True)
 processChar '\b' = ("\\b", True)
-processChar '\f' = ("\\f", True)
+-- processChar '\f' = ("\\f", True)
+-- Using the above I get invalid output according to
+-- rapper version 2.0.9, so use the following for now
+-- (changed at version 0.9.0.6)
+processChar '\f' = ("\\u000C", True) -- 
 processChar c =
   let nc = ord c
       -- lazy ways to convert to hex-encoded strings
@@ -783,7 +787,11 @@ quoteT _ txt =
 --   At present the choice is between using one or three
 --   double quote (@"@) characters to surround the string; i.e. using
 --   single quote (@'@)  characters is not supported.
-
+-- 
+--   As of Swish 0.9.0.6, the @\f@ character is converted to
+--   @\u000C@ rather than left as is to aid interoperability
+--   with some other tools.
+--   
 quote :: 
   Bool  -- ^ @True@ if the string is to be displayed using one rather than three quotes.
   -> String -- ^ String to quote.

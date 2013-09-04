@@ -1,5 +1,8 @@
 0.9.0.6:
 
+  Turtle/N3 output: \f characters in literals are converted to
+  \u000C to work around some interoperability issues.
+
   Changed the test handling to use test-framework.
 
 0.9.0.5:

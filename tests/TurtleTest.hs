@@ -103,12 +103,14 @@ compareExample l t o =
           Left e -> parseFail e ttl
           Right gr -> expectedGraph @=? gr
          
-        
   in TF.testGroup lbl
      [ TF.testCase "base case" compareTriples
      , TF.testCase "round-trip example" compareRoundTrip
      ]
-     
+
+-- | Check that both graphs (in Turtle format) are
+--   the same, once parsed.
+-- 
 compareGraphs :: String -> T.Text -> T.Text -> TF.Test
 compareGraphs l t1 t2 =
   let ans = case (toGraph t1, toGraph t2) of
@@ -116,7 +118,16 @@ compareGraphs l t1 t2 =
         (_, Left e2) -> parseFail e2 t2 -- "graph 2 of " ++ l
         (Right gr1, Right gr2) -> gr1 @=? gr2
   in TF.testCase ("example: " ++ l) ans
-      
+
+-- | Check that the list of triples creates the output
+--   graph. It is intended for very-small graphs.
+--
+checkFormat :: String -> [RDFTriple] -> T.Text -> TF.Test
+checkFormat lbl ts egr =
+  let gr = toRDFGraph $ S.fromList ts
+      ogr = formatGraphAsText gr
+  in TF.testCase ("format: " ++ lbl) $ egr @=? ogr
+
 -- *********************************************
 -- Examples from Turtle specification
 -- *********************************************
@@ -647,8 +658,12 @@ initialTestSuite =
 
 -- Cases to try and improve the test coverage
 
+urnA, urnB :: URI
+urnA = toURI "urn:a"
+urnB =  toURI "urn:b"
+
 trips :: T.Text -> [RDFTriple]
-trips t = [triple (toURI "urn:a") (toURI "urn:b") (Lit t)]
+trips t = [triple urnA urnB (Lit t)]
 
 coverageCases :: TF.Test
 coverageCases =
@@ -679,6 +694,8 @@ coverageCases =
   , compareExample "cov4"
     "<urn:a> <urn:b> \"3\\\\8\\\\11\" ."
     (trips "3\\8\\11")
+  , checkFormat "\\f" (trips "A\ffB")
+    "@prefix : <urn:a> .\n<urn:a> <urn:b> \"A\\u000CfB\" .\n"
   ]
 
 -- Extracted from failures seen when using the W3C test suite
