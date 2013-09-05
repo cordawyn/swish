@@ -1,3 +1,7 @@
+0.9.0.7
+
+  Minor documentation fix for Swish.RDF.Graph.quote.
+
 0.9.0.6:
 
   Turtle/N3 output: \f characters in literals are converted to

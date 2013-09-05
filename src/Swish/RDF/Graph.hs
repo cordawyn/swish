@@ -693,7 +693,7 @@ showCanon s                  = show s
 processChar ::
   Char
   -> (T.Text, Bool) -- ^ the boolean is @True@ if the returned text has been
-  -- expanded so that it begins with @\@
+  -- expanded so that it begins with @\\@
 processChar '"'  = ("\\\"", True)
 processChar '\\' = ("\\\\", True)
 processChar '\n' = ("\\n", True)
@@ -785,17 +785,17 @@ quoteT _ txt =
 -- | Turtle-style quoting rules for a string.
 --
 --   At present the choice is between using one or three
---   double quote (@"@) characters to surround the string; i.e. using
+--   double quote (@\"@) characters to surround the string; i.e. using
 --   single quote (@'@)  characters is not supported.
 -- 
---   As of Swish 0.9.0.6, the @\f@ character is converted to
---   @\u000C@ rather than left as is to aid interoperability
+--   As of Swish 0.9.0.6, the @\\f@ character is converted to
+--   @\\u000C@ rather than left as is to aid interoperability
 --   with some other tools.
 --   
 quote :: 
   Bool  -- ^ @True@ if the string is to be displayed using one rather than three quotes.
   -> String -- ^ String to quote.
-  -> String -- ^ The string does *not* contain the surrounding quote marks.
+  -> String -- ^ The string does /not/ contain the surrounding quote marks.
 quote f = T.unpack . quoteT f . T.pack
 
 {-
